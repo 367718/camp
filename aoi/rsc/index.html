@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+  
+  <head>
+    
+    <link rel="icon" href="data:,">
+    
+    <style>
+      
+      body {
+        margin: 25px;
+        display:flex;
+        justify-content: center;
+      }
+      
+      form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-gap: 25px;
+        width: 850px;
+      }
+      
+      form button {
+        font-size: 50px;
+        font-family: "Courier New", monospace;
+        height: 130px;
+        cursor: pointer;
+      }
+      
+      /* play / pause */
+      
+      form button:nth-of-type(1) {
+        grid-column-start: 1;
+        grid-column-end: 3;
+        color: red;
+      }
+      
+      /* minuschapter / pluschapter */
+      /* minusplaylist / plusplaylist */
+      
+      form button:nth-of-type(n+2) {
+        color: blue;
+      }
+      
+      /* minus5 / plus5 */
+      /* minus85 / plus85 */
+      
+      form button:nth-of-type(n+6) {
+        color: green;
+      }
+      
+      /* fullscreen / subtitles */
+      /* title / time */
+      
+      form button:nth-of-type(n+10) {
+        color: darkgoldenrod;
+      }
+      
+    </style>
+    
+  </head>
+  
+  <body>
+    
+    <form>
+      
+      <button formaction="/play">Play / Pause</button>
+      <button formaction="/minuschapter">< chapter</button>
+      <button formaction="/pluschapter">> chapter</button>
+      <button formaction="/minusplaylist">< playlist</button>
+      <button formaction="/plusplaylist">> playlist</button>
+      <button formaction="/minus5">< 5 secs</button>
+      <button formaction="/plus5">> 5 secs</button>
+      <button formaction="/minus85">< 85 secs</button>
+      <button formaction="/plus85">> 85 secs</button>
+      <button formaction="/fullscreen">Fullscreen</button>
+      <button formaction="/subtitles">Subtitles</button>
+      <button formaction="/title">Show title</button>
+      <button formaction="/time">Show time</button>
+      
+    </form>
+    
+  </body>
+  
+</html>

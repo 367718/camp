@@ -1,0 +1,10 @@
+[package]
+name = "rin"
+description = "Configuration files and command-line arguments"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dev-dependencies]
+tempfile = "3.3.0"

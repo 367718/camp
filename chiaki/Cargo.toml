@@ -1,0 +1,15 @@
+[package]
+name = "chiaki"
+description = "Database operations"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+nadeshiko = { path = "../nadeshiko", optional = true }
+
+bincode = "2.0.0-rc.2"
+
+[dev-dependencies]
+tempfile = "3.3.0"

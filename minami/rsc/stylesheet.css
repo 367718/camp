@@ -1,0 +1,33 @@
+window > box > box, dialog > box {
+  margin: 6px;
+}
+
+/* section groups */
+list box label {
+  margin: 0px 8px;
+}
+
+/* section names */
+list row label {
+  margin: 0px 6px;
+}
+
+/* config dialog, database dialog, candidates remove dialog and series remove dialog */
+label.weight-bold {
+  font-weight: bold;
+}
+
+/* file watcher mounting error */
+label.foreground-red {
+  color: red;
+}
+
+/* global search and move to folder suggestions window background */
+entry.completion treeview.view:not(:selected) {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+/* file watcher mounting error  */
+frame border {
+  border-top: none;
+}

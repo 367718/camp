@@ -1,0 +1,14 @@
+[package]
+name = "akari"
+description = "HTTP(S) 1.0 client"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+schannel = "0.1.20"
+
+[dev-dependencies]
+mockito = "0.31.0"
+tempfile = "3.3.0"

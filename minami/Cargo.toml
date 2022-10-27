@@ -1,0 +1,18 @@
+[package]
+name = "minami"
+description = "Manage files and watchlists"
+build = "rsc/build.rs"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rin = { path = "../rin" }
+ena = { path = "../ena" }
+nadeshiko = { path = "../nadeshiko" }
+chiaki = { path = "../chiaki", features = ["nadeshiko"] }
+aoi = { path = "../aoi" }
+akari = { path = "../akari" }
+
+gtk = { version = "0.16.0", features = ["v3_24_30"] }

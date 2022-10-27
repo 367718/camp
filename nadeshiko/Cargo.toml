@@ -1,0 +1,7 @@
+[package]
+name = "nadeshiko"
+description = "File downloads and series updates"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true

@@ -1,0 +1,28 @@
+[workspace]
+members = [
+  "minami",
+  "rin",
+  "ena",
+  "nadeshiko",
+  "chiaki",
+  "aoi",
+  "akari",
+]
+
+[workspace.package]
+version = "1.0.0"
+rust-version = "1.64.0"
+edition = "2021"
+license = "0BSD"
+
+[profile.release]
+lto = true
+panic = "abort"
+codegen-units = 1
+opt-level = 3
+incremental = false
+overflow-checks = false
+debug = false
+debug-assertions = false
+rpath = false
+strip = true
