@@ -7,18 +7,12 @@ use std::{
         io::{ AsRawSocket, IntoRawSocket },
     },
     path::Path,
-    sync::{
-        Arc,
-        atomic::{ AtomicBool, Ordering },
-        mpsc::Sender,
-    },
     thread,
     time::Duration,
 };
 
 pub struct RemoteControlServer {
-    socket: u64,
-    alive: Arc<AtomicBool>,
+    socket: Option<u64>,
 }
 
 const INDEX: &str = include_str!("../rsc/index.html");
@@ -50,7 +44,7 @@ impl RemoteControlServer {
     // ---------- constructors ----------
     
     
-    pub fn start(pipe: &Path, bind: &str, sender: Sender<Error>) -> Result<Self, Error> {
+    pub fn start<N: FnOnce(Error) + Send + 'static>(pipe: &Path, bind: &str, notify: N) -> Result<Self, Error> {
         let encoded_path: Vec<u16> = pipe.as_os_str()
             .encode_wide()
             .chain(Some(0))
@@ -71,14 +65,12 @@ impl RemoteControlServer {
         
         let pipe = File::create(pipe)?;
         let listener = TcpListener::bind(bind)?;
-        let socket = listener.as_raw_socket();
-        let alive = Arc::new(AtomicBool::new(false));
+        let socket = Some(listener.as_raw_socket());
         
-        Self::listen(pipe, listener, alive.clone(), sender)?;
+        Self::listen(pipe, listener, notify)?;
         
         Ok(Self {
             socket,
-            alive,
         })
     }
     
@@ -86,42 +78,31 @@ impl RemoteControlServer {
     // ---------- mutators ----------
     
     
-    pub fn stop(&self) -> Result<(), Error> {
-        // dropping the tcplistener in the spawned thread would close the socket
-        if self.alive.load(Ordering::Relaxed) {
+    pub fn stop(&mut self) {
+        if let Some(socket) = self.socket.take() {
             
-            let result = unsafe {
+            unsafe {
                 
-                ffi::closesocket(self.socket)
+                ffi::closesocket(socket)
                 
             };
             
-            if result != 0 {
-                return Err(Error::last_os_error());
-            }
-            
         }
-        
-        Ok(())
     }
     
     
     // ---------- helpers ----------
     
     
-    fn listen(mut pipe: File, listener: TcpListener, alive: Arc<AtomicBool>, sender: Sender<Error>) -> Result<(), Error> {
+    fn listen<N: FnOnce(Error) + Send + 'static>(mut pipe: File, listener: TcpListener, notify: N) -> Result<(), Error> {
         thread::Builder::new().spawn(move || {
             
-            alive.store(true, Ordering::Relaxed);
-            
             if let Err(error) = Self::handle_connections(&mut pipe, &listener) {
-                sender.send(error).unwrap();
+                notify(error);
             }
             
             // prevent double close
             listener.into_raw_socket();
-            
-            alive.store(false, Ordering::Relaxed);
             
         })?;
         
@@ -221,7 +202,7 @@ impl RemoteControlServer {
 impl Drop for RemoteControlServer {
     
     fn drop(&mut self) {
-        self.stop().ok();
+        self.stop();
     }
     
 }
