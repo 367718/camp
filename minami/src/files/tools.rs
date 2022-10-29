@@ -4,7 +4,6 @@ use std::{
     fs::{ self, OpenOptions },
     path::{ MAIN_SEPARATOR, Path },
     str,
-    sync::mpsc,
     thread,
 };
 
@@ -180,16 +179,19 @@ pub fn remote(state: &mut State) {
     append_text(&progress_buffer, &crate::general::concat_str!("Bind: ", bind, "\n"));
     append_text(&progress_buffer, "\nConnecting to player instance and starting HTTP server...\n\n");
     
-    // ---------- channels ----------
+    // ---------- channel ----------
     
-    let (glib_sender, glib_receiver): (glib::Sender<String>, _) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-    let (mpsc_sender, mpsc_receiver) = mpsc::channel();
+    let (job_sender, job_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
     
     // ---------- server ----------
     
     let mut server = None;
     
-    match RemoteControlServer::start(pipe, bind, mpsc_sender) {
+    let subscription = move |error| {
+        job_sender.send(error).unwrap();
+    };
+    
+    match RemoteControlServer::start(pipe, bind, subscription) {
         
         Ok(started) => {
             
@@ -197,21 +199,11 @@ pub fn remote(state: &mut State) {
             
             append_text(&progress_buffer, "Success, listening for commands...\n\n");
             
-            // ---------- errors ----------
+            // ---------- error ----------
             
-            glib_receiver.attach(None, move |error| {
-                append_text(&progress_buffer, &crate::general::concat_str!("ERROR: ", &error));
+            job_receiver.attach(None, move |error| {
+                append_text(&progress_buffer, &crate::general::concat_str!("ERROR: ", &error.to_string()));
                 glib::Continue(true)
-            });
-            
-            // ---------- thread ----------
-            
-            thread::spawn(move || {
-                
-                for error in mpsc_receiver {
-                    glib_sender.send(error.to_string()).unwrap();
-                }
-                
             });
             
         },
@@ -228,10 +220,8 @@ pub fn remote(state: &mut State) {
     
     // ---------- stop ----------
     
-    if let Some(server) = server {
-        if let Err(error) = server.stop() {
-            state.ui.dialogs_error_show(&error.to_string());
-        }
+    if let Some(mut server) = server {
+        server.stop();
     }
     
     // ---------- cleanup ----------
@@ -305,35 +295,23 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
     
     // ---------- channel ----------
     
-    let (jbsender, jbreceiver): (glib::Sender<Option<String>>, _) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+    let (job_sender, job_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
     
     // ---------- thread ----------
     
     thread::scope(|scope| {
         
-        // ---------- progress ----------
-        
-        jbreceiver.attach(None, move |message| {
-            match message {
-                Some(message) => progress_buffer.insert(&mut progress_buffer.end_iter(), &message),
-                None => job_dialog.set_response_sensitive(gtk::ResponseType::Close, true),
-            }
-            
-            glib::Continue(true)
-        });
-        
         // ---------- downloads ----------
         
         let result = scope.spawn(|| {
             
-            let mut client = HttpClient::new(timeout);
-            
             let mut result = Vec::new();
+            let mut client = HttpClient::new(timeout);
             
             for feed in feeds {
                 
-                jbsender.send(Some(feed.url.to_string())).unwrap();
-                jbsender.send(Some(String::from("\n------------------------------------------------------------\n"))).unwrap();
+                job_sender.send(Some(feed.url.to_string())).unwrap();
+                job_sender.send(Some(String::from("\n------------------------------------------------------------\n"))).unwrap();
                 
                 match client.get(&feed.url) {
                     
@@ -353,13 +331,13 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
                                 
                                 if ! result.contains(&current) {
                                     
-                                    jbsender.send(Some(crate::general::concat_str!(download.title, "\n"))).unwrap();
+                                    job_sender.send(Some(crate::general::concat_str!(download.title, "\n"))).unwrap();
                                     
                                     found_releases = true;
                                     
                                     // commit to disk
                                     if let Err(error) = get_torrent(&mut client, download.title, download.link, directory) {
-                                        jbsender.send(Some(crate::general::concat_str!("ERROR: ", &error.to_string(), "\n"))).unwrap();
+                                        job_sender.send(Some(crate::general::concat_str!("ERROR: ", &error.to_string(), "\n"))).unwrap();
                                         continue;
                                     }
                                     
@@ -372,23 +350,34 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
                         }
                         
                         if ! found_releases {
-                            jbsender.send(Some(String::from("No releases found\n"))).unwrap();
+                            job_sender.send(Some(String::from("No releases found\n"))).unwrap();
                         }
                         
                     },
                     
-                    Err(error) => jbsender.send(Some(crate::general::concat_str!("ERROR: ", &error.to_string(), "\n"))).unwrap(),
+                    Err(error) => job_sender.send(Some(crate::general::concat_str!("ERROR: ", &error.to_string(), "\n"))).unwrap(),
                     
                 }
                 
-                jbsender.send(Some(String::from("\n\n"))).unwrap();
+                job_sender.send(Some(String::from("\n\n"))).unwrap();
                 
             }
             
-            jbsender.send(None).unwrap();
+            job_sender.send(None).unwrap();
             
             result
             
+        });
+        
+        // ---------- progress ----------
+        
+        job_receiver.attach(None, move |message| {
+            match message {
+                Some(message) => progress_buffer.insert(&mut progress_buffer.end_iter(), &message),
+                None => job_dialog.set_response_sensitive(gtk::ResponseType::Close, true),
+            }
+            
+            glib::Continue(true)
         });
         
         // ---------- dialog ----------
@@ -398,6 +387,8 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
         job_dialog.run();
         job_dialog.unrealize();
         job_dialog.hide();
+        
+        // ---------- downloaded update ----------
         
         if let Ok(result) = result.join() {
             sender.send(Message::Preferences(PreferencesActions::DownloadedUpdate(result))).unwrap();
