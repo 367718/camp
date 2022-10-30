@@ -1058,10 +1058,10 @@ pub fn open(resource: &str) -> Result<(), Box<dyn Error>> {
         // https://docs.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shellexecutew
         fn ShellExecuteW(
             hwnd: *mut c_void, // HWND -> *mut HWND__
-            lpOperation: *const u16, // LPCWSTR -> *const WCHAR (wchar_t)
-            lpFile: *const u16, // LPCWSTR -> *const WCHAR (wchar_t)
-            lpParameters: *const u16, // LPCWSTR -> *const WCHAR (wchar_t)
-            lpDirectory: *const u16, // LPCWSTR -> *const WCHAR (wchar_t)
+            lpOperation: *const u16, // LPCWSTR -> *const WCHAR -> wchar_t
+            lpFile: *const u16, // LPCWSTR -> *const WCHAR -> wchar_t
+            lpParameters: *const u16, // LPCWSTR -> *const WCHAR -> wchar_t
+            lpDirectory: *const u16, // LPCWSTR -> *const WCHAR -> wchar_t
             nShowCmd: i32, // c_int
         ) -> *mut c_void; // HINSTANCE -> *mut HINSTANCE__
         
@@ -1075,23 +1075,21 @@ pub fn open(resource: &str) -> Result<(), Box<dyn Error>> {
         .chain(Some(0))
         .collect();
     
-    unsafe {
+    let result = unsafe {
         
-        let result = ShellExecuteW(
+        ShellExecuteW(
             ptr::null_mut(),
             operation.as_ptr(),
             file.as_ptr(),
             ptr::null(),
             ptr::null(),
-            5_i32, // SW_SHOW -> activates the window and displays it in its current size and position
-        );
+            5, // SW_SHOW
+        )
         
-        let result = result as isize;
-        
-        if result <= 32 {
-            return Err(io::Error::last_os_error().into());
-        }
-        
+    };
+    
+    if result as isize <= 32 {
+        return Err(io::Error::last_os_error().into());
     }
     
     Ok(())
@@ -1113,25 +1111,29 @@ pub fn current_date() -> String {
     #[allow(non_snake_case)]
     // https://docs.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-systemtime
     struct SYSTEMTIME {
-        wYear: u16, // WORD (c_ushort)
-        wMonth: u16, // WORD (c_ushort)
-        wDayOfWeek: u16, // WORD (c_ushort)
-        wDay: u16, // WORD (c_ushort)
-        wHour: u16, // WORD (c_ushort)
-        wMinute: u16, // WORD (c_ushort)
-        wSecond: u16, // WORD (c_ushort)
-        wMilliseconds: u16, // WORD (c_ushort)
+        wYear: u16, // WORD -> c_ushort
+        wMonth: u16, // WORD -> c_ushort
+        wDayOfWeek: u16, // WORD -> c_ushort
+        wDay: u16, // WORD -> c_ushort
+        wHour: u16, // WORD -> c_ushort
+        wMinute: u16, // WORD -> c_ushort
+        wSecond: u16, // WORD -> c_ushort
+        wMilliseconds: u16, // WORD -> c_ushort
     }
     
-    let st = unsafe {
+    let mut st = unsafe {
         
-        let mut result: SYSTEMTIME = mem::zeroed();
-        
-        GetLocalTime(&mut result);
-        
-        result
+        mem::zeroed::<SYSTEMTIME>()
         
     };
+    
+    unsafe {
+        
+        GetLocalTime(
+            &mut st,
+        );
+        
+    }
     
     format!("{:04}{:02}{:02}", st.wYear, st.wMonth, st.wDay)
     

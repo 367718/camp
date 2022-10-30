@@ -13,6 +13,55 @@ use std::{
     thread::{ self, JoinHandle },
 };
 
+mod ffi {
+    
+    use super::*;
+    
+    extern "system" {
+        
+        // https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
+        pub fn CreateFileW(
+            lpFileName: *const u16, // LPCWSTR -> *const WCHAR -> wchar_t
+            dwDesiredAccess: u32, // DWORD -> c_ulong
+            dwShareMode: u32, // DWORD -> c_ulong
+            lpSecurityAttributes: *mut c_void, // LPSECURITY_ATTRIBUTES -> *mut SECURITY_ATTRIBUTES
+            dwCreationDisposition: u32, // DWORD -> c_ulong
+            dwFlagsAndAttributes: u32, // DWORD -> c_ulong
+            hTemplateFile: *mut c_void, // HANDLE
+        ) -> *mut c_void; // HANDLE
+        
+        // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-readdirectorychangesw
+        pub fn ReadDirectoryChangesW(
+            hDirectory: *mut c_void, // HANDLE
+            lpBuffer: *mut c_void, // LPVOID
+            nBufferLength: u32, // DWORD -> c_ulong
+            bWatchSubtree: i32, // BOOL -> c_int
+            dwNotifyFilter: u32, // DWORD -> c_ulong
+            lpBytesReturned: *mut u32, // LPDWORD -> *mut DWORD -> c_ulong
+            lpOverlapped: *mut c_void, // LPOVERLAPPED -> *mut OVERLAPPED
+            lpCompletionRoutine: *mut c_void, // LPOVERLAPPED_COMPLETION_ROUTINE
+        ) -> i32; // BOOL -> c_int
+        
+        // https://docs.microsoft.com/en-us/windows/win32/fileio/cancelioex-func
+        pub fn CancelIoEx(
+            hFile: *mut c_void, // HANDLE
+            lpOverlapped: *mut c_void, // LPOVERLAPPED
+        ) -> i32; // BOOL -> c_int
+        
+    }
+    
+    #[repr(C)]
+    #[allow(non_snake_case)]
+    // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-file_notify_information
+    pub struct FILE_NOTIFY_INFORMATION {
+        pub NextEntryOffset: u32, // DWORD -> c_ulong
+        pub Action: u32, // DWORD -> c_ulong
+        pub FileNameLength: u32, // DWORD -> c_ulong
+        pub FileName: [u16; 1], // WCHAR -> wchar_t
+    }
+    
+}
+
 const EVENT_BUFFER_SIZE: u32 = 24 * 1024;
 
 pub struct FilesWatcher {
@@ -24,55 +73,6 @@ pub enum FilesWatcherEvent {
     FileAdded(PathBuf),
     FileRemoved(PathBuf),
     Interrupted(Error),
-}
-
-mod ffi {
-    
-    use super::*;
-    
-    extern "system" {
-        
-        // https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
-        pub fn CreateFileW(
-            lpFileName: *const u16, // LPCWSTR -> *const WCHAR (wchar_t)
-            dwDesiredAccess: u32, // DWORD (c_ulong)
-            dwShareMode: u32, // DWORD (c_ulong)
-            lpSecurityAttributes: *mut c_void, // LPSECURITY_ATTRIBUTES -> *mut SECURITY_ATTRIBUTES
-            dwCreationDisposition: u32, // DWORD (c_ulong)
-            dwFlagsAndAttributes: u32, // DWORD (c_ulong)
-            hTemplateFile: *mut c_void, // HANDLE
-        ) -> *mut c_void; // HANDLE
-        
-        // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-readdirectorychangesw
-        pub fn ReadDirectoryChangesW(
-            hDirectory: *mut c_void, // HANDLE
-            lpBuffer: *mut c_void, // LPVOID
-            nBufferLength: u32, // DWORD (c_ulong)
-            bWatchSubtree: i32, // BOOL (c_int)
-            dwNotifyFilter: u32, // DWORD (c_ulong)
-            lpBytesReturned: *mut u32, // LPDWORD -> *mut DWORD (c_ulong)
-            lpOverlapped: *mut c_void, // LPOVERLAPPED -> *mut OVERLAPPED
-            lpCompletionRoutine: *mut c_void, // LPOVERLAPPED_COMPLETION_ROUTINE
-        ) -> i32; // BOOL (c_int)
-        
-        // https://docs.microsoft.com/en-us/windows/win32/fileio/cancelioex-func
-        pub fn CancelIoEx(
-            hFile: *mut c_void, // HANDLE
-            lpOverlapped: *mut c_void, // LPOVERLAPPED
-        ) -> i32; // BOOL (c_int)
-        
-    }
-    
-    #[repr(C)]
-    #[allow(non_snake_case)]
-    // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-file_notify_information
-    pub struct FILE_NOTIFY_INFORMATION {
-        pub NextEntryOffset: u32, // DWORD (c_ulong)
-        pub Action: u32, // DWORD (c_ulong)
-        pub FileNameLength: u32, // DWORD (c_ulong)
-        pub FileName: [u16; 1], // WCHAR (wchar_t)
-    }
-    
 }
 
 impl FilesWatcher {
@@ -134,7 +134,7 @@ impl FilesWatcher {
                         EVENT_BUFFER_SIZE,
                         1,
                         0x0000_0001 | 0x0000_0002, // FILE_NOTIFY_CHANGE_FILE_NAME, FILE_NOTIFY_CHANGE_DIR_NAME
-                        ptr::addr_of_mut!(bytes),
+                        &mut bytes,
                         ptr::null_mut(),
                         ptr::null_mut(),
                     )

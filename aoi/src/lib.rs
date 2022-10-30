@@ -1,24 +1,16 @@
+mod listener;
+
 use std::{
     fs::File,
     io::{ Read, Write, Error },
-    net::{ TcpListener, TcpStream },
-    os::windows::{
-        ffi::OsStrExt,
-        io::{ AsRawSocket, IntoRawSocket },
-    },
+    net::TcpStream,
+    os::windows::ffi::OsStrExt,
     path::Path,
     thread,
     time::Duration,
 };
 
-pub struct RemoteControlServer {
-    socket: Option<u64>,
-}
-
-const INDEX: &str = include_str!("../rsc/index.html");
-const LISTENER_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
-const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;
-const PIPE_MAX_WAIT: u32 = 5000; // milliseconds
+use listener::{ Listener, ListenerStopper };
 
 mod ffi {
     
@@ -26,17 +18,21 @@ mod ffi {
         
         // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-waitnamedpipew
         pub fn WaitNamedPipeW(
-            lpNamedPipeName: *const u16, // LPCWSTR -> *const WCHAR (wchar_t)
-            nTimeOut: u32, // DWORD (c_ulong)
-        ) -> i32; // BOOL (c_int)
-        
-        // https://docs.microsoft.com/en-us/windows/win32/api/winsock/nf-winsock-closesocket
-        pub fn closesocket(
-            s: u64, // SOCKET (UINT_PTR)
-        ) -> i32; // c_int
+            lpNamedPipeName: *const u16, // LPCWSTR -> *const WCHAR -> wchar_t
+            nTimeOut: u32, // DWORD -> c_ulong
+        ) -> i32; // BOOL -> c_int
         
     }
     
+}
+
+const INDEX: &str = include_str!("../rsc/index.html");
+const STREAM_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
+const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;
+const PIPE_MAX_WAIT: u32 = 5000; // milliseconds
+
+pub struct RemoteControlServer {
+    stopper: ListenerStopper,
 }
 
 impl RemoteControlServer {
@@ -64,13 +60,12 @@ impl RemoteControlServer {
         }
         
         let pipe = File::create(pipe)?;
-        let listener = TcpListener::bind(bind)?;
-        let socket = Some(listener.as_raw_socket());
+        let (listener, stopper) = Listener::new(bind)?;
         
         Self::listen(pipe, listener, notify)?;
         
         Ok(Self {
-            socket,
+            stopper,
         })
     }
     
@@ -79,43 +74,32 @@ impl RemoteControlServer {
     
     
     pub fn stop(&mut self) {
-        if let Some(socket) = self.socket.take() {
-            
-            unsafe {
-                
-                ffi::closesocket(socket)
-                
-            };
-            
-        }
+        self.stopper.stop();
     }
     
     
     // ---------- helpers ----------
     
     
-    fn listen<N: FnOnce(Error) + Send + 'static>(mut pipe: File, listener: TcpListener, notify: N) -> Result<(), Error> {
+    fn listen<N: FnOnce(Error) + Send + 'static>(mut pipe: File, listener: Listener, notify: N) -> Result<(), Error> {
         thread::Builder::new().spawn(move || {
             
             if let Err(error) = Self::handle_connections(&mut pipe, &listener) {
                 notify(error);
             }
             
-            // prevent double close
-            listener.into_raw_socket();
-            
         })?;
         
         Ok(())
     }
     
-    fn handle_connections(pipe: &mut File, listener: &TcpListener) -> Result<(), Error> {
-        for stream in listener.incoming() {
+    fn handle_connections(pipe: &mut File, listener: &Listener) -> Result<(), Error> {
+        loop {
             
-            let mut stream = stream?;
+            let mut stream = listener.accept()?;
             
-            stream.set_read_timeout(LISTENER_TIMEOUT)?;
-            stream.set_write_timeout(LISTENER_TIMEOUT)?;
+            stream.set_read_timeout(STREAM_TIMEOUT)?;
+            stream.set_write_timeout(STREAM_TIMEOUT)?;
             
             if let Some(request) = Self::get_request(&mut stream) {
                 
@@ -134,8 +118,6 @@ impl RemoteControlServer {
             }
             
         }
-        
-        Ok(())
     }
     
     fn get_request(stream: &mut TcpStream) -> Option<Vec<u8>> {
@@ -195,14 +177,6 @@ impl RemoteControlServer {
         write!(response, "{}", body).unwrap();
         
         stream.write_all(&response)
-    }
-    
-}
-
-impl Drop for RemoteControlServer {
-    
-    fn drop(&mut self) {
-        self.stop();
     }
     
 }

@@ -13,6 +13,7 @@ use std::{
     io::{ self, Write },
     path::{ Path, PathBuf },
     process,
+    ptr,
 };
 
 use gtk::{
@@ -216,7 +217,7 @@ fn register_app() -> Result<(), Box<dyn Error>> {
         fn CreateMutexW(
             lpMutexAttributes: *mut c_void, // LPSECURITY_ATTRIBUTES -> *mut SECURITY_ATTRIBUTES
             bInitialOwner: i32, // BOOL
-            lpName: *const u16, // LPCWSTR -> *const WCHAR (wchar_t)
+            lpName: *const u16, // LPCWSTR -> *const WCHAR -> wchar_t
         ) -> *mut c_void; // HANDLE
         
     }
@@ -227,14 +228,14 @@ fn register_app() -> Result<(), Box<dyn Error>> {
     
     unsafe {
         
-        // create named mutex that will be automatically released on application shutdown
+        // mutex will be automatically released on application shutdown
         CreateMutexW(
-            std::ptr::null_mut(),
+            ptr::null_mut(),
             0,
             name.as_ptr(),
-        );
+        )
         
-    }
+    };
     
     // allow app to run even if mutex could not be created, but stop if it already exists
     if io::Error::last_os_error().kind() == io::ErrorKind::AlreadyExists {
