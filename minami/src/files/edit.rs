@@ -222,6 +222,6 @@ pub fn copy_names(state: &State) {
     
     let text = names.join("\n");
     
-    state.ui.clipboards_set_text(&text);
+    state.ui.clipboard_set_text(&text);
     
 }

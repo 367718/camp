@@ -3,14 +3,15 @@ mod menus;
 mod window;
 mod dialogs;
 
-use std::env;
-
 use gtk::{
     gdk,
     prelude::*,
 };
 
-use crate::{ FilesSection, WatchlistSection };
+use crate::{
+    STYLESHEET,
+    FilesSection, WatchlistSection,
+};
 
 use stores::Stores;
 use window::Window;
@@ -26,7 +27,7 @@ const SECTIONS_LISTBOX_ROW_HEIGHT: i32 = 40;
 
 pub struct Ui {
     widgets: Widgets,
-    clipboards: Clipboards,
+    clipboard: gtk::Clipboard,
 }
 
 pub struct Widgets {
@@ -36,19 +37,12 @@ pub struct Widgets {
     pub dialogs: Dialogs,
 }
 
-struct Clipboards {
-    main: gtk::Clipboard,
-    primary: gtk::Clipboard,
-}
-
 impl Ui {
     
     // ---------- constructors ----------
     
     
     pub fn new(stylesheet_arg: Option<&str>) -> Self {
-        // ---------- widgets ----------
-        
         let stores =  Stores::new();
         let menus = Menus::new();
         let window = Window::new(&menus);
@@ -64,28 +58,9 @@ impl Ui {
         let provider = gtk::CssProvider::new();
         
         match stylesheet_arg {
-            
-            // command-line argument
-            Some(arg) => {
-                
-                provider.load_from_path(arg).ok();
-                
-            },
-            
-            // executable-adjacent
-            None => {
-                
-                let exec = env::current_exe()
-                    .unwrap()
-                    .with_file_name("stylesheet.css");
-                
-                if let Some(exec) = exec.to_str() {
-                    provider.load_from_path(exec).ok();
-                }
-                
-            },
-            
-        }
+            Some(arg) => provider.load_from_path(arg).ok(),
+            None => provider.load_from_data(STYLESHEET).ok(),
+        };
         
         gtk::StyleContext::add_provider_for_screen(
             &gtk::prelude::GtkWindowExt::screen(&widgets.window.general.window).unwrap(),
@@ -93,20 +68,11 @@ impl Ui {
             gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
         
-        // ---------- clipboards ----------
-        
-        // primary allows for middle-click paste while the application is running
-        
-        let clipboards = Clipboards {
-            main: widgets.window.general.window.clipboard(&gdk::Atom::intern("CLIPBOARD")),
-            primary: widgets.window.general.window.clipboard(&gdk::Atom::intern("PRIMARY")),
-        };
-        
-        // ---------- struct ----------
+        let clipboard = widgets.window.general.window.clipboard(&gdk::Atom::intern("CLIPBOARD"));
         
         Self {
             widgets,
-            clipboards,
+            clipboard,
         }
     }
     
@@ -118,9 +84,8 @@ impl Ui {
         &self.widgets
     }
     
-    pub fn clipboards_set_text(&self, text: &str) {
-        self.clipboards.main.set_text(text);
-        self.clipboards.primary.set_text(text);
+    pub fn clipboard_set_text(&self, text: &str) {
+        self.clipboard.set_text(text);
     }
     
     pub fn dialogs_error_show(&self, message: &str) {

@@ -640,7 +640,7 @@ pub fn copy_titles(state: &State) {
     
     let text = titles.join("\n");
     
-    state.ui.clipboards_set_text(&text);
+    state.ui.clipboard_set_text(&text);
 }
 
 fn delete_related_candidate(state: &mut State, id: SeriesId) -> Result<(), Box<dyn Error>> {

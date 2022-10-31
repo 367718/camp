@@ -4,9 +4,9 @@ Manage files and watchlists.
 
 ## Behavior
 
-If the "dlonly" command-line flag is specified, only the "Download new releases" procedure will be run.
+Use the "--help" command-line flag to list all the available flags and arguments.
 
-A stylesheet file can be used to customize the appearance via a subset of CSS. An example is provided in the "rsc" directory. The file, without changing its name, should be placed alongside the executable, or a path should be provided via the "--stylesheet" argument.
+The application appearance can be customized via a subset of CSS. An example of the rules applied by default can be found in the "rsc" directory, and may be overridden providing a file path via the "--stylesheet" command-line argument.
 
 ## Issues and limitations
 
