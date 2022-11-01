@@ -72,85 +72,85 @@ impl Args {
             
             // window
             
-            window_maximized: Self::extract_value(&mut cmdargs, WINDOW_MAXIMIZED_ARG)
+            window_maximized: Self::remove_value(&mut cmdargs, WINDOW_MAXIMIZED_ARG)
                 .and_then(|value| match value {
                     value if value.eq_ignore_ascii_case("yes") => Some(true),
                     value if value.eq_ignore_ascii_case("no") => Some(false),
                     _ => None,
                 }),
             
-            window_width: Self::extract_value(&mut cmdargs, WINDOW_WIDTH_ARG)
+            window_width: Self::remove_value(&mut cmdargs, WINDOW_WIDTH_ARG)
                 .and_then(|value| value.parse().ok())
                 .filter(|&value| Window::validate_dimension(value).is_ok()),
             
-            window_height: Self::extract_value(&mut cmdargs, WINDOW_HEIGHT_ARG)
+            window_height: Self::remove_value(&mut cmdargs, WINDOW_HEIGHT_ARG)
                 .and_then(|value| value.parse().ok())
                 .filter(|&value| Window::validate_dimension(value).is_ok()),
             
-            window_x: Self::extract_value(&mut cmdargs, WINDOW_X_ARG)
+            window_x: Self::remove_value(&mut cmdargs, WINDOW_X_ARG)
                 .and_then(|value| value.parse().ok())
                 .filter(|&value| Window::validate_coordinate(value).is_ok()),
             
-            window_y: Self::extract_value(&mut cmdargs, WINDOW_Y_ARG)
+            window_y: Self::remove_value(&mut cmdargs, WINDOW_Y_ARG)
                 .and_then(|value| value.parse().ok())
                 .filter(|&value| Window::validate_coordinate(value).is_ok()),
             
             // media
             
-            media_player: Self::extract_value(&mut cmdargs, MEDIA_PLAYER_ARG)
+            media_player: Self::remove_value(&mut cmdargs, MEDIA_PLAYER_ARG)
                 .filter(|value| Media::validate_player(value).is_ok()),
             
-            media_iconify: Self::extract_value(&mut cmdargs, MEDIA_ICONIFY_ARG)
+            media_iconify: Self::remove_value(&mut cmdargs, MEDIA_ICONIFY_ARG)
                 .and_then(|value| match value {
                     value if value.eq_ignore_ascii_case("yes") => Some(true),
                     value if value.eq_ignore_ascii_case("no") => Some(false),
                     _ => None,
                 }),
             
-            media_flag: Self::extract_value(&mut cmdargs, MEDIA_FLAG_ARG)
+            media_flag: Self::remove_value(&mut cmdargs, MEDIA_FLAG_ARG)
                 .filter(|value| Media::validate_flag(value).is_ok()),
             
-            media_timeout: Self::extract_value(&mut cmdargs, MEDIA_TIMEOUT_ARG)
+            media_timeout: Self::remove_value(&mut cmdargs, MEDIA_TIMEOUT_ARG)
                 .and_then(|value| value.parse().ok())
                 .map(Duration::from_secs),
             
-            media_autoselect: Self::extract_value(&mut cmdargs, MEDIA_AUTOSELECT_ARG)
+            media_autoselect: Self::remove_value(&mut cmdargs, MEDIA_AUTOSELECT_ARG)
                 .and_then(|value| match value {
                     value if value.eq_ignore_ascii_case("yes") => Some(true),
                     value if value.eq_ignore_ascii_case("no") => Some(false),
                     _ => None,
                 }),
             
-            media_lookup: Self::extract_value(&mut cmdargs, MEDIA_LOOKUP_ARG)
+            media_lookup: Self::remove_value(&mut cmdargs, MEDIA_LOOKUP_ARG)
                 .filter(|value| Media::validate_lookup(value).is_ok()),
             
-            media_bind: Self::extract_value(&mut cmdargs, MEDIA_BIND_ARG)
+            media_bind: Self::remove_value(&mut cmdargs, MEDIA_BIND_ARG)
                 .filter(|value| Media::validate_bind(value).is_ok()),
             
             // paths
             
-            paths_files: Self::extract_value(&mut cmdargs, PATHS_FILES_ARG)
+            paths_files: Self::remove_value(&mut cmdargs, PATHS_FILES_ARG)
                 .map(PathBuf::from),
             
-            paths_downloads: Self::extract_value(&mut cmdargs, PATHS_DOWNLOADS_ARG)
+            paths_downloads: Self::remove_value(&mut cmdargs, PATHS_DOWNLOADS_ARG)
                 .map(PathBuf::from),
             
-            paths_pipe: Self::extract_value(&mut cmdargs, PATHS_PIPE_ARG)
+            paths_pipe: Self::remove_value(&mut cmdargs, PATHS_PIPE_ARG)
                 .map(PathBuf::from),
             
-            paths_database: Self::extract_value(&mut cmdargs, PATHS_DATABASE_ARG)
+            paths_database: Self::remove_value(&mut cmdargs, PATHS_DATABASE_ARG)
                 .map(PathBuf::from),
             
             // free
             
             free_flags: flags.iter()
                 .filter(|key| key.starts_with("--"))
-                .filter_map(|key| Self::extract_flag(&mut cmdargs, key))
+                .filter_map(|key| Self::remove_flag(&mut cmdargs, key))
                 .collect(),
             
             free_pairs: pairs.iter()
                 .filter(|key| key.starts_with("--"))
-                .filter_map(|key| Self::extract_pair(&mut cmdargs, key))
+                .filter_map(|key| Self::remove_pair(&mut cmdargs, key))
                 .collect(),
             
         }
@@ -178,7 +178,7 @@ impl Args {
     // ---------- helpers ----------
     
     
-    fn extract_value(cmdargs: &mut Vec<String>, key: &str) -> Option<String> {
+    fn remove_value(cmdargs: &mut Vec<String>, key: &str) -> Option<String> {
         for (index, window) in cmdargs.windows(2).enumerate() {
             if window[0].eq_ignore_ascii_case(key) && ! window[1].starts_with("--") {
                 
@@ -194,7 +194,7 @@ impl Args {
         None
     }
     
-    fn extract_pair(cmdargs: &mut Vec<String>, key: &str) -> Option<(String, String)> {
+    fn remove_pair(cmdargs: &mut Vec<String>, key: &str) -> Option<(String, String)> {
         for (index, window) in cmdargs.windows(2).enumerate() {
             if window[0].eq_ignore_ascii_case(key) && ! window[1].starts_with("--") {
                 
@@ -211,7 +211,7 @@ impl Args {
         None
     }
     
-    fn extract_flag(cmdargs: &mut Vec<String>, key: &str) -> Option<String> {
+    fn remove_flag(cmdargs: &mut Vec<String>, key: &str) -> Option<String> {
         for (index, flag) in cmdargs.iter().enumerate() {
             if flag.eq_ignore_ascii_case(key) {
                 

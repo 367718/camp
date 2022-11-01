@@ -57,11 +57,11 @@ impl Window {
     pub fn deserialize(content: &[u8]) -> Result<(Self, bool), Box<dyn Error>> {
         let mut corrected = false;
         
-        let maximized = Config::extract_value(content, b"window.maximized")?;
-        let width = Config::extract_value(content, b"window.width")?;
-        let height = Config::extract_value(content, b"window.height")?;
-        let x = Config::extract_value(content, b"window.x")?;
-        let y = Config::extract_value(content, b"window.y")?;
+        let maximized = Config::get_value(content, b"window.maximized")?;
+        let width = Config::get_value(content, b"window.width")?;
+        let height = Config::get_value(content, b"window.height")?;
+        let x = Config::get_value(content, b"window.x")?;
+        let y = Config::get_value(content, b"window.y")?;
         
         let mut window = Window {
             maximized: maximized == "true",

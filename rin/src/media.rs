@@ -83,13 +83,13 @@ impl Media {
     pub fn deserialize(content: &[u8]) -> Result<(Self, bool), Box<dyn Error>> {
         let mut corrected = false;
         
-        let player = Config::extract_value(content, b"media.player")?;
-        let iconify = Config::extract_value(content, b"media.iconify")?;
-        let flag = Config::extract_value(content, b"media.flag")?;
-        let timeout = Config::extract_value(content, b"media.timeout")?;
-        let autoselect = Config::extract_value(content, b"media.autoselect")?;
-        let lookup = Config::extract_value(content, b"media.lookup")?;
-        let bind = Config::extract_value(content, b"media.bind")?;
+        let player = Config::get_value(content, b"media.player")?;
+        let iconify = Config::get_value(content, b"media.iconify")?;
+        let flag = Config::get_value(content, b"media.flag")?;
+        let timeout = Config::get_value(content, b"media.timeout")?;
+        let autoselect = Config::get_value(content, b"media.autoselect")?;
+        let lookup = Config::get_value(content, b"media.lookup")?;
+        let bind = Config::get_value(content, b"media.bind")?;
         
         let mut media = Media {
             player: player.to_string(),

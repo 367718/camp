@@ -52,10 +52,10 @@ impl Paths {
     pub fn deserialize(content: &[u8]) -> Result<(Self, bool), Box<dyn Error>> {
         let mut corrected = false;
         
-        let files = Config::extract_value(content, b"paths.files")?;
-        let downloads = Config::extract_value(content, b"paths.downloads")?;
-        let pipe = Config::extract_value(content, b"paths.pipe")?;
-        let database = Config::extract_value(content, b"paths.database")?;
+        let files = Config::get_value(content, b"paths.files")?;
+        let downloads = Config::get_value(content, b"paths.downloads")?;
+        let pipe = Config::get_value(content, b"paths.pipe")?;
+        let database = Config::get_value(content, b"paths.database")?;
         
         let mut paths = Paths {
             files: PathBuf::from(files),

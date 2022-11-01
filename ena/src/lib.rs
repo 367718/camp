@@ -444,8 +444,6 @@ mod lib {
     
     use super::*;
     
-    use std::mem;
-    
     mod add {
         
         use super::*;

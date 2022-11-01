@@ -125,7 +125,7 @@ impl Config {
     // ---------- helpers ----------
     
     
-    pub(crate) fn extract_value<'a>(data: &'a [u8], key: &[u8]) -> Result<&'a str, Box<dyn Error>> {
+    pub(crate) fn get_value<'a>(data: &'a [u8], key: &[u8]) -> Result<&'a str, Box<dyn Error>> {
         if let Some(line) = data.split(|&value| value == b'\n').find(|line| line.starts_with(key)) {
             if let [b' ', b'=', b' ', value @ ..] = &line[key.len()..] {
                 
