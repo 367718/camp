@@ -10,7 +10,6 @@ The download functionality expects an XML conforming to the RSS 2.0 spec whose c
 
 ## Issues and limitations
 
-* Chapter numbers must be higher than zero.
-* If a chapter number is determined to have a decimal point, such as "10.5", the entry will be skipped.
+* If a chapter number is determined to be zero or have a decimal point, such as "10.5", the entry will be skipped.
 * Chapter number extraction will be unreliable if candidate cleanup is not done properly.
 * Entries whose fields contain characters not representable in UTF-8 will be skipped.

@@ -40,7 +40,12 @@ fn build_entry<'f>(name: &'f str, path: &'f Path, candidates: &[impl IsCandidate
     
     let id = candidate.id();
     
-    Some(UpdatesEntry { name, path, episode, id })
+    Some(UpdatesEntry {
+        name,
+        path,
+        episode,
+        id,
+    })
 }
 
 #[cfg(test)]
@@ -157,27 +162,27 @@ mod tests {
             assert!(output.is_none());
         }
         
-    }
-    
-    fn generate_files() -> Vec<(&'static str, &'static Path)> {
-        Vec::from([
-            (
-                "[Imaginary] Fictional - 9 [480p]",
-                Path::new("fake/path/[Imaginary] Fictional - 9 [480p].mp4"),
-            ),
-            (
-                "[Imaginary] Fictional - 10 [480p]",
-                Path::new("fake/path/[Imaginary] Fictional - 10 [480p].mp4"),
-            ),
-            (
-                "[Placeholder] Test - 12 [1080p]",
-                Path::new("fake/path/[Placeholder] Test - 12 [1080p].mkv"),
-            ),
-            (
-                "[Not-present] Other - 17 [720p]",
-                Path::new("fake/path/[Not-present] Other - 17 [720p].mkv"),
-            ),
-        ])
+        fn generate_files() -> Vec<(&'static str, &'static Path)> {
+            Vec::from([
+                (
+                    "[Imaginary] Fictional - 9 [480p]",
+                    Path::new("fake/path/[Imaginary] Fictional - 9 [480p].mp4"),
+                ),
+                (
+                    "[Imaginary] Fictional - 10 [480p]",
+                    Path::new("fake/path/[Imaginary] Fictional - 10 [480p].mp4"),
+                ),
+                (
+                    "[Placeholder] Test - 12 [1080p]",
+                    Path::new("fake/path/[Placeholder] Test - 12 [1080p].mkv"),
+                ),
+                (
+                    "[Not-present] Other - 17 [720p]",
+                    Path::new("fake/path/[Not-present] Other - 17 [720p].mkv"),
+                ),
+            ])
+        }
+        
     }
     
 }

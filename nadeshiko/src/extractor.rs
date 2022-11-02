@@ -1,34 +1,28 @@
 pub fn get(clean: &str) -> Option<u32> {
     let mut chars = clean.chars();
     
-    while let Some(curr) = chars.next() {
+    if let Some(digit) = chars.find_map(|curr| curr.to_digit(10)) {
         
-        if let Some(digit) = curr.to_digit(10) {
+        let mut number = digit;
+        
+        while let Some(curr) = chars.next() {
             
-            let mut number = digit;
-            
-            while let Some(curr) = chars.next() {
-                
-                if let Some(digit) = curr.to_digit(10) {
-                    number = number.checked_mul(10)?.checked_add(digit)?;
-                    continue;
-                }
-                
-                // if next to a digit is a dot and next to the dot is another digit, abort
-                if curr == '.' && chars.next().filter(char::is_ascii_digit).is_some() {
-                    return None;
-                }
-                
-                break;
-                
+            if let Some(digit) = curr.to_digit(10) {
+                number = number.checked_mul(10)?.checked_add(digit)?;
+                continue;
             }
             
-            if number > 0 {
-                return Some(number);
+            // if next to a digit is a dot and next to the dot is another digit, abort
+            if curr == '.' && chars.next().filter(char::is_ascii_digit).is_some() {
+                return None;
             }
             
             break;
             
+        }
+        
+        if number > 0 {
+            return Some(number);
         }
         
     }

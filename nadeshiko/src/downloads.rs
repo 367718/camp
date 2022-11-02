@@ -57,7 +57,12 @@ fn build_entry<'f>(item: &'f [u8], candidates: &[impl IsCandidate]) -> Option<Do
     
     let id = candidate.id();
     
-    Some(DownloadsEntry { title, link, episode, id })
+    Some(DownloadsEntry {
+        title,
+        link,
+        episode,
+        id,
+    })
 }
 
 fn get_tag_range(content: &[u8], open: &[u8], close: &[u8]) -> Option<Range<usize>> {
