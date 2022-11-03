@@ -27,7 +27,9 @@ pub fn get<'f>(feed: &'f [u8], candidates: &[impl IsCandidate]) -> Option<Vec<Do
             result.push(entry);
         }
         
-        let start = item.end.checked_add(b"</item>".len())?;
+        let Some(start) = item.end.checked_add(b"</item>".len()) else {
+            break;
+        };
         
         content = &content[start..];
         

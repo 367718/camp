@@ -955,9 +955,8 @@ fn search_focus(state: &State) {
 fn search_select(state: &State, string_iter: &str) {
     let search_sort = &state.ui.widgets().stores.general.search.sort;
     
-    let search_iter = match search_sort.iter_from_string(string_iter) {
-        Some(search_iter) => search_iter,
-        None => return,
+    let Some(search_iter) = search_sort.iter_from_string(string_iter) else {
+        return;
     };
     
     let is_file = search_sort.value(&search_iter, 0).get::<bool>().unwrap();
@@ -1140,7 +1139,6 @@ pub fn current_date() -> String {
 }
 
 pub fn percent_encode(value: &str) -> String {
-	
 	const ENCODED: &str = concat!(
         "%00%01%02%03%04%05%06%07%08%09%0A%0B%0C%0D%0E%0F",
         "%10%11%12%13%14%15%16%17%18%19%1A%1B%1C%1D%1E%1F",
@@ -1179,7 +1177,6 @@ pub fn percent_encode(value: &str) -> String {
     }
     
     result
-	
 }
 
 pub fn natural_cmp(first: &str, second: &str) -> Ordering {
@@ -1187,16 +1184,9 @@ pub fn natural_cmp(first: &str, second: &str) -> Ordering {
     fn extract_number(chars: &mut Peekable<Chars>) -> u32 {
         let mut number = 0;
         
-        while let Some(curr) = chars.peek() {
-            
-            if let Some(digit) = curr.to_digit(10) {
-                number = number * 10 + digit;
-                chars.next();
-                continue;
-            }
-            
-            break;
-            
+        while let Some(digit) = chars.peek().and_then(|curr| curr.to_digit(10)) {
+            number = number * 10 + digit;
+            chars.next();
         }
         
         number

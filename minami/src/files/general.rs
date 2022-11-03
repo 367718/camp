@@ -120,14 +120,12 @@ fn fill(state: &State) {
     
     for entry in state.files.iter() {
         
-        let name = match entry.name.to_str() {
-            Some(name) => name,
-            _ => continue,
+        let Some(name) = entry.name.to_str() else {
+            continue;
         };
         
-        let path = match entry.path.to_str() {
-            Some(path) => path,
-            _ => continue,
+        let Some(path) = entry.path.to_str() else {
+            continue;
         };
         
         // subdirectory
@@ -136,9 +134,8 @@ fn fill(state: &State) {
             
             Some(container) => {
                 
-                let container = match container.to_str() {
-                    Some(container) => container,
-                    None => continue,
+                let Some(container) = container.to_str() else {
+                    continue;
                 };
                 
                 Some(&*containers.entry((entry.mark != FilesMark::None, container)).or_insert_with(|| {
@@ -185,23 +182,20 @@ pub fn add(state: &mut State, sender: &Sender<Message>, path: &Path) {
         
         for entry in added {
             
-            let name = match entry.name.to_str() {
-                Some(name) => name,
-                _ => continue,
+            let Some(name) = entry.name.to_str() else {
+                continue;
             };
             
-            let path = match entry.path.to_str() {
-                Some(path) => path,
-                _ => continue,
+            let Some(path) = entry.path.to_str() else {
+                continue;
             };
             
             let container_iter = match entry.container.as_ref() {
                 
                 Some(container) => {
                     
-                    let container = match container.to_str() {
-                        Some(container) => container,
-                        None => continue,
+                    let Some(container) = container.to_str() else {
+                        continue;
                     };
                     
                     let mut result = None;
@@ -274,9 +268,8 @@ pub fn remove(state: &mut State, sender: &Sender<Message>, path: &Path) {
         
         for entry in removed {
             
-            let search = match entry.path.to_str() {
-                Some(search) => search,
-                None => continue,
+            let Some(search) = entry.path.to_str() else {
+                continue;
             };
             
             files_store.foreach(|_, _, store_iter| {
@@ -303,9 +296,8 @@ pub fn remove(state: &mut State, sender: &Sender<Message>, path: &Path) {
 }
 
 pub fn menu_popup(state: &State, coords: Option<(f64, f64)>) {
-    let treeview = match state.ui.files_current_treeview() {
-        Some(treeview) => treeview,
-        None => return,
+    let Some(treeview) = state.ui.files_current_treeview() else {
+        return;
     };
     
     let (treepaths, _) = treeview.selection().selected_rows();

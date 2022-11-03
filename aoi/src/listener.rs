@@ -246,9 +246,8 @@ impl Listener {
     
     
     pub fn accept(&self) -> Result<TcpStream, Error> {
-        let socket = match self.socket.upgrade() {
-            Some(socket) => socket,
-            None => return Err(Error::new(ErrorKind::Other, "The socket has been closed")),
+        let Some(socket) = self.socket.upgrade() else {
+            return Err(Error::new(ErrorKind::Other, "The socket has been closed"));
         };
         
         let accept = unsafe {

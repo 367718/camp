@@ -162,9 +162,8 @@ pub fn play(state: &mut State) {
             .split(' ')
             .map(OsStr::new);
         
-        let player = match args.next() {
-            Some(player) => player,
-            None => return,
+        let Some(player) = args.next() else {
+            return;
         };
         
         let unmarked = list.widget_name() == FilesSection::New.display();
@@ -189,9 +188,8 @@ pub fn play(state: &mut State) {
 }
 
 pub fn rename(state: &State) {
-    let treeview = match state.ui.files_current_treeview() {
-        Some(treeview) => treeview,
-        None => return,
+    let Some(treeview) = state.ui.files_current_treeview() else {
+        return;
     };
     
     let (treepaths, treemodel) = treeview.selection().selected_rows();
@@ -254,9 +252,8 @@ pub fn rename(state: &State) {
 }
 
 pub fn move_to_folder(state: &State) {
-    let treeview = match state.ui.files_current_treeview() {
-        Some(treeview) => treeview,
-        None => return,
+    let Some(treeview) = state.ui.files_current_treeview() else {
+        return;
     };
     
     let (treepaths, treemodel) = treeview.selection().selected_rows();
@@ -426,9 +423,8 @@ pub fn mark_as_updated(state: &mut State, updates: Vec<(SeriesId, u32, PathBuf)>
     
     for (id, episode, path) in updates {
         
-        let current = match state.database.series_get(id) {
-            Some(current) => current,
-            None => continue,
+        let Some(current) = state.database.series_get(id) else {
+            continue;
         };
         
         if current.progress < episode {

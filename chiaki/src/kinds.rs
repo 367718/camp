@@ -66,7 +66,6 @@ impl Kinds {
         
         let id = KindsId::from(self.counter);
         
-        // validation error
         self.check_entry(id, &entry)?;
         
         self.entries.insert(id, entry);
@@ -79,12 +78,9 @@ impl Kinds {
             return Err("Kind not found".into());
         }
         
-        // validation error
         self.check_entry(id, &entry)?;
         
-        let previous = self.entries.insert(id, entry).unwrap();
-        
-        Ok(previous)
+        Ok(self.entries.insert(id, entry).unwrap())
     }
     
     pub fn remove(&mut self, id: KindsId, series: &Series) -> Result<KindsEntry, Box<dyn Error>> {
@@ -92,10 +88,8 @@ impl Kinds {
             return Err("A kind cannot be removed if a related series is defined".into());
         }
         
-        let previous = self.entries.remove(&id)
-            .ok_or("Kind not found")?;
-        
-        Ok(previous)
+        self.entries.remove(&id)
+            .ok_or_else(|| "Kind not found".into())
     }
     
     

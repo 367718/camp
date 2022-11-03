@@ -86,7 +86,7 @@ impl Files {
         let new_name = Path::new(name).file_name().ok_or("Could not get new file name")?;
         let current_extension = path.extension().ok_or("Could not get current file extension")?;
         
-        let destination = path.with_file_name(&new_name).with_extension(&current_extension);
+        let destination = path.with_file_name(new_name).with_extension(current_extension);
         
         if path != destination {
             
@@ -96,7 +96,7 @@ impl Files {
                 .open(&destination)
                 .map_err(|_| format!("File already exists or write error: {}", path.to_string_lossy()))?;
             
-            fs::rename(&path, &destination)?;
+            fs::rename(path, &destination)?;
             
         }
         
@@ -142,7 +142,7 @@ impl Files {
                 .open(&destination)
                 .map_err(|_| format!("File already exists or write error: {}", path.to_string_lossy()))?;
             
-            fs::rename(&path, &destination)?;
+            fs::rename(path, &destination)?;
             
         }
         

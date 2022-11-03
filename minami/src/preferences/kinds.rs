@@ -193,9 +193,8 @@ pub fn add(state: &mut State) {
 pub fn edit(state: &mut State, sender: &Sender<Message>) {
     let kinds_treeview = &state.ui.widgets().window.preferences.kinds.treeview;
     
-    let (treemodel, treeiter) = match kinds_treeview.selection().selected() {
-        Some((treemodel, treeiter)) => (treemodel, treeiter),
-        None => return,
+    let Some((treemodel, treeiter)) = kinds_treeview.selection().selected() else {
+        return;
     };
     
     let id = KindsId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap());
@@ -277,9 +276,8 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
 }
 
 pub fn delete(state: &mut State) {
-    let (treemodel, treeiter) = match state.ui.widgets().window.preferences.kinds.treeview.selection().selected() {
-        Some((treemodel, treeiter)) => (treemodel, treeiter),
-        None => return,
+    let Some((treemodel, treeiter)) = state.ui.widgets().window.preferences.kinds.treeview.selection().selected() else {
+        return;
     };
     
     let delete_dialog = &state.ui.widgets().dialogs.general.delete.dialog;

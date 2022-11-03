@@ -64,7 +64,6 @@ impl Feeds {
         
         let id = FeedsId::from(self.counter);
         
-        // validation error
         self.check_entry(id, &entry)?;
         
         self.entries.insert(id, entry);
@@ -77,19 +76,14 @@ impl Feeds {
             return Err("Feed not found".into());
         }
         
-        // validation error
         self.check_entry(id, &entry)?;
         
-        let previous = self.entries.insert(id, entry).unwrap();
-        
-        Ok(previous)
+        Ok(self.entries.insert(id, entry).unwrap())
     }
     
     pub fn remove(&mut self, id: FeedsId) -> Result<FeedsEntry, Box<dyn Error>> {
-        let previous = self.entries.remove(&id)
-            .ok_or("Feed not found")?;
-        
-        Ok(previous)
+        self.entries.remove(&id)
+            .ok_or_else(|| "Feed not found".into())
     }
     
     

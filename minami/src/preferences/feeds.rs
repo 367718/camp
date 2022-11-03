@@ -197,9 +197,8 @@ pub fn add(state: &mut State) {
 pub fn edit(state: &mut State) {
     let feeds_treeview = &state.ui.widgets().window.preferences.feeds.treeview;
     
-    let (treemodel, treeiter) = match feeds_treeview.selection().selected() {
-        Some((treemodel, treeiter)) => (treemodel, treeiter),
-        None => return,
+    let Some((treemodel, treeiter)) = feeds_treeview.selection().selected() else {
+        return;
     };
     
     let id = FeedsId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap());
@@ -276,9 +275,8 @@ pub fn edit(state: &mut State) {
 }
 
 pub fn delete(state: &mut State) {
-    let (treemodel, treeiter) = match state.ui.widgets().window.preferences.feeds.treeview.selection().selected() {
-        Some((treemodel, treeiter)) => (treemodel, treeiter),
-        None => return,
+    let Some((treemodel, treeiter)) = state.ui.widgets().window.preferences.feeds.treeview.selection().selected() else {
+        return;
     };
     
     let delete_dialog = &state.ui.widgets().dialogs.general.delete.dialog;
@@ -315,9 +313,8 @@ pub fn delete(state: &mut State) {
 }
 
 pub fn open(state: &State) {
-    let (treemodel, treeiter) = match state.ui.widgets().window.preferences.feeds.treeview.selection().selected() {
-        Some((treemodel, treeiter)) => (treemodel, treeiter),
-        None => return,
+    let Some((treemodel, treeiter)) = state.ui.widgets().window.preferences.feeds.treeview.selection().selected() else {
+        return;
     };
     
     let url = treemodel.value(&treeiter, 1).get::<glib::GString>().unwrap();

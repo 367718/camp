@@ -112,7 +112,7 @@ impl Database {
             bincode::encode_into_std_write(&self.data, &mut tmp_file, config)?;
             
             // attempt to perform the update atomically
-            fs::rename(&tmp_path, &path)?;
+            fs::rename(&tmp_path, path)?;
             
             self.modified = false;
             

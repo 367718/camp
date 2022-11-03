@@ -90,7 +90,6 @@ impl Candidates {
         
         let id = CandidatesId::from(self.counter);
         
-        // validation error
         self.check_entry(id, &entry, series)?;
         
         self.entries.insert(id, entry);
@@ -103,19 +102,14 @@ impl Candidates {
             return Err("Candidate not found".into());
         }
         
-        // validation error
         self.check_entry(id, &entry, series)?;
         
-        let previous = self.entries.insert(id, entry).unwrap();
-        
-        Ok(previous)
+        Ok(self.entries.insert(id, entry).unwrap())
     }
     
     pub fn remove(&mut self, id: CandidatesId) -> Result<CandidatesEntry, Box<dyn Error>> {
-        let previous = self.entries.remove(&id)
-            .ok_or("Candidate not found")?;
-        
-        Ok(previous)
+        self.entries.remove(&id)
+            .ok_or_else(|| "Candidate not found".into())
     }
     
     

@@ -106,7 +106,6 @@ impl Series {
         
         let id = SeriesId::from(self.counter);
         
-        // validation error
         self.check_entry(id, &entry, kinds, candidates)?;
         
         self.entries.insert(id, entry);
@@ -119,12 +118,9 @@ impl Series {
             return Err("Series not found".into());
         }
         
-        // validation error
         self.check_entry(id, &entry, kinds, candidates)?;
         
-        let previous = self.entries.insert(id, entry).unwrap();
-        
-        Ok(previous)
+        Ok(self.entries.insert(id, entry).unwrap())
     }
     
     pub fn remove(&mut self, id: SeriesId, candidates: &Candidates) -> Result<SeriesEntry, Box<dyn Error>> {
@@ -132,10 +128,8 @@ impl Series {
             return Err("A series cannot be removed if a related candidate is defined".into());
         }
         
-        let previous = self.entries.remove(&id)
-            .ok_or("Series not found")?;
-        
-        Ok(previous)
+        self.entries.remove(&id)
+            .ok_or_else(|| "Series not found".into())
     }
     
     

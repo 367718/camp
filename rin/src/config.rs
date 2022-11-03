@@ -107,7 +107,7 @@ impl Config {
             writer.flush()?;
             
             // attempt to perform the update atomically
-            fs::rename(&tmp_path, &path)?;
+            fs::rename(&tmp_path, path)?;
             
             self.modified = false;
             

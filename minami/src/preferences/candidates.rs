@@ -381,9 +381,8 @@ pub fn candidates_add(state: &mut State, sender: &Sender<Message>, prefill: &Opt
 }
 
 pub fn candidates_edit(state: &mut State, sender: &Sender<Message>) {
-    let (treemodel, treeiter) = match state.ui.widgets().window.preferences.candidates.candidates_treeview.selection().selected() {
-        Some((treemodel, treeiter)) => (treemodel, treeiter),
-        None => return,
+    let Some((treemodel, treeiter)) = state.ui.widgets().window.preferences.candidates.candidates_treeview.selection().selected() else {
+        return;
     };
     
     let id = CandidatesId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap());
@@ -392,12 +391,9 @@ pub fn candidates_edit(state: &mut State, sender: &Sender<Message>) {
         
         Some(previous) => {
             
-            let series_title = match state.database.series_get(previous.series).map(|series| &series.title) {
-                Some(series_title) => series_title,
-                None => {
-                    state.ui.dialogs_error_show("Series not found");
-                    return;
-                },
+            let Some(series_title) = state.database.series_get(previous.series).map(|series| &series.title) else {
+                state.ui.dialogs_error_show("Series not found");
+                return;
             };
             
             state.ui.widgets().dialogs.preferences.candidates.dialog.set_title("Edit candidate");
@@ -527,9 +523,8 @@ pub fn candidates_edit(state: &mut State, sender: &Sender<Message>) {
 }
 
 pub fn candidates_delete(state: &mut State) {
-    let (treemodel, treeiter) = match state.ui.widgets().window.preferences.candidates.candidates_treeview.selection().selected() {
-        Some((treemodel, treeiter)) => (treemodel, treeiter),
-        None => return,
+    let Some((treemodel, treeiter)) = state.ui.widgets().window.preferences.candidates.candidates_treeview.selection().selected() else {
+        return;
     };
     
     let delete_dialog = &state.ui.widgets().dialogs.general.delete.dialog;
@@ -801,9 +796,8 @@ fn candidates_series_edit(state: &mut State, sender: &Sender<Message>, series: S
 
 
 pub fn downloaded_add(state: &mut State) {
-    let (candidates_treemodel, candidates_treeiter) = match state.ui.widgets().window.preferences.candidates.candidates_treeview.selection().selected() {
-        Some((candidates_treemodel, candidates_treeiter)) => (candidates_treemodel, candidates_treeiter),
-        None => return,
+    let Some((candidates_treemodel, candidates_treeiter)) = state.ui.widgets().window.preferences.candidates.candidates_treeview.selection().selected() else {
+        return;
     };
     
     let id = CandidatesId::from(candidates_treemodel.value(&candidates_treeiter, 0).get::<u32>().unwrap());
@@ -916,14 +910,12 @@ pub fn downloaded_edit(state: &mut State) {
     let candidates_treeview = &state.ui.widgets().window.preferences.candidates.candidates_treeview;
     let downloaded_treeview = &state.ui.widgets().window.preferences.candidates.downloaded_treeview;
     
-    let (candidates_treemodel, candidates_treeiter) = match candidates_treeview.selection().selected() {
-        Some((candidates_treemodel, candidates_treeiter)) => (candidates_treemodel, candidates_treeiter),
-        None => return,
+    let Some((candidates_treemodel, candidates_treeiter)) = candidates_treeview.selection().selected() else {
+        return;
     };
     
-    let (downloaded_treemodel, downloaded_treeiter) = match downloaded_treeview.selection().selected() {
-        Some((downloaded_treemodel, downloaded_treeiter)) => (downloaded_treemodel, downloaded_treeiter),
-        None => return,
+    let Some((downloaded_treemodel, downloaded_treeiter)) = downloaded_treeview.selection().selected() else {
+        return;
     };
     
     let id = CandidatesId::from(candidates_treemodel.value(&candidates_treeiter, 0).get::<u32>().unwrap());
@@ -1028,14 +1020,12 @@ pub fn downloaded_delete(state: &mut State) {
     let candidates_treeview = &state.ui.widgets().window.preferences.candidates.candidates_treeview;
     let downloaded_treeview = &state.ui.widgets().window.preferences.candidates.downloaded_treeview;
     
-    let (candidates_treemodel, candidates_treeiter) = match candidates_treeview.selection().selected() {
-        Some((candidates_treemodel, candidates_treeiter)) => (candidates_treemodel, candidates_treeiter),
-        None => return,
+    let Some((candidates_treemodel, candidates_treeiter)) = candidates_treeview.selection().selected() else {
+        return;
     };
     
-    let (downloaded_treemodel, downloaded_treeiter) = match downloaded_treeview.selection().selected() {
-        Some((downloaded_treemodel, downloaded_treeiter)) => (downloaded_treemodel, downloaded_treeiter),
-        None => return,
+    let Some((downloaded_treemodel, downloaded_treeiter)) = downloaded_treeview.selection().selected() else {
+        return;
     };
     
     let id = CandidatesId::from(candidates_treemodel.value(&candidates_treeiter, 0).get::<u32>().unwrap());
@@ -1080,9 +1070,8 @@ pub fn downloaded_update(state: &mut State, sender: &Sender<Message>, downloads:
     
     for (series, download) in downloads {
         
-        let (id, candidate) = match state.database.candidates_iter().find(|(_, current)| current.series == series) {
-            Some((id, candidate)) => (id, candidate),
-            None => continue,
+        let Some((id, candidate)) = state.database.candidates_iter().find(|(_, current)| current.series == series) else {
+            continue;
         };
         
         if ! candidate.downloaded.contains(&download) {

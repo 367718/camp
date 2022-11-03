@@ -147,9 +147,8 @@ pub fn copy_names(state: &State) {
         composite
     }
     
-    let treeview = match state.ui.files_current_treeview() {
-        Some(treeview) => treeview,
-        None => return,
+    let Some(treeview) = state.ui.files_current_treeview() else {
+        return;
     };
     
     let selection = treeview.selection();

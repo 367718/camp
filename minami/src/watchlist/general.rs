@@ -126,9 +126,8 @@ fn bind(state: &State, sender: &Sender<Message>) {
 }
 
 pub fn menu_popup(state: &State, coords: Option<(f64, f64)>) {
-    let treeview = match state.ui.watchlist_current_treeview() {
-        Some(treeview) => treeview,
-        None => return,
+    let Some(treeview) = state.ui.watchlist_current_treeview() else {
+        return;
     };
     
     let (treepaths, _) = treeview.selection().selected_rows();

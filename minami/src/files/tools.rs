@@ -104,9 +104,8 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
 }
 
 pub fn lookup(state: &State) {
-    let treeview = match state.ui.files_current_treeview() {
-        Some(treeview) => treeview,
-        None => return,
+    let Some(treeview) = state.ui.files_current_treeview() else {
+        return;
     };
     
     let (treepaths, treemodel) = treeview.selection().selected_rows();

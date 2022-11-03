@@ -305,9 +305,8 @@ pub fn add(state: &mut State, sender: &Sender<Message>, prefill: &Option<String>
 }
 
 pub fn edit(state: &mut State, sender: &Sender<Message>, completed: bool) {
-    let treeview = match state.ui.watchlist_current_treeview() {
-        Some(treeview) => treeview,
-        None => return,
+    let Some(treeview) = state.ui.watchlist_current_treeview() else {
+        return;
     };
     
     let (treepaths, treemodel) = treeview.selection().selected_rows();
@@ -493,9 +492,8 @@ pub fn edit(state: &mut State, sender: &Sender<Message>, completed: bool) {
 }
 
 pub fn delete(state: &mut State, sender: &Sender<Message>) {
-    let treeview = match state.ui.watchlist_current_treeview() {
-        Some(treeview) => treeview,
-        None => return,
+    let Some(treeview) = state.ui.watchlist_current_treeview() else {
+        return;
     };
     
     let (treepaths, treemodel) = treeview.selection().selected_rows();
@@ -554,9 +552,8 @@ pub fn delete(state: &mut State, sender: &Sender<Message>) {
 }
 
 pub fn change_progress(state: &mut State, modification: &ProgressModification) {
-    let treeview = match state.ui.watchlist_current_treeview() {
-        Some(treeview) => treeview,
-        None => return,
+    let Some(treeview) = state.ui.watchlist_current_treeview() else {
+        return;
     };
     
     let (treepaths, treemodel) = treeview.selection().selected_rows();
@@ -618,9 +615,8 @@ pub fn change_progress(state: &mut State, modification: &ProgressModification) {
 }
 
 pub fn copy_titles(state: &State) {
-    let treeview = match state.ui.watchlist_current_treeview() {
-        Some(treeview) => treeview,
-        None => return,
+    let Some(treeview) = state.ui.watchlist_current_treeview() else {
+        return;
     };
     
     let selection = treeview.selection();
@@ -671,9 +667,8 @@ fn delete_related_candidate(state: &mut State, id: SeriesId) -> Result<(), Box<d
 }
 
 fn select_series(state: &State, store_iter: &gtk::TreeIter) {
-    let treeview = match state.ui.watchlist_current_treeview() {
-        Some(treeview) => treeview,
-        None => return,
+    let Some(treeview) = state.ui.watchlist_current_treeview() else {
+        return;
     };
     
     let sort: gtk::TreeModelSort = treeview.model().unwrap().downcast().unwrap();

@@ -64,7 +64,6 @@ impl Formats {
         
         let id = FormatsId::from(self.counter);
         
-        // validation error
         self.check_entry(id, &entry)?;
         
         self.entries.insert(id, entry);
@@ -77,19 +76,14 @@ impl Formats {
             return Err("Format not found".into());
         }
         
-        // validation error
         self.check_entry(id, &entry)?;
         
-        let previous = self.entries.insert(id, entry).unwrap();
-        
-        Ok(previous)
+        Ok(self.entries.insert(id, entry).unwrap())
     }
     
     pub fn remove(&mut self, id: FormatsId) -> Result<FormatsEntry, Box<dyn Error>> {
-        let previous = self.entries.remove(&id)
-            .ok_or("Format not found")?;
-        
-        Ok(previous)
+        self.entries.remove(&id)
+            .ok_or_else(|| "Format not found".into())
     }
     
     

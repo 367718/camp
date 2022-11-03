@@ -218,14 +218,12 @@ impl FilesWatcher {
 impl Drop for FilesWatcher {
     
     fn drop(&mut self) {
-        let join_handle = match self.join_handle.take() {
-            Some(join_handle) => join_handle,
-            None => return,
+        let Some(join_handle) = self.join_handle.take() else {
+            return;
         };
         
-        let directory_handle = match self.weak_handle.upgrade() {
-            Some(directory_handle) => directory_handle,
-            None => return,
+        let Some(directory_handle) = self.weak_handle.upgrade() else {
+            return;
         };
         
         thread::spawn(move || {
