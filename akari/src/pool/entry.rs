@@ -3,7 +3,7 @@ use std::{
     io::{ self, ErrorKind, Read, Write, Take },
     net::{ TcpStream, ToSocketAddrs },
     str,
-    time::{ Duration, Instant },
+    time::Duration,
 };
 
 use schannel::{
@@ -147,23 +147,12 @@ impl Entry {
     
     
     fn connect(host: &str, port: u16, secure: bool, timeout: Duration) -> Result<Connection, Box<dyn Error>> {
-        let deadline = Instant::now()
-            .checked_add(timeout)
-            .ok_or("Bad timeout")?;
-        
-        // no timeout implemented
         for address in (host, port).to_socket_addrs()? {
             
-            let deadline = deadline.checked_duration_since(Instant::now())
-                .ok_or("DNS resolution exceeded the specified timeout or no connection could be established in time")?;
-            
-            // tcpstream's "connect" method accepts a string as address, but "connect_timeout" must be supplied an already resolved address
-            if let Ok(stream) = TcpStream::connect_timeout(&address, deadline) {
+            if let Ok(stream) = TcpStream::connect_timeout(&address, timeout) {
                 
-                let timeout = Some(timeout);
-                
-                stream.set_read_timeout(timeout)?;
-                stream.set_write_timeout(timeout)?;
+                stream.set_read_timeout(Some(timeout))?;
+                stream.set_write_timeout(Some(timeout))?;
                 
                 if secure {
                     
@@ -180,7 +169,7 @@ impl Entry {
             
         }
         
-        Err("DNS resolution failed".into())
+        Err("Connection to remote host failed".into())
     }
     
     fn fill_head(handle: &mut ReadHandle, head: &mut Vec<u8>, body: &mut Vec<u8>) -> Result<(), Box<dyn Error>> {
