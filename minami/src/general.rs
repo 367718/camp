@@ -2,11 +2,12 @@ use std::{
     cmp::Ordering,
     env,
     error::Error,
-    ffi::{ c_void, OsString },
+    ffi::OsString,
     fs::{ self, OpenOptions },
     io,
     iter::Peekable,
     mem,
+    os::raw::*,
     path::{ MAIN_SEPARATOR, PathBuf },
     process,
     ptr,
@@ -1050,36 +1051,21 @@ fn search_select(state: &State, string_iter: &str) {
 // ---------- misc ----------
 
 
-pub fn open(resource: &str) -> Result<(), Box<dyn Error>> {
-    
-    extern "system" {
-        
-        // https://docs.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shellexecutew
-        fn ShellExecuteW(
-            hwnd: *mut c_void, // HWND -> *mut HWND__
-            lpOperation: *const u16, // LPCWSTR -> *const WCHAR -> wchar_t
-            lpFile: *const u16, // LPCWSTR -> *const WCHAR -> wchar_t
-            lpParameters: *const u16, // LPCWSTR -> *const WCHAR -> wchar_t
-            lpDirectory: *const u16, // LPCWSTR -> *const WCHAR -> wchar_t
-            nShowCmd: i32, // c_int
-        ) -> *mut c_void; // HINSTANCE -> *mut HINSTANCE__
-        
-    }
-    
-    let operation: Vec<u16> = "open".encode_utf16()
+pub fn open(file: &str) -> Result<(), Box<dyn Error>> {
+    let encoded_operation: Vec<c_ushort> = "open".encode_utf16()
         .chain(Some(0))
         .collect();
     
-    let file: Vec<u16> = resource.encode_utf16()
+    let encoded_file: Vec<c_ushort> = file.encode_utf16()
         .chain(Some(0))
         .collect();
     
     let result = unsafe {
         
-        ShellExecuteW(
+        crate::ffi::ShellExecuteW(
             ptr::null_mut(),
-            operation.as_ptr(),
-            file.as_ptr(),
+            encoded_operation.as_ptr(),
+            encoded_file.as_ptr(),
             ptr::null(),
             ptr::null(),
             5, // SW_SHOW
@@ -1092,50 +1078,24 @@ pub fn open(resource: &str) -> Result<(), Box<dyn Error>> {
     }
     
     Ok(())
-    
 }
 
 pub fn current_date() -> String {
-    
-    extern "system" {
-        
-        // https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getlocaltime
-        fn GetLocalTime(
-            lpSystemTime: *mut SYSTEMTIME, // LPSYSTEMTIME
-        );
-        
-    }
-    
-    #[repr(C)]
-    #[allow(non_snake_case)]
-    // https://docs.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-systemtime
-    struct SYSTEMTIME {
-        wYear: u16, // WORD -> c_ushort
-        wMonth: u16, // WORD -> c_ushort
-        wDayOfWeek: u16, // WORD -> c_ushort
-        wDay: u16, // WORD -> c_ushort
-        wHour: u16, // WORD -> c_ushort
-        wMinute: u16, // WORD -> c_ushort
-        wSecond: u16, // WORD -> c_ushort
-        wMilliseconds: u16, // WORD -> c_ushort
-    }
-    
     let mut st = unsafe {
         
-        mem::zeroed::<SYSTEMTIME>()
+        mem::zeroed::<crate::ffi::SYSTEMTIME>()
         
     };
     
     unsafe {
         
-        GetLocalTime(
+        crate::ffi::GetLocalTime(
             &mut st,
         );
         
     }
     
     format!("{:04}{:02}{:02}", st.wYear, st.wMonth, st.wDay)
-    
 }
 
 pub fn percent_encode(value: &str) -> String {

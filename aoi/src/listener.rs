@@ -3,7 +3,13 @@ use std::{
     io::{ Error, ErrorKind },
     mem,
     net::TcpStream,
-    os::windows::io::FromRawSocket,
+    os::{
+        raw::*,
+        windows::{
+            io::FromRawSocket,
+            raw::SOCKET,
+        },
+    },
     ptr,
     sync::{ Arc, Weak },
 };
@@ -16,77 +22,77 @@ mod ffi {
         
         // https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-wsastartup
         pub fn WSAStartup(
-            wVersionRequested: u16, // WORD -> c_ushort
-            lpWSAData: *mut c_void, // LPWSADATA -> *mut WSADATA
-        ) -> i32; // c_int
+            wversionrequested: c_ushort,
+            lpwsadata: *mut c_void, // WSADATA
+        ) -> c_int;
         
         // https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-wsacleanup
-        pub fn WSACleanup() -> i32; // c_int
+        pub fn WSACleanup() -> c_int;
         
         // https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-wsastringtoaddressw
         pub fn WSAStringToAddressW(
-            AddressString: *const u16, // LPWSTR -> *const WCHAR -> wchar_t
-            AddressFamily: i32, // INT -> c_int
-            lpProtocolInfo: *mut c_void, // LPWSAPROTOCOL_INFOW -> *mut WSAPROTOCL_INFOW
-            lpAddress: *mut SOCKADDR, // LPSOCKADDR
-            lpAddressLength: *mut i32, // LPINT *mut c_int
-        ) -> i32; // INT -> c_int
+            addressstring: *const c_ushort,
+            addressfamily: c_int,
+            lpprotocolinfo: *const c_void, // WSAPROTOCOL_INFOW
+            lpaddress: *mut SOCKADDR,
+            lpaddresslength: *mut c_int,
+        ) -> c_int;
         
         // https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-wsasocketw
         pub fn WSASocketW(
-            af: i32, // c_int
-            _type: i32, // c_int
-            protocol: i32, // c_int
-            lpProtocolInfo: *mut c_void, // LPWSAPROTOCOL_INFOW -> *mut WSAPROTOCOL_INFOW
-            g: u32, // GROUP -> c_uint
-            dwFlags: u32, // DWORD -> c_ulong
-        ) -> usize; // SOCKET -> UINT_PTR
+            af: c_int,
+            _type: c_int,
+            protocol: c_int,
+            lpprotocolinfo: *const c_void, // WSAPROTOCOL_INFOW
+            g: c_uint,
+            dwflags: c_ulong,
+        ) -> SOCKET;
         
         // https://learn.microsoft.com/en-us/windows/win32/api/winsock/nf-winsock-wsagetlasterror
-        pub fn WSAGetLastError() -> i32; // c_int
+        pub fn WSAGetLastError() -> c_int;
         
         // https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-bind
         pub fn bind(
-            s: usize, // SOCKET -> UINT_PTR
+            s: SOCKET,
             name: *const SOCKADDR,
-            namelen: i32 // c_int
-        ) -> i32; // c_int
+            namelen: c_int,
+        ) -> c_int;
         
         // https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-listen
         pub fn listen(
-            s: usize, // SOCKET -> UINT_PTR
-            backlog: i32, // c_int
-        ) -> i32; // c_int
+            s: SOCKET,
+            backlog: c_int,
+        ) -> c_int;
         
         // https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-accept
         pub fn accept(
-            s: usize, // SOCKET -> UINT_PTR
+            s: SOCKET,
             addr: *mut SOCKADDR,
-            addrlen: *mut i32, // c_int
-        ) -> usize; // SOCKET -> UINT_PTR
+            addrlen: *mut c_int,
+        ) -> SOCKET;
         
         // https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-closesocket
         pub fn closesocket(
-            s: usize, // SOCKET -> UINT_PTR
-        ) -> i32; // c_int
+            s: SOCKET,
+        ) -> c_int;
         
     }
     
     #[repr(C)]
     // https://learn.microsoft.com/en-us/windows/win32/api/winsock/ns-winsock-sockaddr
     pub struct SOCKADDR {
-        pub sa_family: u16, // ADDRESS_FAMILY -> USHORT -> c_ushort
-        pub sa_data: [i8; 14], // CHAR -> c_char
+        pub sa_family: c_ushort,
+        pub sa_data: [c_char; 14],
     }
     
 }
 
 pub struct Listener {
-    socket: Weak<usize>,
+    socket: Weak<SOCKET>,
 }
 
 pub struct ListenerStopper {
-    socket: Option<Arc<usize>>,
+    socket: Option<Arc<SOCKET>>,
 }
 
 impl Listener {
@@ -114,7 +120,7 @@ impl Listener {
         
         // ---------- address ----------
         
-        let encoded_address: Vec<u16> = bind_address.encode_utf16()
+        let encoded_address: Vec<c_ushort> = bind_address.encode_utf16()
             .chain(Some(0))
             .collect();
         
@@ -124,14 +130,14 @@ impl Listener {
             
         };
         
-        let mut address_length = mem::size_of_val(&address) as i32;
-        
         let conversion = unsafe {
+            
+            let mut address_length = mem::size_of_val(&address) as c_int;
             
             ffi::WSAStringToAddressW(
                 encoded_address.as_ptr(),
                 2, // AF_INET
-                ptr::null_mut(),
+                ptr::null(),
                 &mut address,
                 &mut address_length,
             )
@@ -167,7 +173,7 @@ impl Listener {
             
         };
         
-        if socket == ! 0usize {
+        if socket == ! 0 as SOCKET {
             
             close_and_cleanup(None);
             
@@ -182,7 +188,7 @@ impl Listener {
             ffi::bind(
                 socket,
                 &address,
-                mem::size_of_val(&address) as i32,
+                mem::size_of_val(&address) as c_int,
             )
             
         };
@@ -260,7 +266,7 @@ impl Listener {
             
         };
         
-        if accept == ! 0usize {
+        if accept == ! 0 as SOCKET {
             
             let error = unsafe {
                 
@@ -274,7 +280,7 @@ impl Listener {
         
         let stream = unsafe {
             
-            TcpStream::from_raw_socket(accept as u64)
+            TcpStream::from_raw_socket(accept)
             
         };
         
@@ -301,7 +307,7 @@ impl Drop for ListenerStopper {
     
 }
 
-fn close_and_cleanup(socket: Option<usize>) {
+fn close_and_cleanup(socket: Option<SOCKET>) {
     
     if let Some(socket) = socket {
         
