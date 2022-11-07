@@ -33,7 +33,6 @@ pub enum PreferencesActions {
     FeedsAdd,
     FeedsEdit,
     FeedsDelete,
-    FeedsOpen,
     FeedsReload,
     
     // ---------- formats ----------
@@ -158,9 +157,6 @@ pub fn handle_action(state: &mut State, sender: &Sender<Message>, action: Prefer
         
         // preferences -> feeds -> bind x2
         FeedsDelete => feeds::delete(state),
-        
-        // preferences -> feeds -> bind
-        FeedsOpen => feeds::open(state),
         
         // general -> reload_database
         FeedsReload => feeds::reload(state),

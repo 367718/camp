@@ -3,27 +3,13 @@ use gtk::{
     prelude::*,
 };
 
-pub struct Menus {
-    pub bar: Bar,
-}
-
-pub struct Bar {
+pub struct Preferences {
     pub menu: gtk::MenuBar,
 }
 
-impl Menus {
+impl Preferences {
     
     pub fn new() -> Self {
-        Self {
-            bar: Bar::new(),
-        }
-    }
-    
-}
-
-impl Bar {
-    
-    fn new() -> Self {
         
         /*
         
@@ -41,7 +27,7 @@ impl Bar {
             
             menu ("_View")
                 
-                menu_item ("_Focus search", "app.general.search.focus", "CONTROL + F")
+                menu_item ("Focus _search", "app.general.search.focus", "CONTROL + F")
                 
                 separator_menu_item
                 
@@ -64,7 +50,7 @@ impl Bar {
         
         let menu = {
             
-            gtk::builders::MenuBarBuilder::new()
+            gtk::MenuBar::builder()
             .visible(false)
             .no_show_all(true)
             .hexpand(true)
@@ -92,7 +78,7 @@ impl Bar {
     fn build_file() -> gtk::MenuItem {
         let menu = {
             
-            gtk::builders::MenuBuilder::new()
+            gtk::Menu::builder()
             .visible(true)
             .build()
             
@@ -103,12 +89,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.general.save_and_quit")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("_Quit")
                         .use_underline(true)
@@ -128,7 +114,7 @@ impl Bar {
             
         }
         
-        gtk::builders::MenuItemBuilder::new()
+        gtk::MenuItem::builder()
         .visible(true)
         .label("_File")
         .use_underline(true)
@@ -137,7 +123,7 @@ impl Bar {
     }
     
     fn build_edit() -> gtk::MenuItem {
-        gtk::builders::MenuItemBuilder::new()
+        gtk::MenuItem::builder()
         .visible(true)
         .sensitive(false)
         .label("Edit")
@@ -147,7 +133,7 @@ impl Bar {
     fn build_view() -> gtk::MenuItem {
         let menu = {
             
-            gtk::builders::MenuBuilder::new()
+            gtk::Menu::builder()
             .visible(true)
             .build()
             
@@ -158,14 +144,14 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.general.search.focus")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
-                        .label("_Focus search")
+                        .label("Focus _search")
                         .use_underline(true)
                         .xalign(0.0)
                         .build();
@@ -188,7 +174,7 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::SeparatorMenuItemBuilder::new()
+                &gtk::SeparatorMenuItem::builder()
                 .visible(true)
                 .build()
             );
@@ -200,12 +186,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.general.section.next")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("Switch to _next section")
                         .use_underline(true)
@@ -230,12 +216,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.general.section.previous")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("Switch to _previous section")
                         .use_underline(true)
@@ -255,7 +241,7 @@ impl Bar {
             
         }
         
-        gtk::builders::MenuItemBuilder::new()
+        gtk::MenuItem::builder()
         .visible(true)
         .label("_View")
         .use_underline(true)
@@ -266,7 +252,7 @@ impl Bar {
     fn build_tools() -> gtk::MenuItem {
         let menu = {
             
-            gtk::builders::MenuBuilder::new()
+            gtk::Menu::builder()
             .visible(true)
             .build()
             
@@ -277,7 +263,7 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.general.backup_database")
                 .label("_Backup database")
@@ -287,7 +273,7 @@ impl Bar {
             
         }
         
-        gtk::builders::MenuItemBuilder::new()
+        gtk::MenuItem::builder()
         .visible(true)
         .label("_Tools")
         .use_underline(true)

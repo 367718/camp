@@ -19,7 +19,6 @@ pub enum FilesActions {
     
     // ---------- general ----------
     
-    MenuPopup(Option<(f64, f64)>),
     Add(PathBuf),
     Remove(PathBuf),
     Reload,
@@ -101,9 +100,6 @@ pub fn handle_action(state: &mut State, sender: &Sender<Message>, action: FilesA
     match action {
         
         // ---------- general ----------
-        
-        // files -> general -> bind x2
-        MenuPopup(coords) => general::menu_popup(state, coords),
         
         // files -> general -> mount_watcher
         Add(path) => general::add(state, sender, &path),

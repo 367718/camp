@@ -1,27 +1,21 @@
 use gtk::{
-    gdk,
     glib::Sender,
     prelude::*,
 };
 
 use crate::{
     State, Message,
-    WatchlistActions, GeneralActions,
+    GeneralActions,
 };
 
-pub fn init(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
-    build(app, state);
-    bind(state, sender);
+pub fn init(state: &State) {
+    build(state);
 }
 
-fn build(app: &gtk::Application, state: &State) {
+fn build(state: &State) {
     // ---------- fill ----------
     
     fill(state);
-    
-    // ---------- menus ----------
-    
-    state.ui.widgets().menus.watchlist.popup.menu.insert_action_group("app", Some(app));
     
     // ---------- widgets ----------
     
@@ -85,103 +79,6 @@ fn fill(state: &State) {
                 (6, &entry.progress),
             ],
         );
-    }
-}
-
-fn bind(state: &State, sender: &Sender<Message>) {
-    // ---------- treeviews ----------
-    
-    let treeviews = [
-        &state.ui.widgets().window.watchlist.watching_treeview,
-        &state.ui.widgets().window.watchlist.on_hold_treeview,
-        &state.ui.widgets().window.watchlist.plan_to_watch_treeview,
-        &state.ui.widgets().window.watchlist.completed_treeview,
-    ];
-    
-    for treeview in treeviews {
-        
-        // open popup menu (Right-click)
-        treeview.connect_button_release_event({
-            let sender_cloned = sender.clone();
-            move |_, button| {
-                if button.button() == 3 {
-                    sender_cloned.send(Message::Watchlist(WatchlistActions::MenuPopup(button.coords()))).unwrap();
-                }
-                Inhibit(false)
-            }
-        });
-        
-        // open popup menu (Menu key)
-        treeview.connect_key_press_event({
-            let sender_cloned = sender.clone();
-            move |_, key| {
-                if *key.keyval() == 65_383 {
-                    sender_cloned.send(Message::Watchlist(WatchlistActions::MenuPopup(None))).unwrap();
-                }
-                Inhibit(false)
-            }
-        });
-        
-    }
-}
-
-pub fn menu_popup(state: &State, coords: Option<(f64, f64)>) {
-    let Some(treeview) = state.ui.watchlist_current_treeview() else {
-        return;
-    };
-    
-    let (treepaths, _) = treeview.selection().selected_rows();
-    
-    if treepaths.is_empty() {
-        return;
-    }
-    
-    let watchlist_popup = &state.ui.widgets().menus.watchlist.popup.menu;
-    
-    let mut event = gdk::Event::new(gdk::EventType::Nothing);
-    
-    // prevent "no trigger event", "no display for event" and "event not holding seat" warnings
-    if let Some(seat) = state.ui.widgets().window.general.window.display().default_seat() {
-        event.set_device(seat.pointer().as_ref());
-    }
-    
-    // mouse
-    // check if pointer is within the position of the first selected row
-    if let Some((x, y)) = coords.map(|(x, y)| (x as i32, y as i32)) {
-        if let Some((mouse_path, _, _, _)) = treeview.path_at_pos(x, y) {
-            if treepaths.first() == mouse_path.as_ref() {
-                
-                let rect = treeview.background_area(treepaths.first(), None::<&gtk::TreeViewColumn>);
-                
-                watchlist_popup.set_rect_anchor_dx(x);
-                watchlist_popup.set_rect_anchor_dy(y + rect.height());
-                
-                watchlist_popup.popup_at_widget(
-                    treeview,
-                    gdk::Gravity::NorthWest,
-                    gdk::Gravity::NorthWest,
-                    Some(&event),
-                );
-                
-            }
-        }
-    
-    // keyboard
-    // show menu at an offsetted position from the last selected row
-    } else {
-        
-        let rect = treeview.background_area(treepaths.last(), None::<&gtk::TreeViewColumn>);
-        
-        watchlist_popup.set_rect_anchor_dx(5);
-        watchlist_popup.set_rect_anchor_dy(rect.y() + (rect.height() * 2) + 5);
-        
-        watchlist_popup.popup_at_widget(
-            treeview,
-            gdk::Gravity::NorthWest,
-            gdk::Gravity::NorthWest,
-            Some(&event),
-        );
-        
     }
 }
 

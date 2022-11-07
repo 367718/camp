@@ -154,7 +154,7 @@ impl Candidates {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .transient_for(&window.general.window)
             .window_position(gtk::WindowPosition::CenterOnParent)
             .default_width(600)
@@ -201,7 +201,7 @@ impl Candidates {
         // select series (in content area)
         if let Some(parent) = confirm_button.parent() {
             if let Some(button_box) = parent.downcast_ref::<gtk::ButtonBox>() {
-                let series_button = gtk::builders::ButtonBuilder::new()
+                let series_button = gtk::Button::builder()
                     .visible(true)
                     .image(&gtk::Image::from_icon_name(Some("open-menu-symbolic"), gtk::IconSize::Menu))
                     .tooltip_text("Select series")
@@ -238,13 +238,13 @@ impl Candidates {
     }
     
     fn build_field_box(text: &str) -> gtk::Box {
-        gtk::builders::BoxBuilder::new()
+        gtk::Box::builder()
         .visible(true)
         .orientation(gtk::Orientation::Horizontal)
         .spacing(FIELDS_SPACING)
         .child(&{
             
-            gtk::builders::LabelBuilder::new()
+            gtk::Label::builder()
             .visible(true)
             .label(text)
             .xalign(1.0)
@@ -260,7 +260,7 @@ impl Candidates {
         
         let title_entry = {
             
-            gtk::builders::EntryBuilder::new()
+            gtk::Entry::builder()
             .visible(true)
             .hexpand(true)
             .activates_default(true)
@@ -273,7 +273,7 @@ impl Candidates {
         {
             
             title_box.add(
-                &gtk::builders::ImageBuilder::new()
+                &gtk::Image::builder()
                 .visible(true)
                 .icon_name("dialog-information-symbolic")
                 .tooltip_text("Folders will be included when evaluating files for updates")
@@ -290,7 +290,7 @@ impl Candidates {
         
         let group_entry = {
             
-            gtk::builders::EntryBuilder::new()
+            gtk::Entry::builder()
             .visible(true)
             .width_chars(35)
             .build()
@@ -302,7 +302,7 @@ impl Candidates {
         {
             
             group_box.add(
-                &gtk::builders::ImageBuilder::new()
+                &gtk::Image::builder()
                 .visible(true)
                 .icon_name("dialog-information-symbolic")
                 .tooltip_text(r#"A blank group means "match any""#)
@@ -319,7 +319,7 @@ impl Candidates {
         
         let quality_entry = {
             
-            gtk::builders::EntryBuilder::new()
+            gtk::Entry::builder()
             .visible(true)
             .width_chars(35)
             .build()
@@ -331,7 +331,7 @@ impl Candidates {
         {
             
             quality_box.add(
-                &gtk::builders::ImageBuilder::new()
+                &gtk::Image::builder()
                 .visible(true)
                 .icon_name("dialog-information-symbolic")
                 .tooltip_text(r#"A blank quality means "match any""#)
@@ -348,7 +348,7 @@ impl Candidates {
         
         let series_entry = {
             
-            gtk::builders::EntryBuilder::new()
+            gtk::Entry::builder()
             .visible(true)
             .hexpand(true)
             .sensitive(false)
@@ -366,7 +366,7 @@ impl Candidates {
         
         let offset_spin = {
             
-            gtk::builders::SpinButtonBuilder::new()
+            gtk::SpinButton::builder()
             .visible(true)
             .activates_default(true)
             .snap_to_ticks(true)
@@ -374,7 +374,7 @@ impl Candidates {
             .update_policy(gtk::SpinButtonUpdatePolicy::IfValid)
             .adjustment(&{
                 
-                gtk::builders::AdjustmentBuilder::new()
+                gtk::Adjustment::builder()
                 .upper(9999.0)
                 .step_increment(1.0)
                 .page_increment(10.0)
@@ -395,7 +395,7 @@ impl Candidates {
         
         let current_switch = {
             
-            gtk::builders::SwitchBuilder::new()
+            gtk::Switch::builder()
             .visible(true)
             .build()
             
@@ -411,7 +411,7 @@ impl Candidates {
         
         let downloaded_spin = {
             
-            gtk::builders::SpinButtonBuilder::new()
+            gtk::SpinButton::builder()
             .visible(true)
             .activates_default(true)
             .snap_to_ticks(true)
@@ -419,7 +419,7 @@ impl Candidates {
             .update_policy(gtk::SpinButtonUpdatePolicy::IfValid)
             .adjustment(&{
                 
-                gtk::builders::AdjustmentBuilder::new()
+                gtk::Adjustment::builder()
                 .upper(99_999.0)
                 .step_increment(1.0)
                 .page_increment(10.0)
@@ -477,7 +477,7 @@ impl CandidatesSeries {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .title("Select series")
             .transient_for(&window.general.window)
             .window_position(gtk::WindowPosition::CenterOnParent)
@@ -496,7 +496,7 @@ impl CandidatesSeries {
         
         let notebook = {
             
-            gtk::builders::NotebookBuilder::new()
+            gtk::Notebook::builder()
             .visible(true)
             .show_border(false)
             .build()
@@ -517,7 +517,7 @@ impl CandidatesSeries {
                 &watching_scrolled,
                 Some(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label(WatchlistSection::Watching.display())
                     .width_chars(12)
@@ -530,7 +530,7 @@ impl CandidatesSeries {
                 &on_hold_scrolled,
                 Some(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label(WatchlistSection::OnHold.display())
                     .width_chars(12)
@@ -543,7 +543,7 @@ impl CandidatesSeries {
                 &plan_to_watch_scrolled,
                 Some(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label(WatchlistSection::PlanToWatch.display())
                     .width_chars(12)
@@ -582,7 +582,7 @@ impl CandidatesSeries {
     fn build_treeview() -> (gtk::ScrolledWindow, gtk::TreeView) {
         let scrolled_window = {
             
-            gtk::builders::ScrolledWindowBuilder::new()
+            gtk::ScrolledWindow::builder()
             .visible(true)
             .vexpand(true)
             .margin_top(6)
@@ -593,7 +593,7 @@ impl CandidatesSeries {
         
         let treeview = {
             
-            gtk::builders::TreeViewBuilder::new()
+            gtk::TreeView::builder()
             .visible(true)
             .headers_visible(false)
             .enable_search(true)
@@ -667,7 +667,7 @@ impl CandidatesDownloaded {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .transient_for(&window.general.window)
             .window_position(gtk::WindowPosition::CenterOnParent)
             .default_width(450)
@@ -689,13 +689,13 @@ impl CandidatesDownloaded {
         
         let title_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Horizontal)
             .spacing(FIELDS_SPACING)
             .child(&{
                 
-                gtk::builders::LabelBuilder::new()
+                gtk::Label::builder()
                 .visible(true)
                 .label("Candidate:")
                 .xalign(1.0)
@@ -711,7 +711,7 @@ impl CandidatesDownloaded {
         
         let title_label = {
             
-            gtk::builders::LabelBuilder::new()
+            gtk::Label::builder()
             .visible(true)
             .ellipsize(pango::EllipsizeMode::End)
             .build()
@@ -724,13 +724,13 @@ impl CandidatesDownloaded {
         
         let download_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Horizontal)
             .spacing(FIELDS_SPACING)
             .child(&{
                 
-                gtk::builders::LabelBuilder::new()
+                gtk::Label::builder()
                 .visible(true)
                 .label("Download:")
                 .xalign(1.0)
@@ -746,7 +746,7 @@ impl CandidatesDownloaded {
         
         let download_spin = {
             
-            gtk::builders::SpinButtonBuilder::new()
+            gtk::SpinButton::builder()
             .visible(true)
             .activates_default(true)
             .snap_to_ticks(true)
@@ -754,7 +754,7 @@ impl CandidatesDownloaded {
             .update_policy(gtk::SpinButtonUpdatePolicy::IfValid)
             .adjustment(&{
                 
-                gtk::builders::AdjustmentBuilder::new()
+                gtk::Adjustment::builder()
                 .upper(99999.0)
                 .step_increment(1.0)
                 .page_increment(10.0)
@@ -817,7 +817,7 @@ impl Feeds {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .transient_for(&window.general.window)
             .window_position(gtk::WindowPosition::CenterOnParent)
             .default_width(700)
@@ -840,7 +840,7 @@ impl Feeds {
         {
             
             main_box.add(
-                &gtk::builders::LabelBuilder::new()
+                &gtk::Label::builder()
                 .visible(true)
                 .label("URL:")
                 .build()
@@ -852,7 +852,7 @@ impl Feeds {
         
         let url_entry = {
             
-            gtk::builders::EntryBuilder::new()
+            gtk::Entry::builder()
             .visible(true)
             .hexpand(true)
             .activates_default(true)
@@ -911,7 +911,7 @@ impl Kinds {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .transient_for(&window.general.window)
             .window_position(gtk::WindowPosition::CenterOnParent)
             .default_width(400)
@@ -934,7 +934,7 @@ impl Kinds {
         {
             
             main_box.add(
-                &gtk::builders::LabelBuilder::new()
+                &gtk::Label::builder()
                 .visible(true)
                 .label("Name:")
                 .build()
@@ -946,7 +946,7 @@ impl Kinds {
         
         let name_entry = {
             
-            gtk::builders::EntryBuilder::new()
+            gtk::Entry::builder()
             .visible(true)
             .hexpand(true)
             .activates_default(true)
@@ -1005,7 +1005,7 @@ impl Formats {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .transient_for(&window.general.window)
             .window_position(gtk::WindowPosition::CenterOnParent)
             .default_width(400)
@@ -1028,7 +1028,7 @@ impl Formats {
         {
             
             main_box.add(
-                &gtk::builders::LabelBuilder::new()
+                &gtk::Label::builder()
                 .visible(true)
                 .label("Name:")
                 .build()
@@ -1040,7 +1040,7 @@ impl Formats {
         
         let name_entry = {
             
-            gtk::builders::EntryBuilder::new()
+            gtk::Entry::builder()
             .visible(true)
             .hexpand(true)
             .activates_default(true)

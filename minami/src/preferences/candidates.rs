@@ -87,6 +87,10 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         move |_, _| sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesDelete)).unwrap()
     });
     
+    app.add_action(&candidates_add_action);
+    app.add_action(&candidates_edit_action);
+    app.add_action(&candidates_delete_action);
+    
     // downloaded
     
     let downloaded_add_action = gio::SimpleAction::new("preferences.candidates.downloaded.add", None);
@@ -103,10 +107,6 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         let sender_cloned = sender.clone();
         move |_, _| sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedDelete)).unwrap()
     });
-    
-    app.add_action(&candidates_add_action);
-    app.add_action(&candidates_edit_action);
-    app.add_action(&candidates_delete_action);
     
     app.add_action(&downloaded_add_action);
     app.add_action(&downloaded_delete_action);

@@ -7,11 +7,11 @@ use std::{
 
 use pool::Pool;
 
-pub struct Client {
+pub struct HttpClient {
     pool: Pool,
 }
 
-impl Client {
+impl HttpClient {
     
     // ---------- constructors ----------
     
@@ -37,8 +37,6 @@ mod lib {
     
     use super::*;
     
-    use std::mem;
-    
     #[cfg(test)]
     mod get {
         
@@ -48,7 +46,7 @@ mod lib {
         fn valid() {
             // setup
             
-            let mut client = Client::new(Duration::from_secs(15));
+            let mut client = HttpClient::new(Duration::from_secs(15));
             
             let ok_mock = mockito::mock("GET", "/ok")
                 .with_status(200)
@@ -74,7 +72,7 @@ mod lib {
         fn invalid() {
             // setup
             
-            let mut client = Client::new(Duration::from_secs(15));
+            let mut client = HttpClient::new(Duration::from_secs(15));
             
             let redirect_mock = mockito::mock("GET", "/redirect")
                 .with_status(301)
@@ -91,22 +89,6 @@ mod lib {
             assert!(output.is_err());
         }
         
-    }
-    
-    #[test]
-    fn enforce_64_bit_wide_pointers() {
-        // setup
-        
-        let left_hand = mem::size_of::<usize>();
-        let right_hand = mem::size_of::<u64>();
-        
-        // operation
-        
-        let output = left_hand == right_hand;
-        
-        // control
-        
-        assert!(output);
     }
     
 }

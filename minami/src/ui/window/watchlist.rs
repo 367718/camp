@@ -78,7 +78,7 @@ impl Watchlist {
         
         let scrolled_window = {
             
-            gtk::builders::ScrolledWindowBuilder::new()
+            gtk::ScrolledWindow::builder()
             .visible(true)
             .vexpand(true)
             .hscrollbar_policy(gtk::PolicyType::Never)
@@ -94,7 +94,7 @@ impl Watchlist {
         
         let listbox = {
             
-            gtk::builders::ListBoxBuilder::new()
+            gtk::ListBox::builder()
             .visible(true)
             .build()
             
@@ -106,7 +106,7 @@ impl Watchlist {
         
         let section_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .spacing(WINDOW_SPACING)
             .orientation(gtk::Orientation::Vertical)
@@ -120,7 +120,7 @@ impl Watchlist {
         
         let stack = {
             
-            gtk::builders::StackBuilder::new()
+            gtk::Stack::builder()
             .visible(true)
             .transition_duration(0)
             .build()
@@ -148,7 +148,7 @@ impl Watchlist {
         
         let buttons_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .homogeneous(true)
             .spacing(WINDOW_SPACING)
@@ -164,11 +164,11 @@ impl Watchlist {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Add")
                     .xalign(0.5)
@@ -189,11 +189,11 @@ impl Watchlist {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Edit")
                     .xalign(0.5)
@@ -212,11 +212,11 @@ impl Watchlist {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Delete")
                     .xalign(0.5)
@@ -237,11 +237,11 @@ impl Watchlist {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Lookup")
                     .xalign(0.5)
@@ -260,14 +260,14 @@ impl Watchlist {
         
         for section in WatchlistSection::iter() {
             listbox.add(
-                &gtk::builders::ListBoxRowBuilder::new()
+                &gtk::ListBoxRow::builder()
                 .visible(true)
                 .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
                 .height_request(SECTIONS_LISTBOX_ROW_HEIGHT)
                 .name(section.display())
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label(section.display())
                     .halign(gtk::Align::Start)
@@ -283,7 +283,7 @@ impl Watchlist {
                 
                 let header_box = {
                     
-                    gtk::builders::BoxBuilder::new()
+                    gtk::Box::builder()
                     .visible(true)
                     .orientation(gtk::Orientation::Vertical)
                     .build()
@@ -292,7 +292,7 @@ impl Watchlist {
                 
                 header_box.add(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .sensitive(false)
                     .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
@@ -306,7 +306,7 @@ impl Watchlist {
                 
                 header_box.add(&{
                     
-                    gtk::builders::SeparatorBuilder::new()
+                    gtk::Separator::builder()
                     .visible(true)
                     .valign(gtk::Align::Center)
                     .orientation(gtk::Orientation::Horizontal)
@@ -338,7 +338,7 @@ impl Watchlist {
         
         let scrolled_window = {
             
-            gtk::builders::ScrolledWindowBuilder::new()
+            gtk::ScrolledWindow::builder()
             .visible(true)
             .vexpand(true)
             .shadow_type(gtk::ShadowType::In)
@@ -350,7 +350,7 @@ impl Watchlist {
         
         let treeview = {
             
-            gtk::builders::TreeViewBuilder::new()
+            gtk::TreeView::builder()
             .visible(true)
             .headers_visible(true)
             .enable_search(false)

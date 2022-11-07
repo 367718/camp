@@ -3,33 +3,13 @@ use gtk::{
     prelude::*,
 };
 
-pub struct Menus {
-    pub bar: Bar,
-    pub popup: Popup,
-}
-
-pub struct Bar {
+pub struct Files {
     pub menu: gtk::MenuBar,
 }
 
-pub struct Popup {
-    pub menu: gtk::Menu,
-}
-
-impl Menus {
+impl Files {
     
     pub fn new() -> Self {
-        Self {
-            bar: Bar::new(),
-            popup: Popup::new(),
-        }
-    }
-    
-}
-
-impl Bar {
-    
-    fn new() -> Self {
         
         /*
         
@@ -60,19 +40,19 @@ impl Bar {
             
             menu ("_Edit")
                 
-                menu_item ("_Add candidate", "app.files.edit.candidate", "Insert")
+                menu_item ("Add _candidate", "app.files.edit.candidate", "Insert")
                 menu_item ("Add _series", "app.files.edit.series", "SHIFT + Insert")
                 
                 separator_menu_item
                 
-                menu_item ("_Copy names", "app.files.edit.copy", "CONTROL + C")
+                menu_item ("Copy _names", "app.files.edit.copy", "CONTROL + C")
                 
             /menu
             
             menu ("_View")
                 
-                menu_item ("_Focus search", "app.general.search.focus", "CONTROL + F")
-                menu_item ("Focus curr_ent list", "app.general.section.focus", "CONTROL + E")
+                menu_item ("Focus _search", "app.general.search.focus", "CONTROL + F")
+                menu_item ("Focus current _list", "app.general.section.focus", "CONTROL + E")
                 
                 separator_menu_item
                 
@@ -108,7 +88,7 @@ impl Bar {
         
         let menu = {
             
-            gtk::builders::MenuBarBuilder::new()
+            gtk::MenuBar::builder()
             .visible(true)
             .hexpand(true)
             .margin_start(1)
@@ -135,7 +115,7 @@ impl Bar {
     fn build_file() -> gtk::MenuItem {
         let menu = {
             
-            gtk::builders::MenuBuilder::new()
+            gtk::Menu::builder()
             .visible(true)
             .build()
             
@@ -146,12 +126,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.files.file.play")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("_Play files")
                         .use_underline(true)
@@ -176,12 +156,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.files.file.mark")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("Mark files as _watched")
                         .use_underline(true)
@@ -206,7 +186,7 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::SeparatorMenuItemBuilder::new()
+                &gtk::SeparatorMenuItem::builder()
                 .visible(true)
                 .build()
             );
@@ -218,12 +198,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.files.file.rename")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("Re_name files")
                         .use_underline(true)
@@ -248,12 +228,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.files.file.move")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("Move files to _folder")
                         .use_underline(true)
@@ -278,12 +258,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.files.file.delete")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("_Delete files")
                         .use_underline(true)
@@ -308,7 +288,7 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::SeparatorMenuItemBuilder::new()
+                &gtk::SeparatorMenuItem::builder()
                 .visible(true)
                 .build()
             );
@@ -320,7 +300,7 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.files.file.maintenance")
                 .label("Perform _maintenance")
@@ -335,12 +315,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.files.file.directory")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("Open files di_rectory")
                         .use_underline(true)
@@ -365,7 +345,7 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.files.general.reload")
                 .label("Re_load files")
@@ -380,7 +360,7 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::SeparatorMenuItemBuilder::new()
+                &gtk::SeparatorMenuItem::builder()
                 .visible(true)
                 .build()
             );
@@ -392,12 +372,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.general.save_and_quit")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("_Quit")
                         .use_underline(true)
@@ -417,7 +397,7 @@ impl Bar {
             
         }
         
-        gtk::builders::MenuItemBuilder::new()
+        gtk::MenuItem::builder()
         .visible(true)
         .label("_File")
         .use_underline(true)
@@ -428,7 +408,7 @@ impl Bar {
     fn build_edit() -> gtk::MenuItem {
         let menu = {
             
-            gtk::builders::MenuBuilder::new()
+            gtk::Menu::builder()
             .visible(true)
             .build()
             
@@ -439,14 +419,14 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.files.edit.candidate")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
-                        .label("_Add candidate")
+                        .label("Add _candidate")
                         .use_underline(true)
                         .xalign(0.0)
                         .build();
@@ -469,12 +449,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.files.edit.series")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("Add _series")
                         .use_underline(true)
@@ -499,7 +479,7 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::SeparatorMenuItemBuilder::new()
+                &gtk::SeparatorMenuItem::builder()
                 .visible(true)
                 .build()
             );
@@ -511,14 +491,14 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.files.edit.copy")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
-                        .label("_Copy names")
+                        .label("Copy _names")
                         .use_underline(true)
                         .xalign(0.0)
                         .build();
@@ -536,7 +516,7 @@ impl Bar {
             
         }
         
-        gtk::builders::MenuItemBuilder::new()
+        gtk::MenuItem::builder()
         .visible(true)
         .label("_Edit")
         .use_underline(true)
@@ -547,7 +527,7 @@ impl Bar {
     fn build_view() -> gtk::MenuItem {
         let menu = {
             
-            gtk::builders::MenuBuilder::new()
+            gtk::Menu::builder()
             .visible(true)
             .build()
             
@@ -558,14 +538,14 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.general.search.focus")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
-                        .label("_Focus search")
+                        .label("Focus _search")
                         .use_underline(true)
                         .xalign(0.0)
                         .build();
@@ -588,14 +568,14 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.general.section.focus")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
-                        .label("Focus curr_ent list")
+                        .label("Focus current _list")
                         .use_underline(true)
                         .xalign(0.0)
                         .build();
@@ -618,7 +598,7 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::SeparatorMenuItemBuilder::new()
+                &gtk::SeparatorMenuItem::builder()
                 .visible(true)
                 .build()
             );
@@ -630,12 +610,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.general.section.next")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("Switch to _next section")
                         .use_underline(true)
@@ -660,12 +640,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.general.section.previous")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("Switch to _previous section")
                         .use_underline(true)
@@ -685,7 +665,7 @@ impl Bar {
             
         }
         
-        gtk::builders::MenuItemBuilder::new()
+        gtk::MenuItem::builder()
         .visible(true)
         .label("_View")
         .use_underline(true)
@@ -696,7 +676,7 @@ impl Bar {
     fn build_tools() -> gtk::MenuItem {
         let menu = {
             
-            gtk::builders::MenuBuilder::new()
+            gtk::Menu::builder()
             .visible(true)
             .build()
             
@@ -707,12 +687,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.files.tools.lookup")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("_Lookup name")
                         .use_underline(true)
@@ -737,7 +717,7 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::SeparatorMenuItemBuilder::new()
+                &gtk::SeparatorMenuItem::builder()
                 .visible(true)
                 .build()
             );
@@ -749,12 +729,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.files.tools.remote")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("Start rem_ote control")
                         .use_underline(true)
@@ -779,7 +759,7 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::SeparatorMenuItemBuilder::new()
+                &gtk::SeparatorMenuItem::builder()
                 .visible(true)
                 .build()
             );
@@ -791,12 +771,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.files.tools.download")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("_Download new releases")
                         .use_underline(true)
@@ -821,12 +801,12 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.files.tools.update")
                 .child(&{
                     
-                    let label = gtk::builders::AccelLabelBuilder::new()
+                    let label = gtk::AccelLabel::builder()
                         .visible(true)
                         .label("_Update watched releases")
                         .use_underline(true)
@@ -851,7 +831,7 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::SeparatorMenuItemBuilder::new()
+                &gtk::SeparatorMenuItem::builder()
                 .visible(true)
                 .build()
             );
@@ -863,7 +843,7 @@ impl Bar {
         {
             
             menu.append(
-                &gtk::builders::MenuItemBuilder::new()
+                &gtk::MenuItem::builder()
                 .visible(true)
                 .action_name("app.general.backup_database")
                 .label("_Backup database")
@@ -873,253 +853,12 @@ impl Bar {
             
         }
         
-        gtk::builders::MenuItemBuilder::new()
+        gtk::MenuItem::builder()
         .visible(true)
         .label("_Tools")
         .use_underline(true)
         .submenu(&menu)
         .build()
-    }
-    
-}
-
-impl Popup {
-    
-    fn new() -> Self {
-        
-        /*
-        
-        main_box
-            
-            menu_item ("_Play files", "app.files.file.play")
-            menu_item ("Mark files as _watched", "app.files.file.mark")
-            
-            separator_menu_item
-            
-            menu_item ("Re_name files", "app.files.file.rename")
-            menu_item ("Move files to _folder", "app.files.file.move")
-            menu_item ("_Delete files", "app.files.file.delete")
-            
-            separator_menu_item
-            
-            menu_item ("_Add candidate", "app.files.edit.candidate")
-            menu_item ("Add _series", "app.files.edit.series")
-            
-            separator_menu_item
-            
-            menu_item ("_Copy names", "app.files.edit.copy")
-            
-            separator_menu_item
-            
-            menu_item ("_Lookup name", "app.files.tools.lookup")
-            
-        /main_box
-        
-        */
-        
-        // ---------- menu ----------
-        
-        let menu = {
-            
-            gtk::builders::MenuBuilder::new()
-            .build()
-            
-        };
-        
-        // prevent issues when menu does not fit on screen
-        menu.set_anchor_hints(gdk::AnchorHints::empty());
-        
-        // ---------- buttons ----------
-        
-        // play
-        
-        {
-            
-            menu.append(
-                &gtk::builders::MenuItemBuilder::new()
-                .visible(true)
-                .action_name("app.files.file.play")
-                .label("_Play files")
-                .use_underline(true)
-                .build()
-            );
-            
-        }
-        
-        // mark
-        
-        {
-            
-            menu.append(
-                &gtk::builders::MenuItemBuilder::new()
-                .visible(true)
-                .action_name("app.files.file.mark")
-                .label("Mark files as _watched")
-                .use_underline(true)
-                .build()
-            );
-            
-        }
-        
-        // separator
-        
-        {
-            
-            menu.append(
-                &gtk::builders::SeparatorMenuItemBuilder::new()
-                .visible(true)
-                .build()
-            );
-            
-        }
-        
-        // rename
-        
-        {
-            
-            menu.append(
-                &gtk::builders::MenuItemBuilder::new()
-                .visible(true)
-                .action_name("app.files.file.rename")
-                .label("Re_name files")
-                .use_underline(true)
-                .build()
-            );
-            
-        }
-        
-        // folder
-        
-        {
-            
-            menu.append(
-                &gtk::builders::MenuItemBuilder::new()
-                .visible(true)
-                .action_name("app.files.file.move")
-                .label("Move files to _folder")
-                .use_underline(true)
-                .build()
-            );
-            
-        }
-        
-        // delete
-        
-        {
-            
-            menu.append(
-                &gtk::builders::MenuItemBuilder::new()
-                .visible(true)
-                .action_name("app.files.file.delete")
-                .label("_Delete files")
-                .use_underline(true)
-                .build()
-            );
-            
-        }
-        
-        // separator
-        
-        {
-            
-            menu.append(
-                &gtk::builders::SeparatorMenuItemBuilder::new()
-                .visible(true)
-                .build()
-            );
-            
-        }
-        
-        // candidate
-        
-        {
-            
-            menu.append(
-                &gtk::builders::MenuItemBuilder::new()
-                .visible(true)
-                .action_name("app.files.edit.candidate")
-                .label("_Add candidate")
-                .use_underline(true)
-                .build()
-            );
-            
-        }
-        
-        // series
-        
-        {
-            
-            menu.append(
-                &gtk::builders::MenuItemBuilder::new()
-                .visible(true)
-                .action_name("app.files.edit.series")
-                .label("Add _series")
-                .use_underline(true)
-                .build()
-            );
-            
-        }
-        
-        // separator
-        
-        {
-            
-            menu.append(
-                &gtk::builders::SeparatorMenuItemBuilder::new()
-                .visible(true)
-                .build()
-            );
-            
-        }
-        
-        // copy
-        
-        {
-            
-            menu.append(
-                &gtk::builders::MenuItemBuilder::new()
-                .visible(true)
-                .action_name("app.files.edit.copy")
-                .label("_Copy names")
-                .use_underline(true)
-                .build()
-            );
-            
-        }
-        
-        // separator
-        
-        {
-            
-            menu.append(
-                &gtk::builders::SeparatorMenuItemBuilder::new()
-                .visible(true)
-                .build()
-            );
-            
-        }
-        
-        // lookup
-        
-        {
-            
-            menu.append(
-                &gtk::builders::MenuItemBuilder::new()
-                .visible(true)
-                .action_name("app.files.tools.lookup")
-                .label("_Lookup name")
-                .use_underline(true)
-                .build()
-            );
-            
-        }
-        
-        // ---------- return ----------
-        
-        Self {
-            menu,
-        }
-        
     }
     
 }

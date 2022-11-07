@@ -3,6 +3,8 @@ mod menus;
 mod window;
 mod dialogs;
 
+use std::error::Error;
+
 use gtk::{
     gdk,
     prelude::*,
@@ -42,7 +44,7 @@ impl Ui {
     // ---------- constructors ----------
     
     
-    pub fn new(stylesheet_arg: Option<&str>) -> Self {
+    pub fn new() -> Self {
         let stores =  Stores::new();
         let menus = Menus::new();
         let window = Window::new(&menus);
@@ -54,19 +56,6 @@ impl Ui {
             window,
             dialogs,
         };
-        
-        let provider = gtk::CssProvider::new();
-        
-        match stylesheet_arg {
-            Some(arg) => provider.load_from_path(arg).ok(),
-            None => provider.load_from_data(STYLESHEET).ok(),
-        };
-        
-        gtk::StyleContext::add_provider_for_screen(
-            &gtk::prelude::GtkWindowExt::screen(&widgets.window.general.window).unwrap(),
-            &provider,
-            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-        );
         
         let clipboard = widgets.window.general.window.clipboard(&gdk::Atom::intern("CLIPBOARD"));
         
@@ -140,6 +129,38 @@ impl Ui {
         }
         
         None
+    }
+    
+    
+    // ---------- mutators ----------
+    
+    
+    pub fn load_stylesheet(&self, arg: Option<&str>) -> Result<(), Box<dyn Error>> {
+        let provider = gtk::CssProvider::new();
+        
+        let mut load_from_arg_error = None;
+        
+        if let Some(path) = arg {
+            if let Err(error) = provider.load_from_path(path) {
+                load_from_arg_error = Some(error);
+            }
+        }
+        
+        if arg.is_none() || load_from_arg_error.is_some() {
+            provider.load_from_data(STYLESHEET).unwrap();
+        }
+        
+        gtk::StyleContext::add_provider_for_screen(
+            &gtk::prelude::GtkWindowExt::screen(&self.widgets.window.general.window).unwrap(),
+            &provider,
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+        
+        if let Some(error) = load_from_arg_error {
+            return Err(crate::general::concat_str!("Could not load the specified stylesheet: ", error.message()).into());
+        }
+        
+        Ok(())
     }
     
 }

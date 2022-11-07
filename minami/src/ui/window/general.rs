@@ -67,7 +67,7 @@ impl General {
         
         let window = {
             
-            gtk::builders::ApplicationWindowBuilder::new()
+            gtk::ApplicationWindow::builder()
             .title(APP_NAME)
             .icon(&{
                 
@@ -84,7 +84,7 @@ impl General {
         
         let root_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Vertical)
             .build()
@@ -95,15 +95,15 @@ impl General {
         
         // ---------- menus ----------
         
-        root_box.add(&menus.files.bar.menu);
-        root_box.add(&menus.watchlist.bar.menu);
-        root_box.add(&menus.preferences.bar.menu);
+        root_box.add(&menus.files.menu);
+        root_box.add(&menus.watchlist.menu);
+        root_box.add(&menus.preferences.menu);
         
         // ---------- main box ----------
         
         let main_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Vertical)
             .spacing(WINDOW_SPACING)
@@ -117,7 +117,7 @@ impl General {
         
         let search_entry = {
             
-            gtk::builders::SearchEntryBuilder::new()
+            gtk::SearchEntry::builder()
             .visible(true)
             .hexpand(true)
             .placeholder_text("Search files and watchlist")
@@ -139,7 +139,7 @@ impl General {
         
         let sections_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Horizontal)
             .spacing(WINDOW_SPACING)
@@ -153,7 +153,7 @@ impl General {
         
         let switchers_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Vertical)
             .spacing(WINDOW_SPACING)
@@ -167,7 +167,7 @@ impl General {
         
         let stack_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .hexpand(true)
             .orientation(gtk::Orientation::Vertical)
@@ -181,7 +181,7 @@ impl General {
         
         let sections_stack = {
             
-            gtk::builders::StackBuilder::new()
+            gtk::Stack::builder()
             .visible(true)
             .transition_duration(0)
             .build()
@@ -209,7 +209,7 @@ impl General {
         
         let completion = {
             
-            gtk::builders::EntryCompletionBuilder::new()
+            gtk::EntryCompletion::builder()
                 .text_column(2)
                 .build()
             

@@ -4,7 +4,6 @@ use std::{
 };
 
 use gtk::{
-    gdk,
     gio,
     glib::{ self, Sender },
     prelude::*,
@@ -17,18 +16,14 @@ use crate::{
 };
 
 pub fn init(app: &gtk::Application, state: &mut State, sender: &Sender<Message>) {
-    build(app, state, sender);
-    bind(app, state, sender);
+    build(state, sender);
+    bind(app, sender);
 }
 
-fn build(app: &gtk::Application, state: &mut State, sender: &Sender<Message>) {
+fn build(state: &mut State, sender: &Sender<Message>) {
     // ---------- fill ----------
     
     fill(state);
-    
-    // ---------- menus ----------
-    
-    state.ui.widgets().menus.files.popup.menu.insert_action_group("app", Some(app));
     
     // ---------- widgets ----------
     
@@ -50,14 +45,12 @@ fn build(app: &gtk::Application, state: &mut State, sender: &Sender<Message>) {
     mount_watcher(state, sender);
 }
 
-fn bind(app: &gtk::Application, state: &mut State, sender: &Sender<Message>) {
+fn bind(app: &gtk::Application, sender: &Sender<Message>) {
     // ---------- global hotkeys ----------
     
     app.set_accels_for_action("app.files.file.directory", &["<Primary>R"]);
-    
     app.set_accels_for_action("app.files.tools.download", &["<Primary>D"]);
     app.set_accels_for_action("app.files.tools.update", &["<Primary>U"]);
-    
     app.set_accels_for_action("app.files.tools.remote", &["<Primary>O"]);
     
     // ---------- actions ----------
@@ -71,40 +64,6 @@ fn bind(app: &gtk::Application, state: &mut State, sender: &Sender<Message>) {
     });
     
     app.add_action(&reload_action);
-    
-    // ---------- treeviews ----------
-    
-    let treeviews = [
-        &state.ui.widgets().window.files.new_treeview,
-        &state.ui.widgets().window.files.watched_treeview,
-    ];
-    
-    for treeview in treeviews {
-        
-        // open popup menu (Right-click)
-        treeview.connect_button_release_event({
-            let sender_cloned = sender.clone();
-            move |_, button| {
-                if button.button() == 3 {
-                    sender_cloned.send(Message::Files(FilesActions::MenuPopup(button.coords()))).unwrap();
-                }
-                Inhibit(false)
-            }
-        });
-        
-        // open popup menu (Menu key)
-        treeview.connect_key_press_event({
-            let sender_cloned = sender.clone();
-            move |_, key| {
-                if *key.keyval() == 65_383 {
-                    sender_cloned.send(Message::Files(FilesActions::MenuPopup(None))).unwrap();
-                }
-                Inhibit(false)
-            }
-        });
-        
-    }
-    
 }
 
 fn fill(state: &State) {
@@ -291,64 +250,6 @@ pub fn remove(state: &mut State, sender: &Sender<Message>, path: &Path) {
         }
         
         sender.send(Message::General(GeneralActions::SearchShouldRecompute)).unwrap();
-        
-    }
-}
-
-pub fn menu_popup(state: &State, coords: Option<(f64, f64)>) {
-    let Some(treeview) = state.ui.files_current_treeview() else {
-        return;
-    };
-    
-    let (treepaths, _) = treeview.selection().selected_rows();
-    
-    if treepaths.is_empty() {
-        return;
-    }
-    
-    let files_popup = &state.ui.widgets().menus.files.popup.menu;
-    
-    let mut event = gdk::Event::new(gdk::EventType::Nothing);
-    
-    // prevent "no trigger event", "no display for event" and "event not holding seat" warnings
-    if let Some(seat) = state.ui.widgets().window.general.window.display().default_seat() {
-        event.set_device(seat.pointer().as_ref());
-    }
-    
-    // mouse
-    // check if pointer is within the position of the first selected row
-    if let Some((x, y)) = coords.map(|(x, y)| (x as i32, y as i32)) {
-        if let Some((mouse_path, _, _, _)) = treeview.path_at_pos(x, y) {
-            if treepaths.first() == mouse_path.as_ref() {
-                
-                files_popup.set_rect_anchor_dx(x);
-                files_popup.set_rect_anchor_dy(y);
-                
-                files_popup.popup_at_widget(
-                    treeview,
-                    gdk::Gravity::NorthWest,
-                    gdk::Gravity::NorthWest,
-                    Some(&event),
-                );
-                
-            }
-        }
-    
-    // keyboard
-    // show menu at an offsetted position from the last selected row
-    } else {
-        
-        let rect = treeview.background_area(treepaths.last(), None::<&gtk::TreeViewColumn>);
-        
-        files_popup.set_rect_anchor_dx(5);
-        files_popup.set_rect_anchor_dy(rect.y() + rect.height() + 5);
-        
-        files_popup.popup_at_widget(
-            treeview,
-            gdk::Gravity::NorthWest,
-            gdk::Gravity::NorthWest,
-            Some(&event),
-        );
         
     }
 }

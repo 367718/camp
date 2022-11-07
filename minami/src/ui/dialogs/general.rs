@@ -119,7 +119,7 @@ impl ConfigLoadError {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .title(APP_NAME)
             .icon(&{
                 
@@ -149,7 +149,7 @@ impl ConfigLoadError {
         {
             
             main_box.add(
-                &gtk::builders::LabelBuilder::new()
+                &gtk::Label::builder()
                 .visible(true)
                 .label("The configuration file could not be loaded.")
                 .xalign(0.0)
@@ -162,13 +162,13 @@ impl ConfigLoadError {
         
         let path_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Horizontal)
             .spacing(FIELDS_SPACING)
             .child(&{
                 
-                gtk::builders::LabelBuilder::new()
+                gtk::Label::builder()
                 .visible(true)
                 .label("Path:")
                 .xalign(1.0)
@@ -184,7 +184,7 @@ impl ConfigLoadError {
         
         let path_label = {
             
-            gtk::builders::LabelBuilder::new()
+            gtk::Label::builder()
             .visible(true)
             .ellipsize(pango::EllipsizeMode::End)
             .build()
@@ -199,13 +199,13 @@ impl ConfigLoadError {
         
         let message_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Horizontal)
             .spacing(FIELDS_SPACING)
             .child(&{
                 
-                gtk::builders::LabelBuilder::new()
+                gtk::Label::builder()
                 .visible(true)
                 .label("Error:")
                 .xalign(1.0)
@@ -221,7 +221,7 @@ impl ConfigLoadError {
         
         let message_label = {
             
-            gtk::builders::LabelBuilder::new()
+            gtk::Label::builder()
             .visible(true)
             .wrap(true)
             .build()
@@ -297,7 +297,7 @@ impl ConfigSaveError {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .title("Configuration save error")
             .transient_for(&window.general.window)
             .window_position(gtk::WindowPosition::CenterOnParent)
@@ -321,7 +321,7 @@ impl ConfigSaveError {
         {
             
             main_box.add(
-                &gtk::builders::LabelBuilder::new()
+                &gtk::Label::builder()
                 .visible(true)
                 .label("The configuration file could not be saved.")
                 .xalign(0.0)
@@ -334,13 +334,13 @@ impl ConfigSaveError {
         
         let path_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Horizontal)
             .spacing(FIELDS_SPACING)
             .child(&{
                 
-                gtk::builders::LabelBuilder::new()
+                gtk::Label::builder()
                 .visible(true)
                 .label("Path:")
                 .xalign(1.0)
@@ -356,7 +356,7 @@ impl ConfigSaveError {
         
         let path_label = {
             
-            gtk::builders::LabelBuilder::new()
+            gtk::Label::builder()
             .visible(true)
             .ellipsize(pango::EllipsizeMode::End)
             .build()
@@ -371,13 +371,13 @@ impl ConfigSaveError {
         
         let message_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Horizontal)
             .spacing(FIELDS_SPACING)
             .child(&{
                 
-                gtk::builders::LabelBuilder::new()
+                gtk::Label::builder()
                 .visible(true)
                 .label("Error:")
                 .xalign(1.0)
@@ -393,7 +393,7 @@ impl ConfigSaveError {
         
         let message_label = {
             
-            gtk::builders::LabelBuilder::new()
+            gtk::Label::builder()
             .visible(true)
             .wrap(true)
             .build()
@@ -470,7 +470,7 @@ impl DatabaseLoadError {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .title(APP_NAME)
             .icon(&{
                 
@@ -500,7 +500,7 @@ impl DatabaseLoadError {
         {
             
             main_box.add(
-                &gtk::builders::LabelBuilder::new()
+                &gtk::Label::builder()
                 .visible(true)
                 .label("The database file could not be loaded.")
                 .xalign(0.0)
@@ -513,13 +513,13 @@ impl DatabaseLoadError {
         
         let path_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Horizontal)
             .spacing(FIELDS_SPACING)
             .child(&{
                 
-                gtk::builders::LabelBuilder::new()
+                gtk::Label::builder()
                 .visible(true)
                 .label("Path:")
                 .xalign(1.0)
@@ -535,7 +535,7 @@ impl DatabaseLoadError {
         
         let path_label = {
             
-            gtk::builders::LabelBuilder::new()
+            gtk::Label::builder()
             .visible(true)
             .ellipsize(pango::EllipsizeMode::End)
             .build()
@@ -550,13 +550,13 @@ impl DatabaseLoadError {
         
         let message_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Horizontal)
             .spacing(FIELDS_SPACING)
             .child(&{
                 
-                gtk::builders::LabelBuilder::new()
+                gtk::Label::builder()
                 .visible(true)
                 .label("Error:")
                 .xalign(1.0)
@@ -572,7 +572,7 @@ impl DatabaseLoadError {
         
         let message_label = {
             
-            gtk::builders::LabelBuilder::new()
+            gtk::Label::builder()
             .visible(true)
             .wrap(true)
             .build()
@@ -649,7 +649,7 @@ impl DatabaseSaveError {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .title("Database save error")
             .transient_for(&window.general.window)
             .window_position(gtk::WindowPosition::CenterOnParent)
@@ -673,7 +673,7 @@ impl DatabaseSaveError {
         {
             
             main_box.add(
-                &gtk::builders::LabelBuilder::new()
+                &gtk::Label::builder()
                 .visible(true)
                 .label("The database file could not be saved.")
                 .xalign(0.0)
@@ -686,13 +686,13 @@ impl DatabaseSaveError {
         
         let path_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Horizontal)
             .spacing(FIELDS_SPACING)
             .child(&{
                 
-                gtk::builders::LabelBuilder::new()
+                gtk::Label::builder()
                 .visible(true)
                 .label("Path:")
                 .xalign(1.0)
@@ -708,7 +708,7 @@ impl DatabaseSaveError {
         
         let path_label = {
             
-            gtk::builders::LabelBuilder::new()
+            gtk::Label::builder()
             .visible(true)
             .ellipsize(pango::EllipsizeMode::End)
             .build()
@@ -723,13 +723,13 @@ impl DatabaseSaveError {
         
         let message_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Horizontal)
             .spacing(FIELDS_SPACING)
             .child(&{
                 
-                gtk::builders::LabelBuilder::new()
+                gtk::Label::builder()
                 .visible(true)
                 .label("Error:")
                 .xalign(1.0)
@@ -745,7 +745,7 @@ impl DatabaseSaveError {
         
         let message_label = {
             
-            gtk::builders::LabelBuilder::new()
+            gtk::Label::builder()
             .visible(true)
             .wrap(true)
             .build()
@@ -805,7 +805,7 @@ impl Error {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .title(APP_NAME)
             .icon(&{
                 
@@ -835,7 +835,7 @@ impl Error {
         {
             
             main_box.add(
-                &gtk::builders::LabelBuilder::new()
+                &gtk::Label::builder()
                 .visible(true)
                 .label("The following errors were encountered:")
                 .xalign(0.0)
@@ -848,7 +848,7 @@ impl Error {
         
         let message_label = {
             
-            gtk::builders::LabelBuilder::new()
+            gtk::Label::builder()
             .visible(true)
             .xalign(0.0)
             .wrap(true)
@@ -930,7 +930,7 @@ impl Delete {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .title("Delete elements")
             .transient_for(&window.general.window)
             .window_position(gtk::WindowPosition::CenterOnParent)
@@ -954,7 +954,7 @@ impl Delete {
         {
             
             main_box.add(
-                &gtk::builders::LabelBuilder::new()
+                &gtk::Label::builder()
                 .visible(true)
                 .label("Are you sure you want to permanently delete the selected elements?")
                 .xalign(0.0)
@@ -967,7 +967,7 @@ impl Delete {
             
             main_box.add(&{
                 
-                let label = gtk::builders::LabelBuilder::new()
+                let label = gtk::Label::builder()
                     .visible(true)
                     .label("This action cannot be undone.")
                     .xalign(0.0)

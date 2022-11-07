@@ -132,7 +132,6 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     
     let quit_action = gio::SimpleAction::new("general.save_and_quit", None);
     let backup_action = gio::SimpleAction::new("general.backup_database", None);
-    
     let search_focus_action = gio::SimpleAction::new("general.search.focus", None);
     let section_focus_action = gio::SimpleAction::new("general.section.focus", None);
     let section_next_action = gio::SimpleAction::new("general.section.next", None);
@@ -176,7 +175,6 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     
     app.add_action(&quit_action);
     app.add_action(&backup_action);
-    
     app.add_action(&search_focus_action);
     app.add_action(&section_focus_action);
     app.add_action(&section_next_action);
@@ -765,9 +763,9 @@ fn section_switch_files(state: &State) {
         state.ui.widgets().window.watchlist.listbox.unselect_all();
         state.ui.widgets().window.preferences.listbox.unselect_all();
         
-        state.ui.widgets().menus.files.bar.menu.show();
-        state.ui.widgets().menus.watchlist.bar.menu.hide();
-        state.ui.widgets().menus.preferences.bar.menu.hide();
+        state.ui.widgets().menus.files.menu.show();
+        state.ui.widgets().menus.watchlist.menu.hide();
+        state.ui.widgets().menus.preferences.menu.hide();
     }
 }
 
@@ -780,9 +778,9 @@ fn section_switch_watchlist(state: &State) {
         state.ui.widgets().window.files.listbox.unselect_all();
         state.ui.widgets().window.preferences.listbox.unselect_all();
         
-        state.ui.widgets().menus.files.bar.menu.hide();
-        state.ui.widgets().menus.watchlist.bar.menu.show();
-        state.ui.widgets().menus.preferences.bar.menu.hide();
+        state.ui.widgets().menus.files.menu.hide();
+        state.ui.widgets().menus.watchlist.menu.show();
+        state.ui.widgets().menus.preferences.menu.hide();
     }
 }
 
@@ -795,9 +793,9 @@ fn section_switch_preferences(state: &State) {
         state.ui.widgets().window.files.listbox.unselect_all();
         state.ui.widgets().window.watchlist.listbox.unselect_all();
         
-        state.ui.widgets().menus.files.bar.menu.hide();
-        state.ui.widgets().menus.watchlist.bar.menu.hide();
-        state.ui.widgets().menus.preferences.bar.menu.show();
+        state.ui.widgets().menus.files.menu.hide();
+        state.ui.widgets().menus.watchlist.menu.hide();
+        state.ui.widgets().menus.preferences.menu.show();
     }
 }
 

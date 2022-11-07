@@ -1,6 +1,6 @@
 use gtk::{
     gio,
-    glib::{ self, Sender },
+    glib::Sender,
     prelude::*,
 };
 
@@ -57,7 +57,6 @@ fn bind(app: &gtk::Application, state: &mut State, sender: &Sender<Message>) {
     let add_action = gio::SimpleAction::new("preferences.feeds.add", None);
     let edit_action = gio::SimpleAction::new("preferences.feeds.edit", None);
     let delete_action = gio::SimpleAction::new("preferences.feeds.delete", None);
-    let open_action = gio::SimpleAction::new("preferences.feeds.open", None);
     
     // add feed
     add_action.connect_activate({
@@ -77,16 +76,9 @@ fn bind(app: &gtk::Application, state: &mut State, sender: &Sender<Message>) {
         move |_, _| sender_cloned.send(Message::Preferences(PreferencesActions::FeedsDelete)).unwrap()
     });
     
-    // open feed
-    open_action.connect_activate({
-        let sender_cloned = sender.clone();
-        move |_, _| sender_cloned.send(Message::Preferences(PreferencesActions::FeedsOpen)).unwrap()
-    });
-    
     app.add_action(&add_action);
     app.add_action(&edit_action);
     app.add_action(&delete_action);
-    app.add_action(&open_action);
     
     // ---------- treeviews ----------
     
@@ -309,18 +301,6 @@ pub fn delete(state: &mut State) {
             
         }
         
-    }
-}
-
-pub fn open(state: &State) {
-    let Some((treemodel, treeiter)) = state.ui.widgets().window.preferences.feeds.treeview.selection().selected() else {
-        return;
-    };
-    
-    let url = treemodel.value(&treeiter, 1).get::<glib::GString>().unwrap();
-    
-    if let Err(error) = crate::general::open(&url) {
-        state.ui.dialogs_error_show(&error.to_string());
     }
 }
 

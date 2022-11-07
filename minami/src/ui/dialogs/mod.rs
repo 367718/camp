@@ -34,7 +34,7 @@ impl Dialogs {
 }
 
 fn build_main_box(orientation: gtk::Orientation) -> gtk::Box {
-    gtk::builders::BoxBuilder::new()
+    gtk::Box::builder()
     .visible(true)
     .orientation(orientation)
     .spacing(DIALOGS_SPACING)

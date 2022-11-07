@@ -93,7 +93,7 @@ impl Rename {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .title("Rename")
             .transient_for(&window.general.window)
             .window_position(gtk::WindowPosition::CenterOnParent)
@@ -116,13 +116,13 @@ impl Rename {
         
         let current_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Horizontal)
             .spacing(FIELDS_SPACING)
             .child(&{
                 
-                gtk::builders::LabelBuilder::new()
+                gtk::Label::builder()
                 .visible(true)
                 .label("Current name:")
                 .xalign(1.0)
@@ -138,7 +138,7 @@ impl Rename {
         
         let current_label = {
             
-            gtk::builders::LabelBuilder::new()
+            gtk::Label::builder()
             .visible(true)
             .selectable(true)
             .ellipsize(pango::EllipsizeMode::End)
@@ -152,13 +152,13 @@ impl Rename {
         
         let new_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Horizontal)
             .spacing(FIELDS_SPACING)
             .child(&{
                 
-                gtk::builders::LabelBuilder::new()
+                gtk::Label::builder()
                 .visible(true)
                 .label("New name:")
                 .xalign(1.0)
@@ -174,7 +174,7 @@ impl Rename {
         
         let new_entry = {
             
-            gtk::builders::EntryBuilder::new()
+            gtk::Entry::builder()
             .visible(true)
             .hexpand(true)
             .activates_default(true)
@@ -189,7 +189,7 @@ impl Rename {
         {
             
             main_box.add(
-                &gtk::builders::LabelBuilder::new()
+                &gtk::Label::builder()
                 .visible(true)
                 .label("File extension will not be changed.")
                 .xalign(0.0)
@@ -256,7 +256,7 @@ impl MoveToFolder {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .title("Move to folder")
             .transient_for(&window.general.window)
             .window_position(gtk::WindowPosition::CenterOnParent)
@@ -279,13 +279,13 @@ impl MoveToFolder {
         
         let folder_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Horizontal)
             .spacing(FIELDS_SPACING)
             .child(&{
                 
-                gtk::builders::LabelBuilder::new()
+                gtk::Label::builder()
                 .visible(true)
                 .label("Folder name:")
                 .xalign(0.0)
@@ -301,7 +301,7 @@ impl MoveToFolder {
         let folder_entry = {
             
             // this could have been a SearchEntry, but it does not look like the primary icon can be disabled once set
-            gtk::builders::EntryBuilder::new()
+            gtk::Entry::builder()
             .visible(true)
             .hexpand(true)
             .activates_default(true)
@@ -324,7 +324,7 @@ impl MoveToFolder {
         {
             
             main_box.add(
-                &gtk::builders::LabelBuilder::new()
+                &gtk::Label::builder()
                 .visible(true)
                 .label("Directory will be created if it doesn't exist.")
                 .xalign(0.0)
@@ -337,7 +337,7 @@ impl MoveToFolder {
         {
             
             main_box.add(
-                &gtk::builders::LabelBuilder::new()
+                &gtk::Label::builder()
                 .visible(true)
                 .label("Files will be moved to root if no name is provided.")
                 .xalign(0.0)
@@ -372,7 +372,7 @@ impl MoveToFolder {
         
         let completion = {
             
-            gtk::builders::EntryCompletionBuilder::new()
+            gtk::EntryCompletion::builder()
                 .text_column(0)
                 .build()
             
@@ -433,7 +433,7 @@ impl Maintenance {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .title("Perform maintenance")
             .transient_for(&window.general.window)
             .window_position(gtk::WindowPosition::CenterOnParent)
@@ -457,7 +457,7 @@ impl Maintenance {
         {
             
             main_box.add(
-                &gtk::builders::LabelBuilder::new()
+                &gtk::Label::builder()
                 .visible(true)
                 .use_markup(true)
                 .label(r#"This process will <b>permanently delete</b> every file marked as "Updated" or considered irrelevant and every directory considered empty."#)
@@ -513,7 +513,7 @@ impl Job {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .window_position(gtk::WindowPosition::Center)
             .default_width(825)
             .default_height(650)
@@ -531,7 +531,7 @@ impl Job {
         
         let progress_scrolled = {
             
-            gtk::builders::ScrolledWindowBuilder::new()
+            gtk::ScrolledWindow::builder()
             .visible(true)
             .vexpand(true)
             .shadow_type(gtk::ShadowType::In)
@@ -545,7 +545,7 @@ impl Job {
         
         let progress_textview = {
             
-            gtk::builders::TextViewBuilder::new()
+            gtk::TextView::builder()
             .visible(true)
             .editable(false)
             .left_margin(6)

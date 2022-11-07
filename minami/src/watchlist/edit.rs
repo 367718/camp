@@ -15,11 +15,6 @@ use crate::{
     CandidatesId,
 };
 
-pub enum ProgressModification {
-    Increment,
-    Decrement,
-}
-
 pub fn init(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     bind(app, state, sender);
 }
@@ -29,10 +24,7 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     
     let add_action = gio::SimpleAction::new("watchlist.edit.add", None);
     let edit_action = gio::SimpleAction::new("watchlist.edit.edit", None);
-    let completed_action = gio::SimpleAction::new("watchlist.edit.completed", None);
     let delete_action = gio::SimpleAction::new("watchlist.edit.delete", None);
-    let increment_action = gio::SimpleAction::new("watchlist.edit.increment", None);
-    let decrement_action = gio::SimpleAction::new("watchlist.edit.decrement", None);
     let copy_action = gio::SimpleAction::new("watchlist.edit.copy", None);
     
     // add series
@@ -44,31 +36,13 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     // edit series
     edit_action.connect_activate({
         let sender_cloned = sender.clone();
-        move |_, _| sender_cloned.send(Message::Watchlist(WatchlistActions::Edit(false))).unwrap()
-    });
-    
-    // set series as completed
-    completed_action.connect_activate({
-        let sender_cloned = sender.clone();
-        move |_, _| sender_cloned.send(Message::Watchlist(WatchlistActions::Edit(true))).unwrap()
+        move |_, _| sender_cloned.send(Message::Watchlist(WatchlistActions::Edit)).unwrap()
     });
     
     // delete series
     delete_action.connect_activate({
         let sender_cloned = sender.clone();
         move |_, _| sender_cloned.send(Message::Watchlist(WatchlistActions::Delete)).unwrap()
-    });
-    
-    // increment progress
-    increment_action.connect_activate({
-        let sender_cloned = sender.clone();
-        move |_, _| sender_cloned.send(Message::Watchlist(WatchlistActions::ChangeProgress(ProgressModification::Increment))).unwrap()
-    });
-    
-    // decrement progress
-    decrement_action.connect_activate({
-        let sender_cloned = sender.clone();
-        move |_, _| sender_cloned.send(Message::Watchlist(WatchlistActions::ChangeProgress(ProgressModification::Decrement))).unwrap()
     });
     
     // copy titles to clipboard
@@ -79,10 +53,7 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     
     app.add_action(&add_action);
     app.add_action(&edit_action);
-    app.add_action(&completed_action);
     app.add_action(&delete_action);
-    app.add_action(&increment_action);
-    app.add_action(&decrement_action);
     app.add_action(&copy_action);
     
     // ---------- treeviews ----------
@@ -98,10 +69,7 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         
         // add series (Insert)
         // edit series (F2)
-        // set series as completed (F3)
         // delete series (Delete)
-        // increment progress (Add)
-        // decrement progress (Subtract)
         // copy titles to clipboard (CONTROL + C/c)
         treeview.connect_key_press_event({
             let sender_cloned = sender.clone();
@@ -112,19 +80,10 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
                     65_379 => sender_cloned.send(Message::Watchlist(WatchlistActions::Add(None))).unwrap(),
                     
                     // edit series (F2)
-                    65_471 => sender_cloned.send(Message::Watchlist(WatchlistActions::Edit(false))).unwrap(),
-                    
-                    // set series as completed (F3)
-                    65_472 => sender_cloned.send(Message::Watchlist(WatchlistActions::Edit(true))).unwrap(),
+                    65_471 => sender_cloned.send(Message::Watchlist(WatchlistActions::Edit)).unwrap(),
                     
                     // delete series (Delete)
                     65_535 => sender_cloned.send(Message::Watchlist(WatchlistActions::Delete)).unwrap(),
-                    
-                    // increment progress (Add)
-                    65_451 => sender_cloned.send(Message::Watchlist(WatchlistActions::ChangeProgress(ProgressModification::Increment))).unwrap(),
-                    
-                    // decrement progress (Subtract)
-                    65_453 => sender_cloned.send(Message::Watchlist(WatchlistActions::ChangeProgress(ProgressModification::Decrement))).unwrap(),
                     
                     // copy titles to clipboard (CONTROL + C/c)
                     curr if (curr == 67 || curr == 99) && key.state().contains(gdk::ModifierType::CONTROL_MASK) => {
@@ -142,18 +101,7 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         // edit series (Double-click, Return, Space)
         treeview.connect_row_activated({
             let sender_cloned = sender.clone();
-            move |_, _, _| sender_cloned.send(Message::Watchlist(WatchlistActions::Edit(false))).unwrap()
-        });
-        
-        // set series as completed (Middle-click)
-        treeview.connect_event({
-            let sender_cloned = sender.clone();
-            move |_, event| {
-                if event.event_type() == gdk::EventType::ButtonRelease && event.button().unwrap() == 2 {
-                    sender_cloned.send(Message::Watchlist(WatchlistActions::Edit(true))).unwrap();
-                }
-                Inhibit(false)
-            }
+            move |_, _, _| sender_cloned.send(Message::Watchlist(WatchlistActions::Edit)).unwrap()
         });
         
     }
@@ -304,7 +252,7 @@ pub fn add(state: &mut State, sender: &Sender<Message>, prefill: &Option<String>
     }
 }
 
-pub fn edit(state: &mut State, sender: &Sender<Message>, completed: bool) {
+pub fn edit(state: &mut State, sender: &Sender<Message>) {
     let Some(treeview) = state.ui.watchlist_current_treeview() else {
         return;
     };
@@ -326,10 +274,6 @@ pub fn edit(state: &mut State, sender: &Sender<Message>, completed: bool) {
         
         Some(current) => {
             
-            if completed && current.status == SeriesStatus::Completed {
-                return;
-            }
-            
             state.ui.widgets().dialogs.watchlist.series.dialog.set_title("Edit series");
             
             // disable "confirm and add another" button
@@ -343,26 +287,15 @@ pub fn edit(state: &mut State, sender: &Sender<Message>, completed: bool) {
             
             title_entry.set_text(&current.title);
             kind_combo.set_active_id(Some(&current.kind.as_int().to_string()));
-            
             status_combo.set_sensitive(true);
-            
-            if completed {
-                status_combo.set_active_id(Some(&SeriesStatus::Completed.as_int().to_string()));
-            } else {
-                status_combo.set_active_id(Some(&current.status.as_int().to_string()));
-            }
-            
+            status_combo.set_active_id(Some(&current.status.as_int().to_string()));
             progress_spin.set_value(f64::from(current.progress));
             good_switch.set_sensitive(true);
             good_switch.set_active(current.good == SeriesGood::Yes);
             
             loop {
                 
-                if completed {
-                    state.ui.widgets().dialogs.watchlist.series.progress_spin.grab_focus();
-                } else {
-                    state.ui.widgets().dialogs.watchlist.series.title_entry.grab_focus();
-                }
+                state.ui.widgets().dialogs.watchlist.series.title_entry.grab_focus();
                 
                 let response = state.ui.widgets().dialogs.watchlist.series.dialog.run();
                 
@@ -547,69 +480,6 @@ pub fn delete(state: &mut State, sender: &Sender<Message>) {
             Err(error) => state.ui.dialogs_error_show(&error.to_string()),
             
         }
-        
-    }
-}
-
-pub fn change_progress(state: &mut State, modification: &ProgressModification) {
-    let Some(treeview) = state.ui.watchlist_current_treeview() else {
-        return;
-    };
-    
-    let (treepaths, treemodel) = treeview.selection().selected_rows();
-    
-    if treepaths.is_empty() {
-        return;
-    }
-    
-    if treepaths.len() > 1 {
-        treeview.set_cursor(treepaths.first().unwrap(), None::<&gtk::TreeViewColumn>, false);
-    }
-    
-    let treeiter = treemodel.iter(treepaths.first().unwrap()).unwrap();
-    let id = SeriesId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap());
-    
-    match state.database.series_get(id).map(ToOwned::to_owned) {
-        
-        Some(mut new) => {
-            
-            match modification {
-                ProgressModification::Increment => new.progress += 1,
-                ProgressModification::Decrement => new.progress -= 1,
-            }
-            
-            match state.database.series_edit(id, new) {
-                
-                Ok(_) => {
-                    
-                    let series = state.database.series_get(id).unwrap();
-                    
-                    let sort: gtk::TreeModelSort = treemodel.downcast().unwrap();
-                    let filter: gtk::TreeModelFilter = sort.model().downcast().unwrap();
-                    
-                    let filter_iter = sort.convert_iter_to_child_iter(&treeiter);
-                    let store_iter = filter.convert_iter_to_child_iter(&filter_iter);
-                    
-                    let watchlist_store = &state.ui.widgets().stores.watchlist.entries.store;
-                    
-                    watchlist_store.set(
-                        &store_iter,
-                        &[
-                            (6, &series.progress),
-                        ],
-                    );
-                    
-                    treeview.grab_focus();
-                    
-                },
-                
-                Err(error) => state.ui.dialogs_error_show(&error.to_string()),
-                
-            }
-            
-        },
-        
-        None => state.ui.dialogs_error_show("Series not found"),
         
     }
 }

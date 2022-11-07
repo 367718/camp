@@ -1,6 +1,4 @@
 use std::{
-    collections::HashMap,
-    env,
     path::{ Path, PathBuf },
     time::Duration,
 };
@@ -56,7 +54,7 @@ pub struct Args {
     // free
     
     free_flags: Vec<String>,
-    free_pairs: HashMap<String, String>,
+    free_pairs: Vec<(String, String)>,
     
 }
 
@@ -65,92 +63,90 @@ impl Args {
     // ---------- constructors ----------
     
     
-    pub fn new(data: Option<Vec<String>>, flags: &[&str], pairs: &[&str]) -> Self {
-        let mut cmdargs = data.unwrap_or_else(|| env::args().collect());
-        
+    pub fn new(mut data: Vec<String>, flags: &[&str], pairs: &[&str]) -> Self {
         Self {
             
             // window
             
-            window_maximized: Self::remove_value(&mut cmdargs, WINDOW_MAXIMIZED_ARG)
+            window_maximized: Self::remove_value(&mut data, WINDOW_MAXIMIZED_ARG)
                 .and_then(|value| match value {
                     value if value.eq_ignore_ascii_case("yes") => Some(true),
                     value if value.eq_ignore_ascii_case("no") => Some(false),
                     _ => None,
                 }),
             
-            window_width: Self::remove_value(&mut cmdargs, WINDOW_WIDTH_ARG)
+            window_width: Self::remove_value(&mut data, WINDOW_WIDTH_ARG)
                 .and_then(|value| value.parse().ok())
                 .filter(|&value| Window::validate_dimension(value).is_ok()),
             
-            window_height: Self::remove_value(&mut cmdargs, WINDOW_HEIGHT_ARG)
+            window_height: Self::remove_value(&mut data, WINDOW_HEIGHT_ARG)
                 .and_then(|value| value.parse().ok())
                 .filter(|&value| Window::validate_dimension(value).is_ok()),
             
-            window_x: Self::remove_value(&mut cmdargs, WINDOW_X_ARG)
+            window_x: Self::remove_value(&mut data, WINDOW_X_ARG)
                 .and_then(|value| value.parse().ok())
                 .filter(|&value| Window::validate_coordinate(value).is_ok()),
             
-            window_y: Self::remove_value(&mut cmdargs, WINDOW_Y_ARG)
+            window_y: Self::remove_value(&mut data, WINDOW_Y_ARG)
                 .and_then(|value| value.parse().ok())
                 .filter(|&value| Window::validate_coordinate(value).is_ok()),
             
             // media
             
-            media_player: Self::remove_value(&mut cmdargs, MEDIA_PLAYER_ARG)
+            media_player: Self::remove_value(&mut data, MEDIA_PLAYER_ARG)
                 .filter(|value| Media::validate_player(value).is_ok()),
             
-            media_iconify: Self::remove_value(&mut cmdargs, MEDIA_ICONIFY_ARG)
+            media_iconify: Self::remove_value(&mut data, MEDIA_ICONIFY_ARG)
                 .and_then(|value| match value {
                     value if value.eq_ignore_ascii_case("yes") => Some(true),
                     value if value.eq_ignore_ascii_case("no") => Some(false),
                     _ => None,
                 }),
             
-            media_flag: Self::remove_value(&mut cmdargs, MEDIA_FLAG_ARG)
+            media_flag: Self::remove_value(&mut data, MEDIA_FLAG_ARG)
                 .filter(|value| Media::validate_flag(value).is_ok()),
             
-            media_timeout: Self::remove_value(&mut cmdargs, MEDIA_TIMEOUT_ARG)
+            media_timeout: Self::remove_value(&mut data, MEDIA_TIMEOUT_ARG)
                 .and_then(|value| value.parse().ok())
                 .map(Duration::from_secs),
             
-            media_autoselect: Self::remove_value(&mut cmdargs, MEDIA_AUTOSELECT_ARG)
+            media_autoselect: Self::remove_value(&mut data, MEDIA_AUTOSELECT_ARG)
                 .and_then(|value| match value {
                     value if value.eq_ignore_ascii_case("yes") => Some(true),
                     value if value.eq_ignore_ascii_case("no") => Some(false),
                     _ => None,
                 }),
             
-            media_lookup: Self::remove_value(&mut cmdargs, MEDIA_LOOKUP_ARG)
+            media_lookup: Self::remove_value(&mut data, MEDIA_LOOKUP_ARG)
                 .filter(|value| Media::validate_lookup(value).is_ok()),
             
-            media_bind: Self::remove_value(&mut cmdargs, MEDIA_BIND_ARG)
+            media_bind: Self::remove_value(&mut data, MEDIA_BIND_ARG)
                 .filter(|value| Media::validate_bind(value).is_ok()),
             
             // paths
             
-            paths_files: Self::remove_value(&mut cmdargs, PATHS_FILES_ARG)
+            paths_files: Self::remove_value(&mut data, PATHS_FILES_ARG)
                 .map(PathBuf::from),
             
-            paths_downloads: Self::remove_value(&mut cmdargs, PATHS_DOWNLOADS_ARG)
+            paths_downloads: Self::remove_value(&mut data, PATHS_DOWNLOADS_ARG)
                 .map(PathBuf::from),
             
-            paths_pipe: Self::remove_value(&mut cmdargs, PATHS_PIPE_ARG)
+            paths_pipe: Self::remove_value(&mut data, PATHS_PIPE_ARG)
                 .map(PathBuf::from),
             
-            paths_database: Self::remove_value(&mut cmdargs, PATHS_DATABASE_ARG)
+            paths_database: Self::remove_value(&mut data, PATHS_DATABASE_ARG)
                 .map(PathBuf::from),
             
             // free
             
             free_flags: flags.iter()
                 .filter(|key| key.starts_with("--"))
-                .filter_map(|key| Self::remove_flag(&mut cmdargs, key))
+                .filter_map(|key| Self::remove_flag(&mut data, key))
                 .collect(),
             
             free_pairs: pairs.iter()
                 .filter(|key| key.starts_with("--"))
-                .filter_map(|key| Self::remove_pair(&mut cmdargs, key))
+                .filter_map(|key| Self::remove_pair(&mut data, key))
                 .collect(),
             
         }
@@ -178,15 +174,15 @@ impl Args {
     // ---------- helpers ----------
     
     
-    fn remove_value(cmdargs: &mut Vec<String>, key: &str) -> Option<String> {
-        for (index, window) in cmdargs.windows(2).enumerate() {
+    fn remove_value(data: &mut Vec<String>, key: &str) -> Option<String> {
+        for (index, window) in data.windows(2).enumerate() {
             if window[0].eq_ignore_ascii_case(key) && ! window[1].starts_with("--") {
                 
                 // remove key
-                cmdargs.remove(index);
+                data.remove(index);
                 
                 // remove value
-                return Some(cmdargs.remove(index));
+                return Some(data.remove(index));
                 
             }
         }
@@ -194,15 +190,15 @@ impl Args {
         None
     }
     
-    fn remove_pair(cmdargs: &mut Vec<String>, key: &str) -> Option<(String, String)> {
-        for (index, window) in cmdargs.windows(2).enumerate() {
+    fn remove_pair(data: &mut Vec<String>, key: &str) -> Option<(String, String)> {
+        for (index, window) in data.windows(2).enumerate() {
             if window[0].eq_ignore_ascii_case(key) && ! window[1].starts_with("--") {
                 
                 return Some((
                     // remove key
-                    cmdargs.remove(index),
+                    data.remove(index),
                     // remove value
-                    cmdargs.remove(index),
+                    data.remove(index),
                 ));
                 
             }
@@ -211,11 +207,11 @@ impl Args {
         None
     }
     
-    fn remove_flag(cmdargs: &mut Vec<String>, key: &str) -> Option<String> {
-        for (index, flag) in cmdargs.iter().enumerate() {
+    fn remove_flag(data: &mut Vec<String>, key: &str) -> Option<String> {
+        for (index, flag) in data.iter().enumerate() {
             if flag.eq_ignore_ascii_case(key) {
                 
-                return Some(cmdargs.remove(index));
+                return Some(data.remove(index));
                 
             }
         }
@@ -325,7 +321,7 @@ mod tests {
     fn empty() {
         // setup
         
-        let data = None;
+        let data = Vec::new();
         let flags = &[];
         let pairs = &[];
         
@@ -362,7 +358,7 @@ mod tests {
     fn full() {
         // setup
         
-        let data = Some(Vec::from([
+        let data = Vec::from([
             
             String::from("--HelP"),
             String::from("no"),
@@ -405,7 +401,7 @@ mod tests {
             String::from(PATHS_DATABASE_ARG),
             String::from("/home/me/.local/app/app.db"),
             
-        ]));
+        ]);
         
         let flags = &[
             "--help",
@@ -449,7 +445,7 @@ mod tests {
     fn unordered() {
         // setup
         
-        let data = Some(Vec::from([
+        let data = Vec::from([
             
             String::from("--HelP"),
             String::from("yes"),
@@ -495,7 +491,7 @@ mod tests {
             String::from(WINDOW_WIDTH_ARG),
             String::from("100"),
             
-        ]));
+        ]);
         
         let flags = &[
             "--help",
@@ -538,7 +534,7 @@ mod tests {
     fn invalid() {
         // setup
         
-        let data = Some(Vec::from([
+        let data = Vec::from([
             
             String::from("test"),
             String::from("-placeholder"),
@@ -573,7 +569,7 @@ mod tests {
             String::from(PATHS_PIPE_ARG),
             String::from(PATHS_DATABASE_ARG),
             
-        ]));
+        ]);
         
         let flags = &[
             "--new",
@@ -619,7 +615,7 @@ mod tests {
     fn partial() {
         // setup
         
-        let data = Some(Vec::from([
+        let data = Vec::from([
             
             String::from("--unknown"),
             String::from("no"),
@@ -644,7 +640,7 @@ mod tests {
             String::from(PATHS_DOWNLOADS_ARG),
             String::from("/home/me/Downloads"),
             
-        ]));
+        ]);
         
         let flags = &[
             "--unknown",

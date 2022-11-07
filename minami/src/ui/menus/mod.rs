@@ -2,23 +2,23 @@ mod files;
 mod watchlist;
 mod preferences;
 
-use files::Menus as FilesMenus;
-use watchlist::Menus as WatchlistMenus;
-use preferences::Menus as PreferencesMenus;
+use files::Files;
+use watchlist::Watchlist;
+use preferences::Preferences;
 
 pub struct Menus {
-    pub files: FilesMenus,
-    pub watchlist: WatchlistMenus,
-    pub preferences: PreferencesMenus,
+    pub files: Files,
+    pub watchlist: Watchlist,
+    pub preferences: Preferences,
 }
 
 impl Menus {
     
     pub fn new() -> Self {
         Self {
-            files: FilesMenus::new(),
-            watchlist: WatchlistMenus::new(),
-            preferences: PreferencesMenus::new(),
+            files: Files::new(),
+            watchlist: Watchlist::new(),
+            preferences: Preferences::new(),
         }
     }
     

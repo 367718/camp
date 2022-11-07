@@ -331,7 +331,7 @@ mod lib {
     fn window() {
         // setup
         
-        let data = Some(Vec::from([
+        let data = Vec::from([
             String::from(args::WINDOW_MAXIMIZED_ARG),
             String::from("yes"),
             String::from(args::WINDOW_WIDTH_ARG),
@@ -342,7 +342,7 @@ mod lib {
             String::from("10"),
             String::from(args::WINDOW_Y_ARG),
             String::from("30"),
-        ]));
+        ]);
         
         let flags = &[];
         let pairs = &[];
@@ -386,7 +386,7 @@ mod lib {
     fn media() {
         // setup
         
-        let data = Some(Vec::from([
+        let data = Vec::from([
             String::from(args::MEDIA_PLAYER_ARG),
             String::from("vlc"),
             String::from(args::MEDIA_ICONIFY_ARG),
@@ -401,7 +401,7 @@ mod lib {
             String::from("https://placeholder.com/search?q=%s"),
             String::from(args::MEDIA_BIND_ARG),
             String::from("10.0.0.1"),
-        ]));
+        ]);
         
         let flags = &[];
         let pairs = &[];
@@ -453,7 +453,7 @@ mod lib {
     fn paths() {
         // setup
         
-        let data = Some(Vec::from([
+        let data = Vec::from([
             String::from(args::PATHS_FILES_ARG),
             String::from("/home/me/files"),
             String::from(args::PATHS_DOWNLOADS_ARG),
@@ -462,7 +462,7 @@ mod lib {
             String::from("/testing/pipe"),
             String::from(args::PATHS_DATABASE_ARG),
             String::from("/testing/database"),
-        ]));
+        ]);
         
         let flags = &[];
         let pairs = &[];

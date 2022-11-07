@@ -95,7 +95,7 @@ impl Series {
         
         let dialog = {
             
-            gtk::builders::DialogBuilder::new()
+            gtk::Dialog::builder()
             .transient_for(&window.general.window)
             .window_position(gtk::WindowPosition::CenterOnParent)
             .default_width(650)
@@ -140,7 +140,7 @@ impl Series {
         // lookup title (in content area)
         if let Some(parent) = confirm_button.parent() {
             if let Some(button_box) = parent.downcast_ref::<gtk::ButtonBox>() {
-                let title_button = gtk::builders::ButtonBuilder::new()
+                let title_button = gtk::Button::builder()
                     .visible(true)
                     .image(&gtk::Image::from_icon_name(Some("edit-find-symbolic"), gtk::IconSize::Menu))
                     .tooltip_text("Lookup title")
@@ -175,13 +175,13 @@ impl Series {
     }
     
     fn build_field_box(text: &str) -> gtk::Box {
-        gtk::builders::BoxBuilder::new()
+        gtk::Box::builder()
         .visible(true)
         .orientation(gtk::Orientation::Horizontal)
         .spacing(FIELDS_SPACING)
         .child(&{
             
-            gtk::builders::LabelBuilder::new()
+            gtk::Label::builder()
             .visible(true)
             .label(text)
             .xalign(1.0)
@@ -197,7 +197,7 @@ impl Series {
         
         let title_entry = {
             
-            gtk::builders::EntryBuilder::new()
+            gtk::Entry::builder()
             .visible(true)
             .hexpand(true)
             .activates_default(true)
@@ -215,7 +215,7 @@ impl Series {
         
         let kind_combo = {
             
-            gtk::builders::ComboBoxBuilder::new()
+            gtk::ComboBox::builder()
             .visible(true)
             .width_request(175)
             .id_column(2)
@@ -237,7 +237,7 @@ impl Series {
         
         let status_combo = {
             
-            gtk::builders::ComboBoxTextBuilder::new()
+            gtk::ComboBoxText::builder()
             .visible(true)
             .width_request(175)
             .build()
@@ -253,7 +253,7 @@ impl Series {
         {
             
             status_box.add(
-                &gtk::builders::ImageBuilder::new()
+                &gtk::Image::builder()
                 .visible(true)
                 .icon_name("dialog-information-symbolic")
                 .tooltip_text("If the status is changed, any candidate related to this series will be deleted")
@@ -270,7 +270,7 @@ impl Series {
         
         let progress_spin = {
             
-            gtk::builders::SpinButtonBuilder::new()
+            gtk::SpinButton::builder()
             .visible(true)
             .activates_default(true)
             .snap_to_ticks(true)
@@ -278,7 +278,7 @@ impl Series {
             .update_policy(gtk::SpinButtonUpdatePolicy::IfValid)
             .adjustment(&{
                 
-                gtk::builders::AdjustmentBuilder::new()
+                gtk::Adjustment::builder()
                 .upper(99999.0)
                 .step_increment(1.0)
                 .page_increment(10.0)
@@ -299,7 +299,7 @@ impl Series {
         
         let good_switch = {
             
-            gtk::builders::SwitchBuilder::new()
+            gtk::Switch::builder()
             .visible(true)
             .build()
             

@@ -4,7 +4,7 @@ Manage files and watchlists.
 
 ## Behavior
 
-Use the "--help" command-line flag to list all the available flags and arguments.
+Use the "--help" command-line flag to list all available flags and arguments.
 
 The application appearance can be customized via a subset of CSS. An example of the rules applied by default can be found in the "rsc" directory, and may be overridden providing a file path via the "--stylesheet" command-line argument.
 

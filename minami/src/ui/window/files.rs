@@ -75,7 +75,7 @@ impl Files {
         
         let scrolled_window = {
             
-            gtk::builders::ScrolledWindowBuilder::new()
+            gtk::ScrolledWindow::builder()
             .visible(true)
             .vexpand(true)
             .hscrollbar_policy(gtk::PolicyType::Never)
@@ -91,7 +91,7 @@ impl Files {
         
         let listbox = {
             
-            gtk::builders::ListBoxBuilder::new()
+            gtk::ListBox::builder()
             .visible(true)
             .build()
             
@@ -103,7 +103,7 @@ impl Files {
         
         let section_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Vertical)
             .build()
@@ -116,7 +116,7 @@ impl Files {
         
         let stack = {
             
-            gtk::builders::StackBuilder::new()
+            gtk::Stack::builder()
             .visible(true)
             .transition_duration(0)
             .build()
@@ -136,12 +136,12 @@ impl Files {
         
         // ---------- frame ----------
         
-        let frame = gtk::builders::FrameBuilder::new()
+        let frame = gtk::Frame::builder()
             .no_show_all(true)
             .shadow_type(gtk::ShadowType::In)
             .child(&{
                 
-                let label = gtk::builders::LabelBuilder::new()
+                let label = gtk::Label::builder()
                 .visible(true)
                 .label("The file watcher is not currently running. Changes will not be detected.")
                 .xalign(0.0)
@@ -161,7 +161,7 @@ impl Files {
         
         let buttons_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .homogeneous(true)
             .margin_top(WINDOW_SPACING)
@@ -178,11 +178,11 @@ impl Files {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Play")
                     .xalign(0.5)
@@ -203,11 +203,11 @@ impl Files {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Mark")
                     .xalign(0.5)
@@ -226,11 +226,11 @@ impl Files {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Move")
                     .xalign(0.5)
@@ -249,11 +249,11 @@ impl Files {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Lookup")
                     .xalign(0.5)
@@ -272,14 +272,14 @@ impl Files {
         
         for section in FilesSection::iter() {
             listbox.add(
-                &gtk::builders::ListBoxRowBuilder::new()
+                &gtk::ListBoxRow::builder()
                 .visible(true)
                 .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
                 .height_request(SECTIONS_LISTBOX_ROW_HEIGHT)
                 .name(section.display())
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label(section.display())
                     .halign(gtk::Align::Start)
@@ -295,7 +295,7 @@ impl Files {
                 
                 let header_box = {
                     
-                    gtk::builders::BoxBuilder::new()
+                    gtk::Box::builder()
                     .visible(true)
                     .orientation(gtk::Orientation::Vertical)
                     .build()
@@ -304,7 +304,7 @@ impl Files {
                 
                 header_box.add(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .sensitive(false)
                     .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
@@ -318,7 +318,7 @@ impl Files {
                 
                 header_box.add(&{
                     
-                    gtk::builders::SeparatorBuilder::new()
+                    gtk::Separator::builder()
                     .visible(true)
                     .valign(gtk::Align::Center)
                     .orientation(gtk::Orientation::Horizontal)
@@ -350,7 +350,7 @@ impl Files {
         
         let section_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Vertical)
             .build()
@@ -361,7 +361,7 @@ impl Files {
         
         let scrolled_window = {
             
-            gtk::builders::ScrolledWindowBuilder::new()
+            gtk::ScrolledWindow::builder()
             .visible(true)
             .vexpand(true)
             .shadow_type(gtk::ShadowType::In)
@@ -375,7 +375,7 @@ impl Files {
         
         let treeview = {
             
-            gtk::builders::TreeViewBuilder::new()
+            gtk::TreeView::builder()
             .visible(true)
             .headers_visible(false)
             .enable_search(false)

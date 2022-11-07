@@ -88,7 +88,7 @@ impl Preferences {
         
         let scrolled_window = {
             
-            gtk::builders::ScrolledWindowBuilder::new()
+            gtk::ScrolledWindow::builder()
             .visible(true)
             .vexpand(true)
             .hscrollbar_policy(gtk::PolicyType::Never)
@@ -104,7 +104,7 @@ impl Preferences {
         
         let listbox = {
             
-            gtk::builders::ListBoxBuilder::new()
+            gtk::ListBox::builder()
             .visible(true)
             .build()
             
@@ -116,7 +116,7 @@ impl Preferences {
         
         let section_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .orientation(gtk::Orientation::Vertical)
             .build()
@@ -129,7 +129,7 @@ impl Preferences {
         
         let stack = {
             
-            gtk::builders::StackBuilder::new()
+            gtk::Stack::builder()
             .visible(true)
             .transition_duration(0)
             .build()
@@ -156,14 +156,14 @@ impl Preferences {
         
         for section in PreferencesSection::iter() {
             listbox.add(
-                &gtk::builders::ListBoxRowBuilder::new()
+                &gtk::ListBoxRow::builder()
                 .visible(true)
                 .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
                 .height_request(SECTIONS_LISTBOX_ROW_HEIGHT)
                 .name(section.display())
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label(section.display())
                     .halign(gtk::Align::Start)
@@ -179,7 +179,7 @@ impl Preferences {
                 
                 let header_box = {
                     
-                    gtk::builders::BoxBuilder::new()
+                    gtk::Box::builder()
                     .visible(true)
                     .orientation(gtk::Orientation::Vertical)
                     .build()
@@ -188,7 +188,7 @@ impl Preferences {
                 
                 header_box.add(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .sensitive(false)
                     .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
@@ -202,7 +202,7 @@ impl Preferences {
                 
                 header_box.add(&{
                     
-                    gtk::builders::SeparatorBuilder::new()
+                    gtk::Separator::builder()
                     .visible(true)
                     .valign(gtk::Align::Center)
                     .orientation(gtk::Orientation::Horizontal)
@@ -284,7 +284,7 @@ impl Candidates {
         
         let section_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .spacing(WINDOW_SPACING)
             .orientation(gtk::Orientation::Horizontal)
@@ -321,7 +321,7 @@ impl Candidates {
         
         let candidates_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .hexpand(true)
             .spacing(WINDOW_SPACING)
@@ -334,7 +334,7 @@ impl Candidates {
         
         let scrolled_window = {
             
-            gtk::builders::ScrolledWindowBuilder::new()
+            gtk::ScrolledWindow::builder()
             .visible(true)
             .vexpand(true)
             .shadow_type(gtk::ShadowType::In)
@@ -348,7 +348,7 @@ impl Candidates {
         
         let candidates_treeview = {
             
-            gtk::builders::TreeViewBuilder::new()
+            gtk::TreeView::builder()
             .visible(true)
             .headers_visible(false)
             .enable_search(false)
@@ -376,7 +376,7 @@ impl Candidates {
         
         let buttons_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .homogeneous(true)
             .spacing(WINDOW_SPACING)
@@ -392,11 +392,11 @@ impl Candidates {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Add")
                     .xalign(0.5)
@@ -418,11 +418,11 @@ impl Candidates {
         {
             
             buttons_box.add(
-                &gtk::builders::ButtonBuilder::new()
+                &gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Edit")
                     .xalign(0.5)
@@ -440,11 +440,11 @@ impl Candidates {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Delete")
                     .xalign(0.5)
@@ -471,7 +471,7 @@ impl Candidates {
         
         let downloaded_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .spacing(WINDOW_SPACING)
             .orientation(gtk::Orientation::Vertical)
@@ -483,7 +483,7 @@ impl Candidates {
         
         let scrolled_window = {
             
-            gtk::builders::ScrolledWindowBuilder::new()
+            gtk::ScrolledWindow::builder()
             .visible(true)
             .vexpand(true)
             .shadow_type(gtk::ShadowType::In)
@@ -497,7 +497,7 @@ impl Candidates {
         
         let downloaded_treeview = {
             
-            gtk::builders::TreeViewBuilder::new()
+            gtk::TreeView::builder()
             .visible(true)
             .headers_visible(false)
             .enable_search(false)
@@ -526,7 +526,7 @@ impl Candidates {
         
         let buttons_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .homogeneous(true)
             .spacing(WINDOW_SPACING)
@@ -542,11 +542,11 @@ impl Candidates {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Add")
                     .xalign(0.5)
@@ -567,11 +567,11 @@ impl Candidates {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Delete")
                     .xalign(0.5)
@@ -612,7 +612,6 @@ impl Feeds {
                 button ("Add", "app.preferences.feeds.add")
                 button ("Edit", "app.preferences.feeds.edit")
                 button ("Delete", "app.preferences.feeds.delete")
-                button ("Open", "app.preferences.feeds.open")
                 
             /horizontal_box
             
@@ -624,7 +623,7 @@ impl Feeds {
         
         let section_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .spacing(WINDOW_SPACING)
             .orientation(gtk::Orientation::Vertical)
@@ -636,7 +635,7 @@ impl Feeds {
         
         let scrolled_window = {
             
-            gtk::builders::ScrolledWindowBuilder::new()
+            gtk::ScrolledWindow::builder()
             .visible(true)
             .vexpand(true)
             .shadow_type(gtk::ShadowType::In)
@@ -650,7 +649,7 @@ impl Feeds {
         
         let treeview = {
             
-            gtk::builders::TreeViewBuilder::new()
+            gtk::TreeView::builder()
             .visible(true)
             .headers_visible(false)
             .enable_search(false)
@@ -679,7 +678,7 @@ impl Feeds {
         
         let buttons_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .homogeneous(true)
             .spacing(WINDOW_SPACING)
@@ -695,11 +694,11 @@ impl Feeds {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Add")
                     .xalign(0.5)
@@ -721,11 +720,11 @@ impl Feeds {
         {
             
             buttons_box.add(
-                &gtk::builders::ButtonBuilder::new()
+                &gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Edit")
                     .xalign(0.5)
@@ -743,11 +742,11 @@ impl Feeds {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Delete")
                     .xalign(0.5)
@@ -761,29 +760,6 @@ impl Feeds {
             button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
             
             buttons_box.add(&button);
-            
-        }
-        
-        // open
-        
-        {
-            
-            buttons_box.add(
-                &gtk::builders::ButtonBuilder::new()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::builders::LabelBuilder::new()
-                    .visible(true)
-                    .label("Open")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.feeds.open")
-                .build()
-            );
             
         }
         
@@ -828,7 +804,7 @@ impl Kinds {
         
         let section_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .spacing(WINDOW_SPACING)
             .orientation(gtk::Orientation::Vertical)
@@ -840,7 +816,7 @@ impl Kinds {
         
         let scrolled_window = {
             
-            gtk::builders::ScrolledWindowBuilder::new()
+            gtk::ScrolledWindow::builder()
             .visible(true)
             .vexpand(true)
             .shadow_type(gtk::ShadowType::In)
@@ -854,7 +830,7 @@ impl Kinds {
         
         let treeview = {
             
-            gtk::builders::TreeViewBuilder::new()
+            gtk::TreeView::builder()
             .visible(true)
             .headers_visible(false)
             .enable_search(false)
@@ -883,7 +859,7 @@ impl Kinds {
         
         let buttons_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .spacing(WINDOW_SPACING)
             .halign(gtk::Align::Start)
@@ -896,7 +872,7 @@ impl Kinds {
         
         let homogeneous_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .homogeneous(true)
             .spacing(WINDOW_SPACING)
@@ -912,11 +888,11 @@ impl Kinds {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Add")
                     .xalign(0.5)
@@ -938,11 +914,11 @@ impl Kinds {
         {
             
             homogeneous_box.add(
-                &gtk::builders::ButtonBuilder::new()
+                &gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Edit")
                     .xalign(0.5)
@@ -960,11 +936,11 @@ impl Kinds {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Delete")
                     .xalign(0.5)
@@ -1022,7 +998,7 @@ impl Formats {
         
         let section_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .spacing(WINDOW_SPACING)
             .orientation(gtk::Orientation::Vertical)
@@ -1034,7 +1010,7 @@ impl Formats {
         
         let scrolled_window = {
             
-            gtk::builders::ScrolledWindowBuilder::new()
+            gtk::ScrolledWindow::builder()
             .visible(true)
             .vexpand(true)
             .shadow_type(gtk::ShadowType::In)
@@ -1046,7 +1022,7 @@ impl Formats {
         
         let treeview = {
             
-            gtk::builders::TreeViewBuilder::new()
+            gtk::TreeView::builder()
             .visible(true)
             .headers_visible(false)
             .enable_search(false)
@@ -1074,7 +1050,7 @@ impl Formats {
         
         let buttons_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .homogeneous(true)
             .spacing(WINDOW_SPACING)
@@ -1090,11 +1066,11 @@ impl Formats {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Add")
                     .xalign(0.5)
@@ -1116,11 +1092,11 @@ impl Formats {
         {
             
             buttons_box.add(
-                &gtk::builders::ButtonBuilder::new()
+                &gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Edit")
                     .xalign(0.5)
@@ -1138,11 +1114,11 @@ impl Formats {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Delete")
                     .xalign(0.5)
@@ -1257,7 +1233,7 @@ impl Media {
         
         let section_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .spacing(WINDOW_SPACING)
             .valign(gtk::Align::Fill)
@@ -1270,7 +1246,7 @@ impl Media {
         
         let scrolled_window = {
             
-            gtk::builders::ScrolledWindowBuilder::new()
+            gtk::ScrolledWindow::builder()
             .visible(true)
             .valign(gtk::Align::Fill)
             .vexpand(true)
@@ -1285,7 +1261,7 @@ impl Media {
         
         let fields_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .homogeneous(true)
             .spacing(WINDOW_SPACING)
@@ -1323,7 +1299,7 @@ impl Media {
         
         let buttons_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .homogeneous(true)
             .spacing(WINDOW_SPACING)
@@ -1339,11 +1315,11 @@ impl Media {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Confirm")
                     .xalign(0.5)
@@ -1365,11 +1341,11 @@ impl Media {
         {
             
             buttons_box.add(
-                &gtk::builders::ButtonBuilder::new()
+                &gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Unlock")
                     .xalign(0.5)
@@ -1387,11 +1363,11 @@ impl Media {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Discard")
                     .xalign(0.5)
@@ -1426,14 +1402,14 @@ impl Media {
     }
     
     fn build_field_box(text: &str) -> gtk::Box {
-        gtk::builders::BoxBuilder::new()
+        gtk::Box::builder()
         .visible(true)
         .valign(gtk::Align::Center)
         .orientation(gtk::Orientation::Horizontal)
         .spacing(FIELDS_SPACING)
         .child(&{
             
-            gtk::builders::LabelBuilder::new()
+            gtk::Label::builder()
             .visible(true)
             .label(text)
             .xalign(1.0)
@@ -1449,7 +1425,7 @@ impl Media {
         
         let player_entry = {
             
-            gtk::builders::EntryBuilder::new()
+            gtk::Entry::builder()
             .visible(true)
             .sensitive(false)
             .hexpand(true)
@@ -1467,7 +1443,7 @@ impl Media {
         
         let iconify_switch = {
             
-            gtk::builders::SwitchBuilder::new()
+            gtk::Switch::builder()
             .visible(true)
             .sensitive(false)
             .build()
@@ -1484,7 +1460,7 @@ impl Media {
         
         let flag_entry = {
             
-            gtk::builders::EntryBuilder::new()
+            gtk::Entry::builder()
             .visible(true)
             .sensitive(false)
             .hexpand(true)
@@ -1502,7 +1478,7 @@ impl Media {
         
         let timeout_spin = {
             
-            gtk::builders::SpinButtonBuilder::new()
+            gtk::SpinButton::builder()
             .visible(true)
             .sensitive(false)
             .snap_to_ticks(true)
@@ -1510,7 +1486,7 @@ impl Media {
             .update_policy(gtk::SpinButtonUpdatePolicy::IfValid)
             .adjustment(&{
                 
-                gtk::builders::AdjustmentBuilder::new()
+                gtk::Adjustment::builder()
                 .upper(86400.0)
                 .step_increment(1.0)
                 .page_increment(10.0)
@@ -1526,7 +1502,7 @@ impl Media {
         {
             
             timeout_box.add(
-                &gtk::builders::LabelBuilder::new()
+                &gtk::Label::builder()
                 .visible(true)
                 .label("seconds")
                 .build()
@@ -1542,7 +1518,7 @@ impl Media {
         
         let autoselect_switch = {
             
-            gtk::builders::SwitchBuilder::new()
+            gtk::Switch::builder()
             .visible(true)
             .sensitive(false)
             .build()
@@ -1559,7 +1535,7 @@ impl Media {
         
         let lookup_entry = {
             
-            gtk::builders::EntryBuilder::new()
+            gtk::Entry::builder()
             .visible(true)
             .sensitive(false)
             .hexpand(true)
@@ -1572,7 +1548,7 @@ impl Media {
         {
             
             lookup_box.add(
-                &gtk::builders::ImageBuilder::new()
+                &gtk::Image::builder()
                 .visible(true)
                 .icon_name("dialog-information-symbolic")
                 .tooltip_text("'%s' will be replaced by query")
@@ -1589,7 +1565,7 @@ impl Media {
         
         let bind_entry = {
             
-            gtk::builders::EntryBuilder::new()
+            gtk::Entry::builder()
             .visible(true)
             .sensitive(false)
             .hexpand(true)
@@ -1663,7 +1639,7 @@ impl Paths {
         
         let section_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .spacing(WINDOW_SPACING)
             .valign(gtk::Align::Fill)
@@ -1676,7 +1652,7 @@ impl Paths {
         
         let scrolled_window = {
             
-            gtk::builders::ScrolledWindowBuilder::new()
+            gtk::ScrolledWindow::builder()
             .visible(true)
             .valign(gtk::Align::Fill)
             .vexpand(true)
@@ -1691,7 +1667,7 @@ impl Paths {
         
         let fields_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .homogeneous(true)
             .spacing(WINDOW_SPACING)
@@ -1723,7 +1699,7 @@ impl Paths {
         
         let buttons_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .homogeneous(true)
             .spacing(WINDOW_SPACING)
@@ -1739,11 +1715,11 @@ impl Paths {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Confirm")
                     .xalign(0.5)
@@ -1765,11 +1741,11 @@ impl Paths {
         {
             
             buttons_box.add(
-                &gtk::builders::ButtonBuilder::new()
+                &gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Unlock")
                     .xalign(0.5)
@@ -1787,11 +1763,11 @@ impl Paths {
         
         {
             
-            let button = gtk::builders::ButtonBuilder::new()
+            let button = gtk::Button::builder()
                 .visible(true)
                 .child(&{
                     
-                    gtk::builders::LabelBuilder::new()
+                    gtk::Label::builder()
                     .visible(true)
                     .label("Discard")
                     .xalign(0.5)
@@ -1829,14 +1805,14 @@ impl Paths {
     fn build_field(text: &str) -> (gtk::Box, gtk::Button, gtk::Entry) {
         let field_box = {
             
-            gtk::builders::BoxBuilder::new()
+            gtk::Box::builder()
             .visible(true)
             .valign(gtk::Align::Center)
             .orientation(gtk::Orientation::Horizontal)
             .spacing(FIELDS_SPACING)
             .child(&{
                 
-                gtk::builders::LabelBuilder::new()
+                gtk::Label::builder()
                 .visible(true)
                 .label(text)
                 .xalign(1.0)
@@ -1850,7 +1826,7 @@ impl Paths {
         
         let field_button = {
             
-            gtk::builders::ButtonBuilder::new()
+            gtk::Button::builder()
             .visible(true)
             .sensitive(false)
             .image(&gtk::Image::from_icon_name(Some("folder-symbolic"), gtk::IconSize::Menu))
@@ -1862,7 +1838,7 @@ impl Paths {
         
         let field_entry = {
             
-            gtk::builders::EntryBuilder::new()
+            gtk::Entry::builder()
             .visible(true)
             .sensitive(false)
             .hexpand(true)

@@ -36,7 +36,7 @@ use chiaki::{
     CandidatesId, CandidatesEntry, CandidatesCurrent,
 };
 use aoi::RemoteControlServer;
-use akari::Client as HttpClient;
+use akari::HttpClient;
 
 use ui::Ui;
 use general::GeneralActions;
@@ -127,7 +127,7 @@ fn init_app(app: &gtk::Application) {
     // ---------- command-line arguments ----------
     
     let args = Args::new(
-        None, // use values provided when the application was called
+        env::args().collect(),
         &["--help", "--version", "--dlonly"], // additional flags
         &["--config", "--stylesheet"], // additional key-value pairs
     );
@@ -144,7 +144,11 @@ fn init_app(app: &gtk::Application) {
     
     // ---------- ui ----------
     
-    let ui = Ui::new(args.free_value("--stylesheet"));
+    let ui = Ui::new();
+    
+    if let Err(error) = ui.load_stylesheet(args.free_value("--stylesheet")) {
+        ui.dialogs_error_show(&error.to_string());
+    }
     
     // ---------- enforce process uniqueness ----------
     
