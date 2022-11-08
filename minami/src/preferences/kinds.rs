@@ -1,4 +1,5 @@
 use gtk::{
+    gdk,
     gio,
     glib::Sender,
     prelude::*,
@@ -92,22 +93,13 @@ fn bind(app: &gtk::Application, state: &mut State, sender: &Sender<Message>) {
     // delete kind (Delete)
     kinds_treeview.connect_key_press_event({
         let sender_cloned = sender.clone();
-        move |_, key| {
-            match *key.keyval() {
-                
-                // add kind (Insert)
-                65_379 => sender_cloned.send(Message::Preferences(PreferencesActions::KindsAdd)).unwrap(),
-                
-                // edit kind (F2)
-                65_471 => sender_cloned.send(Message::Preferences(PreferencesActions::KindsEdit)).unwrap(),
-                
-                // delete kind (Delete)
-                65_535 => sender_cloned.send(Message::Preferences(PreferencesActions::KindsDelete)).unwrap(),
-                
+        move |_, eventkey| {
+            match eventkey.keyval() {
+                gdk::keys::constants::Insert => sender_cloned.send(Message::Preferences(PreferencesActions::KindsAdd)).unwrap(),
+                gdk::keys::constants::F2 => sender_cloned.send(Message::Preferences(PreferencesActions::KindsEdit)).unwrap(),
+                gdk::keys::constants::Delete => sender_cloned.send(Message::Preferences(PreferencesActions::KindsDelete)).unwrap(),
                 _ => (),
-                
             }
-            
             Inhibit(false)
         }
     });

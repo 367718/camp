@@ -59,21 +59,18 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         // copy names to clipboard (CONTROL + C/c)
         treeview.connect_key_press_event({
             let sender_cloned = sender.clone();
-            move |_, key| {
-                match *key.keyval() {
+            move |_, eventkey| {
+                match eventkey.keyval() {
                     
-                    // add candidate (Insert)
-                    curr if curr == 65_379 && ! key.state().contains(gdk::ModifierType::SHIFT_MASK) => {
+                    key if key == gdk::keys::constants::Insert && ! eventkey.state().contains(gdk::ModifierType::SHIFT_MASK) => {
                         sender_cloned.send(Message::Files(FilesActions::AddCandidate)).unwrap();
                     },
                     
-                    // add series (SHIFT + Insert)
-                    curr if curr == 65_379 && key.state().contains(gdk::ModifierType::SHIFT_MASK) => {
+                    key if key == gdk::keys::constants::Insert && eventkey.state().contains(gdk::ModifierType::SHIFT_MASK) => {
                         sender_cloned.send(Message::Files(FilesActions::AddSeries)).unwrap();
                     },
                     
-                    // copy names to clipboard (CONTROL + C/c)
-                    curr if (curr == 67 || curr == 99) && key.state().contains(gdk::ModifierType::CONTROL_MASK) => {
+                    key if (key == gdk::keys::constants::C || key == gdk::keys::constants::c) && eventkey.state().contains(gdk::ModifierType::CONTROL_MASK) => {
                         sender_cloned.send(Message::Files(FilesActions::CopyNames)).unwrap();
                     },
                     

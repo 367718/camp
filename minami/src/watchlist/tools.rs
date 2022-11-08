@@ -41,16 +41,17 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         // lookup selected title (CONTROL + L/l)
         treeview.connect_key_press_event({
             let sender_cloned = sender.clone();
-            move |_, key| {
-                
-                // lookup selected title (CONTROL + L/l)
-                if (*key.keyval() == 76 || *key.keyval() == 108) && key.state().contains(gdk::ModifierType::CONTROL_MASK) {
-                    sender_cloned.send(Message::Watchlist(WatchlistActions::Lookup)).unwrap();
-                    return Inhibit(true);
+            move |_, eventkey| {
+                match eventkey.keyval() {
+                    
+                    key if (key == gdk::keys::constants::L || key == gdk::keys::constants::l) && eventkey.state().contains(gdk::ModifierType::CONTROL_MASK) => {
+                        sender_cloned.send(Message::Watchlist(WatchlistActions::Lookup)).unwrap();
+                        Inhibit(true)
+                    },
+                    
+                    _ => Inhibit(false),
+                    
                 }
-                
-                Inhibit(false)
-                
             }
         });
         

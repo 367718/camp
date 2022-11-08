@@ -73,20 +73,14 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         // copy titles to clipboard (CONTROL + C/c)
         treeview.connect_key_press_event({
             let sender_cloned = sender.clone();
-            move |_, key| {
-                match *key.keyval() {
+            move |_, eventkey| {
+                match eventkey.keyval() {
                     
-                    // add series (Insert)
-                    65_379 => sender_cloned.send(Message::Watchlist(WatchlistActions::Add(None))).unwrap(),
+                    gdk::keys::constants::Insert => sender_cloned.send(Message::Watchlist(WatchlistActions::Add(None))).unwrap(),
+                    gdk::keys::constants::F2 => sender_cloned.send(Message::Watchlist(WatchlistActions::Edit)).unwrap(),
+                    gdk::keys::constants::Delete => sender_cloned.send(Message::Watchlist(WatchlistActions::Delete)).unwrap(),
                     
-                    // edit series (F2)
-                    65_471 => sender_cloned.send(Message::Watchlist(WatchlistActions::Edit)).unwrap(),
-                    
-                    // delete series (Delete)
-                    65_535 => sender_cloned.send(Message::Watchlist(WatchlistActions::Delete)).unwrap(),
-                    
-                    // copy titles to clipboard (CONTROL + C/c)
-                    curr if (curr == 67 || curr == 99) && key.state().contains(gdk::ModifierType::CONTROL_MASK) => {
+                    key if (key == gdk::keys::constants::C || key == gdk::keys::constants::c) && eventkey.state().contains(gdk::ModifierType::CONTROL_MASK) => {
                         sender_cloned.send(Message::Watchlist(WatchlistActions::CopyTitles)).unwrap();
                     },
                     

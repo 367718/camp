@@ -24,7 +24,6 @@ pub enum PreferencesActions {
     CandidatesShowInfo,
     CandidatesReload,
     DownloadedAdd,
-    DownloadedEdit,
     DownloadedDelete,
     DownloadedUpdate(Vec<(SeriesId, u32)>),
     
@@ -137,9 +136,6 @@ pub fn handle_action(state: &mut State, sender: &Sender<Message>, action: Prefer
         
         // preferences -> candidates -> bind x2
         DownloadedAdd => candidates::downloaded_add(state),
-        
-        // preferences -> candidates -> bind x2
-        DownloadedEdit => candidates::downloaded_edit(state),
         
         // preferences -> candidates -> bind x2
         DownloadedDelete => candidates::downloaded_delete(state),

@@ -4,7 +4,7 @@ mod watcher;
 use std::{
     error::Error,
     ffi::{ OsStr, OsString },
-    fs::{ self, OpenOptions },
+    fs,
     path::{ Path, PathBuf },
 };
 
@@ -35,22 +35,18 @@ impl Files {
     // ---------- constructors ----------
     
     
-    pub fn new<P: AsRef<Path>, F: AsRef<OsStr>, M: AsRef<OsStr>>(root: P, flag: F, formats: &[M]) -> Self {
+    pub fn new<P: Into<PathBuf>, F: Into<OsString>, M: Into<OsString>>(root: P, flag: F, formats: impl Iterator<Item = M>) -> Self {
         let mut files = Files {
-            root: root.as_ref().to_owned(),
-            flag: flag.as_ref().to_owned(),
-            formats: formats.iter()
-                .map(|format| OsString::from(format.as_ref()))
-                .collect(),
+            root: root.into(),
+            flag: flag.into(),
+            formats: formats.map(Into::into).collect(),
             entries: Vec::new(),
             queue: Vec::new(),
             watcher: None,
         };
         
-        if files.root.is_dir() {
-            if let Some(entries) = files.walk_path(&files.root) {
-                files.entries = entries;
-            }
+        if let Some(entries) = files.walk_path(&files.root) {
+            files.entries = entries;
         }
         
         files
@@ -65,7 +61,7 @@ impl Files {
         self.entries.iter().find(|entry| entry.path == path)
     }
     
-    pub fn iter(&self) -> impl Iterator<Item=&FilesEntry> {
+    pub fn iter(&self) -> impl Iterator<Item = &FilesEntry> {
         self.entries.iter()
     }
     
@@ -78,25 +74,20 @@ impl Files {
     }
     
     pub fn rename<P: AsRef<Path>, S: AsRef<OsStr>>(&self, path: P, name: S) -> Result<(), Box<dyn Error>> {
-        self.get(&path).ok_or("File not found")?;
+        let entry = self.get(&path).ok_or("Entry not found")?;
         
-        let path = path.as_ref();
-        let name = name.as_ref();
+        let new_name = Path::new(&name).file_name().ok_or("Could not get new file name")?;
+        let current_extension = entry.path.extension().ok_or("Could not get current file extension")?;
         
-        let new_name = Path::new(name).file_name().ok_or("Could not get new file name")?;
-        let current_extension = path.extension().ok_or("Could not get current file extension")?;
+        let destination = entry.path.with_file_name(new_name).with_extension(current_extension);
         
-        let destination = path.with_file_name(new_name).with_extension(current_extension);
-        
-        if path != destination {
+        if entry.path != destination {
             
-            OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(&destination)
-                .map_err(|_| format!("File already exists or write error: {}", path.to_string_lossy()))?;
+            if destination.exists() {
+                return Err(format!("File already exists: {}", destination.to_string_lossy()).into());
+            }
             
-            fs::rename(path, &destination)?;
+            fs::rename(&entry.path, &destination)?;
             
         }
         
@@ -104,11 +95,9 @@ impl Files {
     }
     
     pub fn move_to_folder<P: AsRef<Path>, S: AsRef<OsStr>>(&self, path: P, folder: Option<S>) -> Result<(), Box<dyn Error>> {
-        self.get(&path).ok_or("File not found")?;
+        let entry = self.get(&path).ok_or("Entry not found")?;
         
-        let path = path.as_ref();
-        
-        let filename = path.file_name().ok_or("Could not determine file name")?;
+        let filename = entry.path.file_name().ok_or("Could not determine file name")?;
         
         let destination = match folder {
             
@@ -134,15 +123,13 @@ impl Files {
             
         };
         
-        if path != destination {
+        if entry.path != destination {
             
-            OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(&destination)
-                .map_err(|_| format!("File already exists or write error: {}", path.to_string_lossy()))?;
+            if destination.exists() {
+                return Err(format!("File already exists: {}", destination.to_string_lossy()).into());
+            }
             
-            fs::rename(path, &destination)?;
+            fs::rename(&entry.path, &destination)?;
             
         }
         
@@ -150,27 +137,25 @@ impl Files {
     }
     
     pub fn delete<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn Error>> {
-        self.get(&path).ok_or("File not found")?;
+        let entry = self.get(&path).ok_or("Entry not found")?;
         
-        fs::remove_file(path)?;
+        fs::remove_file(&entry.path)?;
         
         Ok(())
     }
     
     pub fn mark<P: AsRef<Path>>(&self, path: P, mark: FilesMark) -> Result<bool, Box<dyn Error>> {
-        let entry = self.get(&path).ok_or("File not found")?;
+        let entry = self.get(&path).ok_or("Entry not found")?;
         
         let changed = marks::set(&self.flag, entry, mark)?;
         
         if changed {
             
-            let path = path.as_ref();
-            
             // since these kinds of changes are not picked up by the file watcher, they must be communicated manually
             // this means that an equivalent modification not made through this library will have no effect and a full reload should be performed to avoid loss of information
             if let Some((_, notify)) = self.watcher.as_ref() {
-                notify(FilesWatcherEvent::FileRemoved(path.to_owned()));
-                notify(FilesWatcherEvent::FileAdded(path.to_owned()));
+                notify(FilesWatcherEvent::FileRemoved(entry.path.clone()));
+                notify(FilesWatcherEvent::FileAdded(entry.path.clone()));
             }
             
         }
@@ -348,14 +333,12 @@ impl Files {
         Ok(result)
     }
     
-    pub fn mount_watcher<S: Fn(FilesWatcherEvent) + Send + Clone + 'static>(&mut self, subscription: S) -> Result<(), Box<dyn Error>> {
+    pub fn mount_watcher<N: Fn(FilesWatcherEvent) + Send + Clone + 'static>(&mut self, notify: N) -> Result<(), Box<dyn Error>> {
         self.unmount_watcher();
-        
-        let notify = Box::new(subscription);
         
         let watcher = FilesWatcher::mount(&self.root, notify.clone())?;
         
-        self.watcher = Some((watcher, notify));
+        self.watcher = Some((watcher, Box::new(notify)));
         
         Ok(())
     }
@@ -366,9 +349,7 @@ impl Files {
     
     pub fn refresh_queue<S: AsRef<OsStr>>(&mut self, selected: &[S]) {
         // indexes -> entries
-        let mut queue = self.queue.iter()
-            .filter_map(|&index| self.entries.get(index))
-            .collect::<Vec<&FilesEntry>>();
+        let mut queue = self.queue().collect::<Vec<&FilesEntry>>();
         
         // ---------- translate provided paths into entries and containers ----------
         
@@ -2240,7 +2221,7 @@ mod lib {
         let flag = "user.app.ena";
         let formats = Vec::from(["mkv", "mp4", "avi"]);
         
-        Files::new(path, flag, &formats)
+        Files::new(path, flag, formats.iter())
     }
     
 }

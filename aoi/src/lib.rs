@@ -62,7 +62,7 @@ impl RemoteControlServer {
         let pipe = File::create(pipe)?;
         let (listener, stopper) = Listener::new(bind)?;
         
-        Self::listen(pipe, listener, notify)?;
+        Self::listen(listener, pipe, notify)?;
         
         Ok(Self {
             stopper,
@@ -81,10 +81,10 @@ impl RemoteControlServer {
     // ---------- helpers ----------
     
     
-    fn listen<N: FnOnce(Error) + Send + 'static>(mut pipe: File, listener: Listener, notify: N) -> Result<(), Error> {
+    fn listen<N: FnOnce(Error) + Send + 'static>(listener: Listener, mut pipe: File, notify: N) -> Result<(), Error> {
         thread::Builder::new().spawn(move || {
             
-            if let Err(error) = Self::handle_connections(&mut pipe, &listener) {
+            if let Err(error) = Self::handle_connections(&listener, &mut pipe) {
                 notify(error);
             }
             
@@ -93,7 +93,7 @@ impl RemoteControlServer {
         Ok(())
     }
     
-    fn handle_connections(pipe: &mut File, listener: &Listener) -> Result<(), Error> {
+    fn handle_connections(listener: &Listener, pipe: &mut File) -> Result<(), Error> {
         loop {
             
             let mut stream = listener.accept()?;

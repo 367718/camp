@@ -6,10 +6,10 @@ use std::{
 };
 
 use gtk::{
-    prelude::*,
-    gio,
     gdk,
+    gio,
     glib::{ self, Sender },
+    prelude::*,
 };
 
 use crate::{
@@ -95,27 +95,22 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         
         // rename first selected file (F2)
         // move files to specified folder (F3)
-        // delete files (SHIFT + Delete)
         // mark as watched (Delete)
+        // delete files (SHIFT + Delete)
         treeview.connect_key_press_event({
             let sender_cloned = sender.clone();
-            move |_, key| {
-                match *key.keyval() {
+            move |_, eventkey| {
+                match eventkey.keyval() {
                     
-                    // rename first selected file (F2)
-                    65_471 => sender_cloned.send(Message::Files(FilesActions::Rename)).unwrap(),
+                    gdk::keys::constants::F2 => sender_cloned.send(Message::Files(FilesActions::Rename)).unwrap(),
+                    gdk::keys::constants::F3 => sender_cloned.send(Message::Files(FilesActions::MoveToFolder)).unwrap(),
                     
-                    // move files to specified folder (F3)
-                    65_472 => sender_cloned.send(Message::Files(FilesActions::MoveToFolder)).unwrap(),
-                    
-                    // delete files (SHIFT + Delete)
-                    curr if curr == 65_535 && key.state().contains(gdk::ModifierType::SHIFT_MASK) => {
-                        sender_cloned.send(Message::Files(FilesActions::Delete)).unwrap();
+                    key if key == gdk::keys::constants::Delete && ! eventkey.state().contains(gdk::ModifierType::SHIFT_MASK) => {
+                        sender_cloned.send(Message::Files(FilesActions::MarkAsWatched)).unwrap();
                     },
                     
-                    // mark as watched (Delete)
-                    curr if curr == 65_535 && ! key.state().contains(gdk::ModifierType::SHIFT_MASK) => {
-                        sender_cloned.send(Message::Files(FilesActions::MarkAsWatched)).unwrap();
+                    key if key == gdk::keys::constants::Delete && eventkey.state().contains(gdk::ModifierType::SHIFT_MASK) => {
+                        sender_cloned.send(Message::Files(FilesActions::Delete)).unwrap();
                     },
                     
                     _ => return Inhibit(false),

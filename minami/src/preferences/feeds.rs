@@ -1,4 +1,5 @@
 use gtk::{
+    gdk,
     gio,
     glib::Sender,
     prelude::*,
@@ -89,22 +90,13 @@ fn bind(app: &gtk::Application, state: &mut State, sender: &Sender<Message>) {
     // delete feed (Delete)
     feeds_treeview.connect_key_press_event({
         let sender_cloned = sender.clone();
-        move |_, key| {
-            match *key.keyval() {
-                
-                // add feed (Insert)
-                65_379 => sender_cloned.send(Message::Preferences(PreferencesActions::FeedsAdd)).unwrap(),
-                
-                // edit feed (F2)
-                65_471 => sender_cloned.send(Message::Preferences(PreferencesActions::FeedsEdit)).unwrap(),
-                
-                // delete feed (Delete)
-                65_535 => sender_cloned.send(Message::Preferences(PreferencesActions::FeedsDelete)).unwrap(),
-                
+        move |_, eventkey| {
+            match eventkey.keyval() {
+                gdk::keys::constants::Insert => sender_cloned.send(Message::Preferences(PreferencesActions::FeedsAdd)).unwrap(),
+                gdk::keys::constants::F2 => sender_cloned.send(Message::Preferences(PreferencesActions::FeedsEdit)).unwrap(),
+                gdk::keys::constants::Delete => sender_cloned.send(Message::Preferences(PreferencesActions::FeedsDelete)).unwrap(),
                 _ => (),
-                
             }
-            
             Inhibit(false)
         }
     });

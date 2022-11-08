@@ -24,11 +24,11 @@ pub fn get<'f>(files: &[(&'f str, &'f Path)], candidates: &[impl IsCandidate]) -
         
     }
     
-    if ! result.is_empty() {
-        return Some(result);
+    if result.is_empty() {
+        return None;
     }
     
-    None
+    Some(result)
 }
 
 fn build_entry<'f>(name: &'f str, path: &'f Path, candidates: &[impl IsCandidate]) -> Option<UpdatesEntry<'f>> {

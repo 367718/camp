@@ -4,6 +4,7 @@ use std::{
 };
 
 use gtk::{
+    gdk,
     gio,
     glib::Sender,
     prelude::*,
@@ -122,22 +123,13 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     // delete candidate (Delete)
     treeview.connect_key_press_event({
         let sender_cloned = sender.clone();
-        move |_, key| {
-            match *key.keyval() {
-                
-                // add candidate (Insert)
-                65_379 => sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesAdd(None))).unwrap(),
-                
-                // edit candidate (F2)
-                65_471 => sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesEdit)).unwrap(),
-                
-                // delete candidate (Delete)
-                65_535 => sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesDelete)).unwrap(),
-                
+        move |_, eventkey| {
+            match eventkey.keyval() {
+                gdk::keys::constants::Insert => sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesAdd(None))).unwrap(),
+                gdk::keys::constants::F2 => sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesEdit)).unwrap(),
+                gdk::keys::constants::Delete => sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesDelete)).unwrap(),
                 _ => (),
-                
             }
-            
             Inhibit(false)
         }
     });
@@ -159,34 +151,17 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     let downloaded_treeview = &state.ui.widgets().window.preferences.candidates.downloaded_treeview;
     
     // add downloaded (Insert)
-    // edit downloaded (F2)
     // delete downloaded (Delete)
     downloaded_treeview.connect_key_press_event({
         let sender_cloned = sender.clone();
-        move |_, key| {
-            match *key.keyval() {
-                
-                // add downloaded (Insert)
-                65_379 => sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedAdd)).unwrap(),
-                
-                // edit downloaded (F2)
-                65_471 => sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedEdit)).unwrap(),
-                
-                // delete downloaded (Delete)
-                65_535 => sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedDelete)).unwrap(),
-                
+        move |_, eventkey| {
+            match eventkey.keyval() {
+                gdk::keys::constants::Insert => sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedAdd)).unwrap(),
+                gdk::keys::constants::Delete => sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedDelete)).unwrap(),
                 _ => (),
-                
             }
-            
             Inhibit(false)
         }
-    });
-    
-    // edit downloaded (Double-click, Return, Space)
-    downloaded_treeview.connect_row_activated({
-        let sender_cloned = sender.clone();
-        move |_, _, _| sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedEdit)).unwrap()
     });
 }
 
@@ -877,116 +852,6 @@ pub fn downloaded_add(state: &mut State) {
                                     let treepath = downloaded_sort.path(&sort_iter).unwrap();
                                     downloaded_treeview.set_cursor(&treepath, None::<&gtk::TreeViewColumn>, false);
                                     
-                                }
-                                
-                                downloaded_treeview.grab_focus();
-                                
-                                break;
-                                
-                            },
-                            
-                            Err(error) => state.ui.dialogs_error_show(&error.to_string()),
-                            
-                        }
-                        
-                    },
-                    
-                    // cancel
-                    
-                    _ => break,
-                    
-                }
-                
-            }
-            
-        },
-        
-        None => state.ui.dialogs_error_show("Candidate not found"),
-        
-    }
-}
-
-pub fn downloaded_edit(state: &mut State) {
-    let candidates_treeview = &state.ui.widgets().window.preferences.candidates.candidates_treeview;
-    let downloaded_treeview = &state.ui.widgets().window.preferences.candidates.downloaded_treeview;
-    
-    let Some((candidates_treemodel, candidates_treeiter)) = candidates_treeview.selection().selected() else {
-        return;
-    };
-    
-    let Some((downloaded_treemodel, downloaded_treeiter)) = downloaded_treeview.selection().selected() else {
-        return;
-    };
-    
-    let id = CandidatesId::from(candidates_treemodel.value(&candidates_treeiter, 0).get::<u32>().unwrap());
-    let from = downloaded_treemodel.value(&downloaded_treeiter, 0).get::<u32>().unwrap();
-    
-    match state.database.candidates_get(id) {
-        
-        Some(previous) => {
-            
-            let previous = previous.clone();
-            
-            let downloaded_dialog = &state.ui.widgets().dialogs.preferences.candidates_downloaded.dialog;
-            
-            downloaded_dialog.set_title("Edit download");
-            
-            let title_label = &state.ui.widgets().dialogs.preferences.candidates_downloaded.title_label;
-            let download_spin = &state.ui.widgets().dialogs.preferences.candidates_downloaded.download_spin;
-            
-            title_label.set_text(&previous.title);
-            download_spin.set_value(f64::from(from));
-            
-            download_spin.grab_focus();
-            
-            loop {
-                
-                download_spin.grab_focus();
-                
-                let response = downloaded_dialog.run();
-                
-                downloaded_dialog.unrealize();
-                downloaded_dialog.hide();
-                
-                match response {
-                    
-                    // confirm
-                    
-                    gtk::ResponseType::Ok => {
-                        
-                        let mut entry = previous.clone();
-                        
-                        let to = download_spin.text().parse().unwrap_or(0);
-                        
-                        entry.downloaded.remove(&from);
-                        entry.downloaded.insert(to);
-                        
-                        match state.database.candidates_edit(id, entry) {
-                            
-                            Ok(_) => {
-                                
-                                let downloaded_store = &state.ui.widgets().stores.preferences.candidates.downloaded_store;
-                                let downloaded_sort = &state.ui.widgets().stores.preferences.candidates.downloaded_sort;
-                                
-                                let downloaded_store_iter = downloaded_sort.convert_iter_to_child_iter(&downloaded_treeiter);
-                                
-                                if previous.downloaded.contains(&to) {
-                                    
-                                    downloaded_store.remove(&downloaded_store_iter);
-                                    
-                                    downloaded_sort.foreach(|_, sort_path, sort_iter| {
-                                        let current = downloaded_sort.value(sort_iter, 0).get::<u32>().unwrap();
-                                        
-                                        if current == to {
-                                            downloaded_treeview.set_cursor(sort_path, None::<&gtk::TreeViewColumn>, false);
-                                            return true;
-                                        }
-                                        
-                                        false
-                                    });
-                                    
-                                } else {
-                                    downloaded_store.set_value(&downloaded_store_iter, 0, &to.to_value());
                                 }
                                 
                                 downloaded_treeview.grab_focus();

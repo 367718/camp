@@ -177,15 +177,13 @@ fn init_app(app: &gtk::Application) {
         Files::new(
             Path::new(""),
             params.media_flag(true),
-            &[] as &[&str],
+            Vec::<&str>::new().iter(),
         )
     } else {
         Files::new(
             params.paths_files(true),
             params.media_flag(true),
-            &database.formats_iter()
-                .map(|(_, entry)| entry.name.as_str())
-                .collect::<Vec<&str>>(),
+            database.formats_iter().map(|(_, entry)| &entry.name),
         )
     };
     

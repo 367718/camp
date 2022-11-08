@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     ffi::OsString,
-    fs::{ self, OpenOptions },
+    fs,
     path::{ MAIN_SEPARATOR, Path },
     str,
     thread,
@@ -87,16 +87,17 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         // lookup selected name (CONTROL + L/l)
         treeview.connect_key_press_event({
             let sender_cloned = sender.clone();
-            move |_, key| {
-                
-                // lookup selected name (CONTROL + L/l)
-                if (*key.keyval() == 76 || *key.keyval() == 108) && key.state().contains(gdk::ModifierType::CONTROL_MASK) {
-                    sender_cloned.send(Message::Files(FilesActions::Lookup)).unwrap();
-                    return Inhibit(true);
+            move |_, eventkey| {
+                match eventkey.keyval() {
+                    
+                    key if (key == gdk::keys::constants::L || key == gdk::keys::constants::l) && eventkey.state().contains(gdk::ModifierType::CONTROL_MASK) => {
+                        sender_cloned.send(Message::Files(FilesActions::Lookup)).unwrap();
+                        Inhibit(true)
+                    },
+                    
+                    _ => Inhibit(false),
+                    
                 }
-                
-                Inhibit(false)
-                
             }
         });
         
@@ -248,11 +249,9 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
         
         fs::create_dir_all(directory)?;
         
-        OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&destination)
-            .map_err(|_| crate::general::concat_str!("File already exists or write error: ", &destination.to_string_lossy()))?;
+        if destination.exists() {
+            return Err(crate::general::concat_str!("File already exists: ", &destination.to_string_lossy()).into());
+        }
         
         let content = client.get(url)?;
         

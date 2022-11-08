@@ -1,4 +1,5 @@
 use gtk::{
+    gdk,
     gio,
     glib::Sender,
     prelude::*,
@@ -89,22 +90,13 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     // delete format (Delete)
     formats_treeview.connect_key_press_event({
         let sender_cloned = sender.clone();
-        move |_, key| {
-            match *key.keyval() {
-                
-                // add format (Insert)
-                65_379 => sender_cloned.send(Message::Preferences(PreferencesActions::FormatsAdd)).unwrap(),
-                
-                // edit format (F2)
-                65_471 => sender_cloned.send(Message::Preferences(PreferencesActions::FormatsEdit)).unwrap(),
-                
-                // delete format (Delete)
-                65_535 => sender_cloned.send(Message::Preferences(PreferencesActions::FormatsDelete)).unwrap(),
-                
+        move |_, eventkey| {
+            match eventkey.keyval() {
+                gdk::keys::constants::Insert => sender_cloned.send(Message::Preferences(PreferencesActions::FormatsAdd)).unwrap(),
+                gdk::keys::constants::F2 => sender_cloned.send(Message::Preferences(PreferencesActions::FormatsEdit)).unwrap(),
+                gdk::keys::constants::Delete => sender_cloned.send(Message::Preferences(PreferencesActions::FormatsDelete)).unwrap(),
                 _ => (),
-                
             }
-            
             Inhibit(false)
         }
     });
