@@ -69,14 +69,14 @@ fn fill(state: &State) {
             &[
                 (0, &id.as_int()),
                 
-                (1, &(u32::from(entry.good.as_int()) * 400)),
-                (2, &entry.status.as_int()),
+                (1, &(u32::from(entry.good().as_int()) * 400)),
+                (2, &entry.status().as_int()),
                 
-                (3, &entry.title),
+                (3, &entry.title()),
                 
-                (4, &entry.good.display()),
-                (5, &state.database.kinds_get(entry.kind).map_or("", |kind| &kind.name)),
-                (6, &entry.progress),
+                (4, &entry.good().display()),
+                (5, &state.database.kinds_get(entry.kind()).map_or("", |kind| kind.name())),
+                (6, &entry.progress()),
             ],
         );
     }

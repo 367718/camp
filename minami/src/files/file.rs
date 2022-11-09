@@ -422,10 +422,10 @@ pub fn mark_as_updated(state: &mut State, updates: Vec<(SeriesId, u32, PathBuf)>
             continue;
         };
         
-        if current.progress < episode {
+        if current.progress() < episode {
             
-            let mut new = current.clone();
-            new.progress = episode;
+            let new = current.clone()
+                .with_progress(episode);
             
             if state.database.series_edit(id, new).is_err() {
                 continue;

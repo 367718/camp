@@ -18,7 +18,7 @@ pub struct FormatsId(u32);
 #[derive(Clone, PartialEq, Eq, Decode, Encode)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct FormatsEntry {
-    pub name: String,
+    name: Box<str>,
 }
 
 enum NameError {
@@ -82,8 +82,14 @@ impl Formats {
     }
     
     pub fn remove(&mut self, id: FormatsId) -> Result<FormatsEntry, Box<dyn Error>> {
-        self.entries.remove(&id)
-            .ok_or_else(|| "Format not found".into())
+        let entry = self.entries.remove(&id)
+            .ok_or("Format not found")?;
+        
+        if self.entries.capacity() > self.entries.len().saturating_mul(2) {
+            self.entries.shrink_to_fit();
+        }
+        
+        Ok(entry)
     }
     
     
@@ -131,6 +137,36 @@ impl FormatsId {
     
 }
 
+impl FormatsEntry {
+    
+    // ---------- constructors ----------
+    
+    
+    pub fn new() -> Self {
+        Self {
+            name: Box::default(),
+        }
+    }
+    
+    
+    // ---------- accessors ----------
+    
+    
+    pub fn name(&self) -> &str {
+        self.name.as_ref()
+    }
+    
+    
+    // ---------- mutators ----------
+    
+    
+    pub fn with_name(mut self, name: String) -> Self {
+        self.name = name.into_boxed_str();
+        self
+    }
+    
+}
+
 #[cfg(test)]
 mod tests {
     
@@ -146,9 +182,8 @@ mod tests {
             
             let mut formats = Formats::new();
             
-            let entry = FormatsEntry {
-                name: String::from("mkv"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("mkv"));
             
             // operation
             
@@ -160,9 +195,8 @@ mod tests {
             
             let id = output.unwrap();
             
-            let entry = FormatsEntry {
-                name: String::from("mkv"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("mkv"));
             
             assert_eq!(formats.get(id), Some(&entry));
         }
@@ -173,9 +207,8 @@ mod tests {
             
             let mut formats = Formats::new();
             
-            let entry = FormatsEntry {
-                name: String::new(),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::new());
             
             // operation
             
@@ -198,15 +231,13 @@ mod tests {
             
             let mut formats = Formats::new();
             
-            let entry = FormatsEntry {
-                name: String::from("mkv"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("mkv"));
             
             let id = formats.add(entry).unwrap();
             
-            let entry = FormatsEntry {
-                name: String::from("mp4"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("mp4"));
             
             // operation
             
@@ -216,9 +247,8 @@ mod tests {
             
             assert!(output.is_ok());
             
-            let entry = FormatsEntry {
-                name: String::from("mp4"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("mp4"));
             
             assert_eq!(formats.get(id), Some(&entry));
         }
@@ -229,15 +259,13 @@ mod tests {
             
             let mut formats = Formats::new();
             
-            let entry = FormatsEntry {
-                name: String::from("mkv"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("mkv"));
             
             let id = formats.add(entry).unwrap();
             
-            let entry = FormatsEntry {
-                name: String::new(),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::new());
             
             // operation
             
@@ -254,15 +282,13 @@ mod tests {
             
             let mut formats = Formats::new();
             
-            let entry = FormatsEntry {
-                name: String::from("mkv"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("mkv"));
             
             let id = formats.add(entry).unwrap();
             
-            let entry = FormatsEntry {
-                name: String::from("mkv"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("mkv"));
             
             // operation
             
@@ -279,15 +305,13 @@ mod tests {
             
             let mut formats = Formats::new();
             
-            let entry = FormatsEntry {
-                name: String::from("mkv"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("mkv"));
             
             formats.add(entry).unwrap();
             
-            let entry = FormatsEntry {
-                name: String::from("avi"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("avi"));
             
             // operation
             
@@ -310,9 +334,8 @@ mod tests {
             
             let mut formats = Formats::new();
             
-            let entry = FormatsEntry {
-                name: String::from("mkv"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("mkv"));
             
             let id = formats.add(entry).unwrap();
             
@@ -333,9 +356,8 @@ mod tests {
             
             let mut formats = Formats::new();
             
-            let entry = FormatsEntry {
-                name: String::from("mkv"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("mkv"));
             
             formats.add(entry).unwrap();
             
@@ -362,9 +384,8 @@ mod tests {
             
             let formats = Formats::new();
             
-            let mut entry = FormatsEntry {
-                name: String::new(),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::new());
             
             // operation
             
@@ -374,7 +395,8 @@ mod tests {
             
             assert!(output.is_err());
             
-            entry.name = String::from("mkv");
+            let entry = FormatsEntry::new()
+                .with_name(String::from("mkv"));
             
             assert!(formats.check_entry(FormatsId::from(0), &entry).is_ok());
         }
@@ -385,15 +407,13 @@ mod tests {
             
             let mut formats = Formats::new();
             
-            let entry = FormatsEntry {
-                name: String::from("avi"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("avi"));
             
             let id = formats.add(entry).unwrap();
             
-            let entry = FormatsEntry {
-                name: String::from("avi"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("avi"));
             
             // operation
             
@@ -412,15 +432,13 @@ mod tests {
             
             let mut formats = Formats::new();
             
-            let entry = FormatsEntry {
-                name: String::from("avi"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("avi"));
             
             let id = formats.add(entry).unwrap();
             
-            let entry = FormatsEntry {
-                name: String::from("aVi"),
-            };
+            let entry = FormatsEntry::new()
+                .with_name(String::from("aVi"));
             
             // operation
             

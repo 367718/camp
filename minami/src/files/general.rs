@@ -260,7 +260,7 @@ pub fn reload(state: &mut State, sender: &Sender<Message>) {
     state.files = Files::new(
         state.params.paths_files(true),
         state.params.media_flag(true),
-        state.database.formats_iter().map(|(_, entry)| &entry.name),
+        state.database.formats_iter().map(|(_, entry)| entry.name()),
     );
     
     // ---------- widgets ----------

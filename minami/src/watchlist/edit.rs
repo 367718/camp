@@ -149,13 +149,12 @@ pub fn add(state: &mut State, sender: &Sender<Message>, prefill: &Option<String>
                     }
                 };
                 
-                let new = SeriesEntry {
-                    title: title_entry.text().to_string(),
-                    kind: KindsId::from(kind_combo.active_id().map_or(0, |id| id.parse().unwrap_or(0))),
-                    status,
-                    progress: progress_spin.text().parse().unwrap_or(0),
-                    good: SeriesGood::from(good_switch.is_active()),
-                };
+                let new = SeriesEntry::new()
+                    .with_title(title_entry.text().to_string())
+                    .with_kind(KindsId::from(kind_combo.active_id().map_or(0, |id| id.parse().unwrap_or(0))))
+                    .with_status(status)
+                    .with_progress(progress_spin.text().parse().unwrap_or(0))
+                    .with_good(SeriesGood::from(good_switch.is_active()));
                 
                 match state.database.series_add(new) {
                     
@@ -170,14 +169,14 @@ pub fn add(state: &mut State, sender: &Sender<Message>, prefill: &Option<String>
                             &[
                                 (0, &id.as_int()),
                                 
-                                (1, &(u32::from(series.good.as_int()) * 400)),
-                                (2, &series.status.as_int()),
+                                (1, &(u32::from(series.good().as_int()) * 400)),
+                                (2, &series.status().as_int()),
                                 
-                                (3, &series.title),
+                                (3, &series.title()),
                                 
-                                (4, &series.good.display()),
-                                (5, &state.database.kinds_get(series.kind).map_or("", |kind| &kind.name)),
-                                (6, &series.progress),
+                                (4, &series.good().display()),
+                                (5, &state.database.kinds_get(series.kind()).map_or("", |kind| kind.name())),
+                                (6, &series.progress()),
                             ],
                         );
                         
@@ -186,7 +185,7 @@ pub fn add(state: &mut State, sender: &Sender<Message>, prefill: &Option<String>
                         if state.params.media_autoselect(true) && prefill.is_none() {
                             
                             for row in state.ui.widgets().window.watchlist.listbox.children() {
-                                if row.widget_name() == series.status.display() {
+                                if row.widget_name() == series.status().display() {
                                     row.activate();
                                     select_series(state, &store_iter);
                                     break;
@@ -279,13 +278,13 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
             let progress_spin = &state.ui.widgets().dialogs.watchlist.series.progress_spin;
             let good_switch = &state.ui.widgets().dialogs.watchlist.series.good_switch;
             
-            title_entry.set_text(&current.title);
-            kind_combo.set_active_id(Some(&current.kind.as_int().to_string()));
+            title_entry.set_text(current.title());
+            kind_combo.set_active_id(Some(&current.kind().as_int().to_string()));
             status_combo.set_sensitive(true);
-            status_combo.set_active_id(Some(&current.status.as_int().to_string()));
-            progress_spin.set_value(f64::from(current.progress));
+            status_combo.set_active_id(Some(&current.status().as_int().to_string()));
+            progress_spin.set_value(f64::from(current.progress()));
             good_switch.set_sensitive(true);
-            good_switch.set_active(current.good == SeriesGood::Yes);
+            good_switch.set_active(current.good() == SeriesGood::Yes);
             
             loop {
                 
@@ -313,15 +312,14 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
                             }
                         };
                         
-                        let new = SeriesEntry {
-                            title: state.ui.widgets().dialogs.watchlist.series.title_entry.text().to_string(),
-                            kind: KindsId::from(state.ui.widgets().dialogs.watchlist.series.kind_combo.active_id().map_or(0, |id| id.parse().unwrap_or(0))),
-                            status,
-                            progress: state.ui.widgets().dialogs.watchlist.series.progress_spin.text().parse().unwrap_or(0),
-                            good: SeriesGood::from(state.ui.widgets().dialogs.watchlist.series.good_switch.is_active()),
-                        };
+                        let new = SeriesEntry::new()
+                            .with_title(state.ui.widgets().dialogs.watchlist.series.title_entry.text().to_string())
+                            .with_kind(KindsId::from(state.ui.widgets().dialogs.watchlist.series.kind_combo.active_id().map_or(0, |id| id.parse().unwrap_or(0))))
+                            .with_status(status)
+                            .with_progress(state.ui.widgets().dialogs.watchlist.series.progress_spin.text().parse().unwrap_or(0))
+                            .with_good(SeriesGood::from(state.ui.widgets().dialogs.watchlist.series.good_switch.is_active()));
                         
-                        if new.status != SeriesStatus::Watching {
+                        if new.status() != SeriesStatus::Watching {
                             
                             // delete related candidate, if any
                             if let Err(error) = delete_related_candidate(state, id) {
@@ -348,14 +346,14 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
                                 watchlist_store.set(
                                     &store_iter,
                                     &[
-                                        (1, &(u32::from(series.good.as_int()) * 400)),
-                                        (2, &series.status.as_int()),
+                                        (1, &(u32::from(series.good().as_int()) * 400)),
+                                        (2, &series.status().as_int()),
                                         
-                                        (3, &series.title),
+                                        (3, &series.title()),
                                         
-                                        (4, &series.good.display()),
-                                        (5, &state.database.kinds_get(series.kind).map_or("", |kind| &kind.name)),
-                                        (6, &series.progress),
+                                        (4, &series.good().display()),
+                                        (5, &state.database.kinds_get(series.kind()).map_or("", |kind| kind.name())),
+                                        (6, &series.progress()),
                                     ],
                                 );
                                 
@@ -364,7 +362,7 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
                                 if state.params.media_autoselect(true) {
                                     
                                     for row in state.ui.widgets().window.watchlist.listbox.children() {
-                                        if row.widget_name() == series.status.display() {
+                                        if row.widget_name() == series.status().display() {
                                             row.activate();
                                             select_series(state, &store_iter);
                                             break;
@@ -505,7 +503,7 @@ pub fn copy_titles(state: &State) {
 
 fn delete_related_candidate(state: &mut State, id: SeriesId) -> Result<(), Box<dyn Error>> {
     let candidate_id = state.database.candidates_iter()
-        .find(|(_, current)| current.series == id)
+        .find(|(_, current)| current.series() == id)
         .map(|(&candidate_id, _)| candidate_id);
     
     if let Some(candidate_id) = candidate_id {

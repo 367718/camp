@@ -18,7 +18,7 @@ pub struct FeedsId(u32);
 #[derive(Clone, PartialEq, Eq, Decode, Encode)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct FeedsEntry {
-    pub url: String,
+    url: Box<str>,
 }
 
 enum UrlError {
@@ -82,8 +82,14 @@ impl Feeds {
     }
     
     pub fn remove(&mut self, id: FeedsId) -> Result<FeedsEntry, Box<dyn Error>> {
-        self.entries.remove(&id)
-            .ok_or_else(|| "Feed not found".into())
+        let entry = self.entries.remove(&id)
+            .ok_or("Feed not found")?;
+        
+        if self.entries.capacity() > self.entries.len().saturating_mul(2) {
+            self.entries.shrink_to_fit();
+        }
+        
+        Ok(entry)
     }
     
     
@@ -131,6 +137,36 @@ impl FeedsId {
     
 }
 
+impl FeedsEntry {
+    
+    // ---------- constructors ----------
+    
+    
+    pub fn new() -> Self {
+        Self {
+            url: Box::default(),
+        }
+    }
+    
+    
+    // ---------- accessors ----------
+    
+    
+    pub fn url(&self) -> &str {
+        self.url.as_ref()
+    }
+    
+    
+    // ---------- mutators ----------
+    
+    
+    pub fn with_url(mut self, url: String) -> Self {
+        self.url = url.into_boxed_str();
+        self
+    }
+    
+}
+
 #[cfg(test)]
 mod tests {
     
@@ -146,9 +182,8 @@ mod tests {
             
             let mut feeds = Feeds::new();
             
-            let entry = FeedsEntry {
-                url: String::from("http://example.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://example.com/rss"));
             
             // operation
             
@@ -160,9 +195,8 @@ mod tests {
             
             let id = output.unwrap();
             
-            let entry = FeedsEntry {
-                url: String::from("http://example.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://example.com/rss"));
             
             assert_eq!(feeds.get(id), Some(&entry));
         }
@@ -173,9 +207,8 @@ mod tests {
             
             let mut feeds = Feeds::new();
             
-            let entry = FeedsEntry {
-                url: String::new(),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::new());
             
             // operation
             
@@ -198,15 +231,13 @@ mod tests {
             
             let mut feeds = Feeds::new();
             
-            let entry = FeedsEntry {
-                url: String::from("http://example.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://example.com/rss"));
             
             let id = feeds.add(entry).unwrap();
             
-            let entry = FeedsEntry {
-                url: String::from("http://test.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://test.com/rss"));
             
             // operation
             
@@ -216,9 +247,8 @@ mod tests {
             
             assert!(output.is_ok());
             
-            let entry = FeedsEntry {
-                url: String::from("http://test.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://test.com/rss"));
             
             assert_eq!(feeds.get(id), Some(&entry));
         }
@@ -229,15 +259,13 @@ mod tests {
             
             let mut feeds = Feeds::new();
             
-            let entry = FeedsEntry {
-                url: String::from("http://example.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://example.com/rss"));
             
             let id = feeds.add(entry).unwrap();
             
-            let entry = FeedsEntry {
-                url: String::new(),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::new());
             
             // operation
             
@@ -254,15 +282,13 @@ mod tests {
             
             let mut feeds = Feeds::new();
             
-            let entry = FeedsEntry {
-                url: String::from("http://example.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://example.com/rss"));
             
             let id = feeds.add(entry).unwrap();
             
-            let entry = FeedsEntry {
-                url: String::from("http://example.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://example.com/rss"));
             
             // operation
             
@@ -279,15 +305,13 @@ mod tests {
             
             let mut feeds = Feeds::new();
             
-            let entry = FeedsEntry {
-                url: String::from("http://example.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://example.com/rss"));
             
             feeds.add(entry).unwrap();
             
-            let entry = FeedsEntry {
-                url: String::from("http://test.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://test.com/rss"));
             
             // operation
             
@@ -310,9 +334,8 @@ mod tests {
             
             let mut feeds = Feeds::new();
             
-            let entry = FeedsEntry {
-                url: String::from("http://example.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://example.com/rss"));
             
             let id = feeds.add(entry).unwrap();
             
@@ -333,9 +356,8 @@ mod tests {
             
             let mut feeds = Feeds::new();
             
-            let entry = FeedsEntry {
-                url: String::from("http://example.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://example.com/rss"));
             
             feeds.add(entry).unwrap();
             
@@ -362,9 +384,8 @@ mod tests {
             
             let feeds = Feeds::new();
             
-            let mut entry = FeedsEntry {
-                url: String::new(),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::new());
             
             // operation
             
@@ -374,7 +395,8 @@ mod tests {
             
             assert!(output.is_err());
             
-            entry.url = String::from("http://example.com/rss");
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://example.com/rss"));
             
             assert!(feeds.check_entry(FeedsId::from(0), &entry).is_ok());
         }
@@ -385,15 +407,13 @@ mod tests {
             
             let mut feeds = Feeds::new();
             
-            let entry = FeedsEntry {
-                url: String::from("http://example.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://example.com/rss"));
             
             let id = feeds.add(entry).unwrap();
             
-            let entry = FeedsEntry {
-                url: String::from("http://example.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://example.com/rss"));
             
             // operation
             
@@ -412,15 +432,13 @@ mod tests {
             
             let mut feeds = Feeds::new();
             
-            let entry = FeedsEntry {
-                url: String::from("http://example.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://example.com/rss"));
             
             let id = feeds.add(entry).unwrap();
             
-            let entry = FeedsEntry {
-                url: String::from("http://Example.com/rss"),
-            };
+            let entry = FeedsEntry::new()
+                .with_url(String::from("http://Example.com/rss"));
             
             // operation
             

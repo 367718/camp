@@ -46,7 +46,7 @@ fn fill(state: &State) {
             None,
             &[
                 (0, &id.as_int()),
-                (1, &format.name),
+                (1, &format.name()),
             ],
         );
     }
@@ -131,9 +131,8 @@ pub fn add(state: &mut State, sender: &Sender<Message>) {
             
             gtk::ResponseType::Ok => {
                 
-                let entry = FormatsEntry {
-                    name: name_entry.text().to_string(),
-                };
+                let entry = FormatsEntry::new()
+                    .with_name(name_entry.text().to_string());
                 
                 match state.database.formats_add(entry) {
                     
@@ -150,7 +149,7 @@ pub fn add(state: &mut State, sender: &Sender<Message>) {
                             None,
                             &[
                                 (0, &id.as_int()),
-                                (1, &format.name),
+                                (1, &format.name()),
                             ],
                         );
                         
@@ -199,7 +198,7 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
             
             let name_entry = &state.ui.widgets().dialogs.preferences.formats.name_entry;
             
-            name_entry.set_text(&previous.name);
+            name_entry.set_text(previous.name());
             
             loop {
                 
@@ -216,9 +215,8 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
                     
                     gtk::ResponseType::Ok => {
                         
-                        let entry = FormatsEntry {
-                            name: name_entry.text().to_string(),
-                        };
+                        let entry = FormatsEntry::new()
+                            .with_name(name_entry.text().to_string());
                         
                         match state.database.formats_edit(id, entry) {
                             
@@ -231,7 +229,7 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
                                 
                                 let store_iter = formats_sort.convert_iter_to_child_iter(&treeiter);
                                 
-                                formats_store.set_value(&store_iter, 1, &format.name.to_value());
+                                formats_store.set_value(&store_iter, 1, &format.name().to_value());
                                 
                                 formats_treeview.grab_focus();
                                 

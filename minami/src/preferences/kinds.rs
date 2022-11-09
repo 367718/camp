@@ -48,7 +48,7 @@ fn fill(state: &State) {
             None,
             &[
                 (0, &id.as_int()),
-                (1, &kind.name),
+                (1, &kind.name()),
                 (2, &id.as_int().to_string()),
             ],
         );
@@ -134,9 +134,8 @@ pub fn add(state: &mut State) {
             
             gtk::ResponseType::Ok => {
                 
-                let entry = KindsEntry {
-                    name: name_entry.text().to_string(),
-                };
+                let entry = KindsEntry::new()
+                    .with_name(name_entry.text().to_string());
                 
                 match state.database.kinds_add(entry) {
                     
@@ -153,7 +152,7 @@ pub fn add(state: &mut State) {
                             None,
                             &[
                                 (0, &id.as_int()),
-                                (1, &kind.name),
+                                (1, &kind.name()),
                                 (2, &id.as_int().to_string()),
                             ],
                         );
@@ -201,7 +200,7 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
             
             let name_entry = &state.ui.widgets().dialogs.preferences.kinds.name_entry;
             
-            name_entry.set_text(&previous.name);
+            name_entry.set_text(previous.name());
             
             loop {
                 
@@ -218,9 +217,8 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
                     
                     gtk::ResponseType::Ok => {
                         
-                        let entry = KindsEntry {
-                            name: name_entry.text().to_string(),
-                        };
+                        let entry = KindsEntry::new()
+                            .with_name(name_entry.text().to_string());
                         
                         match state.database.kinds_edit(id, entry) {
                             
@@ -233,12 +231,12 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
                                 
                                 let store_iter = kinds_sort.convert_iter_to_child_iter(&treeiter);
                                 
-                                kinds_store.set_value(&store_iter, 1, &kind.name.to_value());
+                                kinds_store.set_value(&store_iter, 1, &kind.name().to_value());
                                 
                                 kinds_treeview.grab_focus();
                                 
                                 // signal that watchlist should be reloaded
-                                if state.database.series_iter().any(|(_, entry)| entry.kind == id) {
+                                if state.database.series_iter().any(|(_, entry)| entry.kind() == id) {
                                     sender.send(Message::Watchlist(WatchlistActions::Reload)).unwrap();
                                 }
                                 

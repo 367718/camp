@@ -55,7 +55,7 @@ fn fill(state: &State) {
             None,
             &[
                 (0, &id.as_int()),
-                (1, &entry.title),
+                (1, &entry.title()),
             ],
         );
     }
@@ -177,12 +177,12 @@ pub fn show_info(state: &State) {
         
         if let Some(candidate) = state.database.candidates_get(id) {
             
-            if candidate.current == CandidatesCurrent::Yes {
+            if candidate.current() == CandidatesCurrent::Yes {
                 let downloaded_sort = &state.ui.widgets().stores.preferences.candidates.downloaded_sort;
                 
                 downloaded_sort.set_sort_column_id(gtk::SortColumn::Default, gtk::SortType::Descending);
                 
-                for download in &candidate.downloaded {
+                for download in candidate.downloaded() {
                     downloaded_store.insert_with_values(
                         None,
                         &[
@@ -281,15 +281,14 @@ pub fn candidates_add(state: &mut State, sender: &Sender<Message>, prefill: &Opt
                     HashSet::new()
                 };
                 
-                let entry = CandidatesEntry {
-                    series,
-                    title: state.ui.widgets().dialogs.preferences.candidates.title_entry.text().to_string(),
-                    group: state.ui.widgets().dialogs.preferences.candidates.group_entry.text().to_string(),
-                    quality: state.ui.widgets().dialogs.preferences.candidates.quality_entry.text().to_string(),
-                    offset: state.ui.widgets().dialogs.preferences.candidates.offset_spin.text().parse().unwrap_or(0),
-                    current,
-                    downloaded,
-                };
+                let entry = CandidatesEntry::new()
+                    .with_series(series)
+                    .with_title(state.ui.widgets().dialogs.preferences.candidates.title_entry.text().to_string())
+                    .with_group(state.ui.widgets().dialogs.preferences.candidates.group_entry.text().to_string())
+                    .with_quality(state.ui.widgets().dialogs.preferences.candidates.quality_entry.text().to_string())
+                    .with_offset(state.ui.widgets().dialogs.preferences.candidates.offset_spin.text().parse().unwrap_or(0))
+                    .with_current(current)
+                    .with_downloaded(downloaded);
                 
                 match state.database.candidates_add(entry) {
                     
@@ -306,7 +305,7 @@ pub fn candidates_add(state: &mut State, sender: &Sender<Message>, prefill: &Opt
                             None,
                             &[
                                 (0, &id.as_int()),
-                                (1, &candidate.title),
+                                (1, &candidate.title()),
                             ],
                         );
                         
@@ -335,7 +334,7 @@ pub fn candidates_add(state: &mut State, sender: &Sender<Message>, prefill: &Opt
                 
                 if let Some(id) = candidates_series_select(state, sender, &state.ui.widgets().dialogs.preferences.candidates.title_entry.text()) {                    
                     if let Some(retrieved) = state.database.series_get(id) {
-                        state.ui.widgets().dialogs.preferences.candidates.series_entry.set_text(&retrieved.title);
+                        state.ui.widgets().dialogs.preferences.candidates.series_entry.set_text(retrieved.title());
                         series = id;
                         continue;
                     }
@@ -366,7 +365,7 @@ pub fn candidates_edit(state: &mut State, sender: &Sender<Message>) {
         
         Some(previous) => {
             
-            let Some(series_title) = state.database.series_get(previous.series).map(|series| &series.title) else {
+            let Some(series_title) = state.database.series_get(previous.series()).map(SeriesEntry::title) else {
                 state.ui.dialogs_error_show("Series not found");
                 return;
             };
@@ -381,18 +380,18 @@ pub fn candidates_edit(state: &mut State, sender: &Sender<Message>) {
             let current_switch = &state.ui.widgets().dialogs.preferences.candidates.current_switch;
             let downloaded_spin = &state.ui.widgets().dialogs.preferences.candidates.downloaded_spin;
             
-            title_entry.set_text(&previous.title);
-            group_entry.set_text(&previous.group);
-            quality_entry.set_text(&previous.quality);
+            title_entry.set_text(previous.title());
+            group_entry.set_text(previous.group());
+            quality_entry.set_text(previous.quality());
             series_entry.set_text(series_title);
-            offset_spin.set_value(f64::from(previous.offset));
-            current_switch.set_active(previous.current == CandidatesCurrent::Yes);
+            offset_spin.set_value(f64::from(previous.offset()));
+            current_switch.set_active(previous.current() == CandidatesCurrent::Yes);
             downloaded_spin.set_sensitive(false);
             downloaded_spin.set_value(0.0);
             
-            let mut series = previous.series;
+            let mut series = previous.series();
             
-            let previous_downloaded = previous.downloaded.clone();
+            let previous_downloaded = previous.downloaded().clone();
             
             loop {
                 
@@ -423,15 +422,14 @@ pub fn candidates_edit(state: &mut State, sender: &Sender<Message>) {
                             HashSet::new()
                         };
                         
-                        let entry = CandidatesEntry {
-                            series,
-                            title: state.ui.widgets().dialogs.preferences.candidates.title_entry.text().to_string(),
-                            group: state.ui.widgets().dialogs.preferences.candidates.group_entry.text().to_string(),
-                            quality: state.ui.widgets().dialogs.preferences.candidates.quality_entry.text().to_string(),
-                            offset: state.ui.widgets().dialogs.preferences.candidates.offset_spin.text().parse().unwrap_or(0),
-                            current,
-                            downloaded,
-                        };
+                        let entry = CandidatesEntry::new()
+                            .with_series(series)
+                            .with_title(state.ui.widgets().dialogs.preferences.candidates.title_entry.text().to_string())
+                            .with_group(state.ui.widgets().dialogs.preferences.candidates.group_entry.text().to_string())
+                            .with_quality(state.ui.widgets().dialogs.preferences.candidates.quality_entry.text().to_string())
+                            .with_offset(state.ui.widgets().dialogs.preferences.candidates.offset_spin.text().parse().unwrap_or(0))
+                            .with_current(current)
+                            .with_downloaded(downloaded);
                         
                         match state.database.candidates_edit(id, entry) {
                             
@@ -447,7 +445,7 @@ pub fn candidates_edit(state: &mut State, sender: &Sender<Message>) {
                                 candidates_store.set(
                                     &store_iter,
                                     &[
-                                        (1, &candidate.title),
+                                        (1, &candidate.title()),
                                     ],
                                 );
                                 
@@ -471,7 +469,7 @@ pub fn candidates_edit(state: &mut State, sender: &Sender<Message>) {
                         
                         if let Some(id) = candidates_series_select(state, sender, &state.ui.widgets().dialogs.preferences.candidates.title_entry.text()) {                    
                             if let Some(retrieved) = state.database.series_get(id) {
-                                state.ui.widgets().dialogs.preferences.candidates.series_entry.set_text(&retrieved.title);
+                                state.ui.widgets().dialogs.preferences.candidates.series_entry.set_text(retrieved.title());
                                 series = id;
                                 continue;
                             }
@@ -649,13 +647,12 @@ fn candidates_series_add(state: &mut State, sender: &Sender<Message>, prefill: &
                     }
                 };
                 
-                let entry = SeriesEntry {
-                    title: title_entry.text().to_string(),
-                    kind: KindsId::from(kind_combo.active_id().map_or(0, |id| id.parse().unwrap_or(0))),
-                    status,
-                    progress: progress_spin.text().parse().unwrap_or(0),
-                    good: SeriesGood::from(good_switch.is_active()),
-                };
+                let entry = SeriesEntry::new()
+                    .with_title(title_entry.text().to_string())
+                    .with_kind(KindsId::from(kind_combo.active_id().map_or(0, |id| id.parse().unwrap_or(0))))
+                    .with_status(status)
+                    .with_progress(progress_spin.text().parse().unwrap_or(0))
+                    .with_good(SeriesGood::from(good_switch.is_active()));
                 
                 match state.database.series_add(entry) {
                     
@@ -670,14 +667,14 @@ fn candidates_series_add(state: &mut State, sender: &Sender<Message>, prefill: &
                             &[
                                 (0, &id.as_int()),
                                 
-                                (1, &(u32::from(series.good.as_int()) * 400)),
-                                (2, &series.status.as_int()),
+                                (1, &(u32::from(series.good().as_int()) * 400)),
+                                (2, &series.status().as_int()),
                                 
-                                (3, &series.title),
+                                (3, &series.title()),
                                 
-                                (4, &series.good.display()),
-                                (5, &state.database.kinds_get(series.kind).map_or("", |kind| &kind.name)),
-                                (6, &series.progress),
+                                (4, &series.good().display()),
+                                (5, &state.database.kinds_get(series.kind()).map_or("", |kind| kind.name())),
+                                (6, &series.progress()),
                             ],
                         );
                         
@@ -725,14 +722,13 @@ fn candidates_series_add(state: &mut State, sender: &Sender<Message>, prefill: &
 fn candidates_series_edit(state: &mut State, sender: &Sender<Message>, series: SeriesId) -> Result<(), Box<dyn Error>> {
     let previous = state.database.series_get(series).ok_or("Series not found")?;
     
-    if previous.status != SeriesStatus::Watching {
+    if previous.status() != SeriesStatus::Watching {
         
-        let mut new = previous.clone();
+        let mut new = previous.clone()
+            .with_status(SeriesStatus::Watching);
         
-        new.status = SeriesStatus::Watching;
-        
-        if new.progress == 0 {
-            new.progress = 1;
+        if new.progress() == 0 {
+            new = new.with_progress(1);
         }
         
         state.database.series_edit(series, new)?;
@@ -748,8 +744,8 @@ fn candidates_series_edit(state: &mut State, sender: &Sender<Message>, series: S
                 watchlist_store.set(
                     store_iter,
                     &[
-                        (2, &new.status.as_int()),
-                        (6, &new.progress),
+                        (2, &new.status().as_int()),
+                        (6, &new.progress()),
                     ],
                 );
                 
@@ -790,8 +786,8 @@ pub fn downloaded_add(state: &mut State) {
             let title_label = &state.ui.widgets().dialogs.preferences.candidates_downloaded.title_label;
             let download_spin = &state.ui.widgets().dialogs.preferences.candidates_downloaded.download_spin;
             
-            title_label.set_text(&candidate.title);
-            download_spin.set_value(f64::from(candidate.downloaded.iter().max().unwrap_or(&0).saturating_add(1)));
+            title_label.set_text(candidate.title());
+            download_spin.set_value(f64::from(candidate.downloaded().iter().max().unwrap_or(&0).saturating_add(1)));
             
             download_spin.grab_focus();
             
@@ -810,9 +806,11 @@ pub fn downloaded_add(state: &mut State) {
                         
                         let download = download_spin.text().parse().unwrap_or(0);
                         
-                        let mut new = candidate.clone();
+                        let mut downloaded = candidate.downloaded().clone();
+                        downloaded.insert(download);
                         
-                        new.downloaded.insert(download);
+                        let new = candidate.clone()
+                            .with_downloaded(downloaded);
                         
                         match state.database.candidates_edit(id, new) {
                             
@@ -822,7 +820,7 @@ pub fn downloaded_add(state: &mut State) {
                                 let downloaded_sort = &state.ui.widgets().stores.preferences.candidates.downloaded_sort;
                                 
                                 // only select
-                                if previous.downloaded.contains(&download) {
+                                if previous.downloaded().contains(&download) {
                                     
                                     downloaded_sort.foreach(|_, sort_path, sort_iter| {
                                         let current = downloaded_sort.value(sort_iter, 0).get::<u32>().unwrap();
@@ -901,9 +899,11 @@ pub fn downloaded_delete(state: &mut State) {
             
             let download = downloaded_treemodel.value(&downloaded_treeiter, 0).get::<u32>().unwrap();
             
-            let mut new = candidate.clone();
+            let mut downloaded = candidate.downloaded().clone();
+            downloaded.remove(&download);
             
-            new.downloaded.remove(&download);
+            let new = candidate.clone()
+                .with_downloaded(downloaded);
             
             match state.database.candidates_edit(id, new) {
                 
@@ -935,14 +935,17 @@ pub fn downloaded_update(state: &mut State, sender: &Sender<Message>, downloads:
     
     for (series, download) in downloads {
         
-        let Some((id, candidate)) = state.database.candidates_iter().find(|(_, current)| current.series == series) else {
+        let Some((id, candidate)) = state.database.candidates_iter().find(|(_, current)| current.series() == series) else {
             continue;
         };
         
-        if ! candidate.downloaded.contains(&download) {
+        if ! candidate.downloaded().contains(&download) {
             
-            let mut new = candidate.clone();
-            new.downloaded.insert(download);
+            let mut downloaded = candidate.downloaded().clone();
+            downloaded.insert(download);
+            
+            let new = candidate.clone()
+                .with_downloaded(downloaded);
             
             state.database.candidates_edit(*id, new).ok();
             

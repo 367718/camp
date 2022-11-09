@@ -23,11 +23,11 @@ pub struct SeriesId(u32);
 #[derive(Clone, PartialEq, Eq, Decode, Encode)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct SeriesEntry {
-    pub title: String,
-    pub kind: KindsId,
-    pub status: SeriesStatus,
-    pub progress: u32,
-    pub good: SeriesGood,
+    title: Box<str>,
+    kind: KindsId,
+    status: SeriesStatus,
+    progress: u32,
+    good: SeriesGood,
 }
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Decode, Encode)]
@@ -124,12 +124,18 @@ impl Series {
     }
     
     pub fn remove(&mut self, id: SeriesId, candidates: &Candidates) -> Result<SeriesEntry, Box<dyn Error>> {
-        if candidates.iter().any(|(_, curr_entry)| curr_entry.series == id) {
+        if candidates.iter().any(|(_, curr_entry)| curr_entry.series() == id) {
             return Err("A series cannot be removed if a related candidate is defined".into());
         }
         
-        self.entries.remove(&id)
-            .ok_or_else(|| "Series not found".into())
+        let entry = self.entries.remove(&id)
+            .ok_or("Series not found")?;
+        
+        if self.entries.capacity() > self.entries.len().saturating_mul(2) {
+            self.entries.shrink_to_fit();
+        }
+        
+        Ok(entry)
     }
     
     
@@ -199,7 +205,7 @@ impl Series {
     }
     
     fn validate_status(&self, id: SeriesId, entry: &SeriesEntry, candidates: &Candidates) -> Result<(), StatusError> {
-        if entry.status != SeriesStatus::Watching && candidates.iter().any(|(_, v)| v.series == id) {
+        if entry.status != SeriesStatus::Watching && candidates.iter().any(|(_, v)| v.series() == id) {
             return Err(StatusError::CandidateDefined);
         }
         
@@ -254,6 +260,76 @@ impl SeriesId {
     
     pub fn as_int(self) -> u32 {
         self.0
+    }
+    
+}
+
+impl SeriesEntry {
+    
+    // ---------- constructors ----------
+    
+    
+    pub fn new() -> Self {
+        Self {
+            title: Box::default(),
+            kind: KindsId::from(0),
+            status: SeriesStatus::Watching,
+            progress: 0,
+            good: SeriesGood::No,
+        }
+    }
+    
+    
+    // ---------- accessors ----------
+    
+    
+    pub fn title(&self) -> &str {
+        self.title.as_ref()
+    }
+    
+    pub fn kind(&self) -> KindsId {
+        self.kind
+    }
+    
+    pub fn status(&self) -> SeriesStatus {
+        self.status
+    }
+    
+    pub fn progress(&self) -> u32 {
+        self.progress
+    }
+    
+    pub fn good(&self) -> SeriesGood {
+        self.good
+    }
+    
+    
+    // ---------- mutators ----------
+    
+    
+    pub fn with_title(mut self, title: String) -> Self {
+        self.title = title.into_boxed_str();
+        self
+    }
+    
+    pub fn with_kind(mut self, kind: KindsId) -> Self {
+        self.kind = kind;
+        self
+    }
+    
+    pub fn with_status(mut self, status: SeriesStatus) -> Self {
+        self.status = status;
+        self
+    }
+    
+    pub fn with_progress(mut self, progress: u32) -> Self {
+        self.progress = progress;
+        self
+    }
+    
+    pub fn with_good(mut self, good: SeriesGood) -> Self {
+        self.good = good;
+        self
     }
     
 }
@@ -426,19 +502,17 @@ mod tests {
             let mut kinds = Kinds::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             // operation
             
@@ -450,13 +524,12 @@ mod tests {
             
             let id = output.unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             assert_eq!(series.get(id), Some(&entry));
         }
@@ -469,19 +542,17 @@ mod tests {
             let mut kinds = Kinds::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::Yes,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::Yes);
             
             // operation
             
@@ -506,29 +577,26 @@ mod tests {
             let mut kinds = Kinds::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Another series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Another series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             // operation
             
@@ -538,13 +606,12 @@ mod tests {
             
             assert!(output.is_ok());
             
-            let entry = SeriesEntry {
-                title: String::from("Another series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Another series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             assert_eq!(series.get(id), Some(&entry));
         }
@@ -557,29 +624,26 @@ mod tests {
             let mut kinds = Kinds::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::new(),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::new())
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             // operation
             
@@ -598,29 +662,26 @@ mod tests {
             let mut kinds = Kinds::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             // operation
             
@@ -639,29 +700,26 @@ mod tests {
             let mut kinds = Kinds::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Another series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Another series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             // operation
             
@@ -686,19 +744,17 @@ mod tests {
             let mut kinds = Kinds::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let id = series.add(entry, &kinds, &candidates).unwrap();
             
@@ -721,31 +777,28 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Placeholder"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             let candidate_id = candidates.add(entry, &series).unwrap();
             
@@ -770,19 +823,17 @@ mod tests {
             let mut kinds = Kinds::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             series.add(entry, &kinds, &candidates).unwrap();
             
@@ -811,19 +862,17 @@ mod tests {
             let mut kinds = Kinds::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let mut entry = SeriesEntry {
-                title: String::new(),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::new())
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             // operation
             
@@ -833,7 +882,12 @@ mod tests {
             
             assert!(output.is_err());
             
-            entry.title = String::from("Current series");
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             assert!(series.check_entry(SeriesId::from(0), &entry, &kinds, &candidates).is_ok());
         }
@@ -846,29 +900,26 @@ mod tests {
             let mut kinds = Kinds::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 6,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(6)
+                .with_good(SeriesGood::No);
             
             // operation
             
@@ -889,29 +940,26 @@ mod tests {
             let mut kinds = Kinds::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("CurrenT series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 6,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("CurrenT series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(6)
+                .with_good(SeriesGood::No);
             
             // operation
             
@@ -934,19 +982,17 @@ mod tests {
             let mut kinds = Kinds::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let mut entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: KindsId::from(kind_id.as_int() + 1),
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(KindsId::from(kind_id.as_int() + 1))
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             // operation
             
@@ -956,7 +1002,12 @@ mod tests {
             
             assert!(output.is_err());
             
-            entry.kind = kind_id;
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             assert!(series.check_entry(SeriesId::from(0), &entry, &kinds, &candidates).is_ok());
         }
@@ -971,37 +1022,33 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Test"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Test"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             let candidate_id = candidates.add(entry, &series).unwrap();
             
-            let mut entry = series.get(series_id).unwrap().clone();
-            
-            entry.status = SeriesStatus::OnHold;
+            let entry = series.get(series_id).unwrap().clone()
+                .with_status(SeriesStatus::OnHold);
             
             // operation
             
@@ -1026,19 +1073,17 @@ mod tests {
             let mut kinds = Kinds::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let mut entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 0,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(0)
+                .with_good(SeriesGood::No);
             
             // operation
             
@@ -1048,7 +1093,12 @@ mod tests {
             
             assert!(output.is_err());
             
-            entry.status = SeriesStatus::PlanToWatch;
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::PlanToWatch)
+                .with_progress(0)
+                .with_good(SeriesGood::No);
             
             assert!(series.check_entry(SeriesId::from(0), &entry, &kinds, &candidates).is_ok());
         }
@@ -1061,19 +1111,17 @@ mod tests {
             let mut kinds = Kinds::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let mut entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::PlanToWatch,
-                progress: 10,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::PlanToWatch)
+                .with_progress(10)
+                .with_good(SeriesGood::No);
             
             // operation
             
@@ -1083,7 +1131,12 @@ mod tests {
             
             assert!(output.is_err());
             
-            entry.status = SeriesStatus::Watching;
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(10)
+                .with_good(SeriesGood::No);
             
             assert!(series.check_entry(SeriesId::from(0), &entry, &kinds, &candidates).is_ok());
         }
@@ -1098,19 +1151,17 @@ mod tests {
             let mut kinds = Kinds::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let mut entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 10,
-                good: SeriesGood::Yes,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(10)
+                .with_good(SeriesGood::Yes);
             
             // operation
             
@@ -1120,7 +1171,12 @@ mod tests {
             
             assert!(output.is_err());
             
-            entry.good = SeriesGood::No;
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             assert!(series.check_entry(SeriesId::from(0), &entry, &kinds, &candidates).is_ok());
         }

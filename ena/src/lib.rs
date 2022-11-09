@@ -284,21 +284,19 @@ impl Files {
         
         let path = path.as_ref();
         
-        if path.starts_with(&self.root) {
+        match self.entries.iter().position(|current| current.path == path) {
             
-            match self.entries.iter().position(|current| current.path == path) {
-                
-                // file
-                Some(index) => indexes.push(index),
-                
-                // directory
-                None => for (index, entry) in self.entries.iter().enumerate() {
+            // file
+            Some(index) => indexes.push(index),
+            
+            // directory
+            None => if path.starts_with(&self.root) {
+                for (index, entry) in self.entries.iter().enumerate() {
                     if entry.path.ancestors().any(|ancestor| ancestor == path) {
                         indexes.push(index);
                     }
-                },
-                
-            }
+                }
+            },
             
         }
         
@@ -328,6 +326,14 @@ impl Files {
                 
             }
             
+        }
+        
+        if self.entries.capacity() > self.entries.len().saturating_mul(2) {
+            self.entries.shrink_to_fit();
+        }
+        
+        if self.queue.capacity() > self.queue.len().saturating_mul(2) {
+            self.queue.shrink_to_fit();
         }
         
         Ok(result)

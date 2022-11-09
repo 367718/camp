@@ -183,7 +183,7 @@ fn init_app(app: &gtk::Application) {
         Files::new(
             params.paths_files(true),
             params.media_flag(true),
-            database.formats_iter().map(|(_, entry)| &entry.name),
+            database.formats_iter().map(|(_, entry)| entry.name()),
         )
     };
     

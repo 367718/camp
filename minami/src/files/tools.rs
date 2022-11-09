@@ -263,11 +263,11 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
     // ---------- parameters ----------
     
     let mut candidates = state.database.candidates_iter()
-        .filter(|(_, entry)| entry.current == CandidatesCurrent::Yes)
+        .filter(|(_, entry)| entry.current() == CandidatesCurrent::Yes)
         .map(|(_, entry)| entry)
         .collect::<Vec<&CandidatesEntry>>();
     
-    candidates.sort_unstable_by(|a, b| crate::general::natural_cmp(&a.title, &b.title));
+    candidates.sort_unstable_by(|a, b| crate::general::natural_cmp(a.title(), b.title()));
     
     let mut feeds = state.database.feeds_iter()
         .collect::<Vec<(&FeedsId, &FeedsEntry)>>();
@@ -308,10 +308,10 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
             
             for feed in feeds {
                 
-                job_sender.send(Some(feed.url.to_string())).unwrap();
+                job_sender.send(Some(feed.url().to_string())).unwrap();
                 job_sender.send(Some(String::from("\n------------------------------------------------------------\n"))).unwrap();
                 
-                match client.get(&feed.url) {
+                match client.get(feed.url()) {
                     
                     Ok(content) => {
                         
@@ -437,7 +437,7 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
         .map(|(_, entry)| entry)
         .collect::<Vec<&CandidatesEntry>>();
     
-    candidates.sort_unstable_by(|a, b| crate::general::natural_cmp(&a.title, &b.title));
+    candidates.sort_unstable_by(|a, b| crate::general::natural_cmp(a.title(), b.title()));
     
     let files = state.files.iter()
         .filter(|entry| entry.mark == FilesMark::Watched)
@@ -465,9 +465,9 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
             
             let id = SeriesId::from(update.id);
             
-            if let Some((_, candidate)) = state.database.candidates_iter().find(|(_, current)| current.series == id) {
+            if let Some((_, candidate)) = state.database.candidates_iter().find(|(_, current)| current.series() == id) {
                 
-                let episode = update.episode.saturating_sub(candidate.offset);
+                let episode = update.episode.saturating_sub(candidate.offset());
                 
                 if episode > 0 {
                     

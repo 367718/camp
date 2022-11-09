@@ -20,7 +20,7 @@ pub struct KindsId(u32);
 #[derive(Clone, PartialEq, Eq, Decode, Encode)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct KindsEntry {
-    pub name: String,
+    name: Box<str>,
 }
 
 enum NameError {
@@ -84,12 +84,18 @@ impl Kinds {
     }
     
     pub fn remove(&mut self, id: KindsId, series: &Series) -> Result<KindsEntry, Box<dyn Error>> {
-        if series.iter().any(|(_, curr_entry)| curr_entry.kind == id) {
+        if series.iter().any(|(_, curr_entry)| curr_entry.kind() == id) {
             return Err("A kind cannot be removed if a related series is defined".into());
         }
         
-        self.entries.remove(&id)
-            .ok_or_else(|| "Kind not found".into())
+        let entry = self.entries.remove(&id)
+            .ok_or("Kind not found")?;
+        
+        if self.entries.capacity() > self.entries.len().saturating_mul(2) {
+            self.entries.shrink_to_fit();
+        }
+        
+        Ok(entry)
     }
     
     
@@ -137,6 +143,36 @@ impl KindsId {
     
 }
 
+impl KindsEntry {
+    
+    // ---------- constructors ----------
+    
+    
+    pub fn new() -> Self {
+        Self {
+            name: Box::default(),
+        }
+    }
+    
+    
+    // ---------- accessors ----------
+    
+    
+    pub fn name(&self) -> &str {
+        self.name.as_ref()
+    }
+    
+    
+    // ---------- mutators ----------
+    
+    
+    pub fn with_name(mut self, name: String) -> Self {
+        self.name = name.into_boxed_str();
+        self
+    }
+    
+}
+
 #[cfg(test)]
 mod tests {
     
@@ -157,9 +193,8 @@ mod tests {
             
             let mut kinds = Kinds::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             // operation
             
@@ -171,9 +206,8 @@ mod tests {
             
             let id = output.unwrap();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             assert_eq!(kinds.get(id), Some(&entry));
         }
@@ -184,9 +218,8 @@ mod tests {
             
             let mut kinds = Kinds::new();
             
-            let entry = KindsEntry {
-                name: String::new(),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::new());
             
             // operation
             
@@ -209,15 +242,13 @@ mod tests {
             
             let mut kinds = Kinds::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let id = kinds.add(entry).unwrap();
             
-            let entry = KindsEntry {
-                name: String::from("movie"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("movie"));
             
             // operation
             
@@ -227,9 +258,8 @@ mod tests {
             
             assert!(output.is_ok());
             
-            let entry = KindsEntry {
-                name: String::from("movie"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("movie"));
             
             assert_eq!(kinds.get(id), Some(&entry));
         }
@@ -240,15 +270,13 @@ mod tests {
             
             let mut kinds = Kinds::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let id = kinds.add(entry).unwrap();
             
-            let entry = KindsEntry {
-                name: String::new(),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::new());
             
             // operation
             
@@ -265,15 +293,13 @@ mod tests {
             
             let mut kinds = Kinds::new();
             
-            let entry = KindsEntry {
-                name: String::from("movie"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("movie"));
             
             let id = kinds.add(entry).unwrap();
             
-            let entry = KindsEntry {
-                name: String::from("movie"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("movie"));
             
             // operation
             
@@ -290,15 +316,13 @@ mod tests {
             
             let mut kinds = Kinds::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             kinds.add(entry).unwrap();
             
-            let entry = KindsEntry {
-                name: String::from("special"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("special"));
             
             // operation
             
@@ -322,9 +346,8 @@ mod tests {
             let mut kinds = Kinds::new();
             let series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("special"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("special"));
             
             let id = kinds.add(entry).unwrap();
             
@@ -347,25 +370,22 @@ mod tests {
             let mut series = Series::new();
             let candidates = Candidates::new();
             
-            let entry = KindsEntry {
-                name: String::from("special"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("special"));
             
             let first_id = kinds.add(entry).unwrap();
             
-            let entry = KindsEntry {
-                name: String::from("movie"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let second_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: first_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(first_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
@@ -377,13 +397,12 @@ mod tests {
             
             assert!(output.is_err());
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: second_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(second_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             series.edit(series_id, entry, &kinds, &candidates).unwrap();
             
@@ -397,9 +416,8 @@ mod tests {
             let mut kinds = Kinds::new();
             let series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("special"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("special"));
             
             kinds.add(entry).unwrap();
             
@@ -426,9 +444,8 @@ mod tests {
             
             let kinds = Kinds::new();
             
-            let mut entry = KindsEntry {
-                name: String::new(),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::new());
             
             // operation
             
@@ -438,7 +455,8 @@ mod tests {
             
             assert!(output.is_err());
             
-            entry.name = String::from("tv");
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             assert!(kinds.check_entry(KindsId::from(0), &entry).is_ok());
         }
@@ -449,15 +467,13 @@ mod tests {
             
             let mut kinds = Kinds::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let id = kinds.add(entry).unwrap();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             // operation
             
@@ -476,15 +492,13 @@ mod tests {
             
             let mut kinds = Kinds::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let id = kinds.add(entry).unwrap();
             
-            let entry = KindsEntry {
-                name: String::from("Tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("Tv"));
             
             // operation
             

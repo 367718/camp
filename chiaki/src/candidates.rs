@@ -20,13 +20,13 @@ pub struct CandidatesId(u32);
 #[derive(Clone, PartialEq, Eq, Decode, Encode)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct CandidatesEntry {
-    pub series: SeriesId,
-    pub title: String,
-    pub group: String,
-    pub quality: String,
-    pub offset: u32,
-    pub current: CandidatesCurrent,
-    pub downloaded: HashSet<u32>,
+    series: SeriesId,
+    title: Box<str>,
+    group: Box<str>,
+    quality: Box<str>,
+    offset: u32,
+    current: CandidatesCurrent,
+    downloaded: HashSet<u32>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Decode, Encode)]
@@ -108,8 +108,14 @@ impl Candidates {
     }
     
     pub fn remove(&mut self, id: CandidatesId) -> Result<CandidatesEntry, Box<dyn Error>> {
-        self.entries.remove(&id)
-            .ok_or_else(|| "Candidate not found".into())
+        let entry = self.entries.remove(&id)
+            .ok_or("Candidate not found")?;
+        
+        if self.entries.capacity() > self.entries.len().saturating_mul(2) {
+            self.entries.shrink_to_fit();
+        }
+        
+        Ok(entry)
     }
     
     
@@ -152,7 +158,7 @@ impl Candidates {
         let found = series.get(entry.series)
             .ok_or(SeriesError::NotFound)?;
         
-        if found.status != SeriesStatus::Watching {
+        if found.status() != SeriesStatus::Watching {
             return Err(SeriesError::NotWatching);
         }
         
@@ -201,6 +207,96 @@ impl CandidatesId {
     
     pub fn as_int(self) -> u32 {
         self.0
+    }
+    
+}
+
+impl CandidatesEntry {
+    
+    // ---------- constructors ----------
+    
+    
+    pub fn new() -> Self {
+        Self {
+            series: SeriesId::from(0),
+            title: Box::default(),
+            group: Box::default(),
+            quality: Box::default(),
+            offset: u32::default(),
+            current: CandidatesCurrent::Yes,
+            downloaded: HashSet::default(),
+        }
+    }
+    
+    
+    // ---------- accessors ----------
+    
+    
+    pub fn series(&self) -> SeriesId {
+        self.series
+    }
+    
+    pub fn title(&self) -> &str {
+        self.title.as_ref()
+    }
+    
+    pub fn group(&self) -> &str {
+        self.group.as_ref()
+    }
+    
+    pub fn quality(&self) -> &str {
+        self.quality.as_ref()
+    }
+    
+    pub fn offset(&self) -> u32 {
+        self.offset
+    }
+    
+    pub fn current(&self) -> CandidatesCurrent {
+        self.current
+    }
+    
+    pub fn downloaded(&self) -> &HashSet<u32> {
+        &self.downloaded
+    }
+    
+    
+    // ---------- mutators ----------
+    
+    
+    pub fn with_series(mut self, series: SeriesId) -> Self {
+        self.series = series;
+        self
+    }
+    
+    pub fn with_title(mut self, title: String) -> Self {
+        self.title = title.into_boxed_str();
+        self
+    }
+    
+    pub fn with_group(mut self, group: String) -> Self {
+        self.group = group.into_boxed_str();
+        self
+    }
+    
+    pub fn with_quality(mut self, quality: String) -> Self {
+        self.quality = quality.into_boxed_str();
+        self
+    }
+    
+    pub fn with_offset(mut self, offset: u32) -> Self {
+        self.offset = offset;
+        self
+    }
+    
+    pub fn with_current(mut self, current: CandidatesCurrent) -> Self {
+        self.current = current;
+        self
+    }
+    
+    pub fn with_downloaded(mut self, downloaded: HashSet<u32>) -> Self {
+        self.downloaded = downloaded;
+        self
     }
     
 }
@@ -357,31 +453,28 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Placeholder"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             // operation
             
@@ -393,15 +486,14 @@ mod tests {
             
             let id = output.unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Placeholder"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             assert_eq!(candidates.get(id), Some(&entry));
         }
@@ -414,31 +506,28 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::new(),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::new())
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             // operation
             
@@ -463,43 +552,39 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Placeholder"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             let id = candidates.add(entry, &series).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Nothing"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Nothing"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             // operation
             
@@ -509,15 +594,14 @@ mod tests {
             
             assert!(output.is_ok());
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Nothing"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Nothing"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             assert_eq!(candidates.get(id), Some(&entry));
         }
@@ -530,43 +614,39 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Placeholder"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             let id = candidates.add(entry, &series).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::new(),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::new())
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             // operation
             
@@ -585,43 +665,39 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Placeholder"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             let id = candidates.add(entry, &series).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Placeholder"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             // operation
             
@@ -640,43 +716,39 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Placeholder"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             candidates.add(entry, &series).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Nothing"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Nothing"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             // operation
             
@@ -701,31 +773,28 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Placeholder"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             let id = candidates.add(entry, &series).unwrap();
             
@@ -748,31 +817,28 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Placeholder"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             candidates.add(entry, &series).unwrap();
             
@@ -801,43 +867,39 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Placeholder"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             let candidate_id = candidates.add(entry, &series).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Another"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Another"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             // operation
             
@@ -858,31 +920,28 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let mut entry = CandidatesEntry {
-                series: SeriesId::from(50),
-                title: String::from("Placeholder"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(SeriesId::from(50))
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             // operation
             
@@ -892,7 +951,14 @@ mod tests {
             
             assert!(output.is_err());
             
-            entry.series = series_id;
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             assert!(candidates.check_entry(CandidatesId::from(0), &entry, &series).is_ok());
         }
@@ -905,31 +971,28 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Completed,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Completed)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Another"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Another"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             // operation
             
@@ -939,13 +1002,12 @@ mod tests {
             
             assert!(output.is_err());
             
-            let series_entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let series_entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             series.edit(series_id, series_entry, &kinds, &candidates).unwrap();
             
@@ -962,31 +1024,28 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let mut entry = CandidatesEntry {
-                series: series_id,
-                title: String::new(),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::new())
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             // operation
             
@@ -996,7 +1055,14 @@ mod tests {
             
             assert!(output.is_err());
             
-            entry.title = String::from("Something");
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Something"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             assert!(candidates.check_entry(CandidatesId::from(0), &entry, &series).is_ok());
         }
@@ -1009,53 +1075,48 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let first_series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Another series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Another series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let second_series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = CandidatesEntry {
-                series: first_series_id,
-                title: String::from("Placeholder"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(first_series_id)
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             let candidate_id = candidates.add(entry, &series).unwrap();
             
-            let entry = CandidatesEntry {
-                series: second_series_id,
-                title: String::from("Placeholder"),
-                group: String::from("Some other group"),
-                quality: String::from("144p"),
-                offset: 10,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(second_series_id)
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Some other Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(10)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             // operation
             
@@ -1076,53 +1137,48 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let first_series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Another series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Another series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let second_series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let entry = CandidatesEntry {
-                series: first_series_id,
-                title: String::from("Placeholder"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(first_series_id)
+                .with_title(String::from("Placeholder"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             let candidate_id = candidates.add(entry, &series).unwrap();
             
-            let entry = CandidatesEntry {
-                series: second_series_id,
-                title: String::from("PlaceholdeR"),
-                group: String::from("Some other group"),
-                quality: String::from("144p"),
-                offset: 10,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::new(),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(second_series_id)
+                .with_title(String::from("PlaceholdeR"))
+                .with_group(String::from("Some other group"))
+                .with_quality(String::from("144p"))
+                .with_offset(10)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::new());
             
             // operation
             
@@ -1145,31 +1201,28 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let mut entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Test"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::Yes,
-                downloaded: HashSet::from([10, 11, 0, 12]),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Test"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::Yes)
+                .with_downloaded(HashSet::from([10, 11, 0, 12]));
             
             // operation
             
@@ -1179,7 +1232,14 @@ mod tests {
             
             assert!(output.is_err());
             
-            entry.downloaded = HashSet::from([10, 11, 12]);
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Test"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::Yes)
+                .with_downloaded(HashSet::from([10, 11, 12]));
             
             assert!(candidates.check_entry(CandidatesId::from(0), &entry, &series).is_ok());
         }
@@ -1192,31 +1252,28 @@ mod tests {
             let mut kinds = Kinds::new();
             let mut series = Series::new();
             
-            let entry = KindsEntry {
-                name: String::from("tv"),
-            };
+            let entry = KindsEntry::new()
+                .with_name(String::from("tv"));
             
             let kind_id = kinds.add(entry).unwrap();
             
-            let entry = SeriesEntry {
-                title: String::from("Current series"),
-                kind: kind_id,
-                status: SeriesStatus::Watching,
-                progress: 5,
-                good: SeriesGood::No,
-            };
+            let entry = SeriesEntry::new()
+                .with_title(String::from("Current series"))
+                .with_kind(kind_id)
+                .with_status(SeriesStatus::Watching)
+                .with_progress(5)
+                .with_good(SeriesGood::No);
             
             let series_id = series.add(entry, &kinds, &candidates).unwrap();
             
-            let mut entry = CandidatesEntry {
-                series: series_id,
-                title: String::from("Test"),
-                group: String::from("Nobody"),
-                quality: String::from("144p"),
-                offset: 0,
-                current: CandidatesCurrent::No,
-                downloaded: HashSet::from([10, 11, 12]),
-            };
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Test"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::No)
+                .with_downloaded(HashSet::from([10, 11, 12]));
             
             // operation
             
@@ -1226,7 +1283,14 @@ mod tests {
             
             assert!(output.is_err());
             
-            entry.current = CandidatesCurrent::Yes;
+            let entry = CandidatesEntry::new()
+                .with_series(series_id)
+                .with_title(String::from("Test"))
+                .with_group(String::from("Nobody"))
+                .with_quality(String::from("144p"))
+                .with_offset(0)
+                .with_current(CandidatesCurrent::Yes)
+                .with_downloaded(HashSet::from([10, 11, 12]));
             
             assert!(candidates.check_entry(CandidatesId::from(0), &entry, &series).is_ok());
         }

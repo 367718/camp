@@ -46,7 +46,7 @@ fn fill(state: &State) {
             None,
             &[
                 (0, &id.as_int()),
-                (1, &feed.url),
+                (1, &feed.url()),
             ],
         );
     }
@@ -131,9 +131,8 @@ pub fn add(state: &mut State) {
             
             gtk::ResponseType::Ok => {
                 
-                let entry = FeedsEntry {
-                    url: url_entry.text().to_string(),
-                };
+                let entry = FeedsEntry::new()
+                    .with_url(url_entry.text().to_string());
                 
                 match state.database.feeds_add(entry) {
                     
@@ -150,7 +149,7 @@ pub fn add(state: &mut State) {
                             None,
                             &[
                                 (0, &id.as_int()),
-                                (1, &feed.url),
+                                (1, &feed.url()),
                             ],
                         );
                         
@@ -197,7 +196,7 @@ pub fn edit(state: &mut State) {
             
             let url_entry = &state.ui.widgets().dialogs.preferences.feeds.url_entry;
             
-            url_entry.set_text(&previous.url);
+            url_entry.set_text(previous.url());
             
             loop {
                 
@@ -214,9 +213,8 @@ pub fn edit(state: &mut State) {
                     
                     gtk::ResponseType::Ok => {
                         
-                        let entry = FeedsEntry {
-                            url: url_entry.text().to_string(),
-                        };
+                        let entry = FeedsEntry::new()
+                            .with_url(url_entry.text().to_string());
                         
                         match state.database.feeds_edit(id, entry) {
                             
@@ -229,7 +227,7 @@ pub fn edit(state: &mut State) {
                                 
                                 let store_iter = feeds_sort.convert_iter_to_child_iter(&treeiter);
                                 
-                                feeds_store.set_value(&store_iter, 1, &feed.url.to_value());
+                                feeds_store.set_value(&store_iter, 1, &feed.url().to_value());
                                 
                                 feeds_treeview.grab_focus();
                                 
