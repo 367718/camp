@@ -237,15 +237,15 @@ impl CandidatesEntry {
     }
     
     pub fn title(&self) -> &str {
-        self.title.as_ref()
+        &self.title
     }
     
     pub fn group(&self) -> &str {
-        self.group.as_ref()
+        &self.group
     }
     
     pub fn quality(&self) -> &str {
-        self.quality.as_ref()
+        &self.quality
     }
     
     pub fn offset(&self) -> u32 {

@@ -8,10 +8,10 @@ use std::{
 use crate::Config;
 
 pub struct Paths {
-    files: PathBuf,
-    downloads: PathBuf,
-    pipe: PathBuf,
-    database: PathBuf,
+    files: Box<Path>,
+    downloads: Box<Path>,
+    pipe: Box<Path>,
+    database: Box<Path>,
 }
 
 pub enum PathError {
@@ -33,10 +33,10 @@ impl Paths {
     
     pub fn new() -> Self {
         Self {
-            files: PathBuf::from(Self::DEFAULT_FILES),
-            downloads: PathBuf::from(Self::DEFAULT_DOWNLOADS),
-            pipe: PathBuf::from(Self::DEFAULT_PIPE),
-            database: PathBuf::from(Self::DEFAULT_DATABASE),
+            files: PathBuf::from(Self::DEFAULT_FILES).into_boxed_path(),
+            downloads: PathBuf::from(Self::DEFAULT_DOWNLOADS).into_boxed_path(),
+            pipe: PathBuf::from(Self::DEFAULT_PIPE).into_boxed_path(),
+            database: PathBuf::from(Self::DEFAULT_DATABASE).into_boxed_path(),
         }
     }
     
@@ -58,33 +58,33 @@ impl Paths {
         let database = Config::get_value(content, b"paths.database")?;
         
         let mut paths = Paths {
-            files: PathBuf::from(files),
-            downloads: PathBuf::from(downloads),
-            pipe: PathBuf::from(pipe),
-            database: PathBuf::from(database),
+            files: PathBuf::from(files).into_boxed_path(),
+            downloads: PathBuf::from(downloads).into_boxed_path(),
+            pipe: PathBuf::from(pipe).into_boxed_path(),
+            database: PathBuf::from(database).into_boxed_path(),
         };
         
         // files
         if Self::validate_path(&paths.files).is_err() {
-            paths.files = PathBuf::from(Self::DEFAULT_FILES);
+            paths.files = PathBuf::from(Self::DEFAULT_FILES).into_boxed_path();
             corrected = true;
         }
         
         // downloads
         if Self::validate_path(&paths.downloads).is_err() {
-            paths.downloads = PathBuf::from(Self::DEFAULT_DOWNLOADS);
+            paths.downloads = PathBuf::from(Self::DEFAULT_DOWNLOADS).into_boxed_path();
             corrected = true;
         }
         
         // pipe
         if Self::validate_path(&paths.pipe).is_err() {
-            paths.pipe = PathBuf::from(Self::DEFAULT_PIPE);
+            paths.pipe = PathBuf::from(Self::DEFAULT_PIPE).into_boxed_path();
             corrected = true;
         }
         
         // database
         if Self::validate_path(&paths.database).is_err() {
-            paths.database = PathBuf::from(Self::DEFAULT_DATABASE);
+            paths.database = PathBuf::from(Self::DEFAULT_DATABASE).into_boxed_path();
             corrected = true;
         }
         
@@ -118,13 +118,13 @@ impl Paths {
     pub fn set_files<S: AsRef<Path>>(&mut self, files: S) -> Result<bool, Box<dyn Error>> {
         let files = files.as_ref();
         
-        if self.files == files {
+        if self.files.as_ref() == files {
             return Ok(false);
         }
         
         Self::check_path(files, "Files")?;
         
-        self.files = files.to_owned();
+        self.files = files.to_path_buf().into_boxed_path();
         
         Ok(true)
     }
@@ -132,13 +132,13 @@ impl Paths {
     pub fn set_downloads<S: AsRef<Path>>(&mut self, downloads: S) -> Result<bool, Box<dyn Error>> {
         let downloads = downloads.as_ref();
         
-        if self.downloads == downloads {
+        if self.downloads.as_ref() == downloads {
             return Ok(false);
         }
         
         Self::check_path(downloads, "Database")?;
         
-        self.downloads = downloads.to_owned();
+        self.downloads = downloads.to_path_buf().into_boxed_path();
         
         Ok(true)
     }
@@ -146,13 +146,13 @@ impl Paths {
     pub fn set_pipe<S: AsRef<Path>>(&mut self, pipe: S) -> Result<bool, Box<dyn Error>> {
         let pipe = pipe.as_ref();
         
-        if self.pipe == pipe {
+        if self.pipe.as_ref() == pipe {
             return Ok(false);
         }
         
         Self::check_path(pipe, "Pipe")?;
         
-        self.pipe = pipe.to_owned();
+        self.pipe = pipe.to_path_buf().into_boxed_path();
         
         Ok(true)
     }
@@ -160,13 +160,13 @@ impl Paths {
     pub fn set_database<S: AsRef<Path>>(&mut self, database: S) -> Result<bool, Box<dyn Error>> {
         let database = database.as_ref();
         
-        if self.database == database {
+        if self.database.as_ref() == database {
             return Ok(false);
         }
         
         Self::check_path(database, "Database")?;
         
-        self.database = database.to_owned();
+        self.database = database.to_path_buf().into_boxed_path();
         
         Ok(true)
     }

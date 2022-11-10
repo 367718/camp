@@ -403,12 +403,12 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
 pub fn update(state: &mut State, sender: &Sender<Message>) {
     
     fn get_name(entry: &FilesEntry) -> Option<&str> {
-        match entry.container.as_ref() {
+        match entry.container().as_ref() {
             
             // include container in file stem
             Some(container) => {
                 
-                let mut ancestors = entry.path.ancestors();
+                let mut ancestors = entry.path().ancestors();
                 
                 let skip = Path::new(&container)
                     .components()
@@ -417,16 +417,16 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
                 
                 let prefix = ancestors.nth(skip)?;
                 
-                let extension = entry.path.extension()?.to_str()?;
+                let extension = entry.path().extension()?.to_str()?;
                 
-                entry.path.strip_prefix(prefix).ok()?
+                entry.path().strip_prefix(prefix).ok()?
                     .to_str()
                     .and_then(|name| name.strip_suffix(extension))
                     .and_then(|name| name.strip_suffix('.'))
                 
             },
             
-            None => entry.name.to_str(),
+            None => entry.name().to_str(),
             
         }
     }
@@ -440,8 +440,8 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
     candidates.sort_unstable_by(|a, b| crate::general::natural_cmp(a.title(), b.title()));
     
     let files = state.files.iter()
-        .filter(|entry| entry.mark == FilesMark::Watched)
-        .filter_map(|entry| Some((get_name(entry)?, entry.path.as_path())))
+        .filter(|entry| entry.mark() == FilesMark::Watched)
+        .filter_map(|entry| Some((get_name(entry)?, entry.path())))
         .collect::<Vec<(&str, &Path)>>();
     
     // ---------- dialog ----------

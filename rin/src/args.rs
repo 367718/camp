@@ -36,25 +36,25 @@ pub struct Args {
     
     // media
     
-    media_player: Option<String>,
+    media_player: Option<Box<str>>,
     media_iconify: Option<bool>,
-    media_flag: Option<String>,
+    media_flag: Option<Box<str>>,
     media_timeout: Option<Duration>,
     media_autoselect: Option<bool>,
-    media_lookup: Option<String>,
-    media_bind: Option<String>,
+    media_lookup: Option<Box<str>>,
+    media_bind: Option<Box<str>>,
     
     // paths
     
-    paths_files: Option<PathBuf>,
-    paths_downloads: Option<PathBuf>,
-    paths_pipe: Option<PathBuf>,
-    paths_database: Option<PathBuf>,
+    paths_files: Option<Box<Path>>,
+    paths_downloads: Option<Box<Path>>,
+    paths_pipe: Option<Box<Path>>,
+    paths_database: Option<Box<Path>>,
     
     // free
     
-    free_flags: Vec<String>,
-    free_pairs: Vec<(String, String)>,
+    free_flags: Vec<Box<str>>,
+    free_pairs: Vec<(Box<str>, Box<str>)>,
     
 }
 
@@ -94,7 +94,8 @@ impl Args {
             // media
             
             media_player: Self::remove_value(&mut data, MEDIA_PLAYER_ARG)
-                .filter(|value| Media::validate_player(value).is_ok()),
+                .filter(|value| Media::validate_player(value).is_ok())
+                .map(String::into_boxed_str),
             
             media_iconify: Self::remove_value(&mut data, MEDIA_ICONIFY_ARG)
                 .and_then(|value| match value {
@@ -104,7 +105,8 @@ impl Args {
                 }),
             
             media_flag: Self::remove_value(&mut data, MEDIA_FLAG_ARG)
-                .filter(|value| Media::validate_flag(value).is_ok()),
+                .filter(|value| Media::validate_flag(value).is_ok())
+                .map(String::into_boxed_str),
             
             media_timeout: Self::remove_value(&mut data, MEDIA_TIMEOUT_ARG)
                 .and_then(|value| value.parse().ok())
@@ -118,35 +120,43 @@ impl Args {
                 }),
             
             media_lookup: Self::remove_value(&mut data, MEDIA_LOOKUP_ARG)
-                .filter(|value| Media::validate_lookup(value).is_ok()),
+                .filter(|value| Media::validate_lookup(value).is_ok())
+                .map(String::into_boxed_str),
             
             media_bind: Self::remove_value(&mut data, MEDIA_BIND_ARG)
-                .filter(|value| Media::validate_bind(value).is_ok()),
+                .filter(|value| Media::validate_bind(value).is_ok())
+                .map(String::into_boxed_str),
             
             // paths
             
             paths_files: Self::remove_value(&mut data, PATHS_FILES_ARG)
-                .map(PathBuf::from),
+                .map(PathBuf::from)
+                .map(PathBuf::into_boxed_path),
             
             paths_downloads: Self::remove_value(&mut data, PATHS_DOWNLOADS_ARG)
-                .map(PathBuf::from),
+                .map(PathBuf::from)
+                .map(PathBuf::into_boxed_path),
             
             paths_pipe: Self::remove_value(&mut data, PATHS_PIPE_ARG)
-                .map(PathBuf::from),
+                .map(PathBuf::from)
+                .map(PathBuf::into_boxed_path),
             
             paths_database: Self::remove_value(&mut data, PATHS_DATABASE_ARG)
-                .map(PathBuf::from),
+                .map(PathBuf::from)
+                .map(PathBuf::into_boxed_path),
             
             // free
             
             free_flags: flags.iter()
                 .filter(|key| key.starts_with("--"))
                 .filter_map(|key| Self::remove_flag(&mut data, key))
+                .map(String::into_boxed_str)
                 .collect(),
             
             free_pairs: pairs.iter()
                 .filter(|key| key.starts_with("--"))
                 .filter_map(|key| Self::remove_pair(&mut data, key))
+                .map(|(key, value)| (key.into_boxed_str(), value.into_boxed_str()))
                 .collect(),
             
         }
@@ -163,7 +173,7 @@ impl Args {
     pub fn free_value(&self, search: &str) -> Option<&str> {
         for (key, value) in &self.free_pairs {
             if key.eq_ignore_ascii_case(search) {
-                return Some(value.as_str());
+                return Some(value.as_ref());
             }
         }
         

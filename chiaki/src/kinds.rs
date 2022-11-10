@@ -159,7 +159,7 @@ impl KindsEntry {
     
     
     pub fn name(&self) -> &str {
-        self.name.as_ref()
+        &self.name
     }
     
     

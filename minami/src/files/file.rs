@@ -168,8 +168,8 @@ pub fn play(state: &mut State) {
             .stderr(Stdio::null())
             .args(args.chain(
                 state.files.queue()
-                .filter(|file| (file.mark == FilesMark::None) == unmarked)
-                .map(|file| file.path.as_os_str())
+                .filter(|file| (file.mark() == FilesMark::None) == unmarked)
+                .map(|file| file.path().as_os_str())
             ))
             .spawn();
         
@@ -387,7 +387,7 @@ pub fn mark_as_watched(state: &mut State) {
             
             if let Some(file) = state.files.get(&path) {
                 
-                if file.mark == FilesMark::Updated {
+                if file.mark() == FilesMark::Updated {
                     state.ui.dialogs_error_show(r#"A file marked as "Updated" cannot be unmarked as "Watched""#);
                     break;
                 }

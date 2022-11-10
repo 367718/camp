@@ -284,7 +284,7 @@ impl SeriesEntry {
     
     
     pub fn title(&self) -> &str {
-        self.title.as_ref()
+        &self.title
     }
     
     pub fn kind(&self) -> KindsId {

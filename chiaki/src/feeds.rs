@@ -153,7 +153,7 @@ impl FeedsEntry {
     
     
     pub fn url(&self) -> &str {
-        self.url.as_ref()
+        &self.url
     }
     
     

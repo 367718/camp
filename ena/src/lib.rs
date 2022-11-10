@@ -13,9 +13,9 @@ pub use watcher::FilesWatcherEvent;
 use watcher::FilesWatcher;
 
 pub struct Files {
-    root: PathBuf,
-    flag: OsString,
-    formats: Vec<OsString>,
+    root: Box<Path>,
+    flag: Box<OsStr>,
+    formats: Vec<Box<OsStr>>,
     entries: Vec<FilesEntry>,
     queue: Vec<usize>,
     watcher: Option<(FilesWatcher, Box<dyn Fn(FilesWatcherEvent)>)>,
@@ -24,10 +24,10 @@ pub struct Files {
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct FilesEntry {
-    pub path: PathBuf,
-    pub name: OsString,
-    pub container: Option<OsString>,
-    pub mark: FilesMark,
+    path: Box<Path>,
+    name: Box<OsStr>,
+    container: Option<Box<OsStr>>,
+    mark: FilesMark,
 }
 
 impl Files {
@@ -37,9 +37,9 @@ impl Files {
     
     pub fn new<P: Into<PathBuf>, F: Into<OsString>, M: Into<OsString>>(root: P, flag: F, formats: impl Iterator<Item = M>) -> Self {
         let mut files = Files {
-            root: root.into(),
-            flag: flag.into(),
-            formats: formats.map(Into::into).collect(),
+            root: root.into().into_boxed_path(),
+            flag: flag.into().into_boxed_os_str(),
+            formats: formats.map(Into::into).map(OsString::into_boxed_os_str).collect(),
             entries: Vec::new(),
             queue: Vec::new(),
             watcher: None,
@@ -58,7 +58,7 @@ impl Files {
     
     pub fn get<P: AsRef<Path>>(&self, path: P) -> Option<&FilesEntry> {
         let path = path.as_ref();
-        self.entries.iter().find(|entry| entry.path == path)
+        self.entries.iter().find(|entry| entry.path.as_ref() == path)
     }
     
     pub fn iter(&self) -> impl Iterator<Item = &FilesEntry> {
@@ -81,7 +81,7 @@ impl Files {
         
         let destination = entry.path.with_file_name(new_name).with_extension(current_extension);
         
-        if entry.path != destination {
+        if entry.path.as_ref() != destination {
             
             if destination.exists() {
                 return Err(format!("File already exists: {}", destination.to_string_lossy()).into());
@@ -123,7 +123,7 @@ impl Files {
             
         };
         
-        if entry.path != destination {
+        if entry.path.as_ref() != destination {
             
             if destination.exists() {
                 return Err(format!("File already exists: {}", destination.to_string_lossy()).into());
@@ -154,8 +154,8 @@ impl Files {
             // since these kinds of changes are not picked up by the file watcher, they must be communicated manually
             // this means that an equivalent modification not made through this library will have no effect and a full reload should be performed to avoid loss of information
             if let Some((_, notify)) = self.watcher.as_ref() {
-                notify(FilesWatcherEvent::FileRemoved(entry.path.clone()));
-                notify(FilesWatcherEvent::FileAdded(entry.path.clone()));
+                notify(FilesWatcherEvent::FileRemoved(entry.path.to_path_buf()));
+                notify(FilesWatcherEvent::FileAdded(entry.path.to_path_buf()));
             }
             
         }
@@ -192,19 +192,23 @@ impl Files {
     
     fn walk_path(&self, path: &Path) -> Option<Vec<FilesEntry>> {
         
-        fn build_entry(formats: &[OsString], flag: &OsStr, path: &Path, base: &Path) -> Option<FilesEntry> {
+        fn build_entry(formats: &[Box<OsStr>], flag: &OsStr, path: &Path, base: &Path) -> Option<FilesEntry> {
             let extension = path.extension()?;
             
             formats.iter().find(|format| format.eq_ignore_ascii_case(extension))?;
             
-            let path = path.to_owned();
+            let path = path.to_owned()
+                .into_boxed_path();
             
-            let name = path.file_stem()?.to_owned();
+            let name = path.file_stem()?
+                .to_os_string()
+                .into_boxed_os_str();
             
             let container = base.parent()
                 .map(Path::as_os_str)
                 .filter(|parent| ! parent.is_empty())
-                .map(ToOwned::to_owned);
+                .map(ToOwned::to_owned)
+                .map(OsString::into_boxed_os_str);
             
             let mark = marks::get(flag, &path);
             
@@ -284,7 +288,7 @@ impl Files {
         
         let path = path.as_ref();
         
-        match self.entries.iter().position(|current| current.path == path) {
+        match self.entries.iter().position(|current| current.path.as_ref() == path) {
             
             // file
             Some(index) => indexes.push(index),
@@ -366,7 +370,7 @@ impl Files {
             
             let current = current.as_ref();
             
-            if let Some(entry) = self.entries.iter().find(|entry| entry.path == current) {
+            if let Some(entry) = self.entries.iter().find(|entry| entry.path.as_ref() == current) {
                 
                 if ! entries.contains(&entry) {
                     entries.push(entry);
@@ -426,6 +430,29 @@ impl Files {
     
 }
 
+impl FilesEntry {
+    
+    // ---------- accessors ----------
+    
+    
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+    
+    pub fn name(&self) -> &OsStr {
+        &self.name
+    }
+    
+    pub fn container(&self) -> Option<&OsStr> {
+        self.container.as_deref()
+    }
+    
+    pub fn mark(&self) -> FilesMark {
+        self.mark
+    }
+    
+}
+
 #[cfg(test)]
 mod lib {
     
@@ -456,8 +483,8 @@ mod lib {
                     .unwrap();
                 
                 let entry = FilesEntry {
-                    path: tempfile.path().to_owned(),
-                    name: tempfile.path().file_stem().unwrap().to_owned(),
+                    path: tempfile.path().to_owned().into_boxed_path(),
+                    name: tempfile.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: None,
                     mark: FilesMark::None,
                 };
@@ -531,11 +558,12 @@ mod lib {
                     .strip_prefix(root.path())
                     .unwrap()
                     .as_os_str()
-                    .to_owned();
+                    .to_owned()
+                    .into_boxed_os_str();
                 
                 let entry = FilesEntry {
-                    path: tempfile.path().to_owned(),
-                    name: tempfile.path().file_stem().unwrap().to_owned(),
+                    path: tempfile.path().to_owned().into_boxed_path(),
+                    name: tempfile.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: Some(container),
                     mark: FilesMark::None,
                 };
@@ -574,8 +602,8 @@ mod lib {
                     .unwrap();
                 
                 let entry = FilesEntry {
-                    path: tempfile.path().to_owned(),
-                    name: tempfile.path().file_stem().unwrap().to_owned(),
+                    path: tempfile.path().to_owned().into_boxed_path(),
+                    name: tempfile.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: None,
                     mark: FilesMark::None,
                 };
@@ -648,9 +676,9 @@ mod lib {
                     .unwrap();
                 
                 let entry_first = FilesEntry {
-                    path: tempfile_first.path().to_owned(),
-                    name: tempfile_first.path().file_stem().unwrap().to_owned(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned()),
+                    path: tempfile_first.path().to_owned().into_boxed_path(),
+                    name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
@@ -660,9 +688,9 @@ mod lib {
                     .unwrap();
                 
                 let entry_second = FilesEntry {
-                    path: tempfile_second.path().to_owned(),
-                    name: tempfile_second.path().file_stem().unwrap().to_owned(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned()),
+                    path: tempfile_second.path().to_owned().into_boxed_path(),
+                    name: tempfile_second.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
@@ -752,9 +780,9 @@ mod lib {
                     .unwrap();
                 
                 let entry_second = FilesEntry {
-                    path: tempfile_second.path().to_owned(),
-                    name: tempfile_second.path().file_stem().unwrap().to_owned(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned()),
+                    path: tempfile_second.path().to_owned().into_boxed_path(),
+                    name: tempfile_second.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
@@ -813,11 +841,12 @@ mod lib {
                     .strip_prefix(root.path())
                     .unwrap()
                     .as_os_str()
-                    .to_owned();
+                    .to_owned()
+                    .into_boxed_os_str();
                 
                 let entry_first = FilesEntry {
-                    path: tempfile_first.path().to_owned(),
-                    name: tempfile_first.path().file_stem().unwrap().to_owned(),
+                    path: tempfile_first.path().to_owned().into_boxed_path(),
+                    name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: Some(container),
                     mark: FilesMark::None,
                 };
@@ -831,11 +860,12 @@ mod lib {
                     .strip_prefix(root.path())
                     .unwrap()
                     .as_os_str()
-                    .to_owned();
+                    .to_owned()
+                    .into_boxed_os_str();
                 
                 let entry_second = FilesEntry {
-                    path: tempfile_second.path().to_owned(),
-                    name: tempfile_second.path().file_stem().unwrap().to_owned(),
+                    path: tempfile_second.path().to_owned().into_boxed_path(),
+                    name: tempfile_second.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: Some(container),
                     mark: FilesMark::None,
                 };
@@ -849,11 +879,12 @@ mod lib {
                     .strip_prefix(root.path())
                     .unwrap()
                     .as_os_str()
-                    .to_owned();
+                    .to_owned()
+                    .into_boxed_os_str();
                 
                 let entry_third = FilesEntry {
-                    path: tempfile_third.path().to_owned(),
-                    name: tempfile_third.path().file_stem().unwrap().to_owned(),
+                    path: tempfile_third.path().to_owned().into_boxed_path(),
+                    name: tempfile_third.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: Some(container),
                     mark: FilesMark::None,
                 };
@@ -902,9 +933,9 @@ mod lib {
                     .unwrap();
                 
                 let entry_first = FilesEntry {
-                    path: tempfile_first.path().to_owned(),
-                    name: tempfile_first.path().file_stem().unwrap().to_owned(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned()),
+                    path: tempfile_first.path().to_owned().into_boxed_path(),
+                    name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
@@ -914,9 +945,9 @@ mod lib {
                     .unwrap();
                 
                 let entry_second = FilesEntry {
-                    path: tempfile_second.path().to_owned(),
-                    name: tempfile_second.path().file_stem().unwrap().to_owned(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned()),
+                    path: tempfile_second.path().to_owned().into_boxed_path(),
+                    name: tempfile_second.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
@@ -999,8 +1030,8 @@ mod lib {
                     .unwrap();
                 
                 let entry = FilesEntry {
-                    path: tempfile.path().to_owned(),
-                    name: tempfile.path().file_stem().unwrap().to_owned(),
+                    path: tempfile.path().to_owned().into_boxed_path(),
+                    name: tempfile.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: None,
                     mark: FilesMark::None,
                 };
@@ -1069,11 +1100,12 @@ mod lib {
                     .strip_prefix(root.path())
                     .unwrap()
                     .as_os_str()
-                    .to_owned();
+                    .to_owned()
+                    .into_boxed_os_str();
                 
                 let entry = FilesEntry {
-                    path: tempfile.path().to_owned(),
-                    name: tempfile.path().file_stem().unwrap().to_owned(),
+                    path: tempfile.path().to_owned().into_boxed_path(),
+                    name: tempfile.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: Some(container),
                     mark: FilesMark::None,
                 };
@@ -1111,8 +1143,8 @@ mod lib {
                     .unwrap();
                 
                 let entry_first = FilesEntry {
-                    path: tempfile_first.path().to_owned(),
-                    name: tempfile_first.path().file_stem().unwrap().to_owned(),
+                    path: tempfile_first.path().to_owned().into_boxed_path(),
+                    name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: None,
                     mark: FilesMark::None,
                 };
@@ -1125,8 +1157,8 @@ mod lib {
                     .unwrap();
                 
                 let entry_second = FilesEntry {
-                    path: tempfile_second.path().to_owned(),
-                    name: tempfile_second.path().file_stem().unwrap().to_owned(),
+                    path: tempfile_second.path().to_owned().into_boxed_path(),
+                    name: tempfile_second.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: None,
                     mark: FilesMark::None,
                 };
@@ -1139,8 +1171,8 @@ mod lib {
                     .unwrap();
                     
                 let entry_third = FilesEntry {
-                    path: tempfile_third.path().to_owned(),
-                    name: tempfile_third.path().file_stem().unwrap().to_owned(),
+                    path: tempfile_third.path().to_owned().into_boxed_path(),
+                    name: tempfile_third.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: None,
                     mark: FilesMark::None,
                 };
@@ -1196,9 +1228,9 @@ mod lib {
                     .unwrap();
                 
                 let entry_first = FilesEntry {
-                    path: tempfile_first.path().to_owned(),
-                    name: tempfile_first.path().file_stem().unwrap().to_owned(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned()),
+                    path: tempfile_first.path().to_owned().into_boxed_path(),
+                    name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
@@ -1208,9 +1240,9 @@ mod lib {
                     .unwrap();
                 
                 let entry_second = FilesEntry {
-                    path: tempfile_second.path().to_owned(),
-                    name: tempfile_second.path().file_stem().unwrap().to_owned(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned()),
+                    path: tempfile_second.path().to_owned().into_boxed_path(),
+                    name: tempfile_second.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
@@ -1281,9 +1313,9 @@ mod lib {
                     .unwrap();
                 
                 let entry = FilesEntry {
-                    path: tempfile_first.path().to_owned(),
-                    name: tempfile_first.path().file_stem().unwrap().to_owned(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned()),
+                    path: tempfile_first.path().to_owned().into_boxed_path(),
+                    name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
@@ -1334,8 +1366,8 @@ mod lib {
                 .unwrap();
             
             let entry = FilesEntry {
-                path: tempfile.path().to_owned(),
-                name: tempfile.path().file_stem().unwrap().to_owned(),
+                path: tempfile.path().to_owned().into_boxed_path(),
+                name: tempfile.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: None,
                 mark: FilesMark::Watched,
             };
@@ -1370,8 +1402,8 @@ mod lib {
                 .unwrap();
             
             let entry = FilesEntry {
-                path: tempfile.path().to_owned(),
-                name: tempfile.path().file_stem().unwrap().to_owned(),
+                path: tempfile.path().to_owned().into_boxed_path(),
+                name: tempfile.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: None,
                 mark: FilesMark::None,
             };
@@ -1431,8 +1463,8 @@ mod lib {
                 .unwrap();
             
             let entry = FilesEntry {
-                path: tempfile_first.path().to_owned(),
-                name: tempfile_first.path().file_stem().unwrap().to_owned(),
+                path: tempfile_first.path().to_owned().into_boxed_path(),
+                name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: None,
                 mark: FilesMark::None,
             };
@@ -1482,11 +1514,12 @@ mod lib {
                 .strip_prefix(root.path())
                 .unwrap()
                 .as_os_str()
-                .to_owned();
+                .to_owned()
+                .into_boxed_os_str();
             
             let entry_first = FilesEntry {
-                path: tempfile_first.path().to_owned(),
-                name: tempfile_first.path().file_stem().unwrap().to_owned(),
+                path: tempfile_first.path().to_owned().into_boxed_path(),
+                name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: Some(container),
                 mark: FilesMark::None,
             };
@@ -1502,11 +1535,12 @@ mod lib {
                 .strip_prefix(root.path())
                 .unwrap()
                 .as_os_str()
-                .to_owned();
+                .to_owned()
+                .into_boxed_os_str();
             
             let entry_second = FilesEntry {
-                path: tempfile_second.path().to_owned(),
-                name: tempfile_second.path().file_stem().unwrap().to_owned(),
+                path: tempfile_second.path().to_owned().into_boxed_path(),
+                name: tempfile_second.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: Some(container),
                 mark: FilesMark::None,
             };
@@ -1519,8 +1553,8 @@ mod lib {
                 .unwrap();
             
             let entry_third = FilesEntry {
-                path: tempfile_third.path().to_owned(),
-                name: tempfile_third.path().file_stem().unwrap().to_owned(),
+                path: tempfile_third.path().to_owned().into_boxed_path(),
+                name: tempfile_third.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: None,
                 mark: FilesMark::None,
             };
@@ -1572,8 +1606,8 @@ mod lib {
                 .unwrap();
             
             let entry_first = FilesEntry {
-                path: tempfile_first.path().to_owned(),
-                name: tempfile_first.path().file_stem().unwrap().to_owned(),
+                path: tempfile_first.path().to_owned().into_boxed_path(),
+                name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: None,
                 mark: FilesMark::None,
             };
@@ -1593,8 +1627,8 @@ mod lib {
                 .unwrap();
             
             let entry_third = FilesEntry {
-                path: tempfile_third.path().to_owned(),
-                name: tempfile_third.path().file_stem().unwrap().to_owned(),
+                path: tempfile_third.path().to_owned().into_boxed_path(),
+                name: tempfile_third.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: None,
                 mark: FilesMark::None,
             };
@@ -2209,7 +2243,7 @@ mod lib {
             // control
             
             for file in output {
-                assert!(file.path == tempfile_first.path() || file.path == tempfile_second.path());
+                assert!(file.path() == tempfile_first.path() || file.path() == tempfile_second.path());
             }
             
             assert_eq!(files.count(), 2);

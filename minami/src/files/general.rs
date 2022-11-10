@@ -79,17 +79,17 @@ fn fill(state: &State) {
     
     for entry in state.files.iter() {
         
-        let Some(name) = entry.name.to_str() else {
+        let Some(name) = entry.name().to_str() else {
             continue;
         };
         
-        let Some(path) = entry.path.to_str() else {
+        let Some(path) = entry.path().to_str() else {
             continue;
         };
         
         // subdirectory
         
-        let container_iter = match entry.container.as_ref() {
+        let container_iter = match entry.container().as_ref() {
             
             Some(container) => {
                 
@@ -97,7 +97,7 @@ fn fill(state: &State) {
                     continue;
                 };
                 
-                Some(&*containers.entry((entry.mark != FilesMark::None, container)).or_insert_with(|| {
+                Some(&*containers.entry((entry.mark() != FilesMark::None, container)).or_insert_with(|| {
                     files_store.insert_with_values(
                         None,
                         None,
@@ -105,7 +105,7 @@ fn fill(state: &State) {
                             (0, &""),
                             
                             (1, &false),
-                            (2, &(entry.mark != FilesMark::None)),
+                            (2, &(entry.mark() != FilesMark::None)),
                             
                             (3, &container),
                         ],
@@ -124,8 +124,8 @@ fn fill(state: &State) {
             &[
                 (0, &path),
                 
-                (1, &(entry.mark == FilesMark::Updated)),
-                (2, &(entry.mark != FilesMark::None)),
+                (1, &(entry.mark() == FilesMark::Updated)),
+                (2, &(entry.mark() != FilesMark::None)),
                 
                 (3, &name),
             ],
@@ -141,15 +141,15 @@ pub fn add(state: &mut State, sender: &Sender<Message>, path: &Path) {
         
         for entry in added {
             
-            let Some(name) = entry.name.to_str() else {
+            let Some(name) = entry.name().to_str() else {
                 continue;
             };
             
-            let Some(path) = entry.path.to_str() else {
+            let Some(path) = entry.path().to_str() else {
                 continue;
             };
             
-            let container_iter = match entry.container.as_ref() {
+            let container_iter = match entry.container().as_ref() {
                 
                 Some(container) => {
                     
@@ -165,7 +165,7 @@ pub fn add(state: &mut State, sender: &Sender<Message>, path: &Path) {
                         let watched = files_store.value(store_iter, 2).get::<bool>().unwrap();
                         let current = files_store.value(store_iter, 3).get::<glib::GString>().unwrap();
                         
-                        if watched == (entry.mark != FilesMark::None) && current == container {
+                        if watched == (entry.mark() != FilesMark::None) && current == container {
                             result = Some(*store_iter);
                             return true;
                         }
@@ -184,7 +184,7 @@ pub fn add(state: &mut State, sender: &Sender<Message>, path: &Path) {
                                 (0, &""),
                                 
                                 (1, &false),
-                                (2, &(entry.mark != FilesMark::None)),
+                                (2, &(entry.mark() != FilesMark::None)),
                                 
                                 (3, &container),
                             ],
@@ -206,8 +206,8 @@ pub fn add(state: &mut State, sender: &Sender<Message>, path: &Path) {
                 &[
                     (0, &path),
                     
-                    (1, &(entry.mark == FilesMark::Updated)),
-                    (2, &(entry.mark != FilesMark::None)),
+                    (1, &(entry.mark() == FilesMark::Updated)),
+                    (2, &(entry.mark() != FilesMark::None)),
                     
                     (3, &name),
                 ],
@@ -227,7 +227,7 @@ pub fn remove(state: &mut State, sender: &Sender<Message>, path: &Path) {
         
         for entry in removed {
             
-            let Some(search) = entry.path.to_str() else {
+            let Some(search) = entry.path().to_str() else {
                 continue;
             };
             

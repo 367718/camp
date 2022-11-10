@@ -8,13 +8,13 @@ use std::{
 use crate::Config;
 
 pub struct Media {
-    player: String,
+    player: Box<str>,
     iconify: bool,
-    flag: String,
+    flag: Box<str>,
     timeout: Duration,
     autoselect: bool,
-    lookup: String,
-    bind: String,
+    lookup: Box<str>,
+    bind: Box<str>,
 }
 
 pub enum PlayerError {
@@ -58,20 +58,20 @@ impl Media {
     
     pub fn new() -> Self {
         Self {
-            player: Self::DEFAULT_PLAYER.to_owned(),
+            player: Self::DEFAULT_PLAYER.to_owned().into_boxed_str(),
             iconify: Self::DEFAULT_ICONIFY,
-            flag: Self::DEFAULT_FLAG.to_owned(),
+            flag: Self::DEFAULT_FLAG.to_owned().into_boxed_str(),
             timeout: Self::DEFAULT_TIMEOUT,
             autoselect: Self::DEFAULT_AUTOSELECT,
-            lookup: Self::DEFAULT_LOOKUP.to_owned(),
-            bind: Self::DEFAULT_BIND.to_owned(),
+            lookup: Self::DEFAULT_LOOKUP.to_owned().into_boxed_str(),
+            bind: Self::DEFAULT_BIND.to_owned().into_boxed_str(),
         }
     }
     
     pub fn serialize(&self, writer: &mut BufWriter<&File>) -> Result<(), Box<dyn Error>> {
         writeln!(writer, "media.player = {}", self.player)?;
         writeln!(writer, "media.iconify = {}", self.iconify)?;
-        writeln!(writer, "media.flag = {}", self.flag.as_str())?;
+        writeln!(writer, "media.flag = {}", self.flag.as_ref())?;
         writeln!(writer, "media.timeout = {}", self.timeout.as_secs())?;
         writeln!(writer, "media.autoselect = {}", self.autoselect)?;
         writeln!(writer, "media.lookup = {}", self.lookup)?;
@@ -92,24 +92,24 @@ impl Media {
         let bind = Config::get_value(content, b"media.bind")?;
         
         let mut media = Media {
-            player: player.to_string(),
+            player: player.to_owned().into_boxed_str(),
             iconify: iconify == "true",
-            flag: flag.to_string(),
+            flag: flag.to_owned().into_boxed_str(),
             timeout: Duration::from_secs(timeout.parse().unwrap_or(0)),
             autoselect: autoselect == "true",
-            lookup: lookup.to_string(),
-            bind: bind.to_string(),
+            lookup: lookup.to_owned().into_boxed_str(),
+            bind: bind.to_owned().into_boxed_str(),
         };
         
         // player
         if Self::validate_player(&media.player).is_err() {
-            media.player = Self::DEFAULT_PLAYER.to_owned();
+            media.player = Self::DEFAULT_PLAYER.to_owned().into_boxed_str();
             corrected = true;
         }
         
         // flag
         if Self::validate_flag(&media.flag).is_err() {
-            media.flag = Self::DEFAULT_FLAG.to_owned();
+            media.flag = Self::DEFAULT_FLAG.to_owned().into_boxed_str();
             corrected = true;
         }
         
@@ -121,13 +121,13 @@ impl Media {
         
         // lookup
         if Self::validate_lookup(&media.lookup).is_err() {
-            media.lookup = Self::DEFAULT_LOOKUP.to_owned();
+            media.lookup = Self::DEFAULT_LOOKUP.to_owned().into_boxed_str();
             corrected = true;
         }
         
         // bind
         if Self::validate_bind(&media.bind).is_err() {
-            media.bind = Self::DEFAULT_BIND.to_owned();
+            media.bind = Self::DEFAULT_BIND.to_owned().into_boxed_str();
             corrected = true;
         }
         
@@ -139,7 +139,7 @@ impl Media {
     
     
     pub fn player(&self) -> &str {
-        self.player.as_str()
+        self.player.as_ref()
     }
     
     pub fn iconify(&self) -> bool {
@@ -159,11 +159,11 @@ impl Media {
     }
     
     pub fn lookup(&self) -> &str {
-        self.lookup.as_str()
+        self.lookup.as_ref()
     }
     
     pub fn bind(&self) -> &str {
-        self.bind.as_str()
+        self.bind.as_ref()
     }
     
     
@@ -173,13 +173,13 @@ impl Media {
     pub fn set_player<S: AsRef<str>>(&mut self, player: S) -> Result<bool, Box<dyn Error>> {
         let player = player.as_ref();
         
-        if self.player == player {
+        if self.player.as_ref() == player {
             return Ok(false);
         }
         
         Self::check_player(player)?;
         
-        self.player = player.to_string();
+        self.player = player.to_owned().into_boxed_str();
         
         Ok(true)
     }
@@ -197,13 +197,13 @@ impl Media {
     pub fn set_flag<S: AsRef<str>>(&mut self, flag: S) -> Result<bool, Box<dyn Error>> {
         let flag = flag.as_ref();
         
-        if self.flag == flag {
+        if self.flag.as_ref() == flag {
             return Ok(false);
         }
         
         Self::check_flag(flag)?;
         
-        self.flag = flag.to_string();
+        self.flag = flag.to_owned().into_boxed_str();
         
         Ok(true)
     }
@@ -233,13 +233,13 @@ impl Media {
     pub fn set_lookup<S: AsRef<str>>(&mut self, lookup: S) -> Result<bool, Box<dyn Error>> {
         let lookup = lookup.as_ref();
         
-        if self.lookup == lookup {
+        if self.lookup.as_ref() == lookup {
             return Ok(false);
         }
         
         Self::check_lookup(lookup)?;
         
-        self.lookup = lookup.to_string();
+        self.lookup = lookup.to_owned().into_boxed_str();
         
         Ok(true)
     }
@@ -247,13 +247,13 @@ impl Media {
     pub fn set_bind<S: AsRef<str>>(&mut self, bind: S) -> Result<bool, Box<dyn Error>> {
         let bind = bind.as_ref();
         
-        if self.bind == bind {
+        if self.bind.as_ref() == bind {
             return Ok(false);
         }
         
         Self::check_bind(bind)?;
         
-        self.bind = bind.to_string();
+        self.bind = bind.to_owned().into_boxed_str();
         
         Ok(true)
     }
