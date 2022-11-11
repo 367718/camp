@@ -87,8 +87,6 @@ fn fill(state: &State) {
             continue;
         };
         
-        // subdirectory
-        
         let container_iter = match entry.container().as_ref() {
             
             Some(container) => {

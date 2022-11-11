@@ -191,37 +191,6 @@ impl Files {
     }
     
     fn walk_path(&self, path: &Path) -> Option<Vec<FilesEntry>> {
-        
-        fn build_entry(formats: &[Box<OsStr>], flag: &OsStr, path: &Path, base: &Path) -> Option<FilesEntry> {
-            let extension = path.extension()?;
-            
-            formats.iter().find(|format| format.eq_ignore_ascii_case(extension))?;
-            
-            let path = path.to_owned()
-                .into_boxed_path();
-            
-            let name = path.file_stem()?
-                .to_os_string()
-                .into_boxed_os_str();
-            
-            let container = base.parent()
-                .map(Path::as_os_str)
-                .filter(|parent| ! parent.is_empty())
-                .map(ToOwned::to_owned)
-                .map(OsString::into_boxed_os_str);
-            
-            let mark = marks::get(flag, &path);
-            
-            Some(
-                FilesEntry {
-                    path,
-                    name,
-                    container,
-                    mark,
-                }
-            )
-        }
-        
         let metadata = path.symlink_metadata().ok()?;
         
         // disallow symbolic links and junction points
@@ -231,17 +200,11 @@ impl Files {
         
         let base = path.strip_prefix(&self.root).ok()?;
         
-        let result: Vec<FilesEntry> = if metadata.is_file() {
+        let result = if metadata.is_file() {
             
-            // file
-            
-            build_entry(&self.formats, &self.flag, path, base)
-                .into_iter()
-                .collect()
+            Vec::from([FilesEntry::build(path, base, &self.formats, &self.flag)?])
             
         } else {
-            
-            // directory
             
             fs::read_dir(path).ok()?
                 .flatten()
@@ -256,7 +219,6 @@ impl Files {
         }
         
         Some(result)
-        
     }
     
     
@@ -431,6 +393,40 @@ impl Files {
 }
 
 impl FilesEntry {
+    
+    // ---------- constructors ----------
+    
+    
+    fn build(path: &Path, base: &Path, formats: &[Box<OsStr>], flag: &OsStr) -> Option<Self> {
+        let extension = path.extension()?;
+        
+        formats.iter().find(|format| format.eq_ignore_ascii_case(extension))?;
+        
+        let path = path.to_owned()
+            .into_boxed_path();
+        
+        let name = path.file_stem()?
+            .to_os_string()
+            .into_boxed_os_str();
+        
+        let container = base.parent()
+            .map(Path::as_os_str)
+            .filter(|parent| ! parent.is_empty())
+            .map(ToOwned::to_owned)
+            .map(OsString::into_boxed_os_str);
+        
+        let mark = marks::get(flag, &path);
+        
+        Some(
+            Self {
+                path,
+                name,
+                container,
+                mark,
+            }
+        )
+    }
+    
     
     // ---------- accessors ----------
     
