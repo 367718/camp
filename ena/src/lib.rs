@@ -1,4 +1,5 @@
-mod marks;
+mod mark;
+mod walker;
 mod watcher;
 
 use std::{
@@ -8,8 +9,9 @@ use std::{
     path::{ Path, PathBuf },
 };
 
-pub use marks::FilesMark;
+pub use mark::FilesMark;
 pub use watcher::FilesWatcherEvent;
+use walker::FilesWalker;
 use watcher::FilesWatcher;
 
 pub struct Files {
@@ -36,8 +38,10 @@ impl Files {
     
     
     pub fn new<P: Into<PathBuf>, F: Into<OsString>, M: Into<OsString>>(root: P, flag: F, formats: impl Iterator<Item = M>) -> Self {
+        let root = root.into();
+        
         let mut files = Files {
-            root: root.into().into_boxed_path(),
+            root: root.clone().into_boxed_path(),
             flag: flag.into().into_boxed_os_str(),
             formats: formats.map(Into::into).map(OsString::into_boxed_os_str).collect(),
             entries: Vec::new(),
@@ -45,9 +49,7 @@ impl Files {
             watcher: None,
         };
         
-        if let Some(entries) = files.walk_path(&files.root) {
-            files.entries = entries;
-        }
+        files.add(root).ok();
         
         files
     }
@@ -104,6 +106,7 @@ impl Files {
             // to subdirectory
             
             Some(folder) => {
+                
                 let folder_name = Path::new(&folder)
                     .file_name()
                     .ok_or("Could not determine folder name")?;
@@ -115,6 +118,7 @@ impl Files {
                 }
                 
                 subdirectory.join(filename)
+                
             },
             
             // to root
@@ -144,23 +148,19 @@ impl Files {
         Ok(())
     }
     
-    pub fn mark<P: AsRef<Path>>(&self, path: P, mark: FilesMark) -> Result<bool, Box<dyn Error>> {
+    pub fn mark<P: AsRef<Path>>(&self, path: P, mark: FilesMark) -> Result<(), Box<dyn Error>> {
         let entry = self.get(&path).ok_or("Entry not found")?;
         
-        let changed = marks::set(&self.flag, entry, mark)?;
+        mark::set(&entry.path, &self.flag, mark)?;
         
-        if changed {
-            
-            // since these kinds of changes are not picked up by the file watcher, they must be communicated manually
-            // this means that an equivalent modification not made through this library will have no effect and a full reload should be performed to avoid loss of information
-            if let Some((_, notify)) = self.watcher.as_ref() {
-                notify(FilesWatcherEvent::FileRemoved(entry.path.to_path_buf()));
-                notify(FilesWatcherEvent::FileAdded(entry.path.to_path_buf()));
-            }
-            
+        // since these kinds of changes are not picked up by the file watcher, they must be communicated manually
+        // this means that an equivalent modification not made through this library will have no effect and a full reload should be performed to avoid loss of information
+        if let Some((_, notify)) = self.watcher.as_ref() {
+            notify(FilesWatcherEvent::FileRemoved(entry.path.to_path_buf()));
+            notify(FilesWatcherEvent::FileAdded(entry.path.to_path_buf()));
         }
         
-        Ok(changed)
+        Ok(())
     }
     
     pub fn perform_maintenance(&self) -> Result<(), Box<dyn Error>> {
@@ -170,12 +170,12 @@ impl Files {
             fs::remove_file(&file.path)?;
         }
         
-        // irrelevant files in root and empty directories
+        // irrelevant files and directories
         
         for path in fs::read_dir(&self.root)?.flatten().map(|current| current.path()) {
             
-            // this will delete symbolic links and junction points
-            if self.walk_path(&path).is_none() {
+            // symbolic links and junction points will be deleted
+            if FilesWalker::new(path.clone()).find_map(|path| self.build_entry(path)).is_none() {
                 
                 if path.is_file() {
                     fs::remove_file(&path)?;
@@ -190,47 +190,45 @@ impl Files {
         Ok(())
     }
     
-    fn walk_path(&self, path: &Path) -> Option<Vec<FilesEntry>> {
-        let metadata = path.symlink_metadata().ok()?;
+    fn build_entry(&self, path: PathBuf) -> Option<FilesEntry> {
+        let extension = path.extension()?;
         
-        // disallow symbolic links and junction points
-        if metadata.is_symlink() {
-            return None;
-        }
+        self.formats.iter().find(|format| format.eq_ignore_ascii_case(extension))?;
         
-        let base = path.strip_prefix(&self.root).ok()?;
+        let path = path.into_boxed_path();
         
-        let result = if metadata.is_file() {
-            
-            Vec::from([FilesEntry::build(path, base, &self.formats, &self.flag)?])
-            
-        } else {
-            
-            fs::read_dir(path).ok()?
-                .flatten()
-                .filter_map(|file| self.walk_path(&file.path()))
-                .flatten()
-                .collect()
-            
-        };
+        let name = path.file_stem()?
+            .to_os_string()
+            .into_boxed_os_str();
         
-        if result.is_empty() {
-            return None;
-        }
+        let container = path.strip_prefix(&self.root).ok()?
+            .parent()
+            .map(Path::as_os_str)
+            .filter(|parent| ! parent.is_empty())
+            .map(ToOwned::to_owned)
+            .map(OsString::into_boxed_os_str);
         
-        Some(result)
+        let mark = mark::get(&path, &self.flag);
+        
+        Some(
+            FilesEntry {
+                path,
+                name,
+                container,
+                mark,
+            }
+        )
     }
     
     
     // ---------- mutators ----------
     
     
-    pub fn add<P: AsRef<Path>>(&mut self, path: P) -> Result<&[FilesEntry], Box<dyn Error>> {
-        let path = path.as_ref();
+    pub fn add<P: Into<PathBuf>>(&mut self, path: P) -> Result<&[FilesEntry], Box<dyn Error>> {
+        let path = path.into();
         
-        let mut to_be_added = self.walk_path(path)
-            .into_iter()
-            .flatten()
+        let mut to_be_added = FilesWalker::new(path)
+            .filter_map(|path| self.build_entry(path))
             .filter(|entry| ! self.entries.contains(entry))
             .collect::<Vec<FilesEntry>>();
         
@@ -393,40 +391,6 @@ impl Files {
 }
 
 impl FilesEntry {
-    
-    // ---------- constructors ----------
-    
-    
-    fn build(path: &Path, base: &Path, formats: &[Box<OsStr>], flag: &OsStr) -> Option<Self> {
-        let extension = path.extension()?;
-        
-        formats.iter().find(|format| format.eq_ignore_ascii_case(extension))?;
-        
-        let path = path.to_owned()
-            .into_boxed_path();
-        
-        let name = path.file_stem()?
-            .to_os_string()
-            .into_boxed_os_str();
-        
-        let container = base.parent()
-            .map(Path::as_os_str)
-            .filter(|parent| ! parent.is_empty())
-            .map(ToOwned::to_owned)
-            .map(OsString::into_boxed_os_str);
-        
-        let mark = marks::get(flag, &path);
-        
-        Some(
-            Self {
-                path,
-                name,
-                container,
-                mark,
-            }
-        )
-    }
-    
     
     // ---------- accessors ----------
     

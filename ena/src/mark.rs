@@ -1,11 +1,9 @@
 use std::{
-    error::Error,
     ffi::{ OsStr, OsString },
     fs,
+    io,
     path::Path,
 };
-
-use super::FilesEntry;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
@@ -47,18 +45,12 @@ impl FilesMark {
     
 }
 
-pub fn get(flag: &OsStr, path: &Path) -> FilesMark {
+pub fn get(path: &Path, flag: &OsStr) -> FilesMark {
     fs::read(build_query(path, flag)).map_or(FilesMark::None, FilesMark::from)
 }
 
-pub fn set(flag: &OsStr, entry: &FilesEntry, mark: FilesMark) -> Result<bool, Box<dyn Error>> {
-    if entry.mark == mark {
-        return Ok(false);
-    }
-    
-    fs::write(build_query(&entry.path, flag), mark.as_bytes())?;
-    
-    Ok(true)
+pub fn set(path: &Path, flag: &OsStr, mark: FilesMark) -> io::Result<()> {
+    fs::write(build_query(path, flag), mark.as_bytes())
 }
 
 fn build_query(path: &Path, flag: &OsStr) -> OsString {
