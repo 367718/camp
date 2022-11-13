@@ -53,7 +53,7 @@ fn build(state: &State) {
 
 fn fill(state: &State) {
     // 0 => id
-    // 1 => modified (weight)
+    // 1 => weight
     // 2 => status
     // 3 => title
     // 4 => good
@@ -73,7 +73,6 @@ fn fill(state: &State) {
                 (2, &entry.status().as_int()),
                 
                 (3, &entry.title()),
-                
                 (4, &entry.good().display()),
                 (5, &state.database.kinds_get(entry.kind()).map_or("", |kind| kind.name())),
                 (6, &entry.progress()),

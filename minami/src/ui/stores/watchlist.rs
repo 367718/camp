@@ -48,14 +48,13 @@ impl Entries {
                 // 0 => id
                 glib::types::Type::U32,
                 
-                // 1 => modified (weight)
+                // 1 => weight
                 glib::types::Type::U32,
                 // 2 => status
                 glib::types::Type::U8,
                 
                 // 3 => title
                 glib::types::Type::STRING,
-                
                 // 4 => good
                 glib::types::Type::STRING,
                 // 5 => kind
