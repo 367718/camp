@@ -38,10 +38,8 @@ impl Files {
     
     
     pub fn new<P: Into<PathBuf>, F: Into<OsString>, M: Into<OsString>>(root: P, flag: F, formats: impl Iterator<Item = M>) -> Self {
-        let root = root.into();
-        
         let mut files = Files {
-            root: root.clone().into_boxed_path(),
+            root: root.into().into_boxed_path(),
             flag: flag.into().into_boxed_os_str(),
             formats: formats.map(Into::into).map(OsString::into_boxed_os_str).collect(),
             entries: Vec::new(),
@@ -49,7 +47,9 @@ impl Files {
             watcher: None,
         };
         
-        files.add(root).ok();
+        files.entries = FilesWalker::new(files.root.to_path_buf())
+            .filter_map(|path| files.build_entry(path))
+            .collect();
         
         files
     }
