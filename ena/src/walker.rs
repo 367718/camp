@@ -3,6 +3,8 @@ use std::{
     path::PathBuf,
 };
 
+const ENTRIES_INITIAL_CAPACITY: usize = 100;
+
 pub struct FilesWalker {
     entries: Vec<PathBuf>,
 }
@@ -10,8 +12,11 @@ pub struct FilesWalker {
 impl FilesWalker {
     
     pub fn new(initial: PathBuf) -> Self {
+        let mut entries = Vec::with_capacity(ENTRIES_INITIAL_CAPACITY);
+        entries.push(initial);
+        
         Self {
-            entries: Vec::from([initial]),
+            entries,
         }
     }
     
