@@ -1,3 +1,5 @@
+mod entry;
+
 use std::{
     collections::HashMap,
     error::Error,
@@ -7,20 +9,12 @@ use bincode::{ Decode, Encode };
 
 use crate::Series;
 
+pub use entry::{ KindsId, KindsEntry };
+
 #[derive(Decode, Encode)]
 pub struct Kinds {
     counter: u32,
     entries: HashMap<KindsId, KindsEntry>,
-}
-
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Decode, Encode)]
-#[cfg_attr(debug_assertions, derive(Debug))]
-pub struct KindsId(u32);
-
-#[derive(Clone, PartialEq, Eq, Decode, Encode)]
-#[cfg_attr(debug_assertions, derive(Debug))]
-pub struct KindsEntry {
-    name: Box<str>,
 }
 
 enum NameError {
@@ -114,61 +108,15 @@ impl Kinds {
     }
     
     fn validate_name(&self, id: KindsId, entry: &KindsEntry) -> Result<(), NameError> {
-        if entry.name.is_empty() {
+        if entry.name().is_empty() {
             return Err(NameError::Empty);
         }
         
-        if self.iter().any(|(&k, v)| v.name.eq_ignore_ascii_case(&entry.name) && k != id) {
+        if self.iter().any(|(&k, v)| v.name().eq_ignore_ascii_case(entry.name()) && k != id) {
             return Err(NameError::NonUnique);
         }
         
         Ok(())
-    }
-    
-}
-
-impl From<u32> for KindsId {
-    
-    fn from(id: u32) -> Self {
-        Self(id)
-    }
-    
-}
-
-impl KindsId {
-    
-    pub fn as_int(self) -> u32 {
-        self.0
-    }
-    
-}
-
-impl KindsEntry {
-    
-    // ---------- constructors ----------
-    
-    
-    pub fn new() -> Self {
-        Self {
-            name: Box::default(),
-        }
-    }
-    
-    
-    // ---------- accessors ----------
-    
-    
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-    
-    
-    // ---------- mutators ----------
-    
-    
-    pub fn with_name(mut self, name: String) -> Self {
-        self.name = name.into_boxed_str();
-        self
     }
     
 }

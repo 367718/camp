@@ -1,3 +1,5 @@
+mod entry;
+
 use std::{
     collections::HashMap,
     error::Error,
@@ -5,20 +7,12 @@ use std::{
 
 use bincode::{ Decode, Encode };
 
+pub use entry::{ FeedsId, FeedsEntry };
+
 #[derive(Decode, Encode)]
 pub struct Feeds {
     counter: u32,
     entries: HashMap<FeedsId, FeedsEntry>,
-}
-
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Decode, Encode)]
-#[cfg_attr(debug_assertions, derive(Debug))]
-pub struct FeedsId(u32);
-
-#[derive(Clone, PartialEq, Eq, Decode, Encode)]
-#[cfg_attr(debug_assertions, derive(Debug))]
-pub struct FeedsEntry {
-    url: Box<str>,
 }
 
 enum UrlError {
@@ -108,61 +102,15 @@ impl Feeds {
     }
     
     fn validate_url(&self, id: FeedsId, entry: &FeedsEntry) -> Result<(), UrlError> {
-        if entry.url.is_empty() {
+        if entry.url().is_empty() {
             return Err(UrlError::Empty);
         }
         
-        if self.iter().any(|(&k, v)| v.url.eq_ignore_ascii_case(&entry.url) && k != id) {
+        if self.iter().any(|(&k, v)| v.url().eq_ignore_ascii_case(entry.url()) && k != id) {
             return Err(UrlError::NonUnique);
         }
         
         Ok(())
-    }
-    
-}
-
-impl From<u32> for FeedsId {
-    
-    fn from(id: u32) -> Self {
-        Self(id)
-    }
-    
-}
-
-impl FeedsId {
-    
-    pub fn as_int(self) -> u32 {
-        self.0
-    }
-    
-}
-
-impl FeedsEntry {
-    
-    // ---------- constructors ----------
-    
-    
-    pub fn new() -> Self {
-        Self {
-            url: Box::default(),
-        }
-    }
-    
-    
-    // ---------- accessors ----------
-    
-    
-    pub fn url(&self) -> &str {
-        &self.url
-    }
-    
-    
-    // ---------- mutators ----------
-    
-    
-    pub fn with_url(mut self, url: String) -> Self {
-        self.url = url.into_boxed_str();
-        self
     }
     
 }
