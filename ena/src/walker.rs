@@ -16,14 +16,12 @@ impl FilesWalker {
     pub fn new(initial: PathBuf) -> Self {
         let mut entries = Vec::with_capacity(ENTRIES_INITIAL_CAPACITY);
         
-        if let Ok(metadata) = initial.metadata() {
+        if let Ok(file_type) = initial.metadata().map(|metadata| metadata.file_type()) {
             
-            if ! metadata.is_symlink() {
-                if metadata.is_dir() {
-                    entries.push(EntryKind::Directory(initial));
-                } else {
-                    entries.push(EntryKind::File(initial));
-                }
+            if file_type.is_dir() {
+                entries.push(EntryKind::Directory(initial));
+            } else if file_type.is_file() {
+                entries.push(EntryKind::File(initial));
             }
             
         }
@@ -48,16 +46,11 @@ impl Iterator for FilesWalker {
                 EntryKind::Directory(path) => if let Ok(directory) = path.read_dir() {
                     for entry in directory.flatten() {
                         
-                        // the metadata call on a direntry is cheaper than the corresponding call on a path
-                        if let Ok(metadata) = entry.metadata() {
+                        if let Ok(file_type) = entry.file_type() {
                             
-                            if metadata.is_symlink() {
-                                continue;
-                            }
-                            
-                            if metadata.is_file() {
+                            if file_type.is_file() {
                                 self.entries.push(EntryKind::File(entry.path()));
-                            } else {
+                            } else if file_type.is_dir() {
                                 self.entries.push(EntryKind::Directory(entry.path()));
                             }
                             
