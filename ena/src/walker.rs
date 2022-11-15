@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    fs,
+    path::PathBuf,
+};
 
 const ENTRIES_INITIAL_CAPACITY: usize = 100;
 
@@ -16,8 +19,10 @@ impl FilesWalker {
     pub fn new(initial: PathBuf) -> Self {
         let mut entries = Vec::with_capacity(ENTRIES_INITIAL_CAPACITY);
         
-        if let Ok(file_type) = initial.metadata().map(|metadata| metadata.file_type()) {
+        // do not follow symlinks when asking for metadata
+        if let Ok(file_type) = fs::symlink_metadata(&initial).map(|metadata| metadata.file_type()) {
             
+            // file, dir and symlink tests are mutually exclusive
             if file_type.is_dir() {
                 entries.push(EntryKind::Directory(initial));
             } else if file_type.is_file() {
@@ -43,20 +48,27 @@ impl Iterator for FilesWalker {
                 
                 EntryKind::File(path) => return Some(path),
                 
-                EntryKind::Directory(path) => if let Ok(directory) = path.read_dir() {
+                EntryKind::Directory(path) => {
+                    
+                    let Ok(directory) = path.read_dir() else {
+                        continue;
+                    };
+                    
                     for entry in directory.flatten() {
                         
-                        if let Ok(file_type) = entry.file_type() {
-                            
-                            if file_type.is_file() {
-                                self.entries.push(EntryKind::File(entry.path()));
-                            } else if file_type.is_dir() {
-                                self.entries.push(EntryKind::Directory(entry.path()));
-                            }
-                            
+                        let Ok(file_type) = entry.file_type() else {
+                            continue;
+                        };
+                        
+                        // file, dir and symlink tests are mutually exclusive
+                        if file_type.is_file() {
+                            self.entries.push(EntryKind::File(entry.path()));
+                        } else if file_type.is_dir() {
+                            self.entries.push(EntryKind::Directory(entry.path()));
                         }
                         
                     }
+                    
                 },
                 
             }

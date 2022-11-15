@@ -1,4 +1,4 @@
-mod mark;
+mod marker;
 mod walker;
 mod watcher;
 
@@ -9,7 +9,7 @@ use std::{
     path::{ Path, PathBuf },
 };
 
-pub use mark::FilesMark;
+pub use marker::FilesMark;
 pub use watcher::FilesWatcherEvent;
 use walker::FilesWalker;
 use watcher::FilesWatcher;
@@ -151,7 +151,7 @@ impl Files {
     pub fn mark<P: AsRef<Path>>(&self, path: P, mark: FilesMark) -> Result<(), Box<dyn Error>> {
         let entry = self.get(&path).ok_or("Entry not found")?;
         
-        mark::set(&entry.path, &self.flag, mark)?;
+        marker::set(&entry.path, &self.flag, mark)?;
         
         // since these kinds of changes are not picked up by the file watcher, they must be communicated manually
         // this means that an equivalent modification not made through this library will have no effect and a full reload should be performed to avoid loss of information
@@ -208,7 +208,7 @@ impl Files {
             .map(ToOwned::to_owned)
             .map(OsString::into_boxed_os_str);
         
-        let mark = mark::get(&path, &self.flag);
+        let mark = marker::get(&path, &self.flag);
         
         Some(
             FilesEntry {
