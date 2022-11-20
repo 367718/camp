@@ -294,31 +294,35 @@ fn init_config(path: Option<&str>, ui: &Ui) -> Option<Config> {
     
     // success
     
-    let mut message = match Config::load(&cfgpath) {
+    let mut error = match Config::load(&cfgpath) {
         Ok(data) => return Some(data),
-        Err(error) => error.to_string(),
+        Err(err) => err.to_string(),
     };
     
     // error
     
-    ui.widgets().dialogs.general.config_load_error.path_label.set_text(&cfgpath.to_string_lossy());
+    let file_load_dialog = &ui.widgets().dialogs.general.file_load_error.dialog;
     
-    let config_dialog = &ui.widgets().dialogs.general.config_load_error.dialog;
+    // disable "Select another"
+    file_load_dialog.set_response_sensitive(gtk::ResponseType::Other(1), false);
+    
+    ui.widgets().dialogs.general.file_load_error.message_label.set_text("The configuration file could not be loaded.");
+    ui.widgets().dialogs.general.file_load_error.path_label.set_text(&cfgpath.to_string_lossy());
     
     loop {
         
-        ui.widgets().dialogs.general.config_load_error.message_label.set_text(&message);
+        ui.widgets().dialogs.general.file_load_error.error_label.set_text(&error);
         
-        let response = config_dialog.run();
+        let response = file_load_dialog.run();
         
-        config_dialog.unrealize();
-        config_dialog.hide();
+        file_load_dialog.unrealize();
+        file_load_dialog.hide();
         
         match response {
             
             // generate new
             
-            gtk::ResponseType::Ok => {
+            gtk::ResponseType::Other(0) => {
                 
                 let result = Config::new(&cfgpath).and_then(|mut config| {
                     // update database path
@@ -328,7 +332,7 @@ fn init_config(path: Option<&str>, ui: &Ui) -> Option<Config> {
                 
                 match result {
                     Ok(config) => return Some(config),
-                    Err(error) => message = error.to_string(),
+                    Err(err) => error = err.to_string(),
                 }
                 
             },
@@ -346,29 +350,34 @@ fn init_database(params: &mut Params, ui: &Ui) -> Option<Database> {
     
     // success
     
-    let mut message = match Database::load(&dbpath) {
+    let mut error = match Database::load(&dbpath) {
         Ok(database) => return Some(database),
-        Err(error) => error.to_string(),
+        Err(err) => err.to_string(),
     };
     
     // error
     
-    let save_chooser = &ui.widgets().dialogs.general.chooser.dialog;
+    let file_chooser_dialog = &ui.widgets().dialogs.general.file_chooser.dialog;
     
-    save_chooser.set_title("Choose database path");
-    save_chooser.set_action(gtk::FileChooserAction::Save);
+    file_chooser_dialog.set_title("Choose database path");
+    file_chooser_dialog.set_action(gtk::FileChooserAction::Save);
     
-    let database_dialog = &ui.widgets().dialogs.general.database_load_error.dialog;
+    let file_load_dialog = &ui.widgets().dialogs.general.file_load_error.dialog;
+    
+    // enable "Select another"
+    file_load_dialog.set_response_sensitive(gtk::ResponseType::Other(1), true);
+    
+    ui.widgets().dialogs.general.file_load_error.message_label.set_text("The database file could not be loaded.");
     
     loop {
         
-        ui.widgets().dialogs.general.database_load_error.path_label.set_text(&dbpath.to_string_lossy());
-        ui.widgets().dialogs.general.database_load_error.message_label.set_text(&message);
+        ui.widgets().dialogs.general.file_load_error.path_label.set_text(&dbpath.to_string_lossy());
+        ui.widgets().dialogs.general.file_load_error.error_label.set_text(&error);
         
-        let response = database_dialog.run();
+        let response = file_load_dialog.run();
         
-        database_dialog.unrealize();
-        database_dialog.hide();
+        file_load_dialog.unrealize();
+        file_load_dialog.hide();
         
         match response {
             
@@ -376,22 +385,22 @@ fn init_database(params: &mut Params, ui: &Ui) -> Option<Database> {
             
             gtk::ResponseType::Other(0) => match Database::new(&dbpath) {
                 Ok(database) => return Some(database),
-                Err(error) => message = error.to_string(),
+                Err(err) => error = err.to_string(),
             },
             
             // select another
             
             gtk::ResponseType::Other(1) => 'inner: loop {
                 
-                let response = save_chooser.run();
+                let response = file_chooser_dialog.run();
                 
-                save_chooser.hide();
+                file_chooser_dialog.hide();
                 
                 match response {
                     
                     // confirm
                     
-                    gtk::ResponseType::Accept => if let Some(chosen) = save_chooser.filename() {
+                    gtk::ResponseType::Accept => if let Some(chosen) = file_chooser_dialog.filename() {
                         
                         dbpath = chosen;
                         
@@ -404,7 +413,7 @@ fn init_database(params: &mut Params, ui: &Ui) -> Option<Database> {
                         
                         match result {
                             Ok(database) => return Some(database),
-                            Err(error) => message = error.to_string(),
+                            Err(err) => error = err.to_string(),
                         }
                         
                         break 'inner;

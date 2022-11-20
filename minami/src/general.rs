@@ -62,17 +62,11 @@ pub fn init(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
 fn build(app: &gtk::Application, state: &State) {
     // ---------- dialogs ----------
     
-    let database_dialog = &state.ui.widgets().dialogs.general.database_load_error.dialog;
+    let file_load_dialog = &state.ui.widgets().dialogs.general.file_load_error.dialog;
     
-    database_dialog.set_title("Database load error");
-    database_dialog.set_position(gtk::WindowPosition::CenterOnParent);
-    database_dialog.set_transient_for(Some(&state.ui.widgets().window.general.window));
-    
-    if let Some(widget) = database_dialog.widget_for_response(gtk::ResponseType::Cancel) {
-        if let Some(button) = widget.downcast_ref::<gtk::Button>() {
-            button.set_label("Cancel");
-        }
-    }
+    file_load_dialog.set_title("File load error");
+    file_load_dialog.set_position(gtk::WindowPosition::CenterOnParent);
+    file_load_dialog.set_transient_for(Some(&state.ui.widgets().window.general.window));
     
     let error_dialog = &state.ui.widgets().dialogs.general.error.dialog;
     
@@ -80,9 +74,9 @@ fn build(app: &gtk::Application, state: &State) {
     error_dialog.set_position(gtk::WindowPosition::CenterOnParent);
     error_dialog.set_transient_for(Some(&state.ui.widgets().window.general.window));
     
-    let chooser_dialog = &state.ui.widgets().dialogs.general.chooser.dialog;
+    let file_chooser_dialog = &state.ui.widgets().dialogs.general.file_chooser.dialog;
     
-    chooser_dialog.set_transient_for(Some(&state.ui.widgets().window.general.window));
+    file_chooser_dialog.set_transient_for(Some(&state.ui.widgets().window.general.window));
     
     // ---------- search ----------
     
@@ -317,35 +311,40 @@ fn reload_database(state: &mut State, sender: &Sender<Message>) {
     let mut database = None;
     
     let mut dbpath = state.params.paths_database(false).to_owned();
-    let mut message = String::new();
+    let mut error = String::new();
     
     // success
     
     match Database::load(&dbpath) {
         Ok(data) => database = Some(data),
-        Err(error) => message = error.to_string(),
+        Err(err) => error = err.to_string(),
     }
     
     // error
     
     if database.is_none() {
         
-        let save_chooser = &state.ui.widgets().dialogs.general.chooser.dialog;
+        let file_chooser_dialog = &state.ui.widgets().dialogs.general.file_chooser.dialog;
         
-        save_chooser.set_title("Choose database path");
-        save_chooser.set_action(gtk::FileChooserAction::Save);
+        file_chooser_dialog.set_title("Choose database path");
+        file_chooser_dialog.set_action(gtk::FileChooserAction::Save);
         
-        let database_dialog = &state.ui.widgets().dialogs.general.database_load_error.dialog;
+        let file_load_dialog = &state.ui.widgets().dialogs.general.file_load_error.dialog;
+        
+        // enable "Select another"
+        file_load_dialog.set_response_sensitive(gtk::ResponseType::Other(1), true);
+        
+        state.ui.widgets().dialogs.general.file_load_error.message_label.set_text("The database file could not be loaded.");
         
         database = 'outer: loop {
             
-            state.ui.widgets().dialogs.general.database_load_error.path_label.set_text(&dbpath.to_string_lossy());
-            state.ui.widgets().dialogs.general.database_load_error.message_label.set_text(&message);
+            state.ui.widgets().dialogs.general.file_load_error.path_label.set_text(&dbpath.to_string_lossy());
+            state.ui.widgets().dialogs.general.file_load_error.error_label.set_text(&error);
             
-            let response = database_dialog.run();
+            let response = file_load_dialog.run();
             
-            database_dialog.unrealize();
-            database_dialog.hide();
+            file_load_dialog.unrealize();
+            file_load_dialog.hide();
             
             match response {
                 
@@ -353,16 +352,16 @@ fn reload_database(state: &mut State, sender: &Sender<Message>) {
                 
                 gtk::ResponseType::Other(0) => match Database::new(&dbpath) {
                     Ok(generated) => break 'outer Some(generated),
-                    Err(error) => message = error.to_string(),
+                    Err(err) => error = err.to_string(),
                 },
                 
                 // select another
                 
                 gtk::ResponseType::Other(1) => 'inner: loop {
                     
-                    let response = save_chooser.run();
+                    let response = file_chooser_dialog.run();
                     
-                    save_chooser.hide();
+                    file_chooser_dialog.hide();
                     
                     match response {
                         
@@ -370,7 +369,7 @@ fn reload_database(state: &mut State, sender: &Sender<Message>) {
                         
                         gtk::ResponseType::Accept => {
                             
-                            if let Some(chosen) = save_chooser.filename() {
+                            if let Some(chosen) = file_chooser_dialog.filename() {
                                 
                                 dbpath = chosen;
                                 
@@ -381,7 +380,7 @@ fn reload_database(state: &mut State, sender: &Sender<Message>) {
                                 
                                 match result {
                                     Ok(database) => break 'outer Some(database),
-                                    Err(error) => message = error.to_string(),
+                                    Err(err) => error = err.to_string(),
                                 }
                                 
                                 break 'inner;
@@ -436,20 +435,22 @@ fn reload_database(state: &mut State, sender: &Sender<Message>) {
 
 fn backup_database(state: &mut State) {
     // make sure uncommitted changes are saved
-    if let Err(error) = state.database.save(state.params.paths_database(true)) {
+    if let Err(err) = state.database.save(state.params.paths_database(true)) {
         
-        let mut message = error.to_string();
-        let config_dialog = &state.ui.widgets().dialogs.general.database_save_error.dialog;
+        let mut error = err.to_string();
+        let file_save_dialog = &state.ui.widgets().dialogs.general.file_save_error.dialog;
+        
+        state.ui.widgets().dialogs.general.file_save_error.message_label.set_text("The database file could not be saved.");
         
         loop {
             
-            state.ui.widgets().dialogs.general.database_save_error.path_label.set_text(&state.params.paths_database(true).to_string_lossy());
-            state.ui.widgets().dialogs.general.database_save_error.message_label.set_text(&message);
+            state.ui.widgets().dialogs.general.file_save_error.path_label.set_text(&state.params.paths_database(true).to_string_lossy());
+            state.ui.widgets().dialogs.general.file_save_error.error_label.set_text(&error);
             
-            let response = config_dialog.run();
+            let response = file_save_dialog.run();
             
-            config_dialog.unrealize();
-            config_dialog.hide();
+            file_save_dialog.unrealize();
+            file_save_dialog.hide();
             
             match response {
                 
@@ -457,8 +458,8 @@ fn backup_database(state: &mut State) {
                 
                 gtk::ResponseType::Ok => {
                     
-                    if let Err(error) = state.database.save(state.params.paths_database(true)) {
-                        message = error.to_string();
+                    if let Err(err) = state.database.save(state.params.paths_database(true)) {
+                        error = err.to_string();
                         continue;
                     }
                     
@@ -474,17 +475,17 @@ fn backup_database(state: &mut State) {
         
     }
     
-    let save_chooser = &state.ui.widgets().dialogs.general.chooser.dialog;
+    let file_chooser_dialog = &state.ui.widgets().dialogs.general.file_chooser.dialog;
     
-    save_chooser.set_title("Backup database");
-    save_chooser.set_action(gtk::FileChooserAction::Save);
-    save_chooser.set_current_name(&concat_str!(APP_NAME, "-", &current_date(), ".db"));
+    file_chooser_dialog.set_title("Backup database");
+    file_chooser_dialog.set_action(gtk::FileChooserAction::Save);
+    file_chooser_dialog.set_current_name(&concat_str!(APP_NAME, "-", &current_date(), ".db"));
     
     loop {
         
-        let response = save_chooser.run();
+        let response = file_chooser_dialog.run();
         
-        save_chooser.hide();
+        file_chooser_dialog.hide();
         
         match response {
             
@@ -492,7 +493,7 @@ fn backup_database(state: &mut State) {
             
             gtk::ResponseType::Accept => {
                 
-                if let Some(mut path) = save_chooser.filename() {
+                if let Some(mut path) = file_chooser_dialog.filename() {
                     
                     if let Some(current) = path.extension() {
                         if current != "db" {
@@ -568,20 +569,22 @@ fn save_and_quit(state: &mut State) {
         PathBuf::from
     );
     
-    if let Err(error) = state.params.config_save(&cfgpath) {
+    if let Err(err) = state.params.config_save(&cfgpath) {
         
-        let mut message = error.to_string();
-        let config_dialog = &state.ui.widgets().dialogs.general.config_save_error.dialog;
+        let mut error = err.to_string();
+        let file_save_dialog = &state.ui.widgets().dialogs.general.file_save_error.dialog;
+        
+        state.ui.widgets().dialogs.general.file_save_error.message_label.set_text("The configuration file could not be saved.");
         
         let result = loop {
             
-            state.ui.widgets().dialogs.general.config_save_error.path_label.set_text(&cfgpath.to_string_lossy());
-            state.ui.widgets().dialogs.general.config_save_error.message_label.set_text(&message);
+            state.ui.widgets().dialogs.general.file_save_error.path_label.set_text(&cfgpath.to_string_lossy());
+            state.ui.widgets().dialogs.general.file_save_error.error_label.set_text(&error);
             
-            let response = config_dialog.run();
+            let response = file_save_dialog.run();
             
-            config_dialog.unrealize();
-            config_dialog.hide();
+            file_save_dialog.unrealize();
+            file_save_dialog.hide();
             
             match response {
                 
@@ -589,8 +592,8 @@ fn save_and_quit(state: &mut State) {
                 
                 gtk::ResponseType::Ok => {
                     
-                    if let Err(error) = state.params.config_save(&cfgpath) {
-                        message = error.to_string();
+                    if let Err(err) = state.params.config_save(&cfgpath) {
+                        error = err.to_string();
                         continue;
                     }
                     
@@ -612,20 +615,22 @@ fn save_and_quit(state: &mut State) {
     
     // save database
     
-    if let Err(error) = state.database.save(state.params.paths_database(true)) {
+    if let Err(err) = state.database.save(state.params.paths_database(true)) {
         
-        let mut message = error.to_string();
-        let database_dialog = &state.ui.widgets().dialogs.general.database_save_error.dialog;
+        let mut error = err.to_string();
+        let file_save_dialog = &state.ui.widgets().dialogs.general.file_save_error.dialog;
+        
+        state.ui.widgets().dialogs.general.file_save_error.message_label.set_text("The database file could not be saved.");
         
         let result = loop {
             
-            state.ui.widgets().dialogs.general.database_save_error.path_label.set_text(&state.params.paths_database(true).to_string_lossy());
-            state.ui.widgets().dialogs.general.database_save_error.message_label.set_text(&message);
+            state.ui.widgets().dialogs.general.file_save_error.path_label.set_text(&state.params.paths_database(true).to_string_lossy());
+            state.ui.widgets().dialogs.general.file_save_error.error_label.set_text(&error);
             
-            let response = database_dialog.run();
+            let response = file_save_dialog.run();
             
-            database_dialog.unrealize();
-            database_dialog.hide();
+            file_save_dialog.unrealize();
+            file_save_dialog.hide();
             
             match response {
                 
@@ -633,8 +638,8 @@ fn save_and_quit(state: &mut State) {
                 
                 gtk::ResponseType::Ok => {
                     
-                    if let Err(error) = state.database.save(state.params.paths_database(true)) {
-                        message = error.to_string();
+                    if let Err(err) = state.database.save(state.params.paths_database(true)) {
+                        error = err.to_string();
                         continue;
                     }
                     

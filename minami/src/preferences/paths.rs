@@ -77,32 +77,32 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
 
 pub fn choose_files(state: &State) {
     let entry = &state.ui.widgets().window.preferences.paths.files_entry;
-    let chooser = &state.ui.widgets().dialogs.general.chooser.dialog;
+    let file_chooser = &state.ui.widgets().dialogs.general.file_chooser.dialog;
     
-    chooser.set_title("Select files directory");
-    chooser.set_action(gtk::FileChooserAction::SelectFolder);
+    file_chooser.set_title("Select files directory");
+    file_chooser.set_action(gtk::FileChooserAction::SelectFolder);
     
-    show_chooser(chooser, entry);
+    show_chooser(file_chooser, entry);
 }
 
 pub fn choose_downloads(state: &State) {
     let entry = &state.ui.widgets().window.preferences.paths.downloads_entry;
-    let chooser = &state.ui.widgets().dialogs.general.chooser.dialog;
+    let file_chooser = &state.ui.widgets().dialogs.general.file_chooser.dialog;
     
-    chooser.set_title("Select downloads directory");
-    chooser.set_action(gtk::FileChooserAction::SelectFolder);
+    file_chooser.set_title("Select downloads directory");
+    file_chooser.set_action(gtk::FileChooserAction::SelectFolder);
     
-    show_chooser(chooser, entry);
+    show_chooser(file_chooser, entry);
 }
 
 pub fn choose_database(state: &State) {
     let entry = &state.ui.widgets().window.preferences.paths.database_entry;
-    let chooser = &state.ui.widgets().dialogs.general.chooser.dialog;
+    let file_chooser = &state.ui.widgets().dialogs.general.file_chooser.dialog;
     
-    chooser.set_title("Select database file");
-    chooser.set_action(gtk::FileChooserAction::Save);
+    file_chooser.set_title("Select database file");
+    file_chooser.set_action(gtk::FileChooserAction::Save);
     
-    show_chooser(chooser, entry);
+    show_chooser(file_chooser, entry);
 }
 
 fn show_chooser(chooser: &gtk::FileChooserNative, entry: &gtk::Entry) {
@@ -240,20 +240,22 @@ fn commit_database(state: &mut State, sender: &Sender<Message>) -> bool {
     let previous = state.params.paths_database(false).to_owned();
     
     // make sure uncommitted changes to databse are saved before proceeding
-    if let Err(error) = state.database.save(&previous) {
+    if let Err(err) = state.database.save(&previous) {
         
-        let mut message = error.to_string();
-        let database_dialog = &state.ui.widgets().dialogs.general.database_save_error.dialog;
+        let mut error = err.to_string();
+        let file_save_dialog = &state.ui.widgets().dialogs.general.file_save_error.dialog;
+        
+        state.ui.widgets().dialogs.general.file_save_error.message_label.set_text("The database file could not be saved.");
         
         loop {
             
-            state.ui.widgets().dialogs.general.database_save_error.path_label.set_text(&previous.to_string_lossy());
-            state.ui.widgets().dialogs.general.database_save_error.message_label.set_text(&message);
+            state.ui.widgets().dialogs.general.file_save_error.path_label.set_text(&previous.to_string_lossy());
+            state.ui.widgets().dialogs.general.file_save_error.error_label.set_text(&error);
             
-            let response = database_dialog.run();
+            let response = file_save_dialog.run();
             
-            database_dialog.unrealize();
-            database_dialog.hide();
+            file_save_dialog.unrealize();
+            file_save_dialog.hide();
             
             match response {
                 
@@ -261,8 +263,8 @@ fn commit_database(state: &mut State, sender: &Sender<Message>) -> bool {
                 
                 gtk::ResponseType::Ok => {
                     
-                    if let Err(error) = state.database.save(&previous) {
-                        message = error.to_string();
+                    if let Err(err) = state.database.save(&previous) {
+                        error = err.to_string();
                         continue;
                     }
                     

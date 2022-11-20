@@ -24,7 +24,7 @@ impl Paths {
     
     pub const DEFAULT_FILES: &'static str = "/example/files";
     pub const DEFAULT_DOWNLOADS: &'static str = "/example/downloads";
-    pub const DEFAULT_PIPE: &'static str = "/example/pipe";
+    pub const DEFAULT_PIPE: &'static str = "//./pipe/example";
     pub const DEFAULT_DATABASE: &'static str = "/example/database";
     
     
@@ -481,7 +481,7 @@ mod tests {
             
             // operation
             
-            let output = paths.set_pipe(Path::new("/example/test"));
+            let output = paths.set_pipe(Path::new("//./pipe/test"));
             
             // control
             
@@ -489,7 +489,7 @@ mod tests {
             
             assert_eq!(output.unwrap(), true);
             
-            assert_eq!(paths.pipe(), Path::new("/example/test"));
+            assert_eq!(paths.pipe(), Path::new("//./pipe/test"));
             
             assert_ne!(paths.pipe(), Path::new(Paths::DEFAULT_PIPE));
         }
@@ -544,7 +544,7 @@ mod tests {
             
             // operation
             
-            let output = paths.set_pipe(Path::new("/example\n/pipe"));
+            let output = paths.set_pipe(Path::new("//./pipe\n/test"));
             
             // control
             

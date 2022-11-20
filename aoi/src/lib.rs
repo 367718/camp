@@ -1,10 +1,13 @@
 mod listener;
 
 use std::{
-    fs::File,
+    fs::{ OpenOptions, File },
     io::{ Read, Write, Error },
     net::TcpStream,
-    os::windows::ffi::OsStrExt,
+    os::{
+        raw::*,
+        windows::ffi::OsStrExt,
+    },
     path::Path,
     thread,
     time::Duration,
@@ -14,13 +17,15 @@ use listener::{ Listener, ListenerStopper };
 
 mod ffi {
     
+    use super::*;
+    
     extern "system" {
         
         // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-waitnamedpipew
         pub fn WaitNamedPipeW(
-            lpNamedPipeName: *const u16, // LPCWSTR -> *const WCHAR -> wchar_t
-            nTimeOut: u32, // DWORD -> c_ulong
-        ) -> i32; // BOOL -> c_int
+            lpNamedPipeName: *const c_ushort,
+            nTimeOut: c_ulong,
+        ) -> c_int;
         
     }
     
@@ -29,7 +34,7 @@ mod ffi {
 const INDEX: &str = include_str!("../rsc/index.html");
 const STREAM_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;
-const PIPE_MAX_WAIT: u32 = 5000; // milliseconds
+const PIPE_MAX_WAIT: c_ulong = 5000; // milliseconds
 
 pub struct RemoteControlServer {
     stopper: ListenerStopper,
@@ -41,7 +46,7 @@ impl RemoteControlServer {
     
     
     pub fn start<N: FnOnce(Error) + Send + 'static>(pipe: &Path, bind: &str, notify: N) -> Result<Self, Error> {
-        let encoded_path: Vec<u16> = pipe.as_os_str()
+        let encoded_pipe: Vec<u16> = pipe.as_os_str()
             .encode_wide()
             .chain(Some(0))
             .collect();
@@ -49,7 +54,7 @@ impl RemoteControlServer {
         let available = unsafe {
             
             ffi::WaitNamedPipeW(
-                encoded_path.as_ptr(),
+                encoded_pipe.as_ptr(),
                 PIPE_MAX_WAIT,
             )
             
@@ -59,7 +64,10 @@ impl RemoteControlServer {
             return Err(Error::last_os_error());
         }
         
-        let pipe = File::create(pipe)?;
+        let pipe = OpenOptions::new()
+            .write(true)
+            .open(pipe)?;
+        
         let (listener, stopper) = Listener::new(bind)?;
         
         Self::listen(listener, pipe, notify)?;

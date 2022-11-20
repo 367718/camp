@@ -14,37 +14,11 @@ use super::{
 };
 
 pub struct Dialogs {
-    pub config_load_error: ConfigLoadError,
-    pub config_save_error: ConfigSaveError,
-    pub database_load_error: DatabaseLoadError,
-    pub database_save_error: DatabaseSaveError,
     pub error: Error,
-    pub chooser: Chooser,
     pub delete: Delete,
-}
-
-pub struct ConfigLoadError {
-    pub dialog: gtk::Dialog,
-    pub path_label: gtk::Label,
-    pub message_label: gtk::Label,
-}
-
-pub struct ConfigSaveError {
-    pub dialog: gtk::Dialog,
-    pub path_label: gtk::Label,
-    pub message_label: gtk::Label,
-}
-
-pub struct DatabaseLoadError {
-    pub dialog: gtk::Dialog,
-    pub path_label: gtk::Label,
-    pub message_label: gtk::Label,
-}
-
-pub struct DatabaseSaveError {
-    pub dialog: gtk::Dialog,
-    pub path_label: gtk::Label,
-    pub message_label: gtk::Label,
+    pub file_load_error: FileLoadError,
+    pub file_save_error: FileSaveError,
+    pub file_chooser: FileChooser,
 }
 
 pub struct Error {
@@ -52,728 +26,38 @@ pub struct Error {
     pub message_label: gtk::Label,
 }
 
-pub struct Chooser {
-    pub dialog: gtk::FileChooserNative,
-}
-
 pub struct Delete {
     pub dialog: gtk::Dialog,
+}
+
+pub struct FileLoadError {
+    pub dialog: gtk::Dialog,
+    pub message_label: gtk::Label,
+    pub path_label: gtk::Label,
+    pub error_label: gtk::Label,
+}
+
+pub struct FileSaveError {
+    pub dialog: gtk::Dialog,
+    pub message_label: gtk::Label,
+    pub path_label: gtk::Label,
+    pub error_label: gtk::Label,
+}
+
+pub struct FileChooser {
+    pub dialog: gtk::FileChooserNative,
 }
 
 impl Dialogs {
     
     pub fn new(window: &Window) -> Self {
         Self {
-            config_load_error: ConfigLoadError::new(),
-            config_save_error: ConfigSaveError::new(window),
-            database_load_error: DatabaseLoadError::new(),
-            database_save_error: DatabaseSaveError::new(window),
             error: Error::new(),
-            chooser: Chooser::new(),
             delete: Delete::new(window),
+            file_load_error: FileLoadError::new(),
+            file_save_error: FileSaveError::new(window),
+            file_chooser: FileChooser::new(),
         }
-    }
-    
-}
-
-impl ConfigLoadError {
-    
-    fn new() -> Self {
-        
-        /*
-        
-        content_area
-            
-            vertical_box
-                
-                static_label
-                
-                ----- path -----
-                
-                horizontal_box
-                    static_label
-                    { path_label }
-                /horizontal_box
-                
-                ----- message -----
-                
-                horizontal_box
-                    static_label
-                    { message_label }
-                /horizontal_box
-                
-            /vertical_box
-            
-        /content_area
-        
-        action_area
-            
-            button ("Generate new", gtk::ResponseType::Ok)
-            button ("Exit", gtk::ResponseType::Cancel)
-            
-        /action_area
-        
-        */
-        
-        // ---------- dialog ----------
-        
-        let dialog = {
-            
-            gtk::Dialog::builder()
-            .title(APP_NAME)
-            .icon(&{
-                
-                let bytes = glib::Bytes::from_static(APP_ICON);
-                let stream = gio::MemoryInputStream::from_bytes(&bytes);
-                gdk_pixbuf::Pixbuf::from_stream(&stream, None::<&gio::Cancellable>).unwrap()
-                
-            })
-            .window_position(gtk::WindowPosition::Center)
-            .default_width(600)
-            .build()
-            
-        };
-        
-        // ---------- content area ----------
-        
-        let content_area = dialog.content_area();
-        content_area.set_spacing(DIALOGS_SPACING);
-        
-        // ---------- main box ----------
-        
-        let main_box = super::build_main_box(gtk::Orientation::Vertical);
-        content_area.add(&main_box);
-        
-        // ---------- static label ----------
-        
-        {
-            
-            main_box.add(
-                &gtk::Label::builder()
-                .visible(true)
-                .label("The configuration file could not be loaded.")
-                .xalign(0.0)
-                .build()
-            );
-            
-        }
-        
-        // ---------- path ----------
-        
-        let path_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .orientation(gtk::Orientation::Horizontal)
-            .spacing(FIELDS_SPACING)
-            .child(&{
-                
-                gtk::Label::builder()
-                .visible(true)
-                .label("Path:")
-                .xalign(1.0)
-                .width_chars(7)
-                .build()
-                
-            })
-            .build()
-            
-        };
-        
-        main_box.add(&path_box);
-        
-        let path_label = {
-            
-            gtk::Label::builder()
-            .visible(true)
-            .ellipsize(pango::EllipsizeMode::End)
-            .build()
-            
-        };
-        
-        path_label.style_context().add_class("weight-bold");
-        
-        path_box.add(&path_label);
-        
-        // ---------- message ----------
-        
-        let message_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .orientation(gtk::Orientation::Horizontal)
-            .spacing(FIELDS_SPACING)
-            .child(&{
-                
-                gtk::Label::builder()
-                .visible(true)
-                .label("Error:")
-                .xalign(1.0)
-                .width_chars(7)
-                .build()
-                
-            })
-            .build()
-            
-        };
-        
-        main_box.add(&message_box);
-        
-        let message_label = {
-            
-            gtk::Label::builder()
-            .visible(true)
-            .wrap(true)
-            .build()
-            
-        };
-        
-        message_label.style_context().add_class("weight-bold");
-        
-        message_box.add(&message_label);
-        
-        // ---------- buttons ----------
-        
-        let generate_button = dialog.add_button("Generate new", gtk::ResponseType::Ok);
-        let exit_button = dialog.add_button("Exit", gtk::ResponseType::Cancel);
-        
-        generate_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
-        exit_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-        
-        dialog.set_default_response(gtk::ResponseType::Ok);
-        
-        // ---------- return ----------
-        
-        Self {
-            dialog,
-            path_label,
-            message_label,
-        }
-        
-    }
-    
-}
-
-impl ConfigSaveError {
-    
-    fn new(window: &Window) -> Self {
-        
-        /*
-        
-        content_area
-            
-            vertical_box
-                
-                static_label
-                
-                ----- path -----
-                
-                horizontal_box
-                    static_label
-                    { path_label }
-                /horizontal_box
-                
-                ----- message -----
-                
-                horizontal_box
-                    static_label
-                    { message_label }
-                /horizontal_box
-                
-            /vertical_box
-            
-        /content_area
-        
-        action_area
-            
-            button ("Try again", gtk::ResponseType::Ok)
-            button ("Give up", gtk::ResponseType::Cancel)
-            
-        /action_area
-        
-        */
-        
-        // ---------- dialog ----------
-        
-        let dialog = {
-            
-            gtk::Dialog::builder()
-            .title("Configuration save error")
-            .transient_for(&window.general.window)
-            .window_position(gtk::WindowPosition::CenterOnParent)
-            .default_width(600)
-            .build()
-            
-        };
-        
-        // ---------- content area ----------
-        
-        let content_area = dialog.content_area();
-        content_area.set_spacing(DIALOGS_SPACING);
-        
-        // ---------- main box ----------
-        
-        let main_box = super::build_main_box(gtk::Orientation::Vertical);
-        content_area.add(&main_box);
-        
-        // ---------- static label ----------
-        
-        {
-            
-            main_box.add(
-                &gtk::Label::builder()
-                .visible(true)
-                .label("The configuration file could not be saved.")
-                .xalign(0.0)
-                .build()
-            );
-            
-        }
-        
-        // ---------- path ----------
-        
-        let path_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .orientation(gtk::Orientation::Horizontal)
-            .spacing(FIELDS_SPACING)
-            .child(&{
-                
-                gtk::Label::builder()
-                .visible(true)
-                .label("Path:")
-                .xalign(1.0)
-                .width_chars(7)
-                .build()
-                
-            })
-            .build()
-            
-        };
-        
-        main_box.add(&path_box);
-        
-        let path_label = {
-            
-            gtk::Label::builder()
-            .visible(true)
-            .ellipsize(pango::EllipsizeMode::End)
-            .build()
-            
-        };
-        
-        path_label.style_context().add_class("weight-bold");
-        
-        path_box.add(&path_label);
-        
-        // ---------- message ----------
-        
-        let message_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .orientation(gtk::Orientation::Horizontal)
-            .spacing(FIELDS_SPACING)
-            .child(&{
-                
-                gtk::Label::builder()
-                .visible(true)
-                .label("Error:")
-                .xalign(1.0)
-                .width_chars(7)
-                .build()
-                
-            })
-            .build()
-            
-        };
-        
-        main_box.add(&message_box);
-        
-        let message_label = {
-            
-            gtk::Label::builder()
-            .visible(true)
-            .wrap(true)
-            .build()
-            
-        };
-        
-        message_label.style_context().add_class("weight-bold");
-        
-        message_box.add(&message_label);
-        
-        // ---------- buttons ----------
-        
-        let try_again_button = dialog.add_button("Try again", gtk::ResponseType::Ok);
-        let give_up_button = dialog.add_button("Give up", gtk::ResponseType::Cancel);
-        
-        try_again_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
-        give_up_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-        
-        dialog.set_default_response(gtk::ResponseType::Ok);
-        
-        // ---------- return ----------
-        
-        Self {
-            dialog,
-            path_label,
-            message_label,
-        }
-        
-    }
-    
-}
-
-impl DatabaseLoadError {
-    
-    fn new() -> Self {
-        
-        /*
-        
-        content_area
-            
-            vertical_box
-                
-                static_label
-                
-                ----- path -----
-                
-                horizontal_box
-                    static_label
-                    { path_label }
-                /horizontal_box
-                
-                ----- message -----
-                
-                horizontal_box
-                    static_label
-                    { message_label }
-                /horizontal_box
-                
-            /vertical_box
-            
-        /content_area
-        
-        action_area
-            
-            button ("Generate new", gtk::ResponseType::Other(0))
-            button ("Select another", gtk::ResponseType::Other(1))
-            button ("Exit", gtk::ResponseType::Cancel)
-            
-        /action_area
-        
-        */
-        
-        // ---------- dialog ----------
-        
-        let dialog = {
-            
-            gtk::Dialog::builder()
-            .title(APP_NAME)
-            .icon(&{
-                
-                let bytes = glib::Bytes::from_static(APP_ICON);
-                let stream = gio::MemoryInputStream::from_bytes(&bytes);
-                gdk_pixbuf::Pixbuf::from_stream(&stream, None::<&gio::Cancellable>).unwrap()
-                
-            })
-            .window_position(gtk::WindowPosition::Center)
-            .default_width(600)
-            .build()
-            
-        };
-        
-        // ---------- content area ----------
-        
-        let content_area = dialog.content_area();
-        content_area.set_spacing(DIALOGS_SPACING);
-        
-        // ---------- main box ----------
-        
-        let main_box = super::build_main_box(gtk::Orientation::Vertical);
-        content_area.add(&main_box);
-        
-        // ---------- static label ----------
-        
-        {
-            
-            main_box.add(
-                &gtk::Label::builder()
-                .visible(true)
-                .label("The database file could not be loaded.")
-                .xalign(0.0)
-                .build()
-            );
-            
-        }
-        
-        // ---------- path ----------
-        
-        let path_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .orientation(gtk::Orientation::Horizontal)
-            .spacing(FIELDS_SPACING)
-            .child(&{
-                
-                gtk::Label::builder()
-                .visible(true)
-                .label("Path:")
-                .xalign(1.0)
-                .width_chars(7)
-                .build()
-                
-            })
-            .build()
-            
-        };
-        
-        main_box.add(&path_box);
-        
-        let path_label = {
-            
-            gtk::Label::builder()
-            .visible(true)
-            .ellipsize(pango::EllipsizeMode::End)
-            .build()
-            
-        };
-        
-        path_label.style_context().add_class("weight-bold");
-        
-        path_box.add(&path_label);
-        
-        // ---------- message ----------
-        
-        let message_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .orientation(gtk::Orientation::Horizontal)
-            .spacing(FIELDS_SPACING)
-            .child(&{
-                
-                gtk::Label::builder()
-                .visible(true)
-                .label("Error:")
-                .xalign(1.0)
-                .width_chars(7)
-                .build()
-                
-            })
-            .build()
-            
-        };
-        
-        main_box.add(&message_box);
-        
-        let message_label = {
-            
-            gtk::Label::builder()
-            .visible(true)
-            .wrap(true)
-            .build()
-            
-        };
-        
-        message_label.style_context().add_class("weight-bold");
-        
-        message_box.add(&message_label);
-        
-        // ---------- buttons ----------
-        
-        let generate_button = dialog.add_button("Generate new", gtk::ResponseType::Other(0));
-        dialog.add_button("Select another", gtk::ResponseType::Other(1));
-        let exit_button = dialog.add_button("Exit", gtk::ResponseType::Cancel);
-        
-        generate_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
-        exit_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-        
-        dialog.set_default_response(gtk::ResponseType::Other(0));
-        
-        // ---------- return ----------
-        
-        Self {
-            dialog,
-            path_label,
-            message_label,
-        }
-        
-    }
-    
-}
-
-impl DatabaseSaveError {
-    
-    fn new(window: &Window) -> Self {
-        
-        /*
-        
-        content_area
-            
-            vertical_box
-                
-                static_label
-                
-                ----- path -----
-                
-                horizontal_box
-                    static_label
-                    { path_label }
-                /horizontal_box
-                
-                ----- message -----
-                
-                horizontal_box
-                    static_label
-                    { message_label }
-                /horizontal_box
-                
-            /vertical_box
-            
-        /content_area
-        
-        action_area
-            
-            button ("Try again", gtk::ResponseType::Ok)
-            button ("Give up", gtk::ResponseType::Cancel)
-            
-        /action_area
-        
-        */
-        
-        // ---------- dialog ----------
-        
-        let dialog = {
-            
-            gtk::Dialog::builder()
-            .title("Database save error")
-            .transient_for(&window.general.window)
-            .window_position(gtk::WindowPosition::CenterOnParent)
-            .default_width(600)
-            .build()
-            
-        };
-        
-        // ---------- content area ----------
-        
-        let content_area = dialog.content_area();
-        content_area.set_spacing(DIALOGS_SPACING);
-        
-        // ---------- main box ----------
-        
-        let main_box = super::build_main_box(gtk::Orientation::Vertical);
-        content_area.add(&main_box);
-        
-        // ---------- static label ----------
-        
-        {
-            
-            main_box.add(
-                &gtk::Label::builder()
-                .visible(true)
-                .label("The database file could not be saved.")
-                .xalign(0.0)
-                .build()
-            );
-            
-        }
-        
-        // ---------- path ----------
-        
-        let path_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .orientation(gtk::Orientation::Horizontal)
-            .spacing(FIELDS_SPACING)
-            .child(&{
-                
-                gtk::Label::builder()
-                .visible(true)
-                .label("Path:")
-                .xalign(1.0)
-                .width_chars(7)
-                .build()
-                
-            })
-            .build()
-            
-        };
-        
-        main_box.add(&path_box);
-        
-        let path_label = {
-            
-            gtk::Label::builder()
-            .visible(true)
-            .ellipsize(pango::EllipsizeMode::End)
-            .build()
-            
-        };
-        
-        path_label.style_context().add_class("weight-bold");
-        
-        path_box.add(&path_label);
-        
-        // ---------- message ----------
-        
-        let message_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .orientation(gtk::Orientation::Horizontal)
-            .spacing(FIELDS_SPACING)
-            .child(&{
-                
-                gtk::Label::builder()
-                .visible(true)
-                .label("Error:")
-                .xalign(1.0)
-                .width_chars(7)
-                .build()
-                
-            })
-            .build()
-            
-        };
-        
-        main_box.add(&message_box);
-        
-        let message_label = {
-            
-            gtk::Label::builder()
-            .visible(true)
-            .wrap(true)
-            .build()
-            
-        };
-        
-        message_label.style_context().add_class("weight-bold");
-        
-        message_box.add(&message_label);
-        
-        // ---------- buttons ----------
-        
-        let try_again_button = dialog.add_button("Try again", gtk::ResponseType::Ok);
-        let give_up_button = dialog.add_button("Give up", gtk::ResponseType::Cancel);
-        
-        try_again_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
-        give_up_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-        
-        dialog.set_default_response(gtk::ResponseType::Ok);
-        
-        // ---------- return ----------
-        
-        Self {
-            dialog,
-            path_label,
-            message_label,
-        }
-        
     }
     
 }
@@ -874,34 +158,6 @@ impl Error {
     
 }
 
-impl Chooser {
-    
-    fn new() -> Self {
-        
-        // ---------- dialog ----------
-        
-        let dialog = {
-            
-            gtk::FileChooserNative::new(
-                None,
-                None::<&gtk::Window>,
-                gtk::FileChooserAction::Open,
-                Some("Confirm"),
-                Some("Cancel"),
-            )
-            
-        };
-        
-        // ---------- return ----------
-        
-        Self {
-            dialog,
-        }
-        
-    }
-    
-}
-
 impl Delete {
     
     fn new(window: &Window) -> Self {
@@ -990,6 +246,388 @@ impl Delete {
         cancel_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
         
         dialog.set_default_response(gtk::ResponseType::Cancel);
+        
+        // ---------- return ----------
+        
+        Self {
+            dialog,
+        }
+        
+    }
+    
+}
+
+impl FileLoadError {
+    
+    fn new() -> Self {
+        
+        /*
+        
+        content_area
+            
+            vertical_box
+                
+                static_label
+                
+                ----- path -----
+                
+                horizontal_box
+                    static_label
+                    { path_label }
+                /horizontal_box
+                
+                ----- message -----
+                
+                horizontal_box
+                    static_label
+                    { message_label }
+                /horizontal_box
+                
+            /vertical_box
+            
+        /content_area
+        
+        action_area
+            
+            button ("Generate new", gtk::ResponseType::Other(0))
+            button ("Select another", gtk::ResponseType::Other(1))
+            button ("Cancel", gtk::ResponseType::Cancel)
+            
+        /action_area
+        
+        */
+        
+        // ---------- dialog ----------
+        
+        let dialog = {
+            
+            gtk::Dialog::builder()
+            .title(APP_NAME)
+            .icon(&{
+                
+                let bytes = glib::Bytes::from_static(APP_ICON);
+                let stream = gio::MemoryInputStream::from_bytes(&bytes);
+                gdk_pixbuf::Pixbuf::from_stream(&stream, None::<&gio::Cancellable>).unwrap()
+                
+            })
+            .window_position(gtk::WindowPosition::Center)
+            .default_width(600)
+            .build()
+            
+        };
+        
+        // ---------- content area ----------
+        
+        let content_area = dialog.content_area();
+        content_area.set_spacing(DIALOGS_SPACING);
+        
+        // ---------- main box ----------
+        
+        let main_box = super::build_main_box(gtk::Orientation::Vertical);
+        content_area.add(&main_box);
+        
+        // ---------- message ----------
+        
+        let message_label = {
+            
+            gtk::Label::builder()
+            .visible(true)
+            .label("A file could not be loaded.")
+            .xalign(0.0)
+            .build()
+            
+        };
+        
+        main_box.add(&message_label);
+        
+        // ---------- path ----------
+        
+        let path_box = {
+            
+            gtk::Box::builder()
+            .visible(true)
+            .orientation(gtk::Orientation::Horizontal)
+            .spacing(FIELDS_SPACING)
+            .child(&{
+                
+                gtk::Label::builder()
+                .visible(true)
+                .label("Path:")
+                .xalign(1.0)
+                .width_chars(7)
+                .build()
+                
+            })
+            .build()
+            
+        };
+        
+        main_box.add(&path_box);
+        
+        let path_label = {
+            
+            gtk::Label::builder()
+            .visible(true)
+            .ellipsize(pango::EllipsizeMode::End)
+            .build()
+            
+        };
+        
+        path_label.style_context().add_class("weight-bold");
+        
+        path_box.add(&path_label);
+        
+        // ---------- error ----------
+        
+        let error_box = {
+            
+            gtk::Box::builder()
+            .visible(true)
+            .orientation(gtk::Orientation::Horizontal)
+            .spacing(FIELDS_SPACING)
+            .child(&{
+                
+                gtk::Label::builder()
+                .visible(true)
+                .label("Error:")
+                .xalign(1.0)
+                .width_chars(7)
+                .build()
+                
+            })
+            .build()
+            
+        };
+        
+        main_box.add(&error_box);
+        
+        let error_label = {
+            
+            gtk::Label::builder()
+            .visible(true)
+            .wrap(true)
+            .build()
+            
+        };
+        
+        error_label.style_context().add_class("weight-bold");
+        
+        error_box.add(&error_label);
+        
+        // ---------- buttons ----------
+        
+        let generate_button = dialog.add_button("Generate new", gtk::ResponseType::Other(0));
+        dialog.add_button("Select another", gtk::ResponseType::Other(1));
+        let exit_button = dialog.add_button("Cancel", gtk::ResponseType::Cancel);
+        
+        generate_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
+        exit_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+        
+        dialog.set_default_response(gtk::ResponseType::Other(0));
+        
+        // ---------- return ----------
+        
+        Self {
+            dialog,
+            message_label,
+            path_label,
+            error_label,
+        }
+        
+    }
+    
+}
+
+impl FileSaveError {
+    
+    fn new(window: &Window) -> Self {
+        
+        /*
+        
+        content_area
+            
+            vertical_box
+                
+                static_label
+                
+                ----- path -----
+                
+                horizontal_box
+                    static_label
+                    { path_label }
+                /horizontal_box
+                
+                ----- message -----
+                
+                horizontal_box
+                    static_label
+                    { message_label }
+                /horizontal_box
+                
+            /vertical_box
+            
+        /content_area
+        
+        action_area
+            
+            button ("Try again", gtk::ResponseType::Ok)
+            button ("Give up", gtk::ResponseType::Cancel)
+            
+        /action_area
+        
+        */
+        
+        // ---------- dialog ----------
+        
+        let dialog = {
+            
+            gtk::Dialog::builder()
+            .title("File save error")
+            .transient_for(&window.general.window)
+            .window_position(gtk::WindowPosition::CenterOnParent)
+            .default_width(600)
+            .build()
+            
+        };
+        
+        // ---------- content area ----------
+        
+        let content_area = dialog.content_area();
+        content_area.set_spacing(DIALOGS_SPACING);
+        
+        // ---------- main box ----------
+        
+        let main_box = super::build_main_box(gtk::Orientation::Vertical);
+        content_area.add(&main_box);
+        
+        // ---------- message ----------
+        
+        let message_label = {
+            
+            gtk::Label::builder()
+            .visible(true)
+            .label("A file could not be saved.")
+            .xalign(0.0)
+            .build()
+            
+        };
+        
+        main_box.add(&message_label);
+        
+        // ---------- path ----------
+        
+        let path_box = {
+            
+            gtk::Box::builder()
+            .visible(true)
+            .orientation(gtk::Orientation::Horizontal)
+            .spacing(FIELDS_SPACING)
+            .child(&{
+                
+                gtk::Label::builder()
+                .visible(true)
+                .label("Path:")
+                .xalign(1.0)
+                .width_chars(7)
+                .build()
+                
+            })
+            .build()
+            
+        };
+        
+        main_box.add(&path_box);
+        
+        let path_label = {
+            
+            gtk::Label::builder()
+            .visible(true)
+            .ellipsize(pango::EllipsizeMode::End)
+            .build()
+            
+        };
+        
+        path_label.style_context().add_class("weight-bold");
+        
+        path_box.add(&path_label);
+        
+        // ---------- error ----------
+        
+        let error_box = {
+            
+            gtk::Box::builder()
+            .visible(true)
+            .orientation(gtk::Orientation::Horizontal)
+            .spacing(FIELDS_SPACING)
+            .child(&{
+                
+                gtk::Label::builder()
+                .visible(true)
+                .label("Error:")
+                .xalign(1.0)
+                .width_chars(7)
+                .build()
+                
+            })
+            .build()
+            
+        };
+        
+        main_box.add(&error_box);
+        
+        let error_label = {
+            
+            gtk::Label::builder()
+            .visible(true)
+            .wrap(true)
+            .build()
+            
+        };
+        
+        error_label.style_context().add_class("weight-bold");
+        
+        error_box.add(&error_label);
+        
+        // ---------- buttons ----------
+        
+        let try_again_button = dialog.add_button("Try again", gtk::ResponseType::Ok);
+        let give_up_button = dialog.add_button("Give up", gtk::ResponseType::Cancel);
+        
+        try_again_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
+        give_up_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+        
+        dialog.set_default_response(gtk::ResponseType::Ok);
+        
+        // ---------- return ----------
+        
+        Self {
+            dialog,
+            message_label,
+            path_label,
+            error_label,
+        }
+        
+    }
+    
+}
+
+impl FileChooser {
+    
+    fn new() -> Self {
+        
+        // ---------- dialog ----------
+        
+        let dialog = {
+            
+            gtk::FileChooserNative::new(
+                None,
+                None::<&gtk::Window>,
+                gtk::FileChooserAction::Open,
+                Some("Confirm"),
+                Some("Cancel"),
+            )
+            
+        };
         
         // ---------- return ----------
         

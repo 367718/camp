@@ -50,7 +50,7 @@ impl Media {
     pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(15);
     pub const DEFAULT_AUTOSELECT: bool = false;
     pub const DEFAULT_LOOKUP: &'static str = "https://example.com/search?q=%s";
-    pub const DEFAULT_BIND: &'static str = "localhost:7777";
+    pub const DEFAULT_BIND: &'static str = "127.0.0.1:7777";
     
     
     // ---------- constructors ----------
@@ -875,7 +875,7 @@ mod tests {
             
             // operation
             
-            let output = media.set_bind("127.0.0.1:7777");
+            let output = media.set_bind("192.168.0.1:7777");
             
             // control
             
@@ -883,7 +883,7 @@ mod tests {
             
             assert_eq!(output.unwrap(), true);
             
-            assert_eq!(media.bind(), "127.0.0.1:7777");
+            assert_eq!(media.bind(), "192.168.0.1:7777");
             
             assert_ne!(media.bind(), Media::DEFAULT_BIND);
         }
@@ -913,7 +913,7 @@ mod tests {
             
             // operation
             
-            let output = media.set_bind("local\nhost:7777");
+            let output = media.set_bind("127.0.\n0.1:7777");
             
             // control
             

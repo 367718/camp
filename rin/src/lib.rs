@@ -459,7 +459,7 @@ mod lib {
             String::from(args::PATHS_DOWNLOADS_ARG),
             String::from("/home/me/Downloads"),
             String::from(args::PATHS_PIPE_ARG),
-            String::from("/testing/pipe"),
+            String::from("//./pipe/testing"),
             String::from(args::PATHS_DATABASE_ARG),
             String::from("/testing/database"),
         ]);
@@ -490,7 +490,7 @@ mod lib {
         assert_ne!(output.paths_downloads(true), Path::new(Paths::DEFAULT_DOWNLOADS));
         
         assert_eq!(output.paths_pipe(false), Path::new(Paths::DEFAULT_PIPE));
-        assert_eq!(output.paths_pipe(true), Path::new("/testing/pipe"));
+        assert_eq!(output.paths_pipe(true), Path::new("//./pipe/testing"));
         assert_ne!(output.paths_pipe(true), Path::new(Paths::DEFAULT_PIPE));
         
         assert_eq!(output.paths_database(false), Path::new(Paths::DEFAULT_DATABASE));

@@ -386,11 +386,11 @@ mod tests {
             writeln!(data, "media.timeout = 5").unwrap();
             writeln!(data, "media.autoselect = true").unwrap();
             writeln!(data, "media.lookup = https://placeholder.com/search?q=%s\n").unwrap();
-            writeln!(data, "media.bind = 127.0.0.1:7777").unwrap();
+            writeln!(data, "media.bind = 192.168.0.1:7777").unwrap();
             
             writeln!(data, "paths.files = /placeholder/files").unwrap();
             writeln!(data, "paths.downloads = /placeholder/downloads").unwrap();
-            writeln!(data, "paths.pipe = /placeholder/pipe").unwrap();
+            writeln!(data, "paths.pipe = //./pipe/placeholder").unwrap();
             writeln!(data, "paths.database = /placeholder/database").unwrap();
             
             fs::write(&cfgpath, data).unwrap();
@@ -420,7 +420,7 @@ mod tests {
             
             assert_eq!(config.paths_files(), Path::new("/placeholder/files"));
             assert_eq!(config.paths_downloads(), Path::new("/placeholder/downloads"));
-            assert_eq!(config.paths_pipe(), Path::new("/placeholder/pipe"));
+            assert_eq!(config.paths_pipe(), Path::new("//./pipe/placeholder"));
             assert_eq!(config.paths_database(), Path::new("/placeholder/database"));
             
             assert_ne!(config.window_maximized(), Window::DEFAULT_MAXIMIZED);
@@ -465,11 +465,11 @@ mod tests {
             writeln!(data, "media.timeout = 5\r").unwrap();
             writeln!(data, "media.autoselect = true\r").unwrap();
             writeln!(data, "media.lookup = https://placeholder.com/search?q=%s\n\r").unwrap();
-            writeln!(data, "media.bind = 127.0.0.1:7777\r").unwrap();
+            writeln!(data, "media.bind = 192.168.0.1:7777\r").unwrap();
             
             writeln!(data, "paths.files = /placeholder/files\r").unwrap();
             writeln!(data, "paths.downloads = /placeholder/downloads\r").unwrap();
-            writeln!(data, "paths.pipe = /placeholder/pipe\r").unwrap();
+            writeln!(data, "paths.pipe = //./pipe/placeholder\r").unwrap();
             writeln!(data, "paths.database = /placeholder/database\r").unwrap();
             
             fs::write(&cfgpath, data).unwrap();
@@ -499,7 +499,7 @@ mod tests {
             
             assert_eq!(config.paths_files(), Path::new("/placeholder/files"));
             assert_eq!(config.paths_downloads(), Path::new("/placeholder/downloads"));
-            assert_eq!(config.paths_pipe(), Path::new("/placeholder/pipe"));
+            assert_eq!(config.paths_pipe(), Path::new("//./pipe/placeholder"));
             assert_eq!(config.paths_database(), Path::new("/placeholder/database"));
             
             assert_ne!(config.window_maximized(), Window::DEFAULT_MAXIMIZED);
