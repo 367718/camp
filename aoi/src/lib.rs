@@ -109,21 +109,21 @@ impl RemoteControlServer {
             stream.set_read_timeout(STREAM_TIMEOUT)?;
             stream.set_write_timeout(STREAM_TIMEOUT)?;
             
-            if let Some(request) = Self::get_request(&mut stream) {
+            let Some(request) = Self::get_request(&mut stream) else {
+                continue;
+            };
+            
+            if let Some(command) = Self::get_command(&request) {
                 
-                if let Some(command) = Self::get_command(&request) {
-                    
-                    if let Err(error) = pipe.write_all(command.as_bytes()) {
-                        Self::send_response(&mut stream, "500 Internal Server Error", &error.to_string()).ok();
-                        return Err(error);
-                    }
-                    
+                if let Err(error) = pipe.write_all(command.as_bytes()) {
+                    Self::send_response(&mut stream, "500 Internal Server Error", &error.to_string()).ok();
+                    return Err(error);
                 }
                 
-                // always send index if no error ocurred
-                Self::send_response(&mut stream, "200 OK", INDEX).ok();
-                
             }
+            
+            // always send index if no error ocurred
+            Self::send_response(&mut stream, "200 OK", INDEX).ok();
             
         }
     }

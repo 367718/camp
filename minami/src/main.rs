@@ -295,7 +295,7 @@ fn init_config(path: Option<&str>, ui: &Ui) -> Option<Config> {
     // success
     
     let mut error = match Config::load(&cfgpath) {
-        Ok(data) => return Some(data),
+        Ok(config) => return Some(config),
         Err(err) => err.to_string(),
     };
     
@@ -383,9 +383,13 @@ fn init_database(params: &mut Params, ui: &Ui) -> Option<Database> {
             
             // generate new
             
-            gtk::ResponseType::Other(0) => match Database::new(&dbpath) {
-                Ok(database) => return Some(database),
-                Err(err) => error = err.to_string(),
+            gtk::ResponseType::Other(0) => {
+                
+                match Database::new(&dbpath) {
+                    Ok(database) => return Some(database),
+                    Err(err) => error = err.to_string(),
+                }
+                
             },
             
             // select another

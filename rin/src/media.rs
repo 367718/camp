@@ -322,7 +322,7 @@ impl Media {
             return Err(PlayerError::Empty);
         }
         
-        if player.chars().any(|char| char == '\n') {
+        if player.contains('\n') {
             return Err(PlayerError::Linebreak);
         }
         
@@ -334,7 +334,7 @@ impl Media {
             return Err(FlagError::Empty);
         }
         
-        if flag.chars().any(|char| char == '\n') {
+        if flag.contains('\n') {
             return Err(FlagError::Linebreak);
         }
         
@@ -346,7 +346,7 @@ impl Media {
             return Err(TimeoutError::Zero);
         }
         
-        // 86_400 equals to 24 hours in seconds
+        // 24 hours in seconds
         if timeout.as_secs() > 86_400 {
             return Err(TimeoutError::Greater);
         }
@@ -359,7 +359,7 @@ impl Media {
             return Err(LookupError::Empty);
         }
         
-        if lookup.chars().any(|char| char == '\n') {
+        if lookup.contains('\n') {
             return Err(LookupError::Linebreak);
         }
         
@@ -371,7 +371,7 @@ impl Media {
             return Err(BindError::Empty);
         }
         
-        if bind.chars().any(|char| char == '\n') {
+        if bind.contains('\n') {
             return Err(BindError::Linebreak);
         }
         

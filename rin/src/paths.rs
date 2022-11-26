@@ -118,7 +118,7 @@ impl Paths {
     pub fn set_files<S: AsRef<Path>>(&mut self, files: S) -> Result<bool, Box<dyn Error>> {
         let files = files.as_ref();
         
-        if self.files.as_ref() == files {
+        if self.files.as_ref().as_os_str() == files.as_os_str() {
             return Ok(false);
         }
         
@@ -132,7 +132,7 @@ impl Paths {
     pub fn set_downloads<S: AsRef<Path>>(&mut self, downloads: S) -> Result<bool, Box<dyn Error>> {
         let downloads = downloads.as_ref();
         
-        if self.downloads.as_ref() == downloads {
+        if self.downloads.as_ref().as_os_str() == downloads.as_os_str() {
             return Ok(false);
         }
         
@@ -146,7 +146,7 @@ impl Paths {
     pub fn set_pipe<S: AsRef<Path>>(&mut self, pipe: S) -> Result<bool, Box<dyn Error>> {
         let pipe = pipe.as_ref();
         
-        if self.pipe.as_ref() == pipe {
+        if self.pipe.as_ref().as_os_str() == pipe.as_os_str() {
             return Ok(false);
         }
         
@@ -160,7 +160,7 @@ impl Paths {
     pub fn set_database<S: AsRef<Path>>(&mut self, database: S) -> Result<bool, Box<dyn Error>> {
         let database = database.as_ref();
         
-        if self.database.as_ref() == database {
+        if self.database.as_ref().as_os_str() == database.as_os_str() {
             return Ok(false);
         }
         
@@ -195,7 +195,7 @@ impl Paths {
             return Err(PathError::Empty);
         }
         
-        if str.chars().any(|char| char == '\n') {
+        if str.contains('\n') {
             return Err(PathError::Linebreak);
         }
         
@@ -311,6 +311,27 @@ mod tests {
             assert!(output.is_err());
             
             assert_eq!(paths.files(), Path::new(Paths::DEFAULT_FILES));
+        }
+        
+        #[test]
+        fn equivalent_paths() {
+            // setup
+            
+            let mut paths = Paths::new();
+            
+            paths.set_files(Path::new("/equivalent")).unwrap();
+            
+            // operation
+            
+            let output = paths.set_files(Path::new(r"\equivalent"));
+            
+            // control
+            
+            assert!(output.is_ok());
+            
+            assert_eq!(output.unwrap(), true);
+            
+            assert_eq!(paths.files(), Path::new(r"\equivalent"));
         }
         
         #[test]
@@ -434,6 +455,27 @@ mod tests {
         }
         
         #[test]
+        fn equivalent_paths() {
+            // setup
+            
+            let mut paths = Paths::new();
+            
+            paths.set_downloads(Path::new("/equivalent")).unwrap();
+            
+            // operation
+            
+            let output = paths.set_downloads(Path::new(r"\equivalent"));
+            
+            // control
+            
+            assert!(output.is_ok());
+            
+            assert_eq!(output.unwrap(), true);
+            
+            assert_eq!(paths.downloads(), Path::new(r"\equivalent"));
+        }
+        
+        #[test]
         fn no_change() {
             // setup
             
@@ -554,6 +596,27 @@ mod tests {
         }
         
         #[test]
+        fn equivalent_paths() {
+            // setup
+            
+            let mut paths = Paths::new();
+            
+            paths.set_pipe(Path::new("/equivalent")).unwrap();
+            
+            // operation
+            
+            let output = paths.set_pipe(Path::new(r"\equivalent"));
+            
+            // control
+            
+            assert!(output.is_ok());
+            
+            assert_eq!(output.unwrap(), true);
+            
+            assert_eq!(paths.pipe(), Path::new(r"\equivalent"));
+        }
+        
+        #[test]
         fn no_change() {
             // setup
             
@@ -671,6 +734,27 @@ mod tests {
             assert!(output.is_err());
             
             assert_eq!(paths.database(), Path::new(Paths::DEFAULT_DATABASE));
+        }
+        
+        #[test]
+        fn equivalent_paths() {
+            // setup
+            
+            let mut paths = Paths::new();
+            
+            paths.set_database(Path::new("/equivalent")).unwrap();
+            
+            // operation
+            
+            let output = paths.set_database(Path::new(r"\equivalent"));
+            
+            // control
+            
+            assert!(output.is_ok());
+            
+            assert_eq!(output.unwrap(), true);
+            
+            assert_eq!(paths.database(), Path::new(r"\equivalent"));
         }
         
         #[test]

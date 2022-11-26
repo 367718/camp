@@ -69,7 +69,7 @@ impl Entry {
             stream.set_nonblocking(true)?;
             
             // the only acceptable condition here is a "WouldBlock" error, since an "Ok" would mean
-            // that bites were read past the last request body and an EOF would mean the connection was closed
+            // that bytes were read past the last request body and an EOF would mean the connection was closed
             if let Err(error) = stream.peek(&mut [0; 1]) {
                 reusable = error.kind() == ErrorKind::WouldBlock;
             }
