@@ -163,20 +163,6 @@ impl General {
         
         sections_box.add(&switchers_box);
         
-        // ---------- stack box ----------
-        
-        let stack_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .hexpand(true)
-            .orientation(gtk::Orientation::Vertical)
-            .build()
-            
-        };
-        
-        sections_box.add(&stack_box);
-        
         // ---------- sections_stack ----------
         
         let sections_stack = {
@@ -188,7 +174,7 @@ impl General {
             
         };
         
-        stack_box.add(&sections_stack);
+        sections_box.add(&sections_stack);
         
         // ---------- return ----------
         

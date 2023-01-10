@@ -7,7 +7,7 @@ use gtk::{
 
 use crate::{
     State, Message,
-    PreferencesActions, WatchlistActions,
+    PreferencesActions, WatchlistActions, GeneralActions,
     KindsId, KindsEntry,
 };
 
@@ -109,6 +109,48 @@ fn bind(app: &gtk::Application, state: &mut State, sender: &Sender<Message>) {
         let sender_cloned = sender.clone();
         move |_, _, _| sender_cloned.send(Message::Preferences(PreferencesActions::KindsEdit)).unwrap()
     });
+	
+	// focus global search entry (SHIFT + Tab)
+	kinds_treeview.connect_key_press_event({
+		let sender_cloned = sender.clone();
+		move |_, eventkey| {
+			if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
+				sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
+				return Inhibit(true);
+			}
+			Inhibit(false)
+		}
+	});
+	
+	// ---------- buttons ----------
+    
+    for button in &state.ui.widgets().window.preferences.kinds.buttons_box.children() {
+        
+        // prevent selection of treeview (Up Arrow)
+        button.connect_key_press_event({
+            move |_, eventkey| {
+                if eventkey.keyval() == gdk::keys::constants::Up {
+                    return Inhibit(true);
+                }
+                Inhibit(false)
+            }
+        });
+        
+    }
+    
+    if let Some(button) = state.ui.widgets().window.preferences.kinds.buttons_box.children().first() {
+        
+        // prevent selection of preferences listbox (Left Arrow)
+        button.connect_key_press_event({
+            move |_, eventkey| {
+                if eventkey.keyval() == gdk::keys::constants::Left {
+                    return Inhibit(true);
+                }
+                Inhibit(false)
+            }
+        });
+        
+    }
 }
 
 pub fn add(state: &mut State) {

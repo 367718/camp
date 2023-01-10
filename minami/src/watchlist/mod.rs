@@ -1,5 +1,6 @@
 mod general;
 mod edit;
+mod view;
 mod tools;
 
 use gtk::glib::Sender;
@@ -33,6 +34,7 @@ pub type WatchlistSection = SeriesStatus;
 pub fn init(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     general::init(state);
     edit::init(app, state, sender);
+    view::init(state, sender);
     tools::init(app, state, sender);
 }
 

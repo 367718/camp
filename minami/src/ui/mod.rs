@@ -12,7 +12,7 @@ use gtk::{
 
 use crate::{
     STYLESHEET,
-    FilesSection, WatchlistSection,
+    FilesSection, WatchlistSection, PreferencesSection,
 };
 
 use stores::Stores;
@@ -124,6 +124,32 @@ impl Ui {
             
             if name == WatchlistSection::Completed.display() {
                 return Some(&self.widgets.window.watchlist.completed_treeview);
+            }
+            
+        }
+        
+        None
+    }
+    
+    pub fn preferences_current_treeview(&self) -> Option<&gtk::TreeView> {
+        if let Some(selected) = self.widgets.window.preferences.listbox.selected_row() {
+            
+            let name = selected.widget_name();
+            
+            if name == PreferencesSection::Candidates.display() {
+                return Some(&self.widgets.window.preferences.candidates.candidates_treeview);
+            }
+            
+            if name == PreferencesSection::Feeds.display() {
+                return Some(&self.widgets.window.preferences.feeds.treeview);
+            }
+            
+            if name == PreferencesSection::Kinds.display() {
+                return Some(&self.widgets.window.preferences.kinds.treeview);
+            }
+            
+            if name == PreferencesSection::Formats.display() {
+                return Some(&self.widgets.window.preferences.formats.treeview);
             }
             
         }

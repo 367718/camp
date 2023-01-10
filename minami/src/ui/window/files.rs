@@ -1,4 +1,7 @@
-use gtk::prelude::*;
+use gtk::{
+    pango,
+    prelude::*,
+};
 
 use crate::FilesSection;
 
@@ -16,6 +19,7 @@ pub struct Files {
     pub watched_treeview: gtk::TreeView,
     
     pub frame: gtk::Frame,
+    pub buttons_box: gtk::Box,
 }
 
 impl Files {
@@ -58,14 +62,14 @@ impl Files {
                 static_label
             /frame
             
-            horizontal_box
+            { buttons_box }
                 
                 button ("Play", "app.files.file.play")
                 button ("Mark", "app.files.file.mark")
                 button ("Move", "app.files.file.move")
                 button ("Lookup", "app.files.tools.lookup")
                 
-            /horizontal_box
+            /buttons_box
             
         /vertical_box
         
@@ -274,6 +278,7 @@ impl Files {
             listbox.add(
                 &gtk::ListBoxRow::builder()
                 .visible(true)
+				.can_focus(false)
                 .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
                 .height_request(SECTIONS_LISTBOX_ROW_HEIGHT)
                 .name(section.display())
@@ -341,6 +346,7 @@ impl Files {
             watched_treeview,
             
             frame,
+            buttons_box,
         }
         
     }
@@ -396,6 +402,7 @@ impl Files {
         file_stem_column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
         
         let file_stem_cell = gtk::CellRendererText::new();
+        file_stem_cell.set_ellipsize(pango::EllipsizeMode::Middle);
         
         gtk::prelude::CellLayoutExt::pack_end(&file_stem_column, &file_stem_cell, true);
         gtk::prelude::TreeViewColumnExt::add_attribute(&file_stem_column, &file_stem_cell, "strikethrough", 1);

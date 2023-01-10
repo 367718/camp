@@ -19,6 +19,8 @@ pub struct Watchlist {
     pub on_hold_treeview: gtk::TreeView,
     pub plan_to_watch_treeview: gtk::TreeView,
     pub completed_treeview: gtk::TreeView,
+
+    pub buttons_box: gtk::Box,
 }
 
 impl Watchlist {
@@ -61,14 +63,14 @@ impl Watchlist {
                 
             /stack
             
-            horizontal_box
+            { buttons_box }
                 
                 button ("Add", "app.watchlist.edit.add")
                 button ("Edit", "app.watchlist.edit.edit")
                 button ("Delete", "app.watchlist.edit.delete")
                 button ("Lookup", "app.watchlist.tools.lookup")
                 
-            /horizontal_box
+            /buttons_box
             
         /vertical_box
         
@@ -262,6 +264,7 @@ impl Watchlist {
             listbox.add(
                 &gtk::ListBoxRow::builder()
                 .visible(true)
+				.can_focus(false)
                 .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
                 .height_request(SECTIONS_LISTBOX_ROW_HEIGHT)
                 .name(section.display())
@@ -329,6 +332,8 @@ impl Watchlist {
             on_hold_treeview,
             plan_to_watch_treeview,
             completed_treeview,
+
+            buttons_box,
         }
         
     }
@@ -386,6 +391,7 @@ impl Watchlist {
         title_column.set_reorderable(true);
         
         let title_cell = gtk::CellRendererText::new();
+        title_cell.set_ellipsize(pango::EllipsizeMode::End);
         
         gtk::prelude::CellLayoutExt::pack_end(&title_column, &title_cell, true);
         
@@ -396,8 +402,6 @@ impl Watchlist {
         gtk::prelude::TreeViewColumnExt::add_attribute(&title_column, &title_cell, "text", 3);
         
         title_column.set_sort_column_id(3);
-        
-        title_cell.set_ellipsize(pango::EllipsizeMode::End);
         
         treeview.append_column(&title_column);
         

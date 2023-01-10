@@ -52,12 +52,12 @@ impl Files {
             menu ("_View")
                 
                 menu_item ("Focus _search", "app.general.search.focus", "CONTROL + F")
-                menu_item ("Focus current _list", "app.general.section.focus", "CONTROL + E")
+                menu_item ("Focus _current section", "app.general.section.focus.start", "CONTROL + E")
                 
                 separator_menu_item
                 
-                menu_item ("Switch to _next section", "app.general.section.next", "CONTROL + Page down")
-                menu_item ("Switch to _previous section", "app.general.section.previous", "CONTROL + Page up")
+                menu_item ("Switch to _next section", "app.general.section.switch.next", "CONTROL + Page down")
+                menu_item ("Switch to _previous section", "app.general.section.switch.previous", "CONTROL + Page up")
                 
             /menu
             
@@ -570,12 +570,12 @@ impl Files {
             menu.append(
                 &gtk::MenuItem::builder()
                 .visible(true)
-                .action_name("app.general.section.focus")
+                .action_name("app.general.section.focus.start")
                 .child(&{
                     
                     let label = gtk::AccelLabel::builder()
                         .visible(true)
-                        .label("Focus current _list")
+                        .label("Focus _current section")
                         .use_underline(true)
                         .xalign(0.0)
                         .build();
@@ -612,7 +612,7 @@ impl Files {
             menu.append(
                 &gtk::MenuItem::builder()
                 .visible(true)
-                .action_name("app.general.section.next")
+                .action_name("app.general.section.switch.next")
                 .child(&{
                     
                     let label = gtk::AccelLabel::builder()
@@ -642,7 +642,7 @@ impl Files {
             menu.append(
                 &gtk::MenuItem::builder()
                 .visible(true)
-                .action_name("app.general.section.previous")
+                .action_name("app.general.section.switch.previous")
                 .child(&{
                     
                     let label = gtk::AccelLabel::builder()

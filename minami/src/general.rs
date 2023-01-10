@@ -15,6 +15,7 @@ use std::{
 };
 
 use gtk::{
+    gdk,
     gio,
     glib::{ self, Sender },
     prelude::*,
@@ -22,7 +23,7 @@ use gtk::{
 
 use crate::{
     APP_NAME,
-    State, Message, FilesSection, WatchlistSection,
+    State, Message, FilesSection, WatchlistSection, PreferencesSection,
     PreferencesActions,
     Database,
 };
@@ -37,9 +38,10 @@ pub enum GeneralActions {
     
     // ---------- section ----------
     
-    SectionFocus,
-    SectionNext,
-    SectionPrevious,
+    SectionFocusStart,
+    SectionFocusEnd,
+    SectionSwitchNext,
+    SectionSwitchPrevious,
     SectionSwitchFiles,
     SectionSwitchWatchlist,
     SectionSwitchPreferences,
@@ -118,18 +120,18 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     
     app.set_accels_for_action("app.general.save_and_quit", &["<Primary>Q"]);
     app.set_accels_for_action("app.general.search.focus", &["<Primary>F"]);
-    app.set_accels_for_action("app.general.section.focus", &["<Primary>E"]);
-    app.set_accels_for_action("app.general.section.next", &["<Primary>Page_Down"]);
-    app.set_accels_for_action("app.general.section.previous", &["<Primary>Page_Up"]);
+    app.set_accels_for_action("app.general.section.focus.start", &["<Primary>E"]);
+    app.set_accels_for_action("app.general.section.switch.next", &["<Primary>Page_Down"]);
+    app.set_accels_for_action("app.general.section.switch.previous", &["<Primary>Page_Up"]);
     
     // ---------- actions ----------
     
     let quit_action = gio::SimpleAction::new("general.save_and_quit", None);
     let backup_action = gio::SimpleAction::new("general.backup_database", None);
     let search_focus_action = gio::SimpleAction::new("general.search.focus", None);
-    let section_focus_action = gio::SimpleAction::new("general.section.focus", None);
-    let section_next_action = gio::SimpleAction::new("general.section.next", None);
-    let section_previous_action = gio::SimpleAction::new("general.section.previous", None);
+    let section_focus_start_action = gio::SimpleAction::new("general.section.focus.start", None);
+    let section_switch_next_action = gio::SimpleAction::new("general.section.switch.next", None);
+    let section_switch_previous_action = gio::SimpleAction::new("general.section.switch.previous", None);
     
     // save config and database and terminate app
     quit_action.connect_activate({
@@ -149,30 +151,30 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         move |_, _| sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap()
     });
     
-    // focus visible section list (files and watchlist only)
-    section_focus_action.connect_activate({
+    // focus start of visible section
+    section_focus_start_action.connect_activate({
         let sender_cloned = sender.clone();
-        move |_, _| sender_cloned.send(Message::General(GeneralActions::SectionFocus)).unwrap()
+        move |_, _| sender_cloned.send(Message::General(GeneralActions::SectionFocusStart)).unwrap()
     });
     
     // change visible section (down)
-    section_next_action.connect_activate({
+    section_switch_next_action.connect_activate({
         let sender_cloned = sender.clone();
-        move |_, _| sender_cloned.send(Message::General(GeneralActions::SectionNext)).unwrap()
+        move |_, _| sender_cloned.send(Message::General(GeneralActions::SectionSwitchNext)).unwrap()
     });
     
     // change visible section (up)
-    section_previous_action.connect_activate({
+    section_switch_previous_action.connect_activate({
         let sender_cloned = sender.clone();
-        move |_, _| sender_cloned.send(Message::General(GeneralActions::SectionPrevious)).unwrap()
+        move |_, _| sender_cloned.send(Message::General(GeneralActions::SectionSwitchPrevious)).unwrap()
     });
     
     app.add_action(&quit_action);
     app.add_action(&backup_action);
     app.add_action(&search_focus_action);
-    app.add_action(&section_focus_action);
-    app.add_action(&section_next_action);
-    app.add_action(&section_previous_action);
+    app.add_action(&section_focus_start_action);
+    app.add_action(&section_switch_next_action);
+    app.add_action(&section_switch_previous_action);
     
     // ---------- entries ----------
     
@@ -190,6 +192,30 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         let sender_cloned = sender.clone();
         move |_| sender_cloned.send(Message::General(GeneralActions::SearchShow)).unwrap()
     });
+    
+    // focus start of visible section (Tab)
+    // focus end of visible section (SHIFT + Tab)
+    search_entry.connect_key_press_event({
+        let sender_cloned = sender.clone();
+        move |_, eventkey| {
+            match eventkey.keyval() {
+                gdk::keys::constants::Tab => sender_cloned.send(Message::General(GeneralActions::SectionFocusStart)).unwrap(),
+                gdk::keys::constants::ISO_Left_Tab => sender_cloned.send(Message::General(GeneralActions::SectionFocusEnd)).unwrap(),
+                _ => return Inhibit(false),
+            }
+            Inhibit(true)
+        }
+    });
+	
+	// prevent movement (Down Arrow)
+	search_entry.connect_key_press_event({
+		move |_, eventkey| {
+			if eventkey.keyval() == gdk::keys::constants::Down {
+				return Inhibit(true);
+			}
+			Inhibit(false)
+		}
+	});
     
     // search file / series on search result selection
     search_completion.connect_match_selected({
@@ -255,14 +281,17 @@ pub fn handle_action(state: &mut State, sender: &Sender<Message>, action: Genera
         
         // ---------- section ----------
         
-        // general -> bind
-        SectionFocus => section_focus(state),
+        // general -> bind x2
+        SectionFocusStart => section_focus_start(state),
+        
+        // general -> bind x2
+        SectionFocusEnd => section_focus_end(state),
         
         // general -> bind
-        SectionNext => section_next(state),
+        SectionSwitchNext => section_switch_next(state),
         
         // general -> bind
-        SectionPrevious => section_previous(state),
+        SectionSwitchPrevious => section_switch_previous(state),
         
         // general -> bind
         SectionSwitchFiles => section_switch_files(state),
@@ -669,15 +698,143 @@ fn save_and_quit(state: &mut State) {
 // ---------- section ----------
 
 
-fn section_focus(state: &State) {
+fn section_focus_start(state: &State) {
+    
+    fn focus_first_sensitive_child(parent_box: &gtk::Box) {
+        if let Some(child) = parent_box.children().iter().find(|child| child.is_sensitive()) {
+            child.grab_focus();
+        }
+    }
+    
+    // ---------- files ----------
+    
     if let Some(treeview) = state.ui.files_current_treeview() {
         treeview.grab_focus();
-    } else if let Some(treeview) = state.ui.watchlist_current_treeview() {
-        treeview.grab_focus();
+        return;
     }
+    
+    // ---------- watchlist ----------
+    
+    if let Some(treeview) = state.ui.watchlist_current_treeview() {
+        treeview.grab_focus();
+        return;
+    }
+    
+    // ---------- preferences ----------
+    
+    if let Some(selected) = state.ui.widgets().window.preferences.listbox.selected_row() {
+        
+        // ---------- candidates, feeds, kinds, formats ----------
+        
+        if let Some(treeview) = state.ui.preferences_current_treeview() {
+            treeview.grab_focus();
+            return;
+        }
+        
+        let name = selected.widget_name();
+        
+        // ---------- media ----------
+        
+        if name == PreferencesSection::Media.display() {
+            
+            if state.ui.widgets().window.preferences.media.player_entry.is_sensitive() {
+                state.ui.widgets().window.preferences.media.player_entry.grab_focus();
+                return;
+            }
+            
+            focus_first_sensitive_child(&state.ui.widgets().window.preferences.media.buttons_box);
+            return;
+            
+        }
+        
+        // ---------- paths ----------
+        
+        if name == PreferencesSection::Paths.display() {
+            
+            if state.ui.widgets().window.preferences.paths.files_button.is_sensitive() {
+                state.ui.widgets().window.preferences.paths.files_button.grab_focus();
+                return;
+            }
+            
+            focus_first_sensitive_child(&state.ui.widgets().window.preferences.paths.buttons_box);
+            
+        }
+        
+    }
+    
 }
 
-fn section_next(state: &State) {
+fn section_focus_end(state: &State) {
+    
+    fn focus_last_sensitive_child(parent_box: &gtk::Box) {
+        if let Some(child) = parent_box.children().iter().rev().find(|child| child.is_sensitive()) {
+            child.grab_focus();
+        }
+    }
+    
+    // ---------- files ----------
+    
+    if state.ui.widgets().window.files.listbox.selected_row().is_some() {
+        focus_last_sensitive_child(&state.ui.widgets().window.files.buttons_box);
+        return;
+    }
+    
+    // ---------- watchlist ----------
+    
+    if state.ui.widgets().window.watchlist.listbox.selected_row().is_some() {
+        focus_last_sensitive_child(&state.ui.widgets().window.watchlist.buttons_box);
+        return;
+    }
+    
+    // ---------- preferences ----------
+    
+    if let Some(selected) = state.ui.widgets().window.preferences.listbox.selected_row() {
+        match selected.widget_name() {
+            
+            // ---------- candidates ----------
+            
+            name if name == PreferencesSection::Candidates.display() => {
+                focus_last_sensitive_child(&state.ui.widgets().window.preferences.candidates.downloaded_buttons_box);
+            },
+            
+            // ---------- feeds ----------
+            
+            name if name == PreferencesSection::Feeds.display() => {
+                focus_last_sensitive_child(&state.ui.widgets().window.preferences.feeds.buttons_box);
+            },
+            
+            // ---------- kinds ----------
+            
+            name if name == PreferencesSection::Kinds.display() => {
+                focus_last_sensitive_child(&state.ui.widgets().window.preferences.kinds.buttons_box);
+            },
+            
+            // ---------- formats ----------
+            
+            name if name == PreferencesSection::Formats.display() => {
+                focus_last_sensitive_child(&state.ui.widgets().window.preferences.formats.buttons_box);
+            },
+            
+            // ---------- media ----------
+            
+            name if name == PreferencesSection::Media.display() => {
+                focus_last_sensitive_child(&state.ui.widgets().window.preferences.media.buttons_box);
+            },
+            
+            // ---------- paths ----------
+            
+            name if name == PreferencesSection::Paths.display() => {
+                focus_last_sensitive_child(&state.ui.widgets().window.preferences.paths.buttons_box);
+            },
+            
+            _ => (),
+            
+        }
+    }
+    
+}
+
+fn section_switch_next(state: &State) {
     
     fn switch(current_listbox: &gtk::ListBox, next_listbox: &gtk::ListBox) -> bool {
         if let Some(selected) = current_listbox.selected_row() {
@@ -697,25 +854,25 @@ fn section_next(state: &State) {
         false
     }
     
-    // files -> watchlist
+    // from files to watchlist
     
     if switch(&state.ui.widgets().window.files.listbox, &state.ui.widgets().window.watchlist.listbox) {
         return;
     }
     
-    // watchlist -> preferences
+    // from watchlist to preferences
     
     if switch(&state.ui.widgets().window.watchlist.listbox, &state.ui.widgets().window.preferences.listbox) {
         return;
     }
     
-    // preferences -> files
+    // from preferences to files
     
     switch(&state.ui.widgets().window.preferences.listbox, &state.ui.widgets().window.files.listbox);
     
 }
 
-fn section_previous(state: &State) {
+fn section_switch_previous(state: &State) {
     
     fn switch(current_listbox: &gtk::ListBox, next_listbox: &gtk::ListBox) -> bool {
         if let Some(selected) = current_listbox.selected_row() {
@@ -741,19 +898,19 @@ fn section_previous(state: &State) {
         false
     }
     
-    // files -> preferences
+    // from files to preferences
     
     if switch(&state.ui.widgets().window.files.listbox, &state.ui.widgets().window.preferences.listbox) {
         return;
     }
     
-    // watchlist -> files
+    // from watchlist to files
     
     if switch(&state.ui.widgets().window.watchlist.listbox, &state.ui.widgets().window.files.listbox) {
         return;
     }
     
-    // preferences -> watchlist
+    // from preferences to watchlist
     
     switch(&state.ui.widgets().window.preferences.listbox, &state.ui.widgets().window.watchlist.listbox);
     
@@ -761,6 +918,7 @@ fn section_previous(state: &State) {
 
 fn section_switch_files(state: &State) {
     if let Some(selected) = state.ui.widgets().window.files.listbox.selected_row() {
+        
         state.ui.widgets().window.files.stack.set_visible_child_name(&selected.widget_name());
         
         state.ui.widgets().window.general.sections_stack.set_visible_child_name("Files");
@@ -771,11 +929,15 @@ fn section_switch_files(state: &State) {
         state.ui.widgets().menus.files.menu.show();
         state.ui.widgets().menus.watchlist.menu.hide();
         state.ui.widgets().menus.preferences.menu.hide();
+        
+        section_focus_start(state);
+        
     }
 }
 
 fn section_switch_watchlist(state: &State) {
     if let Some(selected) = state.ui.widgets().window.watchlist.listbox.selected_row() {
+        
         state.ui.widgets().window.watchlist.stack.set_visible_child_name(&selected.widget_name());
         
         state.ui.widgets().window.general.sections_stack.set_visible_child_name("Watchlist");
@@ -786,11 +948,15 @@ fn section_switch_watchlist(state: &State) {
         state.ui.widgets().menus.files.menu.hide();
         state.ui.widgets().menus.watchlist.menu.show();
         state.ui.widgets().menus.preferences.menu.hide();
+        
+        section_focus_start(state);
+        
     }
 }
 
 fn section_switch_preferences(state: &State) {
     if let Some(selected) = state.ui.widgets().window.preferences.listbox.selected_row() {
+        
         state.ui.widgets().window.preferences.stack.set_visible_child_name(&selected.widget_name());
         
         state.ui.widgets().window.general.sections_stack.set_visible_child_name("Preferences");
@@ -801,6 +967,9 @@ fn section_switch_preferences(state: &State) {
         state.ui.widgets().menus.files.menu.hide();
         state.ui.widgets().menus.watchlist.menu.hide();
         state.ui.widgets().menus.preferences.menu.show();
+        
+        section_focus_start(state);
+        
     }
 }
 

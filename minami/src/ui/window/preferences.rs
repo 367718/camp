@@ -23,18 +23,24 @@ pub struct Preferences {
 pub struct Candidates {
     pub candidates_treeview: gtk::TreeView,
     pub downloaded_treeview: gtk::TreeView,
+
+    pub candidates_buttons_box: gtk::Box,
+    pub downloaded_buttons_box: gtk::Box,
 }
 
 pub struct Feeds {
     pub treeview: gtk::TreeView,
+    pub buttons_box: gtk::Box,
 }
 
 pub struct Kinds {
     pub treeview: gtk::TreeView,
+    pub buttons_box: gtk::Box,
 }
 
 pub struct Formats {
     pub treeview: gtk::TreeView,
+    pub buttons_box: gtk::Box,
 }
 
 pub struct Media {
@@ -45,16 +51,21 @@ pub struct Media {
     pub autoselect_switch: gtk::Switch,
     pub lookup_entry: gtk::Entry,
     pub bind_entry: gtk::Entry,
+    
+    pub buttons_box: gtk::Box,
 }
 
 pub struct Paths {
     pub files_button: gtk::Button,
     pub downloads_button: gtk::Button,
     pub database_button: gtk::Button,
+    
     pub files_entry: gtk::Entry,
     pub downloads_entry: gtk::Entry,
     pub pipe_entry: gtk::Entry,
     pub database_entry: gtk::Entry,
+    
+    pub buttons_box: gtk::Box,
 }
 
 impl Preferences {
@@ -158,6 +169,7 @@ impl Preferences {
             listbox.add(
                 &gtk::ListBoxRow::builder()
                 .visible(true)
+				.can_focus(false)
                 .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
                 .height_request(SECTIONS_LISTBOX_ROW_HEIGHT)
                 .name(section.display())
@@ -249,13 +261,13 @@ impl Candidates {
                     { candidates_treeview }
                 /scrolled_window
                 
-                horizontal_box
+                { candidates_buttons_box }
                     
                     button ("Add", "app.preferences.candidates.candidates.add")
                     button ("Edit", "app.preferences.candidates.candidates.edit")
                     button ("Delete", "app.preferences.candidates.candidates.delete")
                     
-                /horizontal_box
+                /candidates_buttons_box
                 
             /vertical_box
             
@@ -267,12 +279,12 @@ impl Candidates {
                     { downloaded_treeview }
                 /scrolled_window
                 
-                horizontal_box
+                { downloaded_buttons_box }
                     
                     button ("Add", "app.preferences.candidates.downloaded.add")
                     button ("Delete", "app.preferences.candidates.downloaded.delete")
                     
-                /horizontal_box
+                /downloaded_buttons_box
                 
             /vertical_box
             
@@ -294,13 +306,13 @@ impl Candidates {
         
         // ---------- candidates ----------
         
-        let (candidates_box, candidates_treeview) = Self::build_candidates();
+        let (candidates_box, candidates_treeview, candidates_buttons_box) = Self::build_candidates();
         
         section_box.add(&candidates_box);
         
         // ---------- downloaded ----------
         
-        let (downloaded_box, downloaded_treeview) = Self::build_downloaded();
+        let (downloaded_box, downloaded_treeview, downloaded_buttons_box) = Self::build_downloaded();
         
         section_box.add(&downloaded_box);
         
@@ -311,12 +323,15 @@ impl Candidates {
             Self {
                 candidates_treeview,
                 downloaded_treeview,
+                
+                candidates_buttons_box,
+                downloaded_buttons_box,
             },
         )
         
     }
     
-    fn build_candidates() -> (gtk::Box, gtk::TreeView) {
+    fn build_candidates() -> (gtk::Box, gtk::TreeView, gtk::Box) {
         // ---------- vertical_box ----------
         
         let candidates_box = {
@@ -374,7 +389,7 @@ impl Candidates {
         
         // ---------- buttons ----------
         
-        let buttons_box = {
+        let candidates_buttons_box = {
             
             gtk::Box::builder()
             .visible(true)
@@ -386,7 +401,7 @@ impl Candidates {
             
         };
         
-        candidates_box.add(&buttons_box);
+        candidates_box.add(&candidates_buttons_box);
         
         // candidate add
         
@@ -409,7 +424,7 @@ impl Candidates {
             
             button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
             
-            buttons_box.add(&button);
+            candidates_buttons_box.add(&button);
             
         }
         
@@ -417,7 +432,7 @@ impl Candidates {
         
         {
             
-            buttons_box.add(
+            candidates_buttons_box.add(
                 &gtk::Button::builder()
                 .visible(true)
                 .child(&{
@@ -457,16 +472,16 @@ impl Candidates {
             
             button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
             
-            buttons_box.add(&button);
+            candidates_buttons_box.add(&button);
             
         }
         
         // ---------- return ----------
         
-        (candidates_box, candidates_treeview)
+        (candidates_box, candidates_treeview, candidates_buttons_box)
     }
     
-    fn build_downloaded() -> (gtk::Box, gtk::TreeView) {
+    fn build_downloaded() -> (gtk::Box, gtk::TreeView, gtk::Box) {
         // ---------- vertical_box ----------
         
         let downloaded_box = {
@@ -524,7 +539,7 @@ impl Candidates {
         
         // ---------- buttons ----------
         
-        let buttons_box = {
+        let downloaded_buttons_box = {
             
             gtk::Box::builder()
             .visible(true)
@@ -536,7 +551,7 @@ impl Candidates {
             
         };
         
-        downloaded_box.add(&buttons_box);
+        downloaded_box.add(&downloaded_buttons_box);
         
         // add
         
@@ -559,7 +574,7 @@ impl Candidates {
             
             button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
             
-            buttons_box.add(&button);
+            downloaded_buttons_box.add(&button);
             
         }
         
@@ -584,13 +599,13 @@ impl Candidates {
             
             button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
             
-            buttons_box.add(&button);
+            downloaded_buttons_box.add(&button);
             
         }
         
         // ---------- return ----------
         
-        (downloaded_box, downloaded_treeview)
+        (downloaded_box, downloaded_treeview, downloaded_buttons_box)
     }
     
 }
@@ -607,13 +622,13 @@ impl Feeds {
                 { treeview }
             /scrolled_window
             
-            horizontal_box
+            { buttons_box }
                 
                 button ("Add", "app.preferences.feeds.add")
                 button ("Edit", "app.preferences.feeds.edit")
                 button ("Delete", "app.preferences.feeds.delete")
                 
-            /horizontal_box
+            /buttons_box
             
         /vertical_box
         
@@ -769,6 +784,7 @@ impl Feeds {
             section_box,
             Self {
                 treeview,
+                buttons_box,
             },
         )
         
@@ -788,13 +804,13 @@ impl Kinds {
                 { treeview }
             /scrolled_window
             
-            horizontal_box
+            { buttons_box }
                 
                 button ("Add", "app.preferences.kinds.add")
                 button ("Edit", "app.preferences.kinds.edit")
                 button ("Delete", "app.preferences.kinds.delete")
                 
-            /horizontal_box
+            /buttons_box
             
         /vertical_box
         
@@ -861,19 +877,6 @@ impl Kinds {
             
             gtk::Box::builder()
             .visible(true)
-            .spacing(WINDOW_SPACING)
-            .halign(gtk::Align::Start)
-            .orientation(gtk::Orientation::Horizontal)
-            .build()
-            
-        };
-        
-        section_box.add(&buttons_box);
-        
-        let homogeneous_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
             .homogeneous(true)
             .spacing(WINDOW_SPACING)
             .halign(gtk::Align::Start)
@@ -882,7 +885,7 @@ impl Kinds {
             
         };
         
-        buttons_box.add(&homogeneous_box);
+        section_box.add(&buttons_box);
         
         // add
         
@@ -905,7 +908,7 @@ impl Kinds {
             
             button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
             
-            homogeneous_box.add(&button);
+            buttons_box.add(&button);
             
         }
         
@@ -913,7 +916,7 @@ impl Kinds {
         
         {
             
-            homogeneous_box.add(
+            buttons_box.add(
                 &gtk::Button::builder()
                 .visible(true)
                 .child(&{
@@ -953,7 +956,7 @@ impl Kinds {
             
             button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
             
-            homogeneous_box.add(&button);
+            buttons_box.add(&button);
             
         }
         
@@ -963,6 +966,7 @@ impl Kinds {
             section_box,
             Self {
                 treeview,
+                buttons_box,
             },
         )
         
@@ -982,13 +986,13 @@ impl Formats {
                 { treeview }
             /scrolled_window
             
-            horizontal_box
+            { buttons_box }
                 
                 button ("Add", "app.preferences.formats.add")
                 button ("Edit", "app.preferences.formats.edit")
                 button ("Delete", "app.preferences.formats.delete")
                 
-            /horizontal_box
+            /buttons_box
             
         /vertical_box
         
@@ -1141,6 +1145,7 @@ impl Formats {
             section_box,
             Self {
                 treeview,
+                buttons_box,
             },
         )
         
@@ -1217,13 +1222,13 @@ impl Media {
                 
             /scrolled_window
             
-            horizontal_box
+            { buttons_box }
                 
                 button ("Confirm", "app.preferences.media.confirm")
                 button ("Unlock", "app.preferences.media.unlock")
                 button ("Discard", "app.preferences.media.discard")
                 
-            /horizontal_box
+            /buttons_box
             
         /vertical_box
         
@@ -1396,6 +1401,8 @@ impl Media {
                 autoselect_switch,
                 lookup_entry,
                 bind_entry,
+                
+                buttons_box,
             },
         )
         
@@ -1623,13 +1630,13 @@ impl Paths {
                 
             /scrolled_window
             
-            horizontal_box
+            { buttons_box }
                 
                 button ("Confirm", "app.preferences.paths.confirm")
                 button ("Unlock", "app.preferences.paths.unlock")
                 button ("Discard", "app.preferences.paths.discard")
                 
-            /horizontal_box
+            /buttons_box
             
         /vertical_box
         
@@ -1797,6 +1804,8 @@ impl Paths {
                 downloads_entry,
                 pipe_entry,
                 database_entry,
+                
+                buttons_box,
             },
         )
         

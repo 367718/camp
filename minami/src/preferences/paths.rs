@@ -1,4 +1,5 @@
 use gtk::{
+	gdk,
     gio,
     glib::Sender,
     prelude::*,
@@ -6,7 +7,7 @@ use gtk::{
 
 use crate::{
     State, Message,
-    GeneralActions, FilesActions, PreferencesActions,
+    PreferencesActions, FilesActions, GeneralActions,
 };
 
 pub fn init(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
@@ -53,7 +54,32 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     app.add_action(&unlock_action);
     app.add_action(&confirm_action);
     app.add_action(&discard_action);
+	
+	// ---------- entries ----------
     
+	let entries = [
+		&state.ui.widgets().window.preferences.paths.files_entry,
+		&state.ui.widgets().window.preferences.paths.downloads_entry,
+		&state.ui.widgets().window.preferences.paths.pipe_entry,
+		&state.ui.widgets().window.preferences.paths.database_entry,
+	];
+	
+	for entry in entries {
+		
+		// prevent movement (Up Arrow)
+		// prevent movement (Down Arrow)
+        entry.connect_key_press_event({
+            move |_, eventkey| {
+                match eventkey.keyval() {
+					gdk::keys::constants::Up => Inhibit(true),
+					gdk::keys::constants::Down => Inhibit(true),
+					_ => Inhibit(false),
+				}
+            }
+        });
+		
+	}
+	
     // ---------- buttons ----------
     
     // open chooser for files field
@@ -73,6 +99,88 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         let sender_cloned = sender.clone();
         move |_| sender_cloned.send(Message::Preferences(PreferencesActions::PathsChooseDatabase)).unwrap()
     });
+	
+	// focus global search entry (SHIFT + Tab)
+	state.ui.widgets().window.preferences.paths.files_button.connect_key_press_event({
+		let sender_cloned = sender.clone();
+		move |_, eventkey| {
+			if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
+				sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
+				return Inhibit(true);
+			}
+			Inhibit(false)
+		}
+	});
+	
+	let choosers = [
+		&state.ui.widgets().window.preferences.paths.files_button,
+		&state.ui.widgets().window.preferences.paths.downloads_button,
+		&state.ui.widgets().window.preferences.paths.database_button,
+	];
+	
+	for chooser in choosers {
+		
+		// prevent movement (Up Arrow)
+		// prevent movement (Right Arrow)
+		// prevent movement (Down Arrow)
+		// prevent movement (Left Arrow)
+        chooser.connect_key_press_event({
+            move |_, eventkey| {
+                match eventkey.keyval() {
+					gdk::keys::constants::Up => Inhibit(true),
+					gdk::keys::constants::Right => Inhibit(true),
+					gdk::keys::constants::Down => Inhibit(true),
+					gdk::keys::constants::Left => Inhibit(true),
+					_ => Inhibit(false),
+				}
+            }
+        });
+		
+	}
+	
+    for button in &state.ui.widgets().window.preferences.paths.buttons_box.children() {
+        
+        // prevent selection of last media field (Up Arrow)
+        button.connect_key_press_event({
+            move |_, eventkey| {
+                if eventkey.keyval() == gdk::keys::constants::Up {
+                    return Inhibit(true);
+                }
+                Inhibit(false)
+            }
+        });
+        
+    }
+	
+	if let Some(button) = state.ui.widgets().window.preferences.paths.buttons_box.children().first() {
+        
+        // prevent selection of first paths chooser button (Left Arrow)
+        button.connect_key_press_event({
+            move |_, eventkey| {
+                if eventkey.keyval() == gdk::keys::constants::Left {
+                    return Inhibit(true);
+                }
+                Inhibit(false)
+            }
+        });
+        
+    }
+	
+	if let Some(button) = state.ui.widgets().window.preferences.paths.buttons_box.children().iter().find(|button| button.is_sensitive()) {
+        
+        // focus global search entry (SHIFT + Tab)
+        button.connect_key_press_event({
+			let sender_cloned = sender.clone();
+            move |_, eventkey| {
+                if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
+					sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
+                    return Inhibit(true);
+                }
+                Inhibit(false)
+            }
+        });
+        
+    }
 }
 
 pub fn choose_files(state: &State) {
@@ -192,6 +300,13 @@ fn sensitivize_fields_and_buttons(state: &State, sensitive: bool) {
         }
         
     }
+    
+    let children = state.ui.widgets().window.preferences.paths.buttons_box.children();
+    
+    if let Some(child) = children.iter().find(|child| child.is_sensitive()) {
+        child.grab_focus();
+    }
+    
 }
 
 fn commit_files(state: &mut State, sender: &Sender<Message>) -> bool {

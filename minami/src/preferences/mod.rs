@@ -23,9 +23,14 @@ pub enum PreferencesActions {
     CandidatesDelete,
     CandidatesShowInfo,
     CandidatesReload,
+    CandidatesFocusTreeview,
+    CandidatesFocusFirstButton,
+    CandidatesFocusLastButton,
     DownloadedAdd,
     DownloadedDelete,
     DownloadedUpdate(Vec<(SeriesId, u32)>),
+    DownloadedFocusTreeview,
+    DownloadedFocusFirstButton,
     
     // ---------- feeds ----------
     
@@ -134,6 +139,15 @@ pub fn handle_action(state: &mut State, sender: &Sender<Message>, action: Prefer
         // general -> reload_database
         CandidatesReload => candidates::reload(state),
         
+        // preferences -> candidates -> bind
+        CandidatesFocusTreeview => candidates::candidates_focus_treeview(state),
+        
+        // preferences -> candidates -> bind
+        CandidatesFocusFirstButton => candidates::candidates_focus_first_button(state),
+        
+        // preferences -> candidates -> bind
+        CandidatesFocusLastButton => candidates::candidates_focus_last_button(state),
+        
         // preferences -> candidates -> bind x2
         DownloadedAdd => candidates::downloaded_add(state),
         
@@ -142,6 +156,12 @@ pub fn handle_action(state: &mut State, sender: &Sender<Message>, action: Prefer
         
         // files -> tools -> download
         DownloadedUpdate(downloads) => candidates::downloaded_update(state, sender, downloads),
+        
+        // preferences -> candidates -> bind
+        DownloadedFocusTreeview => candidates::downloaded_focus_treeview(state),
+        
+        // preferences -> candidates -> bind
+        DownloadedFocusFirstButton => candidates::downloaded_focus_first_button(state),
         
         // ---------- feeds ----------
         

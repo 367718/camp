@@ -1,6 +1,7 @@
 mod general;
 mod file;
 mod edit;
+mod view;
 mod tools;
 
 use std::{
@@ -91,6 +92,7 @@ pub fn init(app: &gtk::Application, state: &mut State, sender: &Sender<Message>)
     general::init(app, state, sender);
     file::init(app, state, sender);
     edit::init(app, state, sender);
+    view::init(state, sender);
     tools::init(app, state, sender);
 }
 

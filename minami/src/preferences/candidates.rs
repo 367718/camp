@@ -146,6 +146,20 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         move |_| sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesShowInfo)).unwrap()
     });
     
+    // focus downloaded treeview (Tab)
+    // focus global search entry (SHIFT + Tab)
+    treeview.connect_key_press_event({
+        let sender_cloned = sender.clone();
+        move |_, eventkey| {
+            match eventkey.keyval() {
+                gdk::keys::constants::Tab => sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedFocusTreeview)).unwrap(),
+                gdk::keys::constants::ISO_Left_Tab => sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap(),
+                _ => return Inhibit(false),
+            }
+            Inhibit(true)
+        }
+    });
+    
     // downloaded
     
     let downloaded_treeview = &state.ui.widgets().window.preferences.candidates.downloaded_treeview;
@@ -163,6 +177,114 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
             Inhibit(false)
         }
     });
+    
+    // focus first candidates button treeview (Tab)
+    // focus candidates treeview (SHIFT + Tab)
+    downloaded_treeview.connect_key_press_event({
+        let sender_cloned = sender.clone();
+        move |_, eventkey| {
+            match eventkey.keyval() {
+                gdk::keys::constants::Tab => sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesFocusFirstButton)).unwrap(),
+                gdk::keys::constants::ISO_Left_Tab => sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesFocusTreeview)).unwrap(),
+                _ => return Inhibit(false),
+            }
+            Inhibit(true)
+        }
+    });
+    
+    // ---------- buttons ----------
+    
+    // candidates
+    
+    for button in &state.ui.widgets().window.preferences.candidates.candidates_buttons_box.children() {
+        
+        // prevent selection of candidates treeview (Up Arrow)
+        button.connect_key_press_event({
+            move |_, eventkey| {
+                if eventkey.keyval() == gdk::keys::constants::Up {
+                    return Inhibit(true);
+                }
+                Inhibit(false)
+            }
+        });
+        
+    }
+    
+    if let Some(button) = state.ui.widgets().window.preferences.candidates.candidates_buttons_box.children().first() {
+        
+        // focus downloaded treeview (SHIFT + Tab)
+        // prevent selection of preferences listbox (Left Arrow)
+        button.connect_key_press_event({
+            let sender_cloned = sender.clone();
+            move |_, eventkey| {
+                
+                if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
+                    sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedFocusTreeview)).unwrap();
+                    return Inhibit(true);
+                }
+                
+                if eventkey.keyval() == gdk::keys::constants::Left {
+                    return Inhibit(true);
+                }
+                
+                Inhibit(false)
+                
+            }
+        });
+        
+    }
+    
+    if let Some(button) = state.ui.widgets().window.preferences.candidates.candidates_buttons_box.children().last() {
+        
+        // select first downloaded button (Tab)
+        // select first downloaded button (Right Arrow)
+        button.connect_key_press_event({
+            let sender_cloned = sender.clone();
+            move |_, eventkey| {
+                match eventkey.keyval() {
+                    gdk::keys::constants::Tab => sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedFocusFirstButton)).unwrap(),
+                    gdk::keys::constants::Right => sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedFocusFirstButton)).unwrap(),
+                    _ => return Inhibit(false),
+                }
+                Inhibit(true)
+            }
+        });
+        
+    }
+    
+    // downloaded
+    
+    for button in &state.ui.widgets().window.preferences.candidates.downloaded_buttons_box.children() {
+        
+        // prevent selection of downloaded treeview (Up Arrow)
+        button.connect_key_press_event({
+            move |_, eventkey| {
+                if eventkey.keyval() == gdk::keys::constants::Up {
+                    return Inhibit(true);
+                }
+                Inhibit(false)
+            }
+        });
+        
+    }
+    
+    if let Some(button) = state.ui.widgets().window.preferences.candidates.downloaded_buttons_box.children().first() {
+        
+        // select last candidates button (SHIFT + Tab)
+        // select last candidates button (Left Arrow)
+        button.connect_key_press_event({
+            let sender_cloned = sender.clone();
+            move |_, eventkey| {
+                match eventkey.keyval() {
+                    gdk::keys::constants::ISO_Left_Tab => sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesFocusLastButton)).unwrap(),
+                    gdk::keys::constants::Left => sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesFocusLastButton)).unwrap(),
+                    _ => return Inhibit(false),
+                }
+                Inhibit(true)
+            }
+        });
+        
+    }
 }
 
 pub fn show_info(state: &State) {
@@ -762,6 +884,21 @@ fn candidates_series_edit(state: &mut State, sender: &Sender<Message>, series: S
     Ok(())
 }
 
+pub fn candidates_focus_treeview(state: &State) {
+    state.ui.widgets().window.preferences.candidates.candidates_treeview.grab_focus();
+}
+
+pub fn candidates_focus_first_button(state: &State) {
+    if let Some(button) = state.ui.widgets().window.preferences.candidates.candidates_buttons_box.children().first() {
+        button.grab_focus();
+    }
+}
+
+pub fn candidates_focus_last_button(state: &State) {
+    if let Some(button) = state.ui.widgets().window.preferences.candidates.candidates_buttons_box.children().last() {
+        button.grab_focus();
+    }
+}
 
 // ---------- downloaded ----------
 
@@ -955,4 +1092,14 @@ pub fn downloaded_update(state: &mut State, sender: &Sender<Message>, downloads:
     
     // make sure shown downloads are up to date
     sender.send(Message::Preferences(PreferencesActions::CandidatesShowInfo)).unwrap();
+}
+
+pub fn downloaded_focus_treeview(state: &State) {
+    state.ui.widgets().window.preferences.candidates.downloaded_treeview.grab_focus();
+}
+
+pub fn downloaded_focus_first_button(state: &State) {
+    if let Some(button) = state.ui.widgets().window.preferences.candidates.downloaded_buttons_box.children().first() {
+        button.grab_focus();
+    }
 }
