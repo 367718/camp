@@ -264,7 +264,7 @@ impl Watchlist {
             listbox.add(
                 &gtk::ListBoxRow::builder()
                 .visible(true)
-				.can_focus(false)
+                .can_focus(false)
                 .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
                 .height_request(SECTIONS_LISTBOX_ROW_HEIGHT)
                 .name(section.display())

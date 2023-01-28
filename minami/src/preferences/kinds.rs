@@ -109,20 +109,20 @@ fn bind(app: &gtk::Application, state: &mut State, sender: &Sender<Message>) {
         let sender_cloned = sender.clone();
         move |_, _, _| sender_cloned.send(Message::Preferences(PreferencesActions::KindsEdit)).unwrap()
     });
-	
-	// focus global search entry (SHIFT + Tab)
-	kinds_treeview.connect_key_press_event({
-		let sender_cloned = sender.clone();
-		move |_, eventkey| {
-			if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
-				sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
-				return Inhibit(true);
-			}
-			Inhibit(false)
-		}
-	});
-	
-	// ---------- buttons ----------
+    
+    // focus global search entry (SHIFT + Tab)
+    kinds_treeview.connect_key_press_event({
+        let sender_cloned = sender.clone();
+        move |_, eventkey| {
+            if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
+                sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
+                return Inhibit(true);
+            }
+            Inhibit(false)
+        }
+    });
+    
+    // ---------- buttons ----------
     
     for button in &state.ui.widgets().window.preferences.kinds.buttons_box.children() {
         

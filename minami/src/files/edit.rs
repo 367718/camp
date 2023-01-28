@@ -164,23 +164,23 @@ pub fn copy_names(state: &State) {
             // subdirectory
             
             Some(iter_child) => if let Ok(n_children) = usize::try_from(treemodel.iter_n_children(Some(treeiter))) {
-				
-				names.reserve(n_children);
-				
-				let container = treemodel.value(treeiter, 3).get::<glib::GString>().unwrap();
-				
-				loop {
-					
-					let file_stem = treemodel.value(&iter_child, 3).get::<glib::GString>().unwrap();
-					names.push(include_container(&container, &file_stem));
-					
-					if ! treemodel.iter_next(&iter_child) {
-						break;
-					}
-					
-				}
-				
-			},
+                
+                names.reserve(n_children);
+                
+                let container = treemodel.value(treeiter, 3).get::<glib::GString>().unwrap();
+                
+                loop {
+                    
+                    let file_stem = treemodel.value(&iter_child, 3).get::<glib::GString>().unwrap();
+                    names.push(include_container(&container, &file_stem));
+                    
+                    if ! treemodel.iter_next(&iter_child) {
+                        break;
+                    }
+                    
+                }
+                
+            },
             
             // file
             

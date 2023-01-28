@@ -1,5 +1,5 @@
 use gtk::{
-	gdk,
+    gdk,
     gio,
     glib::Sender,
     prelude::*,
@@ -54,32 +54,32 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     app.add_action(&unlock_action);
     app.add_action(&confirm_action);
     app.add_action(&discard_action);
-	
-	// ---------- entries ----------
     
-	let entries = [
-		&state.ui.widgets().window.preferences.paths.files_entry,
-		&state.ui.widgets().window.preferences.paths.downloads_entry,
-		&state.ui.widgets().window.preferences.paths.pipe_entry,
-		&state.ui.widgets().window.preferences.paths.database_entry,
-	];
-	
-	for entry in entries {
-		
-		// prevent movement (Up Arrow)
-		// prevent movement (Down Arrow)
+    // ---------- entries ----------
+    
+    let entries = [
+        &state.ui.widgets().window.preferences.paths.files_entry,
+        &state.ui.widgets().window.preferences.paths.downloads_entry,
+        &state.ui.widgets().window.preferences.paths.pipe_entry,
+        &state.ui.widgets().window.preferences.paths.database_entry,
+    ];
+    
+    for entry in entries {
+        
+        // prevent movement (Up Arrow)
+        // prevent movement (Down Arrow)
         entry.connect_key_press_event({
             move |_, eventkey| {
                 match eventkey.keyval() {
-					gdk::keys::constants::Up => Inhibit(true),
-					gdk::keys::constants::Down => Inhibit(true),
-					_ => Inhibit(false),
-				}
+                    gdk::keys::constants::Up => Inhibit(true),
+                    gdk::keys::constants::Down => Inhibit(true),
+                    _ => Inhibit(false),
+                }
             }
         });
-		
-	}
-	
+        
+    }
+    
     // ---------- buttons ----------
     
     // open chooser for files field
@@ -99,45 +99,45 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         let sender_cloned = sender.clone();
         move |_| sender_cloned.send(Message::Preferences(PreferencesActions::PathsChooseDatabase)).unwrap()
     });
-	
-	// focus global search entry (SHIFT + Tab)
-	state.ui.widgets().window.preferences.paths.files_button.connect_key_press_event({
-		let sender_cloned = sender.clone();
-		move |_, eventkey| {
-			if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
-				sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
-				return Inhibit(true);
-			}
-			Inhibit(false)
-		}
-	});
-	
-	let choosers = [
-		&state.ui.widgets().window.preferences.paths.files_button,
-		&state.ui.widgets().window.preferences.paths.downloads_button,
-		&state.ui.widgets().window.preferences.paths.database_button,
-	];
-	
-	for chooser in choosers {
-		
-		// prevent movement (Up Arrow)
-		// prevent movement (Right Arrow)
-		// prevent movement (Down Arrow)
-		// prevent movement (Left Arrow)
+    
+    // focus global search entry (SHIFT + Tab)
+    state.ui.widgets().window.preferences.paths.files_button.connect_key_press_event({
+        let sender_cloned = sender.clone();
+        move |_, eventkey| {
+            if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
+                sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
+                return Inhibit(true);
+            }
+            Inhibit(false)
+        }
+    });
+    
+    let choosers = [
+        &state.ui.widgets().window.preferences.paths.files_button,
+        &state.ui.widgets().window.preferences.paths.downloads_button,
+        &state.ui.widgets().window.preferences.paths.database_button,
+    ];
+    
+    for chooser in choosers {
+        
+        // prevent movement (Up Arrow)
+        // prevent movement (Right Arrow)
+        // prevent movement (Down Arrow)
+        // prevent movement (Left Arrow)
         chooser.connect_key_press_event({
             move |_, eventkey| {
                 match eventkey.keyval() {
-					gdk::keys::constants::Up => Inhibit(true),
-					gdk::keys::constants::Right => Inhibit(true),
-					gdk::keys::constants::Down => Inhibit(true),
-					gdk::keys::constants::Left => Inhibit(true),
-					_ => Inhibit(false),
-				}
+                    gdk::keys::constants::Up => Inhibit(true),
+                    gdk::keys::constants::Right => Inhibit(true),
+                    gdk::keys::constants::Down => Inhibit(true),
+                    gdk::keys::constants::Left => Inhibit(true),
+                    _ => Inhibit(false),
+                }
             }
         });
-		
-	}
-	
+        
+    }
+    
     for button in &state.ui.widgets().window.preferences.paths.buttons_box.children() {
         
         // prevent selection of last media field (Up Arrow)
@@ -151,8 +151,8 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         });
         
     }
-	
-	if let Some(button) = state.ui.widgets().window.preferences.paths.buttons_box.children().first() {
+    
+    if let Some(button) = state.ui.widgets().window.preferences.paths.buttons_box.children().first() {
         
         // prevent selection of first paths chooser button (Left Arrow)
         button.connect_key_press_event({
@@ -165,15 +165,15 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         });
         
     }
-	
-	if let Some(button) = state.ui.widgets().window.preferences.paths.buttons_box.children().iter().find(|button| button.is_sensitive()) {
+    
+    if let Some(button) = state.ui.widgets().window.preferences.paths.buttons_box.children().iter().find(|button| button.is_sensitive()) {
         
         // focus global search entry (SHIFT + Tab)
         button.connect_key_press_event({
-			let sender_cloned = sender.clone();
+            let sender_cloned = sender.clone();
             move |_, eventkey| {
                 if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
-					sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
+                    sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
                     return Inhibit(true);
                 }
                 Inhibit(false)

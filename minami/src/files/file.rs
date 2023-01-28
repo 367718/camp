@@ -14,7 +14,7 @@ use gtk::{
 
 use crate::{
     State, Message,
-	FilesSection,
+    FilesSection,
     FilesActions,
     FilesMark,
     SeriesId,
@@ -500,18 +500,18 @@ pub fn refresh_queue(state: &mut State) {
     let new_selection = state.ui.widgets().window.files.new_treeview.selection();
     let watched_selection = state.ui.widgets().window.files.watched_treeview.selection();
     
-	let count = usize::try_from(new_selection.count_selected_rows() + watched_selection.count_selected_rows()).unwrap_or(0);
-	
-	if count > 0 {
-		
-		let mut selected = Vec::with_capacity(count);
-		
-		new_selection.selected_foreach(|treemodel, _, treeiter| process_row(treemodel, treeiter, &mut selected));
-		watched_selection.selected_foreach(|treemodel, _, treeiter| process_row(treemodel, treeiter, &mut selected));
-		
-		state.files.refresh_queue(&selected);
-		
-	}
+    let count = usize::try_from(new_selection.count_selected_rows() + watched_selection.count_selected_rows()).unwrap_or(0);
+    
+    if count > 0 {
+        
+        let mut selected = Vec::with_capacity(count);
+        
+        new_selection.selected_foreach(|treemodel, _, treeiter| process_row(treemodel, treeiter, &mut selected));
+        watched_selection.selected_foreach(|treemodel, _, treeiter| process_row(treemodel, treeiter, &mut selected));
+        
+        state.files.refresh_queue(&selected);
+        
+    }
     
 }
 
@@ -561,54 +561,54 @@ fn selected_filepaths(state: &State) -> Vec<glib::GString> {
         
         let selection = treeview.selection();
         let count = usize::try_from(selection.count_selected_rows()).unwrap_or(0);
-		
-		if count > 0 {
-			
-			filepaths.reserve(count);
-			
-			selection.selected_foreach(|treemodel, _, treeiter| {
-				match treemodel.iter_children(Some(treeiter)) {
-					
-					// subdirectory
-					
-					Some(iter_child) => if let Ok(n_children) = usize::try_from(treemodel.iter_n_children(Some(treeiter))) {
-						
-						filepaths.reserve(n_children);
-						
-						loop {
-							
-							let filepath = treemodel.value(&iter_child, 0).get::<glib::GString>().unwrap();
-							filepaths.push(filepath);
-							
-							if ! treemodel.iter_next(&iter_child) {
-								break;
-							}
-							
-						}
-						
-					},
-					
-					// file
-					
-					None => {
-						
-						// skip if parent is selected
-						if let Some(parent_iter) = treemodel.iter_parent(treeiter) {
-							if selection.iter_is_selected(&parent_iter) {
-								return;
-							}
-						}
-						
-						let filepath = treemodel.value(treeiter, 0).get::<glib::GString>().unwrap();
-						filepaths.push(filepath);
-						
-					},
-					
-				}
-			});
-			
-		}
-		
+        
+        if count > 0 {
+            
+            filepaths.reserve(count);
+            
+            selection.selected_foreach(|treemodel, _, treeiter| {
+                match treemodel.iter_children(Some(treeiter)) {
+                    
+                    // subdirectory
+                    
+                    Some(iter_child) => if let Ok(n_children) = usize::try_from(treemodel.iter_n_children(Some(treeiter))) {
+                        
+                        filepaths.reserve(n_children);
+                        
+                        loop {
+                            
+                            let filepath = treemodel.value(&iter_child, 0).get::<glib::GString>().unwrap();
+                            filepaths.push(filepath);
+                            
+                            if ! treemodel.iter_next(&iter_child) {
+                                break;
+                            }
+                            
+                        }
+                        
+                    },
+                    
+                    // file
+                    
+                    None => {
+                        
+                        // skip if parent is selected
+                        if let Some(parent_iter) = treemodel.iter_parent(treeiter) {
+                            if selection.iter_is_selected(&parent_iter) {
+                                return;
+                            }
+                        }
+                        
+                        let filepath = treemodel.value(treeiter, 0).get::<glib::GString>().unwrap();
+                        filepaths.push(filepath);
+                        
+                    },
+                    
+                }
+            });
+            
+        }
+        
     }
     
     filepaths

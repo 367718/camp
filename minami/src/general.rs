@@ -24,7 +24,7 @@ use gtk::{
 use crate::{
     APP_NAME,
     State, Message,
-	PreferencesSection, FilesSection, WatchlistSection,
+    PreferencesSection, FilesSection, WatchlistSection,
     PreferencesActions,
     Database,
 };
@@ -207,16 +207,16 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
             Inhibit(true)
         }
     });
-	
-	// prevent movement (Down Arrow)
-	search_entry.connect_key_press_event({
-		move |_, eventkey| {
-			if eventkey.keyval() == gdk::keys::constants::Down {
-				return Inhibit(true);
-			}
-			Inhibit(false)
-		}
-	});
+    
+    // prevent movement (Down Arrow)
+    search_entry.connect_key_press_event({
+        move |_, eventkey| {
+            if eventkey.keyval() == gdk::keys::constants::Down {
+                return Inhibit(true);
+            }
+            Inhibit(false)
+        }
+    });
     
     // search file / series on search result selection
     search_completion.connect_match_selected({
@@ -1272,7 +1272,7 @@ pub fn current_date() -> String {
 }
 
 pub fn percent_encode(value: &str) -> String {
-	const ENCODED: &str = concat!(
+    const ENCODED: &str = concat!(
         "%00%01%02%03%04%05%06%07%08%09%0A%0B%0C%0D%0E%0F",
         "%10%11%12%13%14%15%16%17%18%19%1A%1B%1C%1D%1E%1F",
         "%20%21%22%23%24%25%26%27%28%29%2A%2B%2C%2D%2E%2F",
@@ -1290,15 +1290,15 @@ pub fn percent_encode(value: &str) -> String {
         "%E0%E1%E2%E3%E4%E5%E6%E7%E8%E9%EA%EB%EC%ED%EE%EF",
         "%F0%F1%F2%F3%F4%F5%F6%F7%F8%F9%FA%FB%FC%FD%FE%FF",
     );
-	
-	let to_be_replaced = value.bytes()
+    
+    let to_be_replaced = value.bytes()
         .filter(|byte| ! byte.is_ascii_alphanumeric())
         .count();
     
     let mut result = String::with_capacity(value.len() + (to_be_replaced * 2));
     
     for byte in value.bytes() {
-		
+        
         if ! byte.is_ascii_alphanumeric() {
             let index = usize::from(byte) * 3;
             result.push_str(&ENCODED[index..index + 3]);

@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use gtk::{
-	gdk,
+    gdk,
     gio,
     glib::Sender,
     prelude::*,
@@ -59,70 +59,70 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     app.add_action(&unlock_action);
     app.add_action(&confirm_action);
     app.add_action(&discard_action);
-	
-	// ---------- entries ----------
-	
-	let entries = [
-		&state.ui.widgets().window.preferences.media.player_entry,
-		&state.ui.widgets().window.preferences.media.flag_entry,
-		&state.ui.widgets().window.preferences.media.lookup_entry,
-		&state.ui.widgets().window.preferences.media.bind_entry,
-	];
-	
-	for entry in entries {
-		
-		// prevent movement (Up Arrow)
-		// prevent movement (Down Arrow)
+    
+    // ---------- entries ----------
+    
+    let entries = [
+        &state.ui.widgets().window.preferences.media.player_entry,
+        &state.ui.widgets().window.preferences.media.flag_entry,
+        &state.ui.widgets().window.preferences.media.lookup_entry,
+        &state.ui.widgets().window.preferences.media.bind_entry,
+    ];
+    
+    for entry in entries {
+        
+        // prevent movement (Up Arrow)
+        // prevent movement (Down Arrow)
         entry.connect_key_press_event({
             move |_, eventkey| {
                 match eventkey.keyval() {
-					gdk::keys::constants::Up => Inhibit(true),
-					gdk::keys::constants::Down => Inhibit(true),
-					_ => Inhibit(false),
-				}
+                    gdk::keys::constants::Up => Inhibit(true),
+                    gdk::keys::constants::Down => Inhibit(true),
+                    _ => Inhibit(false),
+                }
             }
         });
-		
-	}
-	
-	// focus global search entry (SHIFT + Tab)
-	state.ui.widgets().window.preferences.media.player_entry.connect_key_press_event({
-		let sender_cloned = sender.clone();
-		move |_, eventkey| {
-			if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
-				sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
-				return Inhibit(true);
-			}
-			Inhibit(false)
-		}
-	});
-	
-	// ---------- switches ----------
-	
-	let switches = [
-		&state.ui.widgets().window.preferences.media.iconify_switch,
-		&state.ui.widgets().window.preferences.media.autoselect_switch,
-	];
-	
-	for switch in switches {
-		
-		// prevent movement (Up Arrow)
-		// prevent movement (Down Arrow)
-		// prevent movement (Left Arrow)
+        
+    }
+    
+    // focus global search entry (SHIFT + Tab)
+    state.ui.widgets().window.preferences.media.player_entry.connect_key_press_event({
+        let sender_cloned = sender.clone();
+        move |_, eventkey| {
+            if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
+                sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
+                return Inhibit(true);
+            }
+            Inhibit(false)
+        }
+    });
+    
+    // ---------- switches ----------
+    
+    let switches = [
+        &state.ui.widgets().window.preferences.media.iconify_switch,
+        &state.ui.widgets().window.preferences.media.autoselect_switch,
+    ];
+    
+    for switch in switches {
+        
+        // prevent movement (Up Arrow)
+        // prevent movement (Down Arrow)
+        // prevent movement (Left Arrow)
         switch.connect_key_press_event({
             move |_, eventkey| {
                 match eventkey.keyval() {
-					gdk::keys::constants::Up => Inhibit(true),
-					gdk::keys::constants::Down => Inhibit(true),
-					gdk::keys::constants::Left => Inhibit(true),
-					_ => Inhibit(false),
-				}
+                    gdk::keys::constants::Up => Inhibit(true),
+                    gdk::keys::constants::Down => Inhibit(true),
+                    gdk::keys::constants::Left => Inhibit(true),
+                    _ => Inhibit(false),
+                }
             }
         });
-		
-	}
-	
-	// ---------- buttons ----------
+        
+    }
+    
+    // ---------- buttons ----------
     
     for button in &state.ui.widgets().window.preferences.media.buttons_box.children() {
         
@@ -137,8 +137,8 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         });
         
     }
-	
-	if let Some(button) = state.ui.widgets().window.preferences.media.buttons_box.children().first() {
+    
+    if let Some(button) = state.ui.widgets().window.preferences.media.buttons_box.children().first() {
         
         // prevent selection of first media field (Left Arrow)
         button.connect_key_press_event({
@@ -151,15 +151,15 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         });
         
     }
-	
-	if let Some(button) = state.ui.widgets().window.preferences.media.buttons_box.children().iter().find(|button| button.is_sensitive()) {
+    
+    if let Some(button) = state.ui.widgets().window.preferences.media.buttons_box.children().iter().find(|button| button.is_sensitive()) {
         
         // focus global search entry (SHIFT + Tab)
         button.connect_key_press_event({
-			let sender_cloned = sender.clone();
+            let sender_cloned = sender.clone();
             move |_, eventkey| {
                 if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
-					sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
+                    sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
                     return Inhibit(true);
                 }
                 Inhibit(false)
