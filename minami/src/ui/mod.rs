@@ -12,7 +12,7 @@ use gtk::{
 
 use crate::{
     STYLESHEET,
-    FilesSection, WatchlistSection, PreferencesSection,
+    PreferencesSection, FilesSection, WatchlistSection,
 };
 
 use stores::Stores;

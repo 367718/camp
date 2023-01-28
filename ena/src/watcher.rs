@@ -205,7 +205,7 @@ impl FilesWatcher {
                     
                     current_offset = unsafe {
                         
-                        current_offset.offset(current_entry.NextEntryOffset as isize)
+                        current_offset.offset(isize::try_from(current_entry.NextEntryOffset).unwrap())
                         
                     };
                     

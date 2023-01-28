@@ -280,7 +280,7 @@ fn commit_flag(state: &mut State, sender: &Sender<Message>) -> bool {
 }
 
 fn commit_timeout(state: &mut State) -> bool {
-    let input = Duration::from_secs(state.ui.widgets().window.preferences.media.timeout_spin.value_as_int() as u64);
+    let input = Duration::from_secs(u64::try_from(state.ui.widgets().window.preferences.media.timeout_spin.value_as_int()).unwrap_or(0));
     
     if let Err(error) = state.params.media_set_timeout(input) {
         state.ui.dialogs_error_show(&error.to_string());

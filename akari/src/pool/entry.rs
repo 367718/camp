@@ -89,9 +89,8 @@ impl Entry {
     
     pub fn send_request(&mut self, path: &str) -> Result<(Vec<u8>, bool), Box<dyn Error>> {
         // ----- build request -----
-        
-        // final number represets port length
-        let mut request: Vec<u8> = Vec::with_capacity(96 + path.len() + self.host.len() + 5);
+		
+        let mut request: Vec<u8> = Vec::with_capacity(96 + path.len() + self.host.len() + (self.port.ilog10() + 1) as usize);
         
         write!(request, "GET {} HTTP/1.0\r\n", path).unwrap();
         write!(request, "Host: {}:{}\r\n", self.host, self.port).unwrap();
@@ -99,7 +98,7 @@ impl Entry {
         write!(request, "Accept-Encoding: identity\r\n").unwrap();
         write!(request, "Content-length: 0\r\n").unwrap();
         write!(request, "\r\n").unwrap();
-        
+		
         // ----- write request -----
         
         self.connection.write_all(&request)?;
@@ -291,7 +290,7 @@ impl<'c> ReadHandle<'c> {
     
     
     pub fn limit(&self) -> usize {
-        self.inner.limit() as usize
+        usize::try_from(self.inner.limit()).unwrap()
     }
     
 }

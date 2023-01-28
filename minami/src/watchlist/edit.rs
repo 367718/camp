@@ -483,13 +483,13 @@ pub fn copy_titles(state: &State) {
     
     let selection = treeview.selection();
     
-    let count = selection.count_selected_rows();
+    let count = usize::try_from(selection.count_selected_rows()).unwrap_or(0);
     
     if count == 0 {
         return;
     }
     
-    let mut titles = Vec::with_capacity(count as usize);
+    let mut titles = Vec::with_capacity(count);
     
     selection.selected_foreach(|treemodel, _, treeiter| {
         let title = treemodel.value(treeiter, 3).get::<glib::GString>().unwrap();

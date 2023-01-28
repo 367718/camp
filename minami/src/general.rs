@@ -23,7 +23,8 @@ use gtk::{
 
 use crate::{
     APP_NAME,
-    State, Message, FilesSection, WatchlistSection, PreferencesSection,
+    State, Message,
+	PreferencesSection, FilesSection, WatchlistSection,
     PreferencesActions,
     Database,
 };
@@ -883,9 +884,9 @@ fn section_switch_previous(state: &State) {
                 row.activate();
             } else {
                 
-                let new = next_listbox.children().len() - 1;
+                let new = i32::try_from(next_listbox.children().len() - 1).unwrap_or(0);
                 
-                if let Some(row) = next_listbox.row_at_index(new as i32) {
+                if let Some(row) = next_listbox.row_at_index(new) {
                     row.activate();
                 }
                 
