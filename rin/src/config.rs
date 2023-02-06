@@ -338,10 +338,7 @@ mod tests {
     
     use super::*;
     
-    use std::{
-        fmt::Write,
-        time::Duration,
-    };
+    use std::fmt::Write;
     
     #[test]
     fn new() {

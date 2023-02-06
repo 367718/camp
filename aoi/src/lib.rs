@@ -175,7 +175,7 @@ impl RemoteControlServer {
     }
     
     fn send_response(stream: &mut TcpStream, status: &str, body: &str) -> Result<(), Error> {
-        let mut response = Vec::with_capacity(50 + status.len() + (body.len().ilog10() + 1) as usize);
+        let mut response = Vec::with_capacity(50 + status.len() + (body.len().ilog10() + 1) as usize + body.len());
         
         write!(response, "HTTP/1.0 {}\r\n", status).unwrap();
         write!(response, "Connection: close\r\n").unwrap();
