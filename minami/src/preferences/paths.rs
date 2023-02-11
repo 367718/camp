@@ -281,22 +281,16 @@ fn sensitivize_fields_and_buttons(state: &State, sensitive: bool) {
     if let Some(application) = state.ui.widgets().window.general.window.application() {
         
         // unlock action is turned sensitive when confirm and discard aren't and vice versa
-        if let Some(unlock_action) = application.lookup_action("preferences.paths.unlock") {
-            if let Some(unlock_action) = unlock_action.downcast_ref::<gio::SimpleAction>() {
-                unlock_action.set_enabled(! sensitive);
-            }
+        if let Some(unlock_action) = application.lookup_action("preferences.paths.unlock").and_downcast::<gio::SimpleAction>() {
+            unlock_action.set_enabled(! sensitive);
         }
         
-        if let Some(confirm_action) = application.lookup_action("preferences.paths.confirm") {
-            if let Some(confirm_action) = confirm_action.downcast_ref::<gio::SimpleAction>() {
-                confirm_action.set_enabled(sensitive);
-            }
+        if let Some(confirm_action) = application.lookup_action("preferences.paths.confirm").and_downcast::<gio::SimpleAction>() {
+            confirm_action.set_enabled(sensitive);
         }
         
-        if let Some(discard_action) = application.lookup_action("preferences.paths.discard") {
-            if let Some(discard_action) = discard_action.downcast_ref::<gio::SimpleAction>() {
-                discard_action.set_enabled(sensitive);
-            }
+        if let Some(discard_action) = application.lookup_action("preferences.paths.discard").and_downcast::<gio::SimpleAction>() {
+            discard_action.set_enabled(sensitive);
         }
         
     }

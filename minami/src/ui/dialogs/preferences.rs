@@ -199,19 +199,17 @@ impl Candidates {
         let confirm_button = dialog.add_button("Confirm", gtk::ResponseType::Other(0));
         
         // select series (in content area)
-        if let Some(parent) = confirm_button.parent() {
-            if let Some(button_box) = parent.downcast_ref::<gtk::ButtonBox>() {
-                let series_button = gtk::Button::builder()
-                    .visible(true)
-                    .image(&gtk::Image::from_icon_name(Some("open-menu-symbolic"), gtk::IconSize::Menu))
-                    .tooltip_text("Select series")
-                    .build();
-                
-                dialog.add_action_widget(&series_button, gtk::ResponseType::Other(1));
-                
-                button_box.remove(&series_button);
-                series_box.add(&series_button);
-            }
+        if let Some(button_box) = confirm_button.parent().and_downcast::<gtk::ButtonBox>() {
+            let series_button = gtk::Button::builder()
+                .visible(true)
+                .image(&gtk::Image::from_icon_name(Some("open-menu-symbolic"), gtk::IconSize::Menu))
+                .tooltip_text("Select series")
+                .build();
+            
+            dialog.add_action_widget(&series_button, gtk::ResponseType::Other(1));
+            
+            button_box.remove(&series_button);
+            series_box.add(&series_button);
         }
         
         let cancel_button = dialog.add_button("Cancel", gtk::ResponseType::Cancel);

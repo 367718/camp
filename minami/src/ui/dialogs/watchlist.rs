@@ -138,19 +138,17 @@ impl Series {
         dialog.add_button("Confirm and add another", gtk::ResponseType::Other(1));
         
         // lookup title (in content area)
-        if let Some(parent) = confirm_button.parent() {
-            if let Some(button_box) = parent.downcast_ref::<gtk::ButtonBox>() {
-                let title_button = gtk::Button::builder()
-                    .visible(true)
-                    .image(&gtk::Image::from_icon_name(Some("edit-find-symbolic"), gtk::IconSize::Menu))
-                    .tooltip_text("Lookup title")
-                    .build();
-                
-                dialog.add_action_widget(&title_button, gtk::ResponseType::Other(2));
-                
-                button_box.remove(&title_button);
-                title_box.add(&title_button);
-            }
+        if let Some(button_box) = confirm_button.parent().and_downcast::<gtk::ButtonBox>() {
+            let title_button = gtk::Button::builder()
+                .visible(true)
+                .image(&gtk::Image::from_icon_name(Some("edit-find-symbolic"), gtk::IconSize::Menu))
+                .tooltip_text("Lookup title")
+                .build();
+            
+            dialog.add_action_widget(&title_button, gtk::ResponseType::Other(2));
+            
+            button_box.remove(&title_button);
+            title_box.add(&title_button);
         }
         
         let cancel_button = dialog.add_button("Cancel", gtk::ResponseType::Cancel);
