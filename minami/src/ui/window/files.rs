@@ -197,7 +197,7 @@ impl Files {
                 .action_name("app.files.file.play")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
             
             buttons_box.add(&button);
             
@@ -404,9 +404,9 @@ impl Files {
         let file_stem_cell = gtk::CellRendererText::new();
         file_stem_cell.set_ellipsize(pango::EllipsizeMode::Middle);
         
-        gtk::prelude::CellLayoutExt::pack_end(&file_stem_column, &file_stem_cell, true);
-        gtk::prelude::TreeViewColumnExt::add_attribute(&file_stem_column, &file_stem_cell, "strikethrough", 1);
-        gtk::prelude::TreeViewColumnExt::add_attribute(&file_stem_column, &file_stem_cell, "text", 3);
+        CellLayoutExt::pack_end(&file_stem_column, &file_stem_cell, true);
+        TreeViewColumnExt::add_attribute(&file_stem_column, &file_stem_cell, "strikethrough", 1);
+        TreeViewColumnExt::add_attribute(&file_stem_column, &file_stem_cell, "text", 3);
         
         treeview.append_column(&file_stem_column);
         

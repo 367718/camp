@@ -155,8 +155,8 @@ impl Series {
         
         let cancel_button = dialog.add_button("Cancel", gtk::ResponseType::Cancel);
         
-        confirm_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
-        cancel_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+        confirm_button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
+        cancel_button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
         
         dialog.set_default_response(gtk::ResponseType::Other(0));
         

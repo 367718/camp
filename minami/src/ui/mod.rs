@@ -177,7 +177,7 @@ impl Ui {
         }
         
         gtk::StyleContext::add_provider_for_screen(
-            &gtk::prelude::GtkWindowExt::screen(&self.widgets.window.general.window).unwrap(),
+            &GtkWindowExt::screen(&self.widgets.window.general.window).unwrap(),
             &provider,
             gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );

@@ -242,8 +242,8 @@ impl Delete {
         let confirm_button = dialog.add_button("Confirm", gtk::ResponseType::Ok);
         let cancel_button = dialog.add_button("Cancel", gtk::ResponseType::Cancel);
         
-        confirm_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-        cancel_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
+        confirm_button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+        cancel_button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
         
         dialog.set_default_response(gtk::ResponseType::Cancel);
         
@@ -420,8 +420,8 @@ impl FileLoadError {
         dialog.add_button("Select another", gtk::ResponseType::Other(1));
         let exit_button = dialog.add_button("Cancel", gtk::ResponseType::Cancel);
         
-        generate_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
-        exit_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+        generate_button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
+        exit_button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
         
         dialog.set_default_response(gtk::ResponseType::Other(0));
         
@@ -593,8 +593,8 @@ impl FileSaveError {
         let try_again_button = dialog.add_button("Try again", gtk::ResponseType::Ok);
         let give_up_button = dialog.add_button("Give up", gtk::ResponseType::Cancel);
         
-        try_again_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
-        give_up_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+        try_again_button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
+        give_up_button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
         
         dialog.set_default_response(gtk::ResponseType::Ok);
         

@@ -10,5 +10,5 @@ license.workspace = true
 schannel = "0.1.21"
 
 [dev-dependencies]
-mockito = "0.31.1"
+mockito = "0.32.0"
 tempfile = "3.3.0"

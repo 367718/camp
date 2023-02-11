@@ -181,7 +181,7 @@ impl Watchlist {
                 .action_name("app.watchlist.edit.add")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
             
             buttons_box.add(&button);
             
@@ -229,7 +229,7 @@ impl Watchlist {
                 .action_name("app.watchlist.edit.delete")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
             
             buttons_box.add(&button);
             
@@ -393,13 +393,13 @@ impl Watchlist {
         let title_cell = gtk::CellRendererText::new();
         title_cell.set_ellipsize(pango::EllipsizeMode::End);
         
-        gtk::prelude::CellLayoutExt::pack_end(&title_column, &title_cell, true);
+        CellLayoutExt::pack_end(&title_column, &title_cell, true);
         
         if section == WatchlistSection::Completed {
-            gtk::prelude::TreeViewColumnExt::add_attribute(&title_column, &title_cell, "weight", 1);
+            TreeViewColumnExt::add_attribute(&title_column, &title_cell, "weight", 1);
         }
         
-        gtk::prelude::TreeViewColumnExt::add_attribute(&title_column, &title_cell, "text", 3);
+        TreeViewColumnExt::add_attribute(&title_column, &title_cell, "text", 3);
         
         title_column.set_sort_column_id(3);
         
@@ -416,9 +416,9 @@ impl Watchlist {
             let good_cell = gtk::CellRendererText::new();
             good_cell.set_xalign(0.50);
             
-            gtk::prelude::CellLayoutExt::pack_end(&good_column, &good_cell, true);
-            gtk::prelude::TreeViewColumnExt::add_attribute(&good_column, &good_cell, "weight", 1);
-            gtk::prelude::TreeViewColumnExt::add_attribute(&good_column, &good_cell, "text", 4);
+            CellLayoutExt::pack_end(&good_column, &good_cell, true);
+            TreeViewColumnExt::add_attribute(&good_column, &good_cell, "weight", 1);
+            TreeViewColumnExt::add_attribute(&good_column, &good_cell, "text", 4);
             
             good_column.set_sort_column_id(4);
             
@@ -435,13 +435,13 @@ impl Watchlist {
         let kind_cell = gtk::CellRendererText::new();
         kind_cell.set_xalign(0.50);
         
-        gtk::prelude::CellLayoutExt::pack_end(&kind_column, &kind_cell, true);
+        CellLayoutExt::pack_end(&kind_column, &kind_cell, true);
         
         if section == WatchlistSection::Completed {
-            gtk::prelude::TreeViewColumnExt::add_attribute(&kind_column, &kind_cell, "weight", 1);
+            TreeViewColumnExt::add_attribute(&kind_column, &kind_cell, "weight", 1);
         }
         
-        gtk::prelude::TreeViewColumnExt::add_attribute(&kind_column, &kind_cell, "text", 5);
+        TreeViewColumnExt::add_attribute(&kind_column, &kind_cell, "text", 5);
         
         kind_column.set_sort_column_id(5);
         
@@ -458,9 +458,9 @@ impl Watchlist {
             let progress_cell = gtk::CellRendererText::new();
             progress_cell.set_xalign(0.85);
             
-            gtk::prelude::CellLayoutExt::pack_end(&progress_column, &progress_cell, true);
-            gtk::prelude::TreeViewColumnExt::add_attribute(&progress_column, &progress_cell, "weight", 1);
-            gtk::prelude::TreeViewColumnExt::add_attribute(&progress_column, &progress_cell, "text", 6);
+            CellLayoutExt::pack_end(&progress_column, &progress_cell, true);
+            TreeViewColumnExt::add_attribute(&progress_column, &progress_cell, "weight", 1);
+            TreeViewColumnExt::add_attribute(&progress_column, &progress_cell, "text", 6);
             
             progress_column.set_sort_column_id(6);
             

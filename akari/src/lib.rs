@@ -48,14 +48,16 @@ mod lib {
             
             let mut client = HttpClient::new(Duration::from_secs(15));
             
-            let ok_mock = mockito::mock("GET", "/ok")
+            let mut server = mockito::Server::new();
+            
+            let ok_mock = server.mock("GET", "/ok")
                 .with_status(200)
                 .with_body("12345")
                 .create();
             
             // operation
             
-            let output = client.get(&[&mockito::server_url(), "/ok"].concat());
+            let output = client.get(&[&server.url(), "/ok"].concat());
             
             // control
             
@@ -74,13 +76,15 @@ mod lib {
             
             let mut client = HttpClient::new(Duration::from_secs(15));
             
-            let redirect_mock = mockito::mock("GET", "/redirect")
+            let mut server = mockito::Server::new();
+            
+            let redirect_mock = server.mock("GET", "/redirect")
                 .with_status(301)
                 .create();
             
             // operation
             
-            let output = client.get(&[&mockito::server_url(), "/redirect"].concat());
+            let output = client.get(&[&server.url(), "/redirect"].concat());
             
             // control
             

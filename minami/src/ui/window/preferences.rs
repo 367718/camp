@@ -382,8 +382,8 @@ impl Candidates {
         
         let title_cell = gtk::CellRendererText::new();
         
-        gtk::prelude::CellLayoutExt::pack_end(&title_column, &title_cell, true);
-        gtk::prelude::TreeViewColumnExt::add_attribute(&title_column, &title_cell, "text", 1);
+        CellLayoutExt::pack_end(&title_column, &title_cell, true);
+        TreeViewColumnExt::add_attribute(&title_column, &title_cell, "text", 1);
         
         candidates_treeview.append_column(&title_column);
         
@@ -422,7 +422,7 @@ impl Candidates {
                 .action_name("app.preferences.candidates.candidates.add")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
             
             candidates_buttons_box.add(&button);
             
@@ -470,7 +470,7 @@ impl Candidates {
                 .action_name("app.preferences.candidates.candidates.delete")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
             
             candidates_buttons_box.add(&button);
             
@@ -532,8 +532,8 @@ impl Candidates {
         let download_cell = gtk::CellRendererText::new();
         download_cell.set_xalign(0.90);
         
-        gtk::prelude::CellLayoutExt::pack_end(&download_column, &download_cell, true);
-        gtk::prelude::TreeViewColumnExt::add_attribute(&download_column, &download_cell, "text", 0);
+        CellLayoutExt::pack_end(&download_column, &download_cell, true);
+        TreeViewColumnExt::add_attribute(&download_column, &download_cell, "text", 0);
         
         downloaded_treeview.append_column(&download_column);
         
@@ -572,7 +572,7 @@ impl Candidates {
                 .action_name("app.preferences.candidates.downloaded.add")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
             
             downloaded_buttons_box.add(&button);
             
@@ -597,7 +597,7 @@ impl Candidates {
                 .action_name("app.preferences.candidates.downloaded.delete")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
             
             downloaded_buttons_box.add(&button);
             
@@ -684,8 +684,8 @@ impl Feeds {
         
         let url_cell = gtk::CellRendererText::new();
         
-        gtk::prelude::CellLayoutExt::pack_end(&url_column, &url_cell, true);
-        gtk::prelude::TreeViewColumnExt::add_attribute(&url_column, &url_cell, "text", 1);
+        CellLayoutExt::pack_end(&url_column, &url_cell, true);
+        TreeViewColumnExt::add_attribute(&url_column, &url_cell, "text", 1);
         
         treeview.append_column(&url_column);
         
@@ -724,7 +724,7 @@ impl Feeds {
                 .action_name("app.preferences.feeds.add")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
             
             buttons_box.add(&button);
             
@@ -772,7 +772,7 @@ impl Feeds {
                 .action_name("app.preferences.feeds.delete")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
             
             buttons_box.add(&button);
             
@@ -866,8 +866,8 @@ impl Kinds {
         
         let name_cell = gtk::CellRendererText::new();
         
-        gtk::prelude::CellLayoutExt::pack_end(&name_column, &name_cell, true);
-        gtk::prelude::TreeViewColumnExt::add_attribute(&name_column, &name_cell, "text", 1);
+        CellLayoutExt::pack_end(&name_column, &name_cell, true);
+        TreeViewColumnExt::add_attribute(&name_column, &name_cell, "text", 1);
         
         treeview.append_column(&name_column);
         
@@ -906,7 +906,7 @@ impl Kinds {
                 .action_name("app.preferences.kinds.add")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
             
             buttons_box.add(&button);
             
@@ -954,7 +954,7 @@ impl Kinds {
                 .action_name("app.preferences.kinds.delete")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
             
             buttons_box.add(&button);
             
@@ -1045,8 +1045,8 @@ impl Formats {
         
         let name_cell = gtk::CellRendererText::new();
         
-        gtk::prelude::CellLayoutExt::pack_end(&name_column, &name_cell, true);
-        gtk::prelude::TreeViewColumnExt::add_attribute(&name_column, &name_cell, "text", 1);
+        CellLayoutExt::pack_end(&name_column, &name_cell, true);
+        TreeViewColumnExt::add_attribute(&name_column, &name_cell, "text", 1);
         
         treeview.append_column(&name_column);
         
@@ -1085,7 +1085,7 @@ impl Formats {
                 .action_name("app.preferences.formats.add")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
             
             buttons_box.add(&button);
             
@@ -1133,7 +1133,7 @@ impl Formats {
                 .action_name("app.preferences.formats.delete")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
             
             buttons_box.add(&button);
             
@@ -1335,7 +1335,7 @@ impl Media {
                 .action_name("app.preferences.media.confirm")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
             
             buttons_box.add(&button);
             
@@ -1383,7 +1383,7 @@ impl Media {
                 .action_name("app.preferences.media.discard")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
             
             buttons_box.add(&button);
             
@@ -1737,7 +1737,7 @@ impl Paths {
                 .action_name("app.preferences.paths.confirm")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
             
             buttons_box.add(&button);
             
@@ -1785,7 +1785,7 @@ impl Paths {
                 .action_name("app.preferences.paths.discard")
                 .build();
             
-            button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
             
             buttons_box.add(&button);
             

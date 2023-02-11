@@ -216,8 +216,8 @@ impl Candidates {
         
         let cancel_button = dialog.add_button("Cancel", gtk::ResponseType::Cancel);
         
-        confirm_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
-        cancel_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+        confirm_button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
+        cancel_button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
         
         dialog.set_default_response(gtk::ResponseType::Other(0));
         
@@ -560,8 +560,8 @@ impl CandidatesSeries {
         dialog.add_button("Add new", gtk::ResponseType::Other(1));
         let cancel_button = dialog.add_button("Cancel", gtk::ResponseType::Cancel);
         
-        confirm_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
-        cancel_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+        confirm_button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
+        cancel_button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
         
         dialog.set_default_response(gtk::ResponseType::Other(0));
         
@@ -612,8 +612,8 @@ impl CandidatesSeries {
         
         let title_cell = gtk::CellRendererText::new();
         
-        gtk::prelude::CellLayoutExt::pack_end(&title_column, &title_cell, true);
-        gtk::prelude::TreeViewColumnExt::add_attribute(&title_column, &title_cell, "text", 3);
+        CellLayoutExt::pack_end(&title_column, &title_cell, true);
+        TreeViewColumnExt::add_attribute(&title_column, &title_cell, "text", 3);
         
         title_column.set_sort_column_id(3);
         
@@ -772,8 +772,8 @@ impl CandidatesDownloaded {
         let confirm_button = dialog.add_button("Confirm", gtk::ResponseType::Ok);
         let cancel_button = dialog.add_button("Cancel", gtk::ResponseType::Cancel);
         
-        confirm_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
-        cancel_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+        confirm_button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
+        cancel_button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
         
         dialog.set_default_response(gtk::ResponseType::Ok);
         
@@ -867,8 +867,8 @@ impl Feeds {
         let confirm_button = dialog.add_button("Confirm", gtk::ResponseType::Ok);
         let cancel_button = dialog.add_button("Cancel", gtk::ResponseType::Cancel);
         
-        confirm_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
-        cancel_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+        confirm_button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
+        cancel_button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
         
         dialog.set_default_response(gtk::ResponseType::Ok);
         
@@ -961,8 +961,8 @@ impl Kinds {
         let confirm_button = dialog.add_button("Confirm", gtk::ResponseType::Ok);
         let cancel_button = dialog.add_button("Cancel", gtk::ResponseType::Cancel);
         
-        confirm_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
-        cancel_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+        confirm_button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
+        cancel_button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
         
         dialog.set_default_response(gtk::ResponseType::Ok);
         
@@ -1055,8 +1055,8 @@ impl Formats {
         let confirm_button = dialog.add_button("Confirm", gtk::ResponseType::Ok);
         let cancel_button = dialog.add_button("Cancel", gtk::ResponseType::Cancel);
         
-        confirm_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
-        cancel_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+        confirm_button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
+        cancel_button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
         
         dialog.set_default_response(gtk::ResponseType::Ok);
         

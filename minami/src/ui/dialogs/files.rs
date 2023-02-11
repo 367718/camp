@@ -204,8 +204,8 @@ impl Rename {
         let confirm_button = dialog.add_button("Confirm", gtk::ResponseType::Ok);
         let cancel_button = dialog.add_button("Cancel", gtk::ResponseType::Cancel);
         
-        confirm_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
-        cancel_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+        confirm_button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
+        cancel_button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
         
         dialog.set_default_response(gtk::ResponseType::Ok);
         
@@ -352,8 +352,8 @@ impl MoveToFolder {
         let confirm_button = dialog.add_button("Confirm", gtk::ResponseType::Ok);
         let cancel_button = dialog.add_button("Cancel", gtk::ResponseType::Cancel);
         
-        confirm_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
-        cancel_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+        confirm_button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
+        cancel_button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
         
         dialog.set_default_response(gtk::ResponseType::Ok);
         
@@ -472,8 +472,8 @@ impl Maintenance {
         let confirm_button = dialog.add_button("Confirm", gtk::ResponseType::Ok);
         let cancel_button = dialog.add_button("Cancel", gtk::ResponseType::Cancel);
         
-        confirm_button.style_context().add_class(&gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-        cancel_button.style_context().add_class(&gtk::STYLE_CLASS_SUGGESTED_ACTION);
+        confirm_button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+        cancel_button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
         
         dialog.set_default_response(gtk::ResponseType::Cancel);
         
