@@ -2,7 +2,7 @@ window > box > box, dialog > box {
   margin: 6px;
 }
 
-/* section groups */
+/* section headers */
 list box label {
   margin: 0px 8px;
 }
@@ -12,7 +12,7 @@ list row label {
   margin: 0px 6px;
 }
 
-/* config dialog, database dialog, candidates remove dialog and series remove dialog */
+/* file load error dialog, file load save dialog, delete dialog */
 label.weight-bold {
   font-weight: bold;
 }

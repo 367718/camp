@@ -29,19 +29,19 @@ impl General {
         
         /*
         
-        vertical_box
+        root_box
             
-            (files_bar_menu)
-            (watchlist_bar_menu)
-            (preferences_bar_menu)
+            (files_menu_bar)
+            (watchlist_menu_bar)
+            (preferences_menu_bar)
             
-            vertical_box
+            main_box
                 
                 { search_entry }
                     { search_completion }
                 /search_entry
                 
-                horizontal_box
+                sections_box
                     
                     { switchers_box }
                         (files)
@@ -55,11 +55,11 @@ impl General {
                         (preferences)
                     /sections_stack
                     
-                /horizontal_box
+                /sections_box
                 
-            /vertical_box
+            /main_box
             
-        /vertical_box
+        /root_box
         
         */
         
@@ -149,7 +149,7 @@ impl General {
         
         main_box.add(&sections_box);
         
-        // ---------- switchers_box ----------
+        // ---------- switchers box ----------
         
         let switchers_box = {
             
@@ -163,7 +163,7 @@ impl General {
         
         sections_box.add(&switchers_box);
         
-        // ---------- sections_stack ----------
+        // ---------- sections stack ----------
         
         let sections_stack = {
             

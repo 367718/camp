@@ -118,7 +118,7 @@ impl Watchlist {
                         .build();
                     
                     label.set_accel(
-                        81, // Q
+                        *gdk::keys::constants::Q,
                         gdk::ModifierType::CONTROL_MASK,
                     );
                     
@@ -165,7 +165,7 @@ impl Watchlist {
                         .build();
                     
                     label.set_accel(
-                        65_379, // Insert
+                        *gdk::keys::constants::Insert,
                         gdk::ModifierType::empty(),
                     );
                     
@@ -195,7 +195,7 @@ impl Watchlist {
                         .build();
                     
                     label.set_accel(
-                        65_471, // F2
+                        *gdk::keys::constants::F2,
                         gdk::ModifierType::empty(),
                     );
                     
@@ -237,7 +237,7 @@ impl Watchlist {
                         .build();
                     
                     label.set_accel(
-                        65_535, // Delete
+                        *gdk::keys::constants::Delete,
                         gdk::ModifierType::empty(),
                     );
                     
@@ -279,7 +279,7 @@ impl Watchlist {
                         .build();
                     
                     label.set_accel(
-                        67, // C
+                        *gdk::keys::constants::C,
                         gdk::ModifierType::CONTROL_MASK,
                     );
                     
@@ -338,7 +338,7 @@ impl Watchlist {
                         .build();
                     
                     label.set_accel(
-                        70, // F
+                        *gdk::keys::constants::F,
                         gdk::ModifierType::CONTROL_MASK,
                     );
                     
@@ -368,7 +368,7 @@ impl Watchlist {
                         .build();
                     
                     label.set_accel(
-                        69, // E
+                        *gdk::keys::constants::E,
                         gdk::ModifierType::CONTROL_MASK,
                     );
                     
@@ -410,7 +410,7 @@ impl Watchlist {
                         .build();
                     
                     label.set_accel(
-                        65_366, // Page down
+                        *gdk::keys::constants::Page_Down,
                         gdk::ModifierType::CONTROL_MASK,
                     );
                     
@@ -440,7 +440,7 @@ impl Watchlist {
                         .build();
                     
                     label.set_accel(
-                        65_365, // Page up
+                        *gdk::keys::constants::Page_Up,
                         gdk::ModifierType::CONTROL_MASK,
                     );
                     
@@ -487,7 +487,7 @@ impl Watchlist {
                         .build();
                     
                     label.set_accel(
-                        76, // L
+                        *gdk::keys::constants::L,
                         gdk::ModifierType::CONTROL_MASK,
                     );
                     

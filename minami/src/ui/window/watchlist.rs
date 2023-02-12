@@ -33,33 +33,33 @@ impl Watchlist {
             { listbox }
         scrolled_window
         
-        vertical_box
+        section_box
             
             { stack }
                 
-                ----- watchlist -----
+                ----- watching -----
                 
-                scrolled_window
+                watching_scrolled_window
                     { watchlist_treeview }
-                /scrolled_window
+                /watching_scrolled_window
                 
-                ----- on_hold -----
+                ----- on hold -----
                 
-                scrolled_window
+                on_hold_scrolled_window
                     { on_hold_treeview }
-                /scrolled_window
+                /on_hold_scrolled_window
                 
-                ----- plan_to_watch -----
+                ----- plan to watch -----
                 
-                scrolled_window
+                plan_to_watch_scrolled_window
                     { plan_to_watch_treeview }
-                /scrolled_window
+                /plan_to_watch_scrolled_window
                 
                 ----- completed -----
                 
-                scrolled_window
+                completed_scrolled_window
                     { completed_treeview }
-                /scrolled_window
+                /completed_scrolled_window
                 
             /stack
             
@@ -72,7 +72,7 @@ impl Watchlist {
                 
             /buttons_box
             
-        /vertical_box
+        /section_box
         
         */
         
@@ -104,162 +104,6 @@ impl Watchlist {
         
         scrolled_window.add(&listbox);
         
-        // ---------- section box ----------
-        
-        let section_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .spacing(WINDOW_SPACING)
-            .orientation(gtk::Orientation::Vertical)
-            .build()
-            
-        };
-        
-        general.sections_stack.add_named(&section_box, "Watchlist");
-        
-        // ---------- subsections ----------
-        
-        let stack = {
-            
-            gtk::Stack::builder()
-            .visible(true)
-            .transition_duration(0)
-            .build()
-            
-        };
-        
-        section_box.add(&stack);
-        
-        let (watching_scrolled, watching_treeview) = Self::build_treeview(WatchlistSection::Watching);
-        let (on_hold_scrolled, on_hold_treeview) = Self::build_treeview(WatchlistSection::OnHold);
-        let (plan_to_watch_scrolled, plan_to_watch_treeview) = Self::build_treeview(WatchlistSection::PlanToWatch);
-        let (completed_scrolled, completed_treeview) = Self::build_treeview(WatchlistSection::Completed);
-        
-        stack.add_named(&watching_scrolled, WatchlistSection::Watching.display());
-        stack.add_named(&on_hold_scrolled, WatchlistSection::OnHold.display());
-        stack.add_named(&plan_to_watch_scrolled, WatchlistSection::PlanToWatch.display());
-        stack.add_named(&completed_scrolled, WatchlistSection::Completed.display());
-        
-        watching_treeview.realize();
-        on_hold_treeview.realize();
-        plan_to_watch_treeview.realize();
-        completed_treeview.realize();
-        
-        // ---------- buttons ----------
-        
-        let buttons_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .homogeneous(true)
-            .spacing(WINDOW_SPACING)
-            .halign(gtk::Align::Start)
-            .orientation(gtk::Orientation::Horizontal)
-            .build()
-            
-        };
-        
-        section_box.add(&buttons_box);
-        
-        // add
-        
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Add")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.watchlist.edit.add")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
-        
-        // edit
-        
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Edit")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.watchlist.edit.edit")
-                .build();
-            
-            buttons_box.add(&button);
-            
-        }
-        
-        // delete
-        
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Delete")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.watchlist.edit.delete")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
-        
-        // lookup
-        
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Lookup")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.watchlist.tools.lookup")
-                .build();
-            
-            buttons_box.add(&button);
-            
-        }
-        
-        // ---------- listbox ----------
-        
         for section in WatchlistSection::iter() {
             listbox.add(
                 &gtk::ListBoxRow::builder()
@@ -282,7 +126,7 @@ impl Watchlist {
         }
         
         listbox.set_header_func(Some(Box::new(|row, _| {
-            if row.widget_name() == WatchlistSection::Watching.display() {
+            if row.index() == 0 {
                 
                 let header_box = {
                     
@@ -322,6 +166,56 @@ impl Watchlist {
             }
         })));
         
+        // ---------- section box ----------
+        
+        let section_box = {
+            
+            gtk::Box::builder()
+            .visible(true)
+            .spacing(WINDOW_SPACING)
+            .orientation(gtk::Orientation::Vertical)
+            .build()
+            
+        };
+        
+        general.sections_stack.add_named(&section_box, "Watchlist");
+        
+        // ---------- subsections ----------
+        
+        let stack = {
+            
+            gtk::Stack::builder()
+            .visible(true)
+            .transition_duration(0)
+            .build()
+            
+        };
+        
+        section_box.add(&stack);
+        
+        let (watching_scrolled_window, watching_treeview) = Self::build_treeview(WatchlistSection::Watching);
+        let (on_hold_scrolled_window, on_hold_treeview) = Self::build_treeview(WatchlistSection::OnHold);
+        let (plan_to_watch_scrolled_window, plan_to_watch_treeview) = Self::build_treeview(WatchlistSection::PlanToWatch);
+        let (completed_scrolled_window, completed_treeview) = Self::build_treeview(WatchlistSection::Completed);
+        
+        stack.add_named(&watching_scrolled_window, WatchlistSection::Watching.display());
+        stack.add_named(&on_hold_scrolled_window, WatchlistSection::OnHold.display());
+        stack.add_named(&plan_to_watch_scrolled_window, WatchlistSection::PlanToWatch.display());
+        stack.add_named(&completed_scrolled_window, WatchlistSection::Completed.display());
+        
+        // make sure global search scrolling works as intended
+        
+        watching_treeview.realize();
+        on_hold_treeview.realize();
+        plan_to_watch_treeview.realize();
+        completed_treeview.realize();
+        
+        // ---------- buttons ----------
+        
+        let buttons_box = Self::build_buttons();
+        
+        section_box.add(&buttons_box);
+        
         // ---------- return ----------
         
         Self {
@@ -339,7 +233,7 @@ impl Watchlist {
     }
     
     fn build_treeview(section: WatchlistSection) -> (gtk::ScrolledWindow, gtk::TreeView) {
-        // ---------- scrolled_window ----------
+        // ---------- scrolled window ----------
         
         let scrolled_window = {
             
@@ -467,7 +361,125 @@ impl Watchlist {
             treeview.append_column(&progress_column);
         }
         
+        // ---------- return ----------
+        
         (scrolled_window, treeview)
+    }
+    
+    fn build_buttons() -> gtk::Box {
+        // ---------- buttons box ----------
+        
+        let buttons_box = {
+            
+            gtk::Box::builder()
+            .visible(true)
+            .homogeneous(true)
+            .spacing(WINDOW_SPACING)
+            .halign(gtk::Align::Start)
+            .orientation(gtk::Orientation::Horizontal)
+            .build()
+            
+        };
+        
+        // ---------- add ----------
+        
+        {
+            
+            let button = gtk::Button::builder()
+                .visible(true)
+                .child(&{
+                    
+                    gtk::Label::builder()
+                    .visible(true)
+                    .label("Add")
+                    .xalign(0.5)
+                    .width_chars(7)
+                    .build()
+                    
+                })
+                .action_name("app.watchlist.edit.add")
+                .build();
+            
+            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
+            
+            buttons_box.add(&button);
+            
+        }
+        
+        // ---------- edit ----------
+        
+        {
+            
+            let button = gtk::Button::builder()
+                .visible(true)
+                .child(&{
+                    
+                    gtk::Label::builder()
+                    .visible(true)
+                    .label("Edit")
+                    .xalign(0.5)
+                    .width_chars(7)
+                    .build()
+                    
+                })
+                .action_name("app.watchlist.edit.edit")
+                .build();
+            
+            buttons_box.add(&button);
+            
+        }
+        
+        // ---------- delete ----------
+        
+        {
+            
+            let button = gtk::Button::builder()
+                .visible(true)
+                .child(&{
+                    
+                    gtk::Label::builder()
+                    .visible(true)
+                    .label("Delete")
+                    .xalign(0.5)
+                    .width_chars(7)
+                    .build()
+                    
+                })
+                .action_name("app.watchlist.edit.delete")
+                .build();
+            
+            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+            
+            buttons_box.add(&button);
+            
+        }
+        
+        // ---------- lookup ----------
+        
+        {
+            
+            let button = gtk::Button::builder()
+                .visible(true)
+                .child(&{
+                    
+                    gtk::Label::builder()
+                    .visible(true)
+                    .label("Lookup")
+                    .xalign(0.5)
+                    .width_chars(7)
+                    .build()
+                    
+                })
+                .action_name("app.watchlist.tools.lookup")
+                .build();
+            
+            buttons_box.add(&button);
+            
+        }
+        
+        // ---------- return ----------
+        
+        buttons_box
     }
     
 }

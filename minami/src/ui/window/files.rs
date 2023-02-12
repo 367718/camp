@@ -32,29 +32,21 @@ impl Files {
             { listbox }
         /scrolled_window
         
-        vertical_box
+        section_box
             
             { stack }
                 
                 ----- new -----
                 
-                vertical_box
-                    
-                    scrolled_window
-                        { new_treeview }
-                    /scrolled window
-                    
-                /vertical_box
+                new_scrolled_window
+                    { new_treeview }
+                /new_scrolled_window
                 
                 ----- watched -----
                 
-                vertical_box
-                    
-                    scrolled_window
-                        { watched_treeview }
-                    /scrolled_window
-                    
-                /vertical_box
+                watched_scrolled_window
+                    { watched_treeview }
+                /watched_scrolled_window
                 
             /stack
             
@@ -71,7 +63,7 @@ impl Files {
                 
             /buttons_box
             
-        /vertical_box
+        /section_box
         
         */
         
@@ -103,177 +95,6 @@ impl Files {
         
         scrolled_window.add(&listbox);
         
-        // ---------- section box ----------
-        
-        let section_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .orientation(gtk::Orientation::Vertical)
-            .build()
-            
-        };
-        
-        general.sections_stack.add_named(&section_box, "Files");
-        
-        // ---------- subsections ----------
-        
-        let stack = {
-            
-            gtk::Stack::builder()
-            .visible(true)
-            .transition_duration(0)
-            .build()
-            
-        };
-        
-        section_box.add(&stack);
-        
-        let (new_box, new_treeview) = Self::build_treeview();
-        let (watched_box, watched_treeview) = Self::build_treeview();
-        
-        stack.add_named(&new_box, FilesSection::New.display());
-        stack.add_named(&watched_box, FilesSection::Watched.display());
-        
-        new_treeview.realize();
-        watched_treeview.realize();
-        
-        // ---------- frame ----------
-        
-        let frame = gtk::Frame::builder()
-            .no_show_all(true)
-            .shadow_type(gtk::ShadowType::In)
-            .child(&{
-                
-                let label = gtk::Label::builder()
-                .visible(true)
-                .label("The file watcher is not currently running. Changes will not be detected.")
-                .xalign(0.0)
-                .margin(6)
-                .build();
-                
-                label.style_context().add_class("foreground-red");
-                
-                label
-                
-            })
-            .build();
-        
-        section_box.add(&frame);
-        
-        // ---------- buttons ----------
-        
-        let buttons_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .homogeneous(true)
-            .margin_top(WINDOW_SPACING)
-            .spacing(WINDOW_SPACING)
-            .halign(gtk::Align::Start)
-            .orientation(gtk::Orientation::Horizontal)
-            .build()
-            
-        };
-        
-        section_box.add(&buttons_box);
-        
-        // play
-        
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Play")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.files.file.play")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
-        
-        // mark
-        
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Mark")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.files.file.mark")
-                .build();
-            
-            buttons_box.add(&button);
-            
-        }
-        
-        // move
-        
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Move")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.files.file.move")
-                .build();
-            
-            buttons_box.add(&button);
-            
-        }
-        
-        // lookup
-        
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Lookup")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.files.tools.lookup")
-                .build();
-            
-            buttons_box.add(&button);
-            
-        }
-        
-        // ---------- listbox ----------
-        
         for section in FilesSection::iter() {
             listbox.add(
                 &gtk::ListBoxRow::builder()
@@ -296,7 +117,7 @@ impl Files {
         }
         
         listbox.set_header_func(Some(Box::new(|row, _| {
-            if row.widget_name() == FilesSection::New.display() {
+            if row.index() == 0 {
                 
                 let header_box = {
                     
@@ -336,6 +157,72 @@ impl Files {
             }
         })));
         
+        // ---------- section box ----------
+        
+        let section_box = {
+            
+            gtk::Box::builder()
+            .visible(true)
+            .orientation(gtk::Orientation::Vertical)
+            .build()
+            
+        };
+        
+        general.sections_stack.add_named(&section_box, "Files");
+        
+        // ---------- subsections ----------
+        
+        let stack = {
+            
+            gtk::Stack::builder()
+            .visible(true)
+            .transition_duration(0)
+            .build()
+            
+        };
+        
+        section_box.add(&stack);
+        
+        let (new_scrolled_window, new_treeview) = Self::build_treeview();
+        let (watched_scrolled_window, watched_treeview) = Self::build_treeview();
+        
+        stack.add_named(&new_scrolled_window, FilesSection::New.display());
+        stack.add_named(&watched_scrolled_window, FilesSection::Watched.display());
+        
+        // make sure global search scrolling works as intended
+        
+        new_treeview.realize();
+        watched_treeview.realize();
+        
+        // ---------- frame ----------
+        
+        let frame = gtk::Frame::builder()
+            .no_show_all(true)
+            .shadow_type(gtk::ShadowType::In)
+            .child(&{
+                
+                let label = gtk::Label::builder()
+                .visible(true)
+                .label("The file watcher is not currently running. Changes will not be detected.")
+                .xalign(0.0)
+                .margin(6)
+                .build();
+                
+                label.style_context().add_class("foreground-red");
+                
+                label
+                
+            })
+            .build();
+        
+        section_box.add(&frame);
+        
+        // ---------- buttons ----------
+        
+        let buttons_box = Self::build_buttons();
+        
+        section_box.add(&buttons_box);
+        
         // ---------- return ----------
         
         Self {
@@ -351,19 +238,8 @@ impl Files {
         
     }
     
-    fn build_treeview() -> (gtk::Box, gtk::TreeView) {
-        // ---------- section_box ----------
-        
-        let section_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .orientation(gtk::Orientation::Vertical)
-            .build()
-            
-        };
-        
-        // ---------- scrolled_window ----------
+    fn build_treeview() -> (gtk::ScrolledWindow, gtk::TreeView) {
+        // ---------- scrolled window ----------
         
         let scrolled_window = {
             
@@ -374,8 +250,6 @@ impl Files {
             .build()
             
         };
-        
-        section_box.add(&scrolled_window);
         
         // ---------- treeview ----------
         
@@ -410,7 +284,124 @@ impl Files {
         
         treeview.append_column(&file_stem_column);
         
-        (section_box, treeview)
+        // ---------- return ----------
+        
+        (scrolled_window, treeview)
+    }
+    
+    fn build_buttons() -> gtk::Box {
+        // ---------- buttons box ----------
+        
+        let buttons_box = {
+            
+            gtk::Box::builder()
+            .visible(true)
+            .homogeneous(true)
+            .margin_top(WINDOW_SPACING)
+            .spacing(WINDOW_SPACING)
+            .halign(gtk::Align::Start)
+            .orientation(gtk::Orientation::Horizontal)
+            .build()
+            
+        };
+        
+        // ---------- play ----------
+        
+        {
+            
+            let button = gtk::Button::builder()
+                .visible(true)
+                .child(&{
+                    
+                    gtk::Label::builder()
+                    .visible(true)
+                    .label("Play")
+                    .xalign(0.5)
+                    .width_chars(7)
+                    .build()
+                    
+                })
+                .action_name("app.files.file.play")
+                .build();
+            
+            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
+            
+            buttons_box.add(&button);
+            
+        }
+        
+        // ---------- mark ----------
+        
+        {
+            
+            let button = gtk::Button::builder()
+                .visible(true)
+                .child(&{
+                    
+                    gtk::Label::builder()
+                    .visible(true)
+                    .label("Mark")
+                    .xalign(0.5)
+                    .width_chars(7)
+                    .build()
+                    
+                })
+                .action_name("app.files.file.mark")
+                .build();
+            
+            buttons_box.add(&button);
+            
+        }
+        
+        // ---------- move ----------
+        
+        {
+            
+            let button = gtk::Button::builder()
+                .visible(true)
+                .child(&{
+                    
+                    gtk::Label::builder()
+                    .visible(true)
+                    .label("Move")
+                    .xalign(0.5)
+                    .width_chars(7)
+                    .build()
+                    
+                })
+                .action_name("app.files.file.move")
+                .build();
+            
+            buttons_box.add(&button);
+            
+        }
+        
+        // ---------- lookup ----------
+        
+        {
+            
+            let button = gtk::Button::builder()
+                .visible(true)
+                .child(&{
+                    
+                    gtk::Label::builder()
+                    .visible(true)
+                    .label("Lookup")
+                    .xalign(0.5)
+                    .width_chars(7)
+                    .build()
+                    
+                })
+                .action_name("app.files.tools.lookup")
+                .build();
+            
+            buttons_box.add(&button);
+            
+        }
+        
+        // ---------- return ----------
+        
+        buttons_box
     }
     
 }

@@ -16,9 +16,9 @@ use crate::{
 };
 
 use stores::Stores;
+use menus::Menus;
 use window::Window;
 use dialogs::Dialogs;
-use menus::Menus;
 
 const WINDOW_SPACING: i32 = 6;
 const DIALOGS_SPACING: i32 = 15;
@@ -78,7 +78,7 @@ impl Ui {
     }
     
     pub fn dialogs_error_show(&self, message: &str) {
-        self.widgets.dialogs.general.error.message_label.set_text(message);
+        self.widgets.dialogs.general.error.error_label.set_text(message);
         
         let error_dialog = &self.widgets.dialogs.general.error.dialog;
         

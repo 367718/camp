@@ -23,7 +23,7 @@ pub struct Dialogs {
 
 pub struct Error {
     pub dialog: gtk::Dialog,
-    pub message_label: gtk::Label,
+    pub error_label: gtk::Label,
 }
 
 pub struct Delete {
@@ -72,7 +72,7 @@ impl Error {
             
             vertical_box
                 static_label
-                { message_label }
+                { error_label }
             /vertical_box
             
         /content_area
@@ -128,9 +128,9 @@ impl Error {
             
         }
         
-        // ---------- message label ----------
+        // ---------- error label ----------
         
-        let message_label = {
+        let error_label = {
             
             gtk::Label::builder()
             .visible(true)
@@ -140,7 +140,7 @@ impl Error {
             
         };
         
-        main_box.add(&message_label);
+        main_box.add(&error_label);
         
         // ---------- buttons ----------
         
@@ -151,7 +151,7 @@ impl Error {
         
         Self {
             dialog,
-            message_label,
+            error_label,
         }
         
     }
@@ -166,10 +166,10 @@ impl Delete {
         
         content_area
             
-            vertical_box
+            main_box
                 static_label
                 static_label
-            /vertical_box
+            /main_box
             
         /content_area
         
@@ -198,11 +198,13 @@ impl Delete {
         // ---------- content area ----------
         
         let content_area = dialog.content_area();
+        
         content_area.set_spacing(DIALOGS_SPACING);
         
         // ---------- main box ----------
         
         let main_box = super::build_main_box(gtk::Orientation::Vertical);
+        
         content_area.add(&main_box);
         
         // ---------- static labels ----------
@@ -265,25 +267,27 @@ impl FileLoadError {
         
         content_area
             
-            vertical_box
-                
-                static_label
-                
-                ----- path -----
-                
-                horizontal_box
-                    static_label
-                    { path_label }
-                /horizontal_box
+            main_box
                 
                 ----- message -----
                 
-                horizontal_box
-                    static_label
-                    { message_label }
-                /horizontal_box
+                { message_label }
                 
-            /vertical_box
+                ----- path -----
+                
+                path_box
+                    static_label
+                    { path_label }
+                /path_box
+                
+                ----- error -----
+                
+                error_box
+                    static_label
+                    { error_label }
+                /error_box
+                
+            /main_box
             
         /content_area
         
@@ -319,24 +323,22 @@ impl FileLoadError {
         // ---------- content area ----------
         
         let content_area = dialog.content_area();
+        
         content_area.set_spacing(DIALOGS_SPACING);
         
         // ---------- main box ----------
         
         let main_box = super::build_main_box(gtk::Orientation::Vertical);
+        
         content_area.add(&main_box);
         
-        // ---------- message ----------
+        // ---------- message label ----------
         
-        let message_label = {
-            
-            gtk::Label::builder()
+        let message_label = gtk::Label::builder()
             .visible(true)
             .label("A file could not be loaded.")
             .xalign(0.0)
-            .build()
-            
-        };
+            .build();
         
         main_box.add(&message_label);
         
@@ -446,25 +448,27 @@ impl FileSaveError {
         
         content_area
             
-            vertical_box
-                
-                static_label
-                
-                ----- path -----
-                
-                horizontal_box
-                    static_label
-                    { path_label }
-                /horizontal_box
+            main_box
                 
                 ----- message -----
                 
-                horizontal_box
-                    static_label
-                    { message_label }
-                /horizontal_box
+                { message_label }
                 
-            /vertical_box
+                ----- path -----
+                
+                path_box
+                    static_label
+                    { path_label }
+                /path_box
+                
+                ----- error -----
+                
+                error_box
+                    static_label
+                    { error_label }
+                /error_box
+                
+            /main_box
             
         /content_area
         
@@ -493,11 +497,13 @@ impl FileSaveError {
         // ---------- content area ----------
         
         let content_area = dialog.content_area();
+        
         content_area.set_spacing(DIALOGS_SPACING);
         
         // ---------- main box ----------
         
         let main_box = super::build_main_box(gtk::Orientation::Vertical);
+        
         content_area.add(&main_box);
         
         // ---------- message ----------

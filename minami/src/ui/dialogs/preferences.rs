@@ -82,62 +82,62 @@ impl Candidates {
         
         content_area
             
-            vertical_box
+            main_box
                 
                 ----- title -----
                 
-                horizontal_box
+                title_box
                     static_label
                     { title_entry }
                     image
-                /horizontal_box
+                /title_box
                 
                 ----- group -----
                 
-                horizontal_box
+                group_box
                     static_label
                     { group_entry }
                     image
-                /horizontal_box
+                /group_box
                 
                 ----- quality -----
                 
-                horizontal_box
+                quality_box
                     static_label
                     { quality_entry }
                     image
-                /horizontal_box
+                /quality_box
                 
                 ----- series -----
                 
-                horizontal_box
+                series_box
                     static_label
                     { series_entry }
-                    button (select_series -> Other(1))
-                /horizontal_box
+                    button (select_series, gtk::ResponseType::Other(1))
+                /series_box
                 
                 ----- offset -----
                 
-                horizontal_box
+                offset_box
                     static_label
                     { offset_spin }
-                /horizontal_box
+                /offset_box
                 
                 ----- current -----
                 
-                horizontal_box
+                current_box
                     static_label
                     { current_switch }
-                /horizontal_box
+                /current_box
                 
                 ----- downloaded -----
                 
-                horizontal_box
+                downloaded_box
                     static_label
                     { downloaded_spin }
-                /horizontal_box
+                /downloaded_box
                 
-            /vertical_box
+            /main_box
             
         /content_area
         
@@ -165,11 +165,13 @@ impl Candidates {
         // ---------- content area ----------
         
         let content_area = dialog.content_area();
+        
         content_area.set_spacing(DIALOGS_SPACING);
         
         // ---------- main box ----------
         
         let main_box = super::build_main_box(gtk::Orientation::Vertical);
+        
         content_area.add(&main_box);
         
         // ---------- fields ----------
@@ -254,7 +256,11 @@ impl Candidates {
     }
     
     fn build_title() -> (gtk::Box, gtk::Entry) {
+        // ---------- title box ----------
+        
         let title_box = Self::build_field_box("Title:");
+        
+        // ---------- title entry ----------
         
         let title_entry = {
             
@@ -268,6 +274,8 @@ impl Candidates {
         
         title_box.add(&title_entry);
         
+        // ---------- image ----------
+        
         {
             
             title_box.add(
@@ -280,11 +288,17 @@ impl Candidates {
             
         }
         
+        // ---------- return ----------
+        
         (title_box, title_entry)
     }
     
     fn build_group() -> (gtk::Box, gtk::Entry) {
+        // ---------- group box ----------
+        
         let group_box = Self::build_field_box("Group:");
+        
+        // ---------- group entry ----------
         
         let group_entry = {
             
@@ -296,6 +310,8 @@ impl Candidates {
         };
         
         group_box.add(&group_entry);
+        
+        // ---------- image ----------
         
         {
             
@@ -309,11 +325,17 @@ impl Candidates {
             
         }
         
+        // ---------- return ----------
+        
         (group_box, group_entry)
     }
     
     fn build_quality() -> (gtk::Box, gtk::Entry) {
+        // ---------- quality box ----------
+        
         let quality_box = Self::build_field_box("Quality:");
+        
+        // ---------- quality entry ----------
         
         let quality_entry = {
             
@@ -325,6 +347,8 @@ impl Candidates {
         };
         
         quality_box.add(&quality_entry);
+        
+        // ---------- image ----------
         
         {
             
@@ -338,11 +362,17 @@ impl Candidates {
             
         }
         
+        // ---------- return ----------
+        
         (quality_box, quality_entry)
     }
     
     fn build_series() -> (gtk::Box, gtk::Entry) {
+        // ---------- series box ----------
+        
         let series_box = Self::build_field_box("Series:");
+        
+        // ---------- series entry ----------
         
         let series_entry = {
             
@@ -356,11 +386,17 @@ impl Candidates {
         
         series_box.add(&series_entry);
         
+        // ---------- return ----------
+        
         (series_box, series_entry)
     }
     
     fn build_offset() -> (gtk::Box, gtk::SpinButton) {
+        // ---------- offset box ----------
+        
         let offset_box = Self::build_field_box("Offset:");
+        
+        // ---------- offset spin ----------
         
         let offset_spin = {
             
@@ -385,11 +421,17 @@ impl Candidates {
         
         offset_box.add(&offset_spin);
         
+        // ---------- return ----------
+        
         (offset_box, offset_spin)
     }
     
     fn build_current() -> (gtk::Box, gtk::Switch) {
+        // ---------- current box ----------
+        
         let current_box = Self::build_field_box("Current:");
+        
+        // ---------- current switch ----------
         
         let current_switch = {
             
@@ -401,11 +443,17 @@ impl Candidates {
         
         current_box.add(&current_switch);
         
+        // ---------- return ----------
+        
         (current_box, current_switch)
     }
     
     fn build_downloaded() -> (gtk::Box, gtk::SpinButton) {
+        // ---------- downloaded box ----------
+        
         let downloaded_box = Self::build_field_box("Downloaded:");
+        
+        // ---------- downloaded spin ----------
         
         let downloaded_spin = {
             
@@ -430,6 +478,8 @@ impl Candidates {
         
         downloaded_box.add(&downloaded_spin);
         
+        // ---------- return ----------
+        
         (downloaded_box, downloaded_spin)
     }
     
@@ -445,17 +495,17 @@ impl CandidatesSeries {
             
             { notebook }
                 
-                scrolled_window
+                watching_scrolled
                     { watching_treeview }
-                /scrolled_window
+                /watching_scrolled
                 
-                scrolled_window
+                on_hold_scrolled
                     { on_hold_treeview }
-                /scrolled_window
+                /on_hold_scrolled
                 
-                scrolled_window
+                plan_to_watch_scrolled
                     { plan_to_watch_treeview }
-                /scrolled_window
+                /plan_to_watch_scrolled
                 
             /notebook
             
@@ -488,6 +538,7 @@ impl CandidatesSeries {
         // ---------- content area ----------
         
         let content_area = dialog.content_area();
+        
         content_area.set_spacing(DIALOGS_SPACING);
         
         // ---------- notebook ----------
@@ -578,6 +629,8 @@ impl CandidatesSeries {
     }
     
     fn build_treeview() -> (gtk::ScrolledWindow, gtk::TreeView) {
+        // ---------- scrolled window ----------
+        
         let scrolled_window = {
             
             gtk::ScrolledWindow::builder()
@@ -588,6 +641,8 @@ impl CandidatesSeries {
             .build()
             
         };
+        
+        // ---------- treeview ----------
         
         let treeview = {
             
@@ -619,6 +674,8 @@ impl CandidatesSeries {
         
         treeview.set_search_column(3);
         
+        // ---------- return ----------
+        
         (scrolled_window, treeview)
     }
     
@@ -632,23 +689,23 @@ impl CandidatesDownloaded {
         
         content_area
             
-            vertical_box
+            main_box
                 
                 ----- title -----
                 
-                horizontal_box
+                title_box
                     static_label
                     { title_label }
-                /horizontal_box
+                /title_box
                 
                 ----- download -----
                 
-                horizontal_box
+                download_box
                     static_label
                     { download_spin }
-                /horizontal_box
+                /download_box
                 
-            /vertical_box
+            /main_box
             
         /content_area
         
@@ -675,12 +732,14 @@ impl CandidatesDownloaded {
         
         // ---------- content area ----------
         
-        let content_area = dialog.content_area();        
+        let content_area = dialog.content_area();
+        
         content_area.set_spacing(DIALOGS_SPACING);
         
         // ---------- main box ----------
         
         let main_box = super::build_main_box(gtk::Orientation::Vertical);
+        
         content_area.add(&main_box);
         
         // ---------- title ----------
@@ -795,10 +854,10 @@ impl Feeds {
         
         content_area
             
-            horizontal_box
+            main_box
                 static_label
                 { url_entry }
-            /horizontal_box
+            /main_box
             
         /content_area
         
@@ -825,12 +884,14 @@ impl Feeds {
         
         // ---------- content area ----------
         
-        let content_area = dialog.content_area();        
+        let content_area = dialog.content_area();
+        
         content_area.set_spacing(DIALOGS_SPACING);
         
         // ---------- main box ----------
         
         let main_box = super::build_main_box(gtk::Orientation::Horizontal);
+        
         content_area.add(&main_box);
         
         // ---------- static label ----------
@@ -889,10 +950,10 @@ impl Kinds {
         
         content_area
             
-            horizontal_box
+            main_box
                 static_label
                 { name_entry }
-            /horizontal_box
+            /main_box
             
         /content_area
         
@@ -920,11 +981,13 @@ impl Kinds {
         // ---------- content area ----------
         
         let content_area = dialog.content_area();
+        
         content_area.set_spacing(DIALOGS_SPACING);
         
         // ---------- main box ----------
         
         let main_box = super::build_main_box(gtk::Orientation::Horizontal);
+        
         content_area.add(&main_box);
         
         // ---------- static label ----------
@@ -983,10 +1046,10 @@ impl Formats {
         
         content_area
             
-            horizontal_box
+            main_box
                 static_label
                 { name_entry }
-            /horizontal_box
+            /main_box
             
         /content_area
         
@@ -1014,11 +1077,13 @@ impl Formats {
         // ---------- content area ----------
         
         let content_area = dialog.content_area();
+        
         content_area.set_spacing(DIALOGS_SPACING);
         
         // ---------- main box ----------
         
         let main_box = super::build_main_box(gtk::Orientation::Horizontal);
+        
         content_area.add(&main_box);
         
         // ---------- static label ----------

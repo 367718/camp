@@ -103,7 +103,7 @@ impl Preferences {
                         .build();
                     
                     label.set_accel(
-                        81, // Q
+                        *gdk::keys::constants::Q,
                         gdk::ModifierType::CONTROL_MASK,
                     );
                     
@@ -158,7 +158,7 @@ impl Preferences {
                         .build();
                     
                     label.set_accel(
-                        70, // F
+                        *gdk::keys::constants::F,
                         gdk::ModifierType::CONTROL_MASK,
                     );
                     
@@ -188,7 +188,7 @@ impl Preferences {
                         .build();
                     
                     label.set_accel(
-                        69, // E
+                        *gdk::keys::constants::E,
                         gdk::ModifierType::CONTROL_MASK,
                     );
                     
@@ -230,7 +230,7 @@ impl Preferences {
                         .build();
                     
                     label.set_accel(
-                        65_366, // Page down
+                        *gdk::keys::constants::Page_Down,
                         gdk::ModifierType::CONTROL_MASK,
                     );
                     
@@ -260,7 +260,7 @@ impl Preferences {
                         .build();
                     
                     label.set_accel(
-                        65_365, // Page up
+                        *gdk::keys::constants::Page_Up,
                         gdk::ModifierType::CONTROL_MASK,
                     );
                     

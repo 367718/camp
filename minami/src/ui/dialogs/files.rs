@@ -58,25 +58,25 @@ impl Rename {
         
         content_area
             
-            vertical_box
+            main_box
                 
                 ----- current -----
                 
-                horizontal_box
+                current_box
                     static_label
                     { current_label }
-                /horizontal_box
+                /current_box
                 
                 ----- new -----
                 
-                horizontal_box
+                new_box
                     static_label
                     { new_entry }
-                /horizontal_box
+                /new_box
                 
                 static_label
                 
-            /vertical_box
+            /main_box
             
         /content_area
         
@@ -104,12 +104,14 @@ impl Rename {
         
         // ---------- content area ----------
         
-        let content_area = dialog.content_area();        
+        let content_area = dialog.content_area();
+        
         content_area.set_spacing(DIALOGS_SPACING);
         
         // ---------- main box ----------
         
         let main_box = super::build_main_box(gtk::Orientation::Vertical);
+        
         content_area.add(&main_box);
         
         // ---------- current ----------
@@ -229,17 +231,17 @@ impl MoveToFolder {
         
         content_area
             
-            vertical_box
+            main_box
                 
-                horizontal_box
+                folder_box
                     static_label
                     { folder_entry }
-                /horizontal_box
+                /folder_box
                 
                 static_label
                 static_label
                 
-            /vertical_box
+            /main_box
             
         /content_area
         
@@ -268,11 +270,13 @@ impl MoveToFolder {
         // ---------- content area ----------
         
         let content_area = dialog.content_area();
+        
         content_area.set_spacing(DIALOGS_SPACING);
         
         // ---------- main box ----------
         
         let main_box = super::build_main_box(gtk::Orientation::Vertical);
+        
         content_area.add(&main_box);
         
         // ---------- folder ----------
@@ -412,11 +416,11 @@ impl Maintenance {
         
         content_area
             
-            vertical_box
+            main_box
                 
                 static_label
                 
-            /vertical_box
+            /main_box
             
         /content_area
         
@@ -445,11 +449,13 @@ impl Maintenance {
         // ---------- content area ----------
         
         let content_area = dialog.content_area();
+        
         content_area.set_spacing(DIALOGS_SPACING);
         
         // ---------- main box ----------
         
         let main_box = super::build_main_box(gtk::Orientation::Vertical);
+        
         content_area.add(&main_box);
         
         // ---------- static labels ----------
@@ -495,9 +501,9 @@ impl Job {
         
         content_area
             
-            scrolled_window
+            progress_scrolled
                 { progress_textview }
-            /scrolled_window
+            /progress_scrolled
             
         /content_area
         
@@ -524,7 +530,8 @@ impl Job {
         
         // ---------- content area ----------
         
-        let content_area = dialog.content_area();        
+        let content_area = dialog.content_area();
+        
         content_area.set_spacing(DIALOGS_SPACING);
         
         // ---------- progress scrolled ----------

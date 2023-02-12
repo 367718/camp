@@ -38,44 +38,44 @@ impl Series {
         
         content_area
             
-            vertical_box
+            main_box
                 
                 ----- title -----
                 
-                horizontal_box
+                title_box
                     static_label
                     { title_entry }
-                    button (lookup title -> Other(2))
-                /horizontal_box
+                    button (lookup_title, gtk::ResponseType::Other(2))
+                /title_box
                 
                 ----- kind -----
                 
-                horizontal_box
+                kind_box
                     static_label
                     { kind_combo }
-                /horizontal_box
+                /kind_box
                 
                 ----- status -----
                 
-                horizontal_box
+                status_box
                     static_label
                     { status_combo }
                     image
-                /horizontal_box
+                /status_box
                 
                 ----- progress -----
                 
-                horizontal_box
+                progress_box
                     static_label
                     { progress_spin }
-                /horizontal_box
+                /progress_box
                 
                 ----- good -----
                 
-                horizontal_box
+                good_box
                     static_label
                     { good_switch }
-                /horizontal_box
+                /good_box
                 
             /main_box
             
@@ -106,11 +106,13 @@ impl Series {
         // ---------- content area ----------
         
         let content_area = dialog.content_area();
+        
         content_area.set_spacing(DIALOGS_SPACING);
         
         // ---------- main box ----------
         
         let main_box = super::build_main_box(gtk::Orientation::Vertical);
+        
         content_area.add(&main_box);
         
         // ---------- fields ----------
@@ -191,7 +193,11 @@ impl Series {
     }
     
     fn build_title() -> (gtk::Box, gtk::Entry) {
+        // ---------- title box ----------
+        
         let title_box = Self::build_field_box("Title:");
+        
+        // ---------- title entry ----------
         
         let title_entry = {
             
@@ -205,11 +211,17 @@ impl Series {
         
         title_box.add(&title_entry);
         
+        // ---------- return ----------
+        
         (title_box, title_entry)
     }
     
     fn build_kind() -> (gtk::Box, gtk::ComboBox) {
+        // ---------- kind box ----------
+        
         let kind_box = Self::build_field_box("Kind:");
+        
+        // ---------- kind combo ----------
         
         let kind_combo = {
             
@@ -227,11 +239,17 @@ impl Series {
         kind_combo.pack_start(&name_cell, true);
         kind_combo.add_attribute(&name_cell, "text", 1);
         
+        // ---------- return ----------
+        
         (kind_box, kind_combo)
     }
     
     fn build_status() -> (gtk::Box, gtk::ComboBoxText) {
+        // ---------- status box ----------
+        
         let status_box = Self::build_field_box("Status:");
+        
+        // ---------- status combo ----------
         
         let status_combo = {
             
@@ -248,6 +266,8 @@ impl Series {
             status_combo.append(Some(&status.as_int().to_string()), status.display());
         }
         
+        // ---------- image ----------
+        
         {
             
             status_box.add(
@@ -260,11 +280,17 @@ impl Series {
             
         }
         
+        // ---------- return ----------
+        
         (status_box, status_combo)
     }
     
     fn build_progress() -> (gtk::Box, gtk::SpinButton) {
+        // ---------- progress box ----------
+        
         let progress_box = Self::build_field_box("Progress:");
+        
+        // ---------- progress spin ----------
         
         let progress_spin = {
             
@@ -289,11 +315,17 @@ impl Series {
         
         progress_box.add(&progress_spin);
         
+        // ---------- return ----------
+        
         (progress_box, progress_spin)
     }
     
     fn build_good() -> (gtk::Box, gtk::Switch) {
+        // ---------- good box ----------
+        
         let good_box = Self::build_field_box("Good:");
+        
+        // ---------- good switch ----------
         
         let good_switch = {
             
@@ -304,6 +336,8 @@ impl Series {
         };
         
         good_box.add(&good_switch);
+        
+        // ---------- return ----------
         
         (good_box, good_switch)
     }

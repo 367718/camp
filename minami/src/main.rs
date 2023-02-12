@@ -287,10 +287,12 @@ fn register_app() -> Result<(), Box<dyn Error>> {
 }
 
 fn init_config(path: Option<&str>, ui: &Ui) -> Option<Config> {
-    let cfgpath = path.map_or_else(||
-        env::current_exe().unwrap().with_extension("cfg"),
-        PathBuf::from
-    );
+    let cfgpath = match path {
+        Some(arg) => PathBuf::from(arg),
+        None => env::current_exe()
+            .ok()?
+            .with_extension("cfg"),
+    };
     
     // success
     

@@ -78,20 +78,16 @@ impl Preferences {
             { listbox }
         /scrolled_window
         
-        vertical_box
+        { stack }
             
-            { stack }
-                
-                { candidates }
-                { feeds }
-                { kinds }
-                { formats }
-                { media }
-                { paths }
-                
-            /stack
+            { candidates }
+            { feeds }
+            { kinds }
+            { formats }
+            { media }
+            { paths }
             
-        /vertical_box
+        /stack
         
         */
         
@@ -123,48 +119,6 @@ impl Preferences {
         
         scrolled_window.add(&listbox);
         
-        // ---------- section box ----------
-        
-        let section_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .orientation(gtk::Orientation::Vertical)
-            .build()
-            
-        };
-        
-        general.sections_stack.add_named(&section_box, "Preferences");
-        
-        // ---------- subsections ----------
-        
-        let stack = {
-            
-            gtk::Stack::builder()
-            .visible(true)
-            .transition_duration(0)
-            .build()
-            
-        };
-        
-        section_box.add(&stack);
-        
-        let (candidates_box, candidates) = Candidates::new();
-        let (feeds_box, feeds) = Feeds::new();
-        let (kinds_box, kinds) = Kinds::new();
-        let (formats_box, formats) = Formats::new();
-        let (media_box, media) = Media::new();
-        let (paths_box, paths) = Paths::new();
-        
-        stack.add_named(&candidates_box, PreferencesSection::Candidates.display());
-        stack.add_named(&feeds_box, PreferencesSection::Feeds.display());
-        stack.add_named(&kinds_box, PreferencesSection::Kinds.display());
-        stack.add_named(&formats_box, PreferencesSection::Formats.display());
-        stack.add_named(&media_box, PreferencesSection::Media.display());
-        stack.add_named(&paths_box, PreferencesSection::Paths.display());
-        
-        // ---------- listbox ----------
-        
         for section in PreferencesSection::iter() {
             listbox.add(
                 &gtk::ListBoxRow::builder()
@@ -187,7 +141,7 @@ impl Preferences {
         }
         
         listbox.set_header_func(Some(Box::new(|row, _| {
-            if row.widget_name() == PreferencesSection::Candidates.display() {
+            if row.index() == 0 {
                 
                 let header_box = {
                     
@@ -227,6 +181,33 @@ impl Preferences {
             }
         })));
         
+        // ---------- subsections ----------
+        
+        let stack = {
+            
+            gtk::Stack::builder()
+            .visible(true)
+            .transition_duration(0)
+            .build()
+            
+        };
+        
+        general.sections_stack.add_named(&stack, "Preferences");
+        
+        let (candidates_box, candidates) = Candidates::new();
+        let (feeds_box, feeds) = Feeds::new();
+        let (kinds_box, kinds) = Kinds::new();
+        let (formats_box, formats) = Formats::new();
+        let (media_box, media) = Media::new();
+        let (paths_box, paths) = Paths::new();
+        
+        stack.add_named(&candidates_box, PreferencesSection::Candidates.display());
+        stack.add_named(&feeds_box, PreferencesSection::Feeds.display());
+        stack.add_named(&kinds_box, PreferencesSection::Kinds.display());
+        stack.add_named(&formats_box, PreferencesSection::Formats.display());
+        stack.add_named(&media_box, PreferencesSection::Media.display());
+        stack.add_named(&paths_box, PreferencesSection::Paths.display());
+        
         // ---------- return ----------
         
         Self {
@@ -251,15 +232,15 @@ impl Candidates {
         
         /*
         
-        horizontal_box
+        section_box
             
             ----- candidates -----
             
-            vertical_box
+            candidates_box
                 
-                scrolled_window
+                candidates_scrolled_window
                     { candidates_treeview }
-                /scrolled_window
+                /candidates_scrolled_window
                 
                 { candidates_buttons_box }
                     
@@ -269,15 +250,15 @@ impl Candidates {
                     
                 /candidates_buttons_box
                 
-            /vertical_box
+            /candidates_box
             
             ----- downloaded -----
             
-            vertical_box
+            downloaded_box
                 
-                scrolled_window
+                downloaded_scrolled_window
                     { downloaded_treeview }
-                /scrolled_window
+                /downloaded_scrolled_window
                 
                 { downloaded_buttons_box }
                     
@@ -286,13 +267,13 @@ impl Candidates {
                     
                 /downloaded_buttons_box
                 
-            /vertical_box
+            /downloaded_box
             
-        /horizontal_box
+        /section_box
         
         */
         
-        // ---------- horizontal_box ----------
+        // ---------- section box ----------
         
         let section_box = {
             
@@ -304,16 +285,12 @@ impl Candidates {
             
         };
         
-        // ---------- candidates ----------
+        // ---------- subsections ----------
         
         let (candidates_box, candidates_treeview, candidates_buttons_box) = Self::build_candidates();
-        
-        section_box.add(&candidates_box);
-        
-        // ---------- downloaded ----------
-        
         let (downloaded_box, downloaded_treeview, downloaded_buttons_box) = Self::build_downloaded();
         
+        section_box.add(&candidates_box);
         section_box.add(&downloaded_box);
         
         // ---------- return ----------
@@ -331,8 +308,10 @@ impl Candidates {
         
     }
     
+    // candidates
+    
     fn build_candidates() -> (gtk::Box, gtk::TreeView, gtk::Box) {
-        // ---------- vertical_box ----------
+        // ---------- candidates box ----------
         
         let candidates_box = {
             
@@ -345,9 +324,27 @@ impl Candidates {
             
         };
         
-        // ---------- scrolled window ----------
+        // ---------- candidates treeview ----------
         
-        let scrolled_window = {
+        let (candidates_scrolled_window, candidates_treeview) = Self::build_candidates_treeview();
+        
+        candidates_box.add(&candidates_scrolled_window);
+        
+        // ---------- candidates buttons ----------
+        
+        let candidates_buttons_box = Self::build_candidates_buttons();
+        
+        candidates_box.add(&candidates_buttons_box);
+        
+        // ---------- return ----------
+        
+        (candidates_box, candidates_treeview, candidates_buttons_box)
+    }
+    
+    fn build_candidates_treeview() -> (gtk::ScrolledWindow, gtk::TreeView) {
+        // ---------- candidates scrolled window ----------
+        
+        let candidates_scrolled_window = {
             
             gtk::ScrolledWindow::builder()
             .visible(true)
@@ -357,9 +354,7 @@ impl Candidates {
             
         };
         
-        candidates_box.add(&scrolled_window);
-        
-        // ---------- candidates_treeview ----------
+        // ---------- candidates treeview ----------
         
         let candidates_treeview = {
             
@@ -373,7 +368,7 @@ impl Candidates {
             
         };
         
-        scrolled_window.add(&candidates_treeview);
+        candidates_scrolled_window.add(&candidates_treeview);
         
         // 0 => title
         
@@ -387,7 +382,13 @@ impl Candidates {
         
         candidates_treeview.append_column(&title_column);
         
-        // ---------- buttons ----------
+        // ---------- return ----------
+        
+        (candidates_scrolled_window, candidates_treeview)
+    }
+    
+    fn build_candidates_buttons() -> gtk::Box {
+        // ---------- candidates buttons box ----------
         
         let candidates_buttons_box = {
             
@@ -401,9 +402,7 @@ impl Candidates {
             
         };
         
-        candidates_box.add(&candidates_buttons_box);
-        
-        // candidate add
+        // ---------- add ----------
         
         {
             
@@ -428,7 +427,7 @@ impl Candidates {
             
         }
         
-        // candidate edit
+        // ---------- edit ----------
         
         {
             
@@ -451,7 +450,7 @@ impl Candidates {
             
         }
         
-        // candidate delete
+        // ---------- delete ----------
         
         {
             
@@ -478,11 +477,13 @@ impl Candidates {
         
         // ---------- return ----------
         
-        (candidates_box, candidates_treeview, candidates_buttons_box)
+        candidates_buttons_box
     }
     
+    // downloaded
+    
     fn build_downloaded() -> (gtk::Box, gtk::TreeView, gtk::Box) {
-        // ---------- vertical_box ----------
+        // ---------- downloaded box ----------
         
         let downloaded_box = {
             
@@ -494,9 +495,27 @@ impl Candidates {
             
         };
         
-        // ---------- scrolled window ----------
+        // ---------- downloaded treeview ----------
         
-        let scrolled_window = {
+        let (downloaded_scrolled_window, downloaded_treeview) = Self::build_downloaded_treeview();
+        
+        downloaded_box.add(&downloaded_scrolled_window);
+        
+        // ---------- downloaded buttons ----------
+        
+        let downloaded_buttons_box = Self::build_downloaded_buttons();
+        
+        downloaded_box.add(&downloaded_buttons_box);
+        
+        // ---------- return ----------
+        
+        (downloaded_box, downloaded_treeview, downloaded_buttons_box)
+    }
+    
+    fn build_downloaded_treeview() -> (gtk::ScrolledWindow, gtk::TreeView) {
+        // ---------- downloaded scrolled window ----------
+        
+        let downloaded_scrolled_window = {
             
             gtk::ScrolledWindow::builder()
             .visible(true)
@@ -506,9 +525,7 @@ impl Candidates {
             
         };
         
-        downloaded_box.add(&scrolled_window);
-        
-        // ---------- downloaded_treeview ----------
+        // ---------- downloaded treeview ----------
         
         let downloaded_treeview = {
             
@@ -522,7 +539,7 @@ impl Candidates {
             
         };
         
-        scrolled_window.add(&downloaded_treeview);
+        downloaded_scrolled_window.add(&downloaded_treeview);
         
         // 0 => download
         
@@ -537,7 +554,13 @@ impl Candidates {
         
         downloaded_treeview.append_column(&download_column);
         
-        // ---------- buttons ----------
+        // ---------- return ----------
+        
+        (downloaded_scrolled_window, downloaded_treeview)
+    }
+    
+    fn build_downloaded_buttons() -> gtk::Box {
+        // ---------- downloaded buttons box ----------
         
         let downloaded_buttons_box = {
             
@@ -551,9 +574,7 @@ impl Candidates {
             
         };
         
-        downloaded_box.add(&downloaded_buttons_box);
-        
-        // add
+        // ---------- add ----------
         
         {
             
@@ -578,7 +599,7 @@ impl Candidates {
             
         }
         
-        // delete
+        // ---------- delete ----------
         
         {
             
@@ -605,7 +626,7 @@ impl Candidates {
         
         // ---------- return ----------
         
-        (downloaded_box, downloaded_treeview, downloaded_buttons_box)
+        downloaded_buttons_box
     }
     
 }
@@ -616,7 +637,7 @@ impl Feeds {
         
         /*
         
-        vertical_box
+        section_box
             
             scrolled_window
                 { treeview }
@@ -630,11 +651,11 @@ impl Feeds {
                 
             /buttons_box
             
-        /vertical_box
+        /section_box
         
         */
         
-        // ---------- vertical_box ----------
+        // ---------- section box ----------
         
         let section_box = {
             
@@ -646,6 +667,31 @@ impl Feeds {
             
         };
         
+        // ---------- treeview ----------
+        
+        let (scrolled_window, treeview) = Self::build_treeview();
+        
+        section_box.add(&scrolled_window);
+        
+        // ---------- buttons ----------
+        
+        let buttons_box = Self::build_buttons();
+        
+        section_box.add(&buttons_box);
+        
+        // ---------- return ----------
+        
+        (
+            section_box,
+            Self {
+                treeview,
+                buttons_box,
+            },
+        )
+        
+    }
+    
+    fn build_treeview() -> (gtk::ScrolledWindow, gtk::TreeView) {
         // ---------- scrolled window ----------
         
         let scrolled_window = {
@@ -657,8 +703,6 @@ impl Feeds {
             .build()
             
         };
-        
-        section_box.add(&scrolled_window);
         
         // ---------- treeview ----------
         
@@ -689,7 +733,13 @@ impl Feeds {
         
         treeview.append_column(&url_column);
         
-        // ---------- buttons ----------
+        // ---------- return ----------
+        
+        (scrolled_window, treeview)
+    }
+    
+    fn build_buttons() -> gtk::Box {
+        // ---------- buttons box ----------
         
         let buttons_box = {
             
@@ -703,9 +753,7 @@ impl Feeds {
             
         };
         
-        section_box.add(&buttons_box);
-        
-        // add
+        // ---------- add ----------
         
         {
             
@@ -730,7 +778,7 @@ impl Feeds {
             
         }
         
-        // edit
+        // ---------- edit ----------
         
         {
             
@@ -753,7 +801,7 @@ impl Feeds {
             
         }
         
-        // delete
+        // ---------- delete ----------
         
         {
             
@@ -780,14 +828,7 @@ impl Feeds {
         
         // ---------- return ----------
         
-        (
-            section_box,
-            Self {
-                treeview,
-                buttons_box,
-            },
-        )
-        
+        buttons_box
     }
     
 }
@@ -798,7 +839,7 @@ impl Kinds {
         
         /*
         
-        vertical_box
+        section_box
             
             scrolled_window
                 { treeview }
@@ -812,11 +853,11 @@ impl Kinds {
                 
             /buttons_box
             
-        /vertical_box
+        /section_box
         
         */
         
-        // ---------- vertical_box ----------
+        // ---------- section box ----------
         
         let section_box = {
             
@@ -828,6 +869,31 @@ impl Kinds {
             
         };
         
+        // ---------- treeview ----------
+        
+        let (scrolled_window, treeview) = Self::build_treeview();
+        
+        section_box.add(&scrolled_window);
+        
+        // ---------- buttons ----------
+        
+        let buttons_box = Self::build_buttons();
+        
+        section_box.add(&buttons_box);
+        
+        // ---------- return ----------
+        
+        (
+            section_box,
+            Self {
+                treeview,
+                buttons_box,
+            },
+        )
+        
+    }
+    
+    fn build_treeview() -> (gtk::ScrolledWindow, gtk::TreeView) {
         // ---------- scrolled window ----------
         
         let scrolled_window = {
@@ -839,8 +905,6 @@ impl Kinds {
             .build()
             
         };
-        
-        section_box.add(&scrolled_window);
         
         // ---------- treeview ----------
         
@@ -871,7 +935,13 @@ impl Kinds {
         
         treeview.append_column(&name_column);
         
-        // ---------- buttons ----------
+        // ---------- return ----------
+        
+        (scrolled_window, treeview)
+    }
+    
+    fn build_buttons() -> gtk::Box {
+        // ---------- buttons box ----------
         
         let buttons_box = {
             
@@ -885,9 +955,7 @@ impl Kinds {
             
         };
         
-        section_box.add(&buttons_box);
-        
-        // add
+        // ---------- add ----------
         
         {
             
@@ -912,7 +980,7 @@ impl Kinds {
             
         }
         
-        // edit
+        // ---------- edit ----------
         
         {
             
@@ -935,7 +1003,7 @@ impl Kinds {
             
         }
         
-        // delete
+        // ---------- delete ----------
         
         {
             
@@ -962,14 +1030,7 @@ impl Kinds {
         
         // ---------- return ----------
         
-        (
-            section_box,
-            Self {
-                treeview,
-                buttons_box,
-            },
-        )
-        
+        buttons_box
     }
     
 }
@@ -980,7 +1041,7 @@ impl Formats {
         
         /*
         
-        vertical_box
+        section_box
             
             scrolled_window
                 { treeview }
@@ -994,11 +1055,11 @@ impl Formats {
                 
             /buttons_box
             
-        /vertical_box
+        /section_box
         
         */
         
-        // ---------- vertical_box ----------
+        // ---------- section box ----------
         
         let section_box = {
             
@@ -1012,6 +1073,31 @@ impl Formats {
         
         // ---------- treeview ----------
         
+        let (scrolled_window, treeview) = Self::build_treeview();
+        
+        section_box.add(&scrolled_window);
+        
+        // ---------- buttons ----------
+        
+        let buttons_box = Self::build_buttons();
+        
+        section_box.add(&buttons_box);
+        
+        // ---------- return ----------
+        
+        (
+            section_box,
+            Self {
+                treeview,
+                buttons_box,
+            },
+        )
+        
+    }
+    
+    fn build_treeview() -> (gtk::ScrolledWindow, gtk::TreeView) {
+        // ---------- scrolled window ----------
+        
         let scrolled_window = {
             
             gtk::ScrolledWindow::builder()
@@ -1022,7 +1108,7 @@ impl Formats {
             
         };
         
-        section_box.add(&scrolled_window);
+        // ---------- treeview ----------
         
         let treeview = {
             
@@ -1050,7 +1136,13 @@ impl Formats {
         
         treeview.append_column(&name_column);
         
-        // ---------- buttons ----------
+        // ---------- return ----------
+        
+        (scrolled_window, treeview)
+    }
+    
+    fn build_buttons() -> gtk::Box {
+        // ---------- buttons box ----------
         
         let buttons_box = {
             
@@ -1064,9 +1156,7 @@ impl Formats {
             
         };
         
-        section_box.add(&buttons_box);
-        
-        // add
+        // ---------- add ----------
         
         {
             
@@ -1091,7 +1181,7 @@ impl Formats {
             
         }
         
-        // edit
+        // ---------- edit ----------
         
         {
             
@@ -1114,7 +1204,7 @@ impl Formats {
             
         }
         
-        // delete
+        // ---------- delete ----------
         
         {
             
@@ -1141,14 +1231,7 @@ impl Formats {
         
         // ---------- return ----------
         
-        (
-            section_box,
-            Self {
-                treeview,
-                buttons_box,
-            },
-        )
-        
+        buttons_box
     }
     
 }
@@ -1159,7 +1242,7 @@ impl Media {
         
         /*
         
-        vertical_box
+        section_box
             
             scrolled_window
                 
@@ -1167,56 +1250,56 @@ impl Media {
                     
                     ----- player -----
                     
-                    horizontal_box
+                    player_box
                         static_label
                         { player_entry }
-                    /horizontal_box
+                    /player_box
                     
                     ----- iconify -----
                     
-                    horizontal_box
+                    iconify_box
                         static_label
                         { iconify_switch }
-                    /horizontal_box
+                    /iconify_box
                     
                     ----- flag -----
                     
-                    horizontal_box
+                    flag_box
                         static_label
                         { flag_entry }
-                    /horizontal_box
+                    /flag_box
                     
                     ----- timeout -----
                     
-                    horizontal_box
+                    timeout_box
                         static_label
                         { timeout_spin }
                             adjustment
                         /timeout_spin
                         static_label
-                    /horizontal_box
+                    /timeout_box
                     
                     ----- autoselect -----
                     
-                    horizontal_box
+                    autoselect_box
                         static_label
                         { autoselect_switch }
-                    /horizontal_box
+                    /autoselect_box
                     
                     ----- lookup -----
                     
-                    horizontal_box
+                    lookup_box
                         static_label
                         { lookup_entry }
                         warning_image
-                    /horizontal_box
+                    /lookup_box
                     
                     ----- bind -----
                     
-                    horizontal_box
+                    bind_box
                         static_label
                         { bind_entry }
-                    /horizontal_box
+                    /bind_box
                     
                 /fields_box
                 
@@ -1230,11 +1313,11 @@ impl Media {
                 
             /buttons_box
             
-        /vertical_box
+        /section_box
         
         */
         
-        // ---------- vertical_box ----------
+        // ---------- section box ----------
         
         let section_box = {
             
@@ -1247,7 +1330,7 @@ impl Media {
             
         };
         
-        // ---------- scrolled_window ----------
+        // ---------- scrolled window ----------
         
         let scrolled_window = {
             
@@ -1302,92 +1385,9 @@ impl Media {
         
         // ---------- buttons ----------
         
-        let buttons_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .homogeneous(true)
-            .spacing(WINDOW_SPACING)
-            .halign(gtk::Align::Start)
-            .orientation(gtk::Orientation::Horizontal)
-            .build()
-            
-        };
+        let buttons_box = Self::build_buttons();
         
         section_box.add(&buttons_box);
-        
-        // confirm
-        
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Confirm")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.media.confirm")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
-        
-        // unlock
-        
-        {
-            
-            buttons_box.add(
-                &gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Unlock")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.media.unlock")
-                .build()
-            );
-            
-        }
-        
-        // discard
-        
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Discard")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.media.discard")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
         
         // ---------- return ----------
         
@@ -1585,6 +1585,99 @@ impl Media {
         (bind_box, bind_entry)
     }
     
+    fn build_buttons() -> gtk::Box {
+        // ---------- buttons box ----------
+        
+        let buttons_box = {
+            
+            gtk::Box::builder()
+            .visible(true)
+            .homogeneous(true)
+            .spacing(WINDOW_SPACING)
+            .halign(gtk::Align::Start)
+            .orientation(gtk::Orientation::Horizontal)
+            .build()
+            
+        };
+        
+        // ---------- confirm ----------
+        
+        {
+            
+            let button = gtk::Button::builder()
+                .visible(true)
+                .child(&{
+                    
+                    gtk::Label::builder()
+                    .visible(true)
+                    .label("Confirm")
+                    .xalign(0.5)
+                    .width_chars(7)
+                    .build()
+                    
+                })
+                .action_name("app.preferences.media.confirm")
+                .build();
+            
+            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
+            
+            buttons_box.add(&button);
+            
+        }
+        
+        // ---------- unlock ----------
+        
+        {
+            
+            buttons_box.add(
+                &gtk::Button::builder()
+                .visible(true)
+                .child(&{
+                    
+                    gtk::Label::builder()
+                    .visible(true)
+                    .label("Unlock")
+                    .xalign(0.5)
+                    .width_chars(7)
+                    .build()
+                    
+                })
+                .action_name("app.preferences.media.unlock")
+                .build()
+            );
+            
+        }
+        
+        // ---------- discard ----------
+        
+        {
+            
+            let button = gtk::Button::builder()
+                .visible(true)
+                .child(&{
+                    
+                    gtk::Label::builder()
+                    .visible(true)
+                    .label("Discard")
+                    .xalign(0.5)
+                    .width_chars(7)
+                    .build()
+                    
+                })
+                .action_name("app.preferences.media.discard")
+                .build();
+            
+            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+            
+            buttons_box.add(&button);
+            
+        }
+        
+        // ---------- return ----------
+        
+        buttons_box
+    }
+    
 }
 
 impl Paths {
@@ -1593,40 +1686,40 @@ impl Paths {
         
         /*
         
-        vertical_box
+        section_box
             
             scrolled_window
                 
                 ----- files -----
                 
-                horizontal_box
+                files_box
                     static_label
                     { files_button }
                     { files_entry }
-                /horizontal_box
+                /files_box
                 
                 ----- downloads -----
                 
-                horizontal_box
+                downloads_box
                     static_label
                     { downloads_button }
                     { downloads_entry }
-                /horizontal_box
+                /downloads_box
                 
                 ----- pipe -----
                 
-                horizontal_box
+                pipe_box
                     static_label
                     { pipe_entry }
-                /horizontal_box
+                /pipe_box
                 
                 ----- database -----
                 
-                horizontal_box
+                database_box
                     static_label
                     { database_button }
                     { database_entry }
-                /horizontal_box
+                /database_box
                 
             /scrolled_window
             
@@ -1638,11 +1731,11 @@ impl Paths {
                 
             /buttons_box
             
-        /vertical_box
+        /section_box
         
         */
         
-        // ---------- vertical_box ----------
+        // ---------- section box ----------
         
         let section_box = {
             
@@ -1655,7 +1748,7 @@ impl Paths {
             
         };
         
-        // ---------- scrolled_window ----------
+        // ---------- scrolled window ----------
         
         let scrolled_window = {
             
@@ -1704,92 +1797,9 @@ impl Paths {
         
         // ---------- buttons ----------
         
-        let buttons_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .homogeneous(true)
-            .spacing(WINDOW_SPACING)
-            .halign(gtk::Align::Start)
-            .orientation(gtk::Orientation::Horizontal)
-            .build()
-            
-        };
+        let buttons_box = Self::build_buttons();
         
         section_box.add(&buttons_box);
-        
-        // confirm
-        
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Confirm")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.paths.confirm")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
-        
-        // unlock
-        
-        {
-            
-            buttons_box.add(
-                &gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Unlock")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.paths.unlock")
-                .build()
-            );
-            
-        }
-        
-        // discard
-        
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Discard")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.paths.discard")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
         
         // ---------- return ----------
         
@@ -1858,6 +1868,99 @@ impl Paths {
         field_box.add(&field_entry);
         
         (field_box, field_button, field_entry)
+    }
+    
+    fn build_buttons() -> gtk::Box {
+        // ---------- buttons box ----------
+        
+        let buttons_box = {
+            
+            gtk::Box::builder()
+            .visible(true)
+            .homogeneous(true)
+            .spacing(WINDOW_SPACING)
+            .halign(gtk::Align::Start)
+            .orientation(gtk::Orientation::Horizontal)
+            .build()
+            
+        };
+        
+        // ---------- confirm ----------
+        
+        {
+            
+            let button = gtk::Button::builder()
+                .visible(true)
+                .child(&{
+                    
+                    gtk::Label::builder()
+                    .visible(true)
+                    .label("Confirm")
+                    .xalign(0.5)
+                    .width_chars(7)
+                    .build()
+                    
+                })
+                .action_name("app.preferences.paths.confirm")
+                .build();
+            
+            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
+            
+            buttons_box.add(&button);
+            
+        }
+        
+        // ---------- unlock ----------
+        
+        {
+            
+            buttons_box.add(
+                &gtk::Button::builder()
+                .visible(true)
+                .child(&{
+                    
+                    gtk::Label::builder()
+                    .visible(true)
+                    .label("Unlock")
+                    .xalign(0.5)
+                    .width_chars(7)
+                    .build()
+                    
+                })
+                .action_name("app.preferences.paths.unlock")
+                .build()
+            );
+            
+        }
+        
+        // ---------- discard ----------
+        
+        {
+            
+            let button = gtk::Button::builder()
+                .visible(true)
+                .child(&{
+                    
+                    gtk::Label::builder()
+                    .visible(true)
+                    .label("Discard")
+                    .xalign(0.5)
+                    .width_chars(7)
+                    .build()
+                    
+                })
+                .action_name("app.preferences.paths.discard")
+                .build();
+            
+            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
+            
+            buttons_box.add(&button);
+            
+        }
+        
+        // ---------- return ----------
+        
+        buttons_box
     }
     
 }
