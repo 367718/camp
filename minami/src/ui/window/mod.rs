@@ -3,6 +3,8 @@ mod files;
 mod watchlist;
 mod preferences;
 
+use gtk::prelude::*;
+
 use super::{
     WINDOW_SPACING, FIELDS_SPACING,
     SECTIONS_LISTBOX_ROW_WIDTH, SECTIONS_LISTBOX_ROW_HEIGHT,
@@ -37,4 +39,37 @@ impl Window {
         }
     }
     
+}
+
+fn build_buttons_box() -> gtk::Box {
+    gtk::Box::builder()
+    .visible(true)
+    .homogeneous(true)
+    .spacing(WINDOW_SPACING)
+    .halign(gtk::Align::Start)
+    .orientation(gtk::Orientation::Horizontal)
+    .build()
+}
+
+fn build_button(label: &str, action_name: &str, class: Option<&str>) -> gtk::Button {
+    let button = gtk::Button::builder()
+        .visible(true)
+        .child(&{
+            
+            gtk::Label::builder()
+            .visible(true)
+            .label(label)
+            .xalign(0.5)
+            .width_chars(7)
+            .build()
+            
+        })
+        .action_name(action_name)
+        .build();
+    
+    if let Some(class) = class {
+        button.style_context().add_class(class);
+    }
+    
+    button
 }

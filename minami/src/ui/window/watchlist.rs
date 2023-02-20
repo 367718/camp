@@ -369,113 +369,39 @@ impl Watchlist {
     fn build_buttons() -> gtk::Box {
         // ---------- buttons box ----------
         
-        let buttons_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .homogeneous(true)
-            .spacing(WINDOW_SPACING)
-            .halign(gtk::Align::Start)
-            .orientation(gtk::Orientation::Horizontal)
-            .build()
-            
-        };
+        let buttons_box = super::build_buttons_box();
         
         // ---------- add ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Add")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.watchlist.edit.add")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Add",
+            "app.watchlist.edit.add",
+            Some(gtk::STYLE_CLASS_SUGGESTED_ACTION),
+        ));
         
         // ---------- edit ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Edit")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.watchlist.edit.edit")
-                .build();
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Edit",
+            "app.watchlist.edit.edit",
+            None,
+        ));
         
         // ---------- delete ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Delete")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.watchlist.edit.delete")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Delete",
+            "app.watchlist.edit.delete",
+            Some(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION),
+        ));
         
         // ---------- lookup ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Lookup")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.watchlist.tools.lookup")
-                .build();
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Lookup",
+            "app.watchlist.tools.lookup",
+            None,
+        ));
         
         // ---------- return ----------
         

@@ -12,7 +12,7 @@ list row label {
   margin: 0px 6px;
 }
 
-/* file load error dialog, file load save dialog, delete dialog */
+/* file load error dialog, file save error dialog, delete dialog */
 label.weight-bold {
   font-weight: bold;
 }

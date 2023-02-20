@@ -292,112 +292,41 @@ impl Files {
     fn build_buttons() -> gtk::Box {
         // ---------- buttons box ----------
         
-        let buttons_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .homogeneous(true)
-            .margin_top(WINDOW_SPACING)
-            .spacing(WINDOW_SPACING)
-            .halign(gtk::Align::Start)
-            .orientation(gtk::Orientation::Horizontal)
-            .build()
-            
-        };
+        let buttons_box = super::build_buttons_box();
+        
+        buttons_box.set_margin_top(WINDOW_SPACING);
         
         // ---------- play ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Play")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.files.file.play")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Play",
+            "app.files.file.play",
+            Some(gtk::STYLE_CLASS_SUGGESTED_ACTION),
+        ));
         
         // ---------- mark ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Mark")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.files.file.mark")
-                .build();
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Mark",
+            "app.files.file.mark",
+            None,
+        ));
         
         // ---------- move ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Move")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.files.file.move")
-                .build();
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Move",
+            "app.files.file.move",
+            None,
+        ));
         
         // ---------- lookup ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Lookup")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.files.tools.lookup")
-                .build();
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Lookup",
+            "app.files.tools.lookup",
+            None,
+        ));
         
         // ---------- return ----------
         

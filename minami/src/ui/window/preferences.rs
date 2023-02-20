@@ -390,90 +390,31 @@ impl Candidates {
     fn build_candidates_buttons() -> gtk::Box {
         // ---------- candidates buttons box ----------
         
-        let candidates_buttons_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .homogeneous(true)
-            .spacing(WINDOW_SPACING)
-            .halign(gtk::Align::Start)
-            .orientation(gtk::Orientation::Horizontal)
-            .build()
-            
-        };
+        let candidates_buttons_box = super::build_buttons_box();
         
         // ---------- add ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Add")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.candidates.candidates.add")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
-            
-            candidates_buttons_box.add(&button);
-            
-        }
+        candidates_buttons_box.add(&super::build_button(
+            "Add",
+            "app.preferences.candidates.candidates.add",
+            Some(gtk::STYLE_CLASS_SUGGESTED_ACTION),
+        ));
         
         // ---------- edit ----------
         
-        {
-            
-            candidates_buttons_box.add(
-                &gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Edit")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.candidates.candidates.edit")
-                .build()
-            );
-            
-        }
+        candidates_buttons_box.add(&super::build_button(
+            "Edit",
+            "app.preferences.candidates.candidates.edit",
+            None,
+        ));
         
         // ---------- delete ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Delete")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.candidates.candidates.delete")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-            
-            candidates_buttons_box.add(&button);
-            
-        }
+        candidates_buttons_box.add(&super::build_button(
+            "Delete",
+            "app.preferences.candidates.candidates.delete",
+            Some(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION),
+        ));
         
         // ---------- return ----------
         
@@ -562,67 +503,23 @@ impl Candidates {
     fn build_downloaded_buttons() -> gtk::Box {
         // ---------- downloaded buttons box ----------
         
-        let downloaded_buttons_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .homogeneous(true)
-            .spacing(WINDOW_SPACING)
-            .halign(gtk::Align::Start)
-            .orientation(gtk::Orientation::Horizontal)
-            .build()
-            
-        };
+        let downloaded_buttons_box = super::build_buttons_box();
         
         // ---------- add ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Add")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.candidates.downloaded.add")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
-            
-            downloaded_buttons_box.add(&button);
-            
-        }
+        downloaded_buttons_box.add(&super::build_button(
+            "Add",
+            "app.preferences.candidates.downloaded.add",
+            Some(gtk::STYLE_CLASS_SUGGESTED_ACTION),
+        ));
         
         // ---------- delete ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Delete")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.candidates.downloaded.delete")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-            
-            downloaded_buttons_box.add(&button);
-            
-        }
+        downloaded_buttons_box.add(&super::build_button(
+            "Delete",
+            "app.preferences.candidates.downloaded.delete",
+            Some(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION),
+        ));
         
         // ---------- return ----------
         
@@ -741,90 +638,31 @@ impl Feeds {
     fn build_buttons() -> gtk::Box {
         // ---------- buttons box ----------
         
-        let buttons_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .homogeneous(true)
-            .spacing(WINDOW_SPACING)
-            .halign(gtk::Align::Start)
-            .orientation(gtk::Orientation::Horizontal)
-            .build()
-            
-        };
+        let buttons_box = super::build_buttons_box();
         
         // ---------- add ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Add")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.feeds.add")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Add",
+            "app.preferences.feeds.add",
+            Some(gtk::STYLE_CLASS_SUGGESTED_ACTION),
+        ));
         
         // ---------- edit ----------
         
-        {
-            
-            buttons_box.add(
-                &gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Edit")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.feeds.edit")
-                .build()
-            );
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Edit",
+            "app.preferences.feeds.edit",
+            None,
+        ));
         
         // ---------- delete ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Delete")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.feeds.delete")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Delete",
+            "app.preferences.feeds.delete",
+            Some(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION),
+        ));
         
         // ---------- return ----------
         
@@ -943,90 +781,31 @@ impl Kinds {
     fn build_buttons() -> gtk::Box {
         // ---------- buttons box ----------
         
-        let buttons_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .homogeneous(true)
-            .spacing(WINDOW_SPACING)
-            .halign(gtk::Align::Start)
-            .orientation(gtk::Orientation::Horizontal)
-            .build()
-            
-        };
+        let buttons_box = super::build_buttons_box();
         
         // ---------- add ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Add")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.kinds.add")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Add",
+            "app.preferences.kinds.add",
+            Some(gtk::STYLE_CLASS_SUGGESTED_ACTION),
+        ));
         
         // ---------- edit ----------
         
-        {
-            
-            buttons_box.add(
-                &gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Edit")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.kinds.edit")
-                .build()
-            );
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Edit",
+            "app.preferences.kinds.edit",
+            None,
+        ));
         
         // ---------- delete ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Delete")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.kinds.delete")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Delete",
+            "app.preferences.kinds.delete",
+            Some(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION),
+        ));
         
         // ---------- return ----------
         
@@ -1144,90 +923,31 @@ impl Formats {
     fn build_buttons() -> gtk::Box {
         // ---------- buttons box ----------
         
-        let buttons_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .homogeneous(true)
-            .spacing(WINDOW_SPACING)
-            .halign(gtk::Align::Start)
-            .orientation(gtk::Orientation::Horizontal)
-            .build()
-            
-        };
+        let buttons_box = super::build_buttons_box();
         
         // ---------- add ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Add")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.formats.add")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Add",
+            "app.preferences.formats.add",
+            Some(gtk::STYLE_CLASS_SUGGESTED_ACTION),
+        ));
         
         // ---------- edit ----------
         
-        {
-            
-            buttons_box.add(
-                &gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Edit")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.formats.edit")
-                .build()
-            );
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Edit",
+            "app.preferences.formats.edit",
+            None,
+        ));
         
         // ---------- delete ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Delete")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.formats.delete")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Delete",
+            "app.preferences.formats.delete",
+            Some(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION),
+        ));
         
         // ---------- return ----------
         
@@ -1588,90 +1308,31 @@ impl Media {
     fn build_buttons() -> gtk::Box {
         // ---------- buttons box ----------
         
-        let buttons_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .homogeneous(true)
-            .spacing(WINDOW_SPACING)
-            .halign(gtk::Align::Start)
-            .orientation(gtk::Orientation::Horizontal)
-            .build()
-            
-        };
+        let buttons_box = super::build_buttons_box();
         
         // ---------- confirm ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Confirm")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.media.confirm")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Confirm",
+            "app.preferences.media.confirm",
+            Some(gtk::STYLE_CLASS_SUGGESTED_ACTION),
+        ));
         
         // ---------- unlock ----------
         
-        {
-            
-            buttons_box.add(
-                &gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Unlock")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.media.unlock")
-                .build()
-            );
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Unlock",
+            "app.preferences.media.unlock",
+            None,
+        ));
         
         // ---------- discard ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Discard")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.media.discard")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Discard",
+            "app.preferences.media.discard",
+            Some(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION),
+        ));
         
         // ---------- return ----------
         
@@ -1873,90 +1534,31 @@ impl Paths {
     fn build_buttons() -> gtk::Box {
         // ---------- buttons box ----------
         
-        let buttons_box = {
-            
-            gtk::Box::builder()
-            .visible(true)
-            .homogeneous(true)
-            .spacing(WINDOW_SPACING)
-            .halign(gtk::Align::Start)
-            .orientation(gtk::Orientation::Horizontal)
-            .build()
-            
-        };
+        let buttons_box = super::build_buttons_box();
         
         // ---------- confirm ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Confirm")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.paths.confirm")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_SUGGESTED_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Confirm",
+            "app.preferences.paths.confirm",
+            Some(gtk::STYLE_CLASS_SUGGESTED_ACTION),
+        ));
         
         // ---------- unlock ----------
         
-        {
-            
-            buttons_box.add(
-                &gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Unlock")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.paths.unlock")
-                .build()
-            );
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Unlock",
+            "app.preferences.paths.unlock",
+            None,
+        ));
         
         // ---------- discard ----------
         
-        {
-            
-            let button = gtk::Button::builder()
-                .visible(true)
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label("Discard")
-                    .xalign(0.5)
-                    .width_chars(7)
-                    .build()
-                    
-                })
-                .action_name("app.preferences.paths.discard")
-                .build();
-            
-            button.style_context().add_class(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION);
-            
-            buttons_box.add(&button);
-            
-        }
+        buttons_box.add(&super::build_button(
+            "Discard",
+            "app.preferences.paths.discard",
+            Some(gtk::STYLE_CLASS_DESTRUCTIVE_ACTION),
+        ));
         
         // ---------- return ----------
         
