@@ -7,7 +7,6 @@ use crate::FilesSection;
 
 use super::{
     WINDOW_SPACING,
-    SECTIONS_LISTBOX_ROW_WIDTH, SECTIONS_LISTBOX_ROW_HEIGHT,
     General,
 };
 
@@ -29,7 +28,28 @@ impl Files {
         /*
         
         scrolled_window
+            
             { listbox }
+                
+                header_box
+                    static_label ("Files")
+                    separator
+                /header_box
+                
+                ----- new -----
+                
+                listboxrow
+                    static_label ("New")
+                /listboxrow
+                
+                ----- watched -----
+                
+                listboxrow
+                    static_label ("Watched")
+                /listboxrow
+                
+            /listbox
+            
         /scrolled_window
         
         section_box
@@ -51,7 +71,7 @@ impl Files {
             /stack
             
             { frame }
-                static_label
+                static_label ("The file watcher is not currently running. Changes will not be detected.")
             /frame
             
             { buttons_box }
@@ -85,77 +105,13 @@ impl Files {
         
         // ---------- listbox ----------
         
-        let listbox = {
-            
-            gtk::ListBox::builder()
-            .visible(true)
-            .build()
-            
-        };
-        
-        scrolled_window.add(&listbox);
+        let listbox = super::build_section_listbox("Files");
         
         for section in FilesSection::iter() {
-            listbox.add(
-                &gtk::ListBoxRow::builder()
-                .visible(true)
-                .can_focus(false)
-                .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
-                .height_request(SECTIONS_LISTBOX_ROW_HEIGHT)
-                .name(section.display())
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label(section.display())
-                    .halign(gtk::Align::Start)
-                    .build()
-                    
-                })
-                .build()
-            );
+            listbox.add(&super::build_section_listboxrow(section.display()));
         }
         
-        listbox.set_header_func(Some(Box::new(|row, _| {
-            if row.index() == 0 {
-                
-                let header_box = {
-                    
-                    gtk::Box::builder()
-                    .visible(true)
-                    .orientation(gtk::Orientation::Vertical)
-                    .build()
-                    
-                };
-                
-                header_box.add(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .sensitive(false)
-                    .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
-                    .height_request(SECTIONS_LISTBOX_ROW_HEIGHT)
-                    .xalign(0.0)
-                    .label("Files")
-                    .halign(gtk::Align::Start)
-                    .build()
-                    
-                });
-                
-                header_box.add(&{
-                    
-                    gtk::Separator::builder()
-                    .visible(true)
-                    .valign(gtk::Align::Center)
-                    .orientation(gtk::Orientation::Horizontal)
-                    .build()
-                    
-                });
-                
-                row.set_header(Some(&header_box));
-                
-            }
-        })));
+        scrolled_window.add(&listbox);
         
         // ---------- section box ----------
         

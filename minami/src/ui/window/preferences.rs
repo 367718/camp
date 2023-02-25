@@ -4,7 +4,6 @@ use crate::PreferencesSection;
 
 use super::{
     WINDOW_SPACING, FIELDS_SPACING,
-    SECTIONS_LISTBOX_ROW_WIDTH, SECTIONS_LISTBOX_ROW_HEIGHT,
     General,
 };
 
@@ -75,7 +74,52 @@ impl Preferences {
         /*
         
         scrolled_window
+            
             { listbox }
+                
+                header_box
+                    static_label ("Preferences")
+                    separator
+                /header_box
+                
+                ----- candidates -----
+                
+                listboxrow
+                    static_label ("Candidates")
+                /listboxrow
+                
+                ----- feeds -----
+                
+                listboxrow
+                    static_label ("Feeds")
+                /listboxrow
+                
+                ----- kinds -----
+                
+                listboxrow
+                    static_label ("Kinds")
+                /listboxrow
+                
+                ----- formats -----
+                
+                listboxrow
+                    static_label ("Formats")
+                /listboxrow
+                
+                ----- media -----
+                
+                listboxrow
+                    static_label ("Media")
+                /listboxrow
+                
+                ----- paths -----
+                
+                listboxrow
+                    static_label ("Paths")
+                /listboxrow
+                
+            /listbox
+            
         /scrolled_window
         
         { stack }
@@ -109,77 +153,13 @@ impl Preferences {
         
         // ---------- listbox ----------
         
-        let listbox = {
-            
-            gtk::ListBox::builder()
-            .visible(true)
-            .build()
-            
-        };
-        
-        scrolled_window.add(&listbox);
+        let listbox = super::build_section_listbox("Preferences");
         
         for section in PreferencesSection::iter() {
-            listbox.add(
-                &gtk::ListBoxRow::builder()
-                .visible(true)
-                .can_focus(false)
-                .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
-                .height_request(SECTIONS_LISTBOX_ROW_HEIGHT)
-                .name(section.display())
-                .child(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label(section.display())
-                    .halign(gtk::Align::Start)
-                    .build()
-                    
-                })
-                .build()
-            );
+            listbox.add(&super::build_section_listboxrow(section.display()));
         }
         
-        listbox.set_header_func(Some(Box::new(|row, _| {
-            if row.index() == 0 {
-                
-                let header_box = {
-                    
-                    gtk::Box::builder()
-                    .visible(true)
-                    .orientation(gtk::Orientation::Vertical)
-                    .build()
-                    
-                };
-                
-                header_box.add(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .sensitive(false)
-                    .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
-                    .height_request(SECTIONS_LISTBOX_ROW_HEIGHT)
-                    .xalign(0.0)
-                    .label("Preferences")
-                    .halign(gtk::Align::Start)
-                    .build()
-                    
-                });
-                
-                header_box.add(&{
-                    
-                    gtk::Separator::builder()
-                    .visible(true)
-                    .valign(gtk::Align::Center)
-                    .orientation(gtk::Orientation::Horizontal)
-                    .build()
-                    
-                });
-                
-                row.set_header(Some(&header_box));
-                
-            }
-        })));
+        scrolled_window.add(&listbox);
         
         // ---------- subsections ----------
         

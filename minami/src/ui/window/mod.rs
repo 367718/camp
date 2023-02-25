@@ -41,6 +41,78 @@ impl Window {
     
 }
 
+fn build_section_listbox(label: &'static str) -> gtk::ListBox {
+    let listbox = {
+        
+        gtk::ListBox::builder()
+        .visible(true)
+        .build()
+        
+    };
+    
+    listbox.set_header_func(Some(Box::new(move |row, _| {
+        if row.index() == 0 {
+            
+            let header_box = {
+                
+                gtk::Box::builder()
+                .visible(true)
+                .orientation(gtk::Orientation::Vertical)
+                .build()
+                
+            };
+            
+            header_box.add(&{
+                
+                gtk::Label::builder()
+                .visible(true)
+                .sensitive(false)
+                .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
+                .height_request(SECTIONS_LISTBOX_ROW_HEIGHT)
+                .xalign(0.0)
+                .label(label)
+                .halign(gtk::Align::Start)
+                .build()
+                
+            });
+            
+            header_box.add(&{
+                
+                gtk::Separator::builder()
+                .visible(true)
+                .valign(gtk::Align::Center)
+                .orientation(gtk::Orientation::Horizontal)
+                .build()
+                
+            });
+            
+            row.set_header(Some(&header_box));
+            
+        }
+    })));
+    
+    listbox
+}
+
+fn build_section_listboxrow(name: &str) -> gtk::ListBoxRow {
+    gtk::ListBoxRow::builder()
+    .visible(true)
+    .can_focus(false)
+    .width_request(SECTIONS_LISTBOX_ROW_WIDTH)
+    .height_request(SECTIONS_LISTBOX_ROW_HEIGHT)
+    .name(name)
+    .child(&{
+        
+        gtk::Label::builder()
+        .visible(true)
+        .label(name)
+        .halign(gtk::Align::Start)
+        .build()
+        
+    })
+    .build()
+}
+
 fn build_buttons_box() -> gtk::Box {
     gtk::Box::builder()
     .visible(true)

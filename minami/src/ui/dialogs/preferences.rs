@@ -87,7 +87,7 @@ impl Candidates {
                 ----- title -----
                 
                 title_box
-                    static_label
+                    static_label ("Title:")
                     { title_entry }
                     image
                 /title_box
@@ -95,7 +95,7 @@ impl Candidates {
                 ----- group -----
                 
                 group_box
-                    static_label
+                    static_label ("Group:")
                     { group_entry }
                     image
                 /group_box
@@ -103,7 +103,7 @@ impl Candidates {
                 ----- quality -----
                 
                 quality_box
-                    static_label
+                    static_label ("Quality:")
                     { quality_entry }
                     image
                 /quality_box
@@ -111,7 +111,7 @@ impl Candidates {
                 ----- series -----
                 
                 series_box
-                    static_label
+                    static_label ("Series:")
                     { series_entry }
                     button (select_series, gtk::ResponseType::Other(1))
                 /series_box
@@ -119,21 +119,21 @@ impl Candidates {
                 ----- offset -----
                 
                 offset_box
-                    static_label
+                    static_label ("Offset:")
                     { offset_spin }
                 /offset_box
                 
                 ----- current -----
                 
                 current_box
-                    static_label
+                    static_label ("Current:")
                     { current_switch }
                 /current_box
                 
                 ----- downloaded -----
                 
                 downloaded_box
-                    static_label
+                    static_label ("Downloaded:")
                     { downloaded_spin }
                 /downloaded_box
                 
@@ -694,14 +694,14 @@ impl CandidatesDownloaded {
                 ----- title -----
                 
                 title_box
-                    static_label
+                    static_label ("Candidate:")
                     { title_label }
                 /title_box
                 
                 ----- download -----
                 
                 download_box
-                    static_label
+                    static_label ("Download:")
                     { download_spin }
                 /download_box
                 
@@ -855,7 +855,7 @@ impl Feeds {
         content_area
             
             main_box
-                static_label
+                static_label ("URL:")
                 { url_entry }
             /main_box
             
@@ -951,7 +951,7 @@ impl Kinds {
         content_area
             
             main_box
-                static_label
+                static_label ("Name:")
                 { name_entry }
             /main_box
             
@@ -1047,7 +1047,7 @@ impl Formats {
         content_area
             
             main_box
-                static_label
+                static_label ("Name:")
                 { name_entry }
             /main_box
             

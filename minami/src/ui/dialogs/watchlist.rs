@@ -43,7 +43,7 @@ impl Series {
                 ----- title -----
                 
                 title_box
-                    static_label
+                    static_label ("Title:")
                     { title_entry }
                     button (lookup_title, gtk::ResponseType::Other(2))
                 /title_box
@@ -51,14 +51,14 @@ impl Series {
                 ----- kind -----
                 
                 kind_box
-                    static_label
+                    static_label ("Kind:")
                     { kind_combo }
                 /kind_box
                 
                 ----- status -----
                 
                 status_box
-                    static_label
+                    static_label ("Status:")
                     { status_combo }
                     image
                 /status_box
@@ -66,14 +66,14 @@ impl Series {
                 ----- progress -----
                 
                 progress_box
-                    static_label
+                    static_label ("Progress:")
                     { progress_spin }
                 /progress_box
                 
                 ----- good -----
                 
                 good_box
-                    static_label
+                    static_label ("Good:")
                     { good_switch }
                 /good_box
                 

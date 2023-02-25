@@ -71,7 +71,7 @@ impl Error {
         content_area
             
             vertical_box
-                static_label
+                static_label ("The following errors were encountered:")
                 { error_label }
             /vertical_box
             
@@ -167,8 +167,8 @@ impl Delete {
         content_area
             
             main_box
-                static_label
-                static_label
+                static_label ("Are you sure you want to permanently delete the selected elements?")
+                static_label ("This action cannot be undone.")
             /main_box
             
         /content_area
@@ -276,14 +276,14 @@ impl FileLoadError {
                 ----- path -----
                 
                 path_box
-                    static_label
+                    static_label ("Path:")
                     { path_label }
                 /path_box
                 
                 ----- error -----
                 
                 error_box
-                    static_label
+                    static_label ("Error:")
                     { error_label }
                 /error_box
                 
@@ -336,7 +336,6 @@ impl FileLoadError {
         
         let message_label = gtk::Label::builder()
             .visible(true)
-            .label("A file could not be loaded.")
             .xalign(0.0)
             .build();
         
@@ -457,14 +456,14 @@ impl FileSaveError {
                 ----- path -----
                 
                 path_box
-                    static_label
+                    static_label ("Path:")
                     { path_label }
                 /path_box
                 
                 ----- error -----
                 
                 error_box
-                    static_label
+                    static_label ("Error:")
                     { error_label }
                 /error_box
                 
@@ -512,7 +511,6 @@ impl FileSaveError {
             
             gtk::Label::builder()
             .visible(true)
-            .label("A file could not be saved.")
             .xalign(0.0)
             .build()
             

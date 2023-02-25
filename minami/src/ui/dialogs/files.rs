@@ -63,18 +63,18 @@ impl Rename {
                 ----- current -----
                 
                 current_box
-                    static_label
+                    static_label ("Current name:")
                     { current_label }
                 /current_box
                 
                 ----- new -----
                 
                 new_box
-                    static_label
+                    static_label ("New name:")
                     { new_entry }
                 /new_box
                 
-                static_label
+                static_label ("File extension will not be changed.")
                 
             /main_box
             
@@ -234,12 +234,12 @@ impl MoveToFolder {
             main_box
                 
                 folder_box
-                    static_label
+                    static_label ("Folder name:")
                     { folder_entry }
                 /folder_box
                 
-                static_label
-                static_label
+                static_label ("Directory will be created if it doesn't exist.")
+                static_label ("Files will be moved to root if no name is provided.")
                 
             /main_box
             
@@ -418,7 +418,7 @@ impl Maintenance {
             
             main_box
                 
-                static_label
+                static_label ("This process will permanently delete every file marked as "Updated" or considered irrelevant and every directory considered empty.")
                 
             /main_box
             
