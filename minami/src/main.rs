@@ -39,7 +39,7 @@ use aoi::RemoteControlServer;
 use akari::HttpClient;
 
 use ui::Ui;
-use general::GeneralActions;
+use general::{ GeneralActions, concat_str };
 use preferences::{ PreferencesActions, PreferencesSection };
 use files::{ FilesActions, FilesSection };
 use watchlist::{ WatchlistActions, WatchlistSection };

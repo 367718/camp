@@ -8,7 +8,7 @@ use std::{
     iter::Peekable,
     mem,
     os::raw::*,
-    path::{ MAIN_SEPARATOR, PathBuf },
+    path::{ MAIN_SEPARATOR_STR, PathBuf },
     process,
     ptr,
     str::{ self, Chars },
@@ -1026,18 +1026,8 @@ fn search_compute(state: &mut State) {
                         
                         let watched = files_store.value(store_iter, 2).get::<bool>().unwrap();
                         let section = FilesSection::from(watched);
-                        let display = section.display();
                         
-                        let mut composite = String::with_capacity(container.len() + 1 + file_stem.len() + 7 + display.len());
-                        
-                        composite.push_str(&container);
-                        composite.push(MAIN_SEPARATOR);
-                        composite.push_str(&file_stem);
-                        composite.push_str(" (");
-                        composite.push_str(display);
-                        composite.push_str(") (f)");
-                        
-                        composite
+                        concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem, " (", section.display(), ") (f)")
                         
                     },
                     

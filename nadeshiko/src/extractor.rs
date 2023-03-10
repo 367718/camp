@@ -116,6 +116,21 @@ mod tests {
         }
         
         #[test]
+        fn dot() {
+            // setup
+            
+            let value = "[Non-existent] Made up - .24 [720p]";
+            
+            // operation
+            
+            let output = get(value);
+            
+            // control
+            
+            assert_eq!(output, Some(24));
+        }
+        
+        #[test]
         fn whitespace() {
             // setup
             

@@ -1,4 +1,4 @@
-use std::path::MAIN_SEPARATOR;
+use std::path::MAIN_SEPARATOR_STR;
 
 use gtk::{
     gdk,
@@ -10,6 +10,7 @@ use gtk::{
 use crate::{
     State, Message,
     PreferencesActions, FilesActions, WatchlistActions,
+    concat_str,
 };
 
 pub fn init(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
@@ -115,13 +116,7 @@ fn selected_name(state: &State) -> Option<String> {
             let container = treemodel.value(&parent_iter, 3).get::<glib::GString>().unwrap();
             let file_stem = treemodel.value(&treeiter, 3).get::<glib::GString>().unwrap();
             
-            let mut composite = String::with_capacity(container.len() + 1 + file_stem.len());
-            
-            composite.push_str(&container);
-            composite.push(MAIN_SEPARATOR);
-            composite.push_str(&file_stem);
-            
-            composite
+            concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem)
             
         },
         
@@ -133,16 +128,6 @@ fn selected_name(state: &State) -> Option<String> {
 }
 
 pub fn copy_names(state: &State) {
-    
-    fn include_container(container: &str, file_stem: &str) -> String {
-        let mut composite = String::with_capacity(container.len() + 1 + file_stem.len());
-        
-        composite.push_str(container);
-        composite.push(MAIN_SEPARATOR);
-        composite.push_str(file_stem);
-        
-        composite
-    }
     
     let Some(treeview) = state.ui.files_current_treeview() else {
         return;
@@ -172,7 +157,7 @@ pub fn copy_names(state: &State) {
                 loop {
                     
                     let file_stem = treemodel.value(&iter_child, 3).get::<glib::GString>().unwrap();
-                    names.push(include_container(&container, &file_stem));
+                    names.push(concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem));
                     
                     if ! treemodel.iter_next(&iter_child) {
                         break;
@@ -198,7 +183,7 @@ pub fn copy_names(state: &State) {
                     let container = treemodel.value(&parent_iter, 3).get::<glib::GString>().unwrap();
                     let file_stem = treemodel.value(treeiter, 3).get::<glib::GString>().unwrap();
                     
-                    names.push(include_container(&container, &file_stem));
+                    names.push(concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem));
                     
                 },
                 

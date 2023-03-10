@@ -2,7 +2,7 @@ use std::{
     error::Error,
     ffi::OsString,
     fs,
-    path::{ MAIN_SEPARATOR, Path },
+    path::{ MAIN_SEPARATOR_STR, Path },
     str,
     thread,
 };
@@ -22,6 +22,7 @@ use crate::{
     FilesEntry, FilesMark,
     RemoteControlServer,
     HttpClient,
+    concat_str,
 };
 
 pub fn init(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
@@ -128,13 +129,7 @@ pub fn lookup(state: &State) {
             let container = treemodel.value(&parent_iter, 3).get::<glib::GString>().unwrap();
             let file_stem = treemodel.value(&treeiter, 3).get::<glib::GString>().unwrap();
             
-            let mut composite = String::with_capacity(container.len() + 1 + file_stem.len());
-            
-            composite.push_str(&container);
-            composite.push(MAIN_SEPARATOR);
-            composite.push_str(&file_stem);
-            
-            composite
+            concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem)
             
         },
         
