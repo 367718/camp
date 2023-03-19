@@ -161,10 +161,10 @@ impl Watchlist {
         
         section_box.add(&stack);
         
-        let (watching_scrolled_window, watching_treeview) = Self::build_treeview(WatchlistSection::Watching);
-        let (on_hold_scrolled_window, on_hold_treeview) = Self::build_treeview(WatchlistSection::OnHold);
-        let (plan_to_watch_scrolled_window, plan_to_watch_treeview) = Self::build_treeview(WatchlistSection::PlanToWatch);
-        let (completed_scrolled_window, completed_treeview) = Self::build_treeview(WatchlistSection::Completed);
+        let (watching_scrolled_window, watching_treeview) = Self::build_treeview();
+        let (on_hold_scrolled_window, on_hold_treeview) = Self::build_treeview();
+        let (plan_to_watch_scrolled_window, plan_to_watch_treeview) = Self::build_treeview();
+        let (completed_scrolled_window, completed_treeview) = Self::build_treeview();
         
         stack.add_named(&watching_scrolled_window, WatchlistSection::Watching.display());
         stack.add_named(&on_hold_scrolled_window, WatchlistSection::OnHold.display());
@@ -200,7 +200,7 @@ impl Watchlist {
         
     }
     
-    fn build_treeview(section: WatchlistSection) -> (gtk::ScrolledWindow, gtk::TreeView) {
+    fn build_treeview() -> (gtk::ScrolledWindow, gtk::TreeView) {
         // ---------- scrolled window ----------
         
         let scrolled_window = {
@@ -256,36 +256,30 @@ impl Watchlist {
         title_cell.set_ellipsize(pango::EllipsizeMode::End);
         
         CellLayoutExt::pack_end(&title_column, &title_cell, true);
-        
-        if section == WatchlistSection::Completed {
-            TreeViewColumnExt::add_attribute(&title_column, &title_cell, "weight", 1);
-        }
-        
+        TreeViewColumnExt::add_attribute(&title_column, &title_cell, "weight", 1);
         TreeViewColumnExt::add_attribute(&title_column, &title_cell, "text", 3);
         
         title_column.set_sort_column_id(3);
         
         treeview.append_column(&title_column);
         
-        // good column (only for completed)
+        // good column
         
-        if section == WatchlistSection::Completed {
-            let good_column = gtk::TreeViewColumn::new();
-            good_column.set_title("good");
-            good_column.set_sort_indicator(true);
-            good_column.set_reorderable(true);
-            
-            let good_cell = gtk::CellRendererText::new();
-            good_cell.set_xalign(0.50);
-            
-            CellLayoutExt::pack_end(&good_column, &good_cell, true);
-            TreeViewColumnExt::add_attribute(&good_column, &good_cell, "weight", 1);
-            TreeViewColumnExt::add_attribute(&good_column, &good_cell, "text", 4);
-            
-            good_column.set_sort_column_id(4);
-            
-            treeview.append_column(&good_column);
-        }
+        let good_column = gtk::TreeViewColumn::new();
+        good_column.set_title("good");
+        good_column.set_sort_indicator(true);
+        good_column.set_reorderable(true);
+        
+        let good_cell = gtk::CellRendererText::new();
+        good_cell.set_xalign(0.50);
+        
+        CellLayoutExt::pack_end(&good_column, &good_cell, true);
+        TreeViewColumnExt::add_attribute(&good_column, &good_cell, "weight", 1);
+        TreeViewColumnExt::add_attribute(&good_column, &good_cell, "text", 4);
+        
+        good_column.set_sort_column_id(4);
+        
+        treeview.append_column(&good_column);
         
         // kind column
         
@@ -298,36 +292,30 @@ impl Watchlist {
         kind_cell.set_xalign(0.50);
         
         CellLayoutExt::pack_end(&kind_column, &kind_cell, true);
-        
-        if section == WatchlistSection::Completed {
-            TreeViewColumnExt::add_attribute(&kind_column, &kind_cell, "weight", 1);
-        }
-        
+        TreeViewColumnExt::add_attribute(&kind_column, &kind_cell, "weight", 1);
         TreeViewColumnExt::add_attribute(&kind_column, &kind_cell, "text", 5);
         
         kind_column.set_sort_column_id(5);
         
         treeview.append_column(&kind_column);
         
-        // progress column (only for watching, on-hold and completed)
+        // progress column
         
-        if section != WatchlistSection::PlanToWatch {
-            let progress_column = gtk::TreeViewColumn::new();
-            progress_column.set_title("progress");
-            progress_column.set_sort_indicator(true);
-            progress_column.set_reorderable(true);
-            
-            let progress_cell = gtk::CellRendererText::new();
-            progress_cell.set_xalign(0.85);
-            
-            CellLayoutExt::pack_end(&progress_column, &progress_cell, true);
-            TreeViewColumnExt::add_attribute(&progress_column, &progress_cell, "weight", 1);
-            TreeViewColumnExt::add_attribute(&progress_column, &progress_cell, "text", 6);
-            
-            progress_column.set_sort_column_id(6);
-            
-            treeview.append_column(&progress_column);
-        }
+        let progress_column = gtk::TreeViewColumn::new();
+        progress_column.set_title("progress");
+        progress_column.set_sort_indicator(true);
+        progress_column.set_reorderable(true);
+        
+        let progress_cell = gtk::CellRendererText::new();
+        progress_cell.set_xalign(0.85);
+        
+        CellLayoutExt::pack_end(&progress_column, &progress_cell, true);
+        TreeViewColumnExt::add_attribute(&progress_column, &progress_cell, "weight", 1);
+        TreeViewColumnExt::add_attribute(&progress_column, &progress_cell, "text", 6);
+        
+        progress_column.set_sort_column_id(6);
+        
+        treeview.append_column(&progress_column);
         
         // ---------- return ----------
         
