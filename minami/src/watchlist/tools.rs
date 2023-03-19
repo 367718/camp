@@ -29,14 +29,7 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     
     // ---------- treeviews ----------
     
-    let treeviews = [
-        &state.ui.widgets().window.watchlist.watching_treeview,
-        &state.ui.widgets().window.watchlist.on_hold_treeview,
-        &state.ui.widgets().window.watchlist.plan_to_watch_treeview,
-        &state.ui.widgets().window.watchlist.completed_treeview,
-    ];
-    
-    for treeview in treeviews {
+    for treeview in &state.ui.widgets().window.watchlist.treeviews {
         
         // lookup selected title (CONTROL + L/l)
         treeview.connect_key_press_event({

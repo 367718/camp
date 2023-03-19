@@ -16,14 +16,7 @@ pub fn init(state: &State, sender: &Sender<Message>) {
 fn bind(state: &State, sender: &Sender<Message>) {
     // ---------- treeviews ----------
     
-    let treeviews = [
-        &state.ui.widgets().window.watchlist.watching_treeview,
-        &state.ui.widgets().window.watchlist.on_hold_treeview,
-        &state.ui.widgets().window.watchlist.plan_to_watch_treeview,
-        &state.ui.widgets().window.watchlist.completed_treeview,
-    ];
-    
-    for treeview in treeviews {
+    for treeview in &state.ui.widgets().window.watchlist.treeviews {
         
         // focus global search entry (SHIFT + Tab)
         treeview.connect_key_press_event({

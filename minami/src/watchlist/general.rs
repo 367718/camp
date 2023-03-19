@@ -13,42 +13,21 @@ pub fn init(state: &State) {
 }
 
 fn build(state: &State) {
-    // ---------- fill ----------
-    
     fill(state);
     
-    // ---------- widgets ----------
+    // watchlist
     
-    let watching_sort = &state.ui.widgets().stores.watchlist.entries.watching_sort;
-    let on_hold_sort = &state.ui.widgets().stores.watchlist.entries.on_hold_sort;
-    let plan_to_watch_sort = &state.ui.widgets().stores.watchlist.entries.plan_to_watch_sort;
-    let completed_sort = &state.ui.widgets().stores.watchlist.entries.completed_sort;
+    for (treeview, sort) in state.ui.widgets().window.watchlist.treeviews.iter().zip(state.ui.widgets().stores.watchlist.entries.sorts.iter()) {
+        sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
+        treeview.set_model(Some(sort));
+    }
     
-    let candidates_watching_sort = &state.ui.widgets().stores.watchlist.entries.candidates_watching_sort;
-    let candidates_on_hold_sort = &state.ui.widgets().stores.watchlist.entries.candidates_on_hold_sort;
-    let candidates_plan_to_watch_sort = &state.ui.widgets().stores.watchlist.entries.candidates_plan_to_watch_sort;
+    // candidates
     
-    // ---------- set sort ids ----------
-    
-    watching_sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
-    on_hold_sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
-    plan_to_watch_sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
-    completed_sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
-    
-    candidates_watching_sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
-    candidates_on_hold_sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
-    candidates_plan_to_watch_sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
-    
-    // ---------- set models ----------
-    
-    state.ui.widgets().window.watchlist.watching_treeview.set_model(Some(watching_sort));
-    state.ui.widgets().window.watchlist.on_hold_treeview.set_model(Some(on_hold_sort));
-    state.ui.widgets().window.watchlist.plan_to_watch_treeview.set_model(Some(plan_to_watch_sort));
-    state.ui.widgets().window.watchlist.completed_treeview.set_model(Some(completed_sort));
-    
-    state.ui.widgets().dialogs.preferences.candidates_series.watching_treeview.set_model(Some(candidates_watching_sort));
-    state.ui.widgets().dialogs.preferences.candidates_series.on_hold_treeview.set_model(Some(candidates_on_hold_sort));
-    state.ui.widgets().dialogs.preferences.candidates_series.plan_to_watch_treeview.set_model(Some(candidates_plan_to_watch_sort));
+    for (treeview, sort) in state.ui.widgets().dialogs.preferences.candidates_series.treeviews.iter().zip(state.ui.widgets().stores.watchlist.entries.candidates_sorts.iter()) {
+        sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
+        treeview.set_model(Some(sort));
+    }
 }
 
 fn fill(state: &State) {
@@ -82,66 +61,35 @@ fn fill(state: &State) {
 }
 
 pub fn reload(state: &State, sender: &Sender<Message>) {
-    // ---------- widgets ----------
+    // watchlist
     
-    let watching_sort = &state.ui.widgets().stores.watchlist.entries.watching_sort;
-    let on_hold_sort = &state.ui.widgets().stores.watchlist.entries.on_hold_sort;
-    let plan_to_watch_sort = &state.ui.widgets().stores.watchlist.entries.plan_to_watch_sort;
-    let completed_sort = &state.ui.widgets().stores.watchlist.entries.completed_sort;
+    for (treeview, sort) in state.ui.widgets().window.watchlist.treeviews.iter().zip(state.ui.widgets().stores.watchlist.entries.sorts.iter()) {
+        treeview.set_model(None::<&gtk::TreeModel>);
+        sort.set_sort_column_id(gtk::SortColumn::Default, gtk::SortType::Ascending);
+    }
     
-    let candidates_watching_sort = &state.ui.widgets().stores.watchlist.entries.candidates_watching_sort;
-    let candidates_on_hold_sort = &state.ui.widgets().stores.watchlist.entries.candidates_on_hold_sort;
-    let candidates_plan_to_watch_sort = &state.ui.widgets().stores.watchlist.entries.candidates_plan_to_watch_sort;
+    // candidates
     
-    // ---------- unset models ----------
-    
-    state.ui.widgets().window.watchlist.watching_treeview.set_model(None::<&gtk::TreeModel>);
-    state.ui.widgets().window.watchlist.on_hold_treeview.set_model(None::<&gtk::TreeModel>);
-    state.ui.widgets().window.watchlist.plan_to_watch_treeview.set_model(None::<&gtk::TreeModel>);
-    state.ui.widgets().window.watchlist.completed_treeview.set_model(None::<&gtk::TreeModel>);
-    
-    state.ui.widgets().dialogs.preferences.candidates_series.watching_treeview.set_model(None::<&gtk::TreeModel>);
-    state.ui.widgets().dialogs.preferences.candidates_series.on_hold_treeview.set_model(None::<&gtk::TreeModel>);
-    state.ui.widgets().dialogs.preferences.candidates_series.plan_to_watch_treeview.set_model(None::<&gtk::TreeModel>);
-    
-    // ---------- set sort ids ----------
-    
-    watching_sort.set_sort_column_id(gtk::SortColumn::Default, gtk::SortType::Ascending);
-    on_hold_sort.set_sort_column_id(gtk::SortColumn::Default, gtk::SortType::Ascending);
-    plan_to_watch_sort.set_sort_column_id(gtk::SortColumn::Default, gtk::SortType::Ascending);
-    completed_sort.set_sort_column_id(gtk::SortColumn::Default, gtk::SortType::Ascending);
-    
-    candidates_watching_sort.set_sort_column_id(gtk::SortColumn::Default, gtk::SortType::Ascending);
-    candidates_on_hold_sort.set_sort_column_id(gtk::SortColumn::Default, gtk::SortType::Ascending);
-    candidates_plan_to_watch_sort.set_sort_column_id(gtk::SortColumn::Default, gtk::SortType::Ascending);
-    
-    // ---------- fill ----------
+    for (treeview, sort) in state.ui.widgets().dialogs.preferences.candidates_series.treeviews.iter().zip(state.ui.widgets().stores.watchlist.entries.candidates_sorts.iter()) {
+        treeview.set_model(None::<&gtk::TreeModel>);
+        sort.set_sort_column_id(gtk::SortColumn::Default, gtk::SortType::Ascending);
+    }
     
     fill(state);
     
-    // ---------- set sort ids ----------
+    // watchlist
     
-    watching_sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
-    on_hold_sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
-    plan_to_watch_sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
-    completed_sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
+    for (treeview, sort) in state.ui.widgets().window.watchlist.treeviews.iter().zip(state.ui.widgets().stores.watchlist.entries.sorts.iter()) {
+        sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
+        treeview.set_model(Some(sort));
+    }
     
-    candidates_watching_sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
-    candidates_on_hold_sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
-    candidates_plan_to_watch_sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
+    // candidates
     
-    // ---------- set models ----------
-    
-    state.ui.widgets().window.watchlist.watching_treeview.set_model(Some(watching_sort));
-    state.ui.widgets().window.watchlist.on_hold_treeview.set_model(Some(on_hold_sort));
-    state.ui.widgets().window.watchlist.plan_to_watch_treeview.set_model(Some(plan_to_watch_sort));
-    state.ui.widgets().window.watchlist.completed_treeview.set_model(Some(completed_sort));
-    
-    state.ui.widgets().dialogs.preferences.candidates_series.watching_treeview.set_model(Some(candidates_watching_sort));
-    state.ui.widgets().dialogs.preferences.candidates_series.on_hold_treeview.set_model(Some(candidates_on_hold_sort));
-    state.ui.widgets().dialogs.preferences.candidates_series.plan_to_watch_treeview.set_model(Some(candidates_plan_to_watch_sort));
-    
-    // ---------- global search ----------
+    for (treeview, sort) in state.ui.widgets().dialogs.preferences.candidates_series.treeviews.iter().zip(state.ui.widgets().stores.watchlist.entries.candidates_sorts.iter()) {
+        sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
+        treeview.set_model(Some(sort));
+    }
     
     sender.send(Message::General(GeneralActions::SearchShouldRecompute)).unwrap();
 }

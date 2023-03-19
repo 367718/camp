@@ -33,9 +33,7 @@ pub struct Candidates {
 pub struct CandidatesSeries {
     pub dialog: gtk::Dialog,
     pub notebook: gtk::Notebook,
-    pub watching_treeview: gtk::TreeView,
-    pub on_hold_treeview: gtk::TreeView,
-    pub plan_to_watch_treeview: gtk::TreeView,
+    pub treeviews: Vec<gtk::TreeView>,
 }
 
 pub struct CandidatesDownloaded {
@@ -496,16 +494,8 @@ impl CandidatesSeries {
             { notebook }
                 
                 watching_scrolled
-                    { watching_treeview }
+                    treeview
                 /watching_scrolled
-                
-                on_hold_scrolled
-                    { on_hold_treeview }
-                /on_hold_scrolled
-                
-                plan_to_watch_scrolled
-                    { plan_to_watch_treeview }
-                /plan_to_watch_scrolled
                 
             /notebook
             
@@ -556,51 +546,29 @@ impl CandidatesSeries {
         
         // ---------- treeviews ----------
         
-        let (watching_scrolled, watching_treeview) = Self::build_treeview();
-        let (on_hold_scrolled, on_hold_treeview) = Self::build_treeview();
-        let (plan_to_watch_scrolled, plan_to_watch_treeview) = Self::build_treeview();
+        let mut treeviews = Vec::with_capacity(WatchlistSection::iter().count().saturating_sub(1));
         
-        {
-            
-            notebook.append_page(
-                &watching_scrolled,
-                Some(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label(WatchlistSection::Watching.display())
-                    .width_chars(12)
-                    .build()
-                    
-                })
-            );
-            
-            notebook.append_page(
-                &on_hold_scrolled,
-                Some(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label(WatchlistSection::OnHold.display())
-                    .width_chars(12)
-                    .build()
-                    
-                })
-            );
-            
-            notebook.append_page(
-                &plan_to_watch_scrolled,
-                Some(&{
-                    
-                    gtk::Label::builder()
-                    .visible(true)
-                    .label(WatchlistSection::PlanToWatch.display())
-                    .width_chars(12)
-                    .build()
-                    
-                })
-            );
-            
+        for section in WatchlistSection::iter() {
+            if section != WatchlistSection::Completed {
+                
+                let (scrolled, treeview) = Self::build_treeview();
+                
+                notebook.append_page(
+                    &scrolled,
+                    Some(&{
+                        
+                        gtk::Label::builder()
+                        .visible(true)
+                        .label(section.display())
+                        .width_chars(12)
+                        .build()
+                        
+                    })
+                );
+                
+                treeviews.push(treeview);
+                
+            }
         }
         
         // ---------- buttons ----------
@@ -618,12 +586,8 @@ impl CandidatesSeries {
         
         Self {
             dialog,
-            
             notebook,
-            
-            watching_treeview,
-            on_hold_treeview,
-            plan_to_watch_treeview,
+            treeviews,
         }
         
     }

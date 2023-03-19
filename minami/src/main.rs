@@ -454,51 +454,6 @@ mod bin {
         use super::*;
         
         #[test]
-        fn files_count() {
-            // setup
-            
-            let count = FilesSection::iter().count();
-            
-            // operation
-            
-            let output = count == 2;
-            
-            // control
-            
-            assert!(output);
-        }
-        
-        #[test]
-        fn watchlist_count() {
-            // setup
-            
-            let count = WatchlistSection::iter().count();
-            
-            // operation
-            
-            let output = count == 4;
-            
-            // control
-            
-            assert!(output);
-        }
-        
-        #[test]
-        fn preferences_count() {
-            // setup
-            
-            let count = PreferencesSection::iter().count();
-            
-            // operation
-            
-            let output = count == 6;
-            
-            // control
-            
-            assert!(output);
-        }
-        
-        #[test]
         fn files_display_unique() {
             // setup
             
@@ -558,62 +513,6 @@ mod bin {
             // operation
             
             let output = count == collected.len();
-            
-            // control
-            
-            assert!(output);
-        }
-        
-        #[test]
-        fn display_unique() {
-            // setup
-            
-            let count = FilesSection::iter().count() + WatchlistSection::iter().count() + PreferencesSection::iter().count();
-            let mut collected = Vec::new();
-            
-            for display in FilesSection::iter().map(|section| section.display().to_string()) {
-                if ! collected.contains(&display) {
-                    collected.push(display);
-                }
-            }
-            
-            for display in WatchlistSection::iter().map(|section| section.display().to_string()) {
-                if ! collected.contains(&display) {
-                    collected.push(display);
-                }
-            }
-            
-            for display in PreferencesSection::iter().map(|section| section.display().to_string()) {
-                if ! collected.contains(&display) {
-                    collected.push(display);
-                }
-            }
-            
-            // operation
-            
-            let output = count == collected.len();
-            
-            // control
-            
-            assert!(output);
-        }
-        
-    }
-    
-    #[cfg(test)]
-    mod file_marks {
-        
-        use super::*;
-        
-        #[test]
-        fn count() {
-            // setup
-            
-            let count = FilesMark::iter().count();
-            
-            // operation
-            
-            let output = count == 3;
             
             // control
             

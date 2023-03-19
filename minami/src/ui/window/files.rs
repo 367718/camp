@@ -14,8 +14,7 @@ pub struct Files {
     pub listbox: gtk::ListBox,
     pub stack: gtk::Stack,
     
-    pub new_treeview: gtk::TreeView,
-    pub watched_treeview: gtk::TreeView,
+    pub treeviews: Vec<gtk::TreeView>,
     
     pub frame: gtk::Frame,
     pub buttons_box: gtk::Box,
@@ -36,16 +35,8 @@ impl Files {
                     separator
                 /header_box
                 
-                ----- new -----
-                
                 listboxrow
-                    static_label ("New")
-                /listboxrow
-                
-                ----- watched -----
-                
-                listboxrow
-                    static_label ("Watched")
+                    static_label
                 /listboxrow
                 
             /listbox
@@ -56,17 +47,9 @@ impl Files {
             
             { stack }
                 
-                ----- new -----
-                
-                new_scrolled_window
-                    { new_treeview }
-                /new_scrolled_window
-                
-                ----- watched -----
-                
-                watched_scrolled_window
-                    { watched_treeview }
-                /watched_scrolled_window
+                scrolled_window
+                    treeview
+                /scrolled_window
                 
             /stack
             
@@ -139,16 +122,20 @@ impl Files {
         
         section_box.add(&stack);
         
-        let (new_scrolled_window, new_treeview) = Self::build_treeview();
-        let (watched_scrolled_window, watched_treeview) = Self::build_treeview();
+        let mut treeviews = Vec::with_capacity(FilesSection::iter().count());
         
-        stack.add_named(&new_scrolled_window, FilesSection::New.display());
-        stack.add_named(&watched_scrolled_window, FilesSection::Watched.display());
-        
-        // make sure global search scrolling works as intended
-        
-        new_treeview.realize();
-        watched_treeview.realize();
+        for section in FilesSection::iter() {
+            
+            let (scrolled_window, treeview) = Self::build_treeview();
+            stack.add_named(&scrolled_window, section.display());
+            
+            // make sure global search scrolling works as intended
+            
+            treeview.realize();
+            
+            treeviews.push(treeview);
+            
+        }
         
         // ---------- frame ----------
         
@@ -185,8 +172,7 @@ impl Files {
             listbox,
             stack,
             
-            new_treeview,
-            watched_treeview,
+            treeviews,
             
             frame,
             buttons_box,

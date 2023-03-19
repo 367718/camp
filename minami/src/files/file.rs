@@ -87,12 +87,7 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     
     // ---------- treeviews ----------
     
-    let treeviews = [
-        &state.ui.widgets().window.files.new_treeview,
-        &state.ui.widgets().window.files.watched_treeview,
-    ];
-    
-    for treeview in treeviews {
+    for treeview in &state.ui.widgets().window.files.treeviews {
         
         // rename first selected file (F2)
         // move files to specified folder (F3)
@@ -497,21 +492,21 @@ pub fn refresh_queue(state: &mut State) {
         
     }
     
-    let new_selection = state.ui.widgets().window.files.new_treeview.selection();
-    let watched_selection = state.ui.widgets().window.files.watched_treeview.selection();
+    let mut count: usize = 0;
     
-    let count = usize::try_from(new_selection.count_selected_rows() + watched_selection.count_selected_rows()).unwrap_or(0);
-    
-    if count > 0 {
-        
-        let mut selected = Vec::with_capacity(count);
-        
-        new_selection.selected_foreach(|treemodel, _, treeiter| process_row(treemodel, treeiter, &mut selected));
-        watched_selection.selected_foreach(|treemodel, _, treeiter| process_row(treemodel, treeiter, &mut selected));
-        
-        state.files.refresh_queue(&selected);
-        
+    for treeview in &state.ui.widgets().window.files.treeviews {
+        count = count.checked_add(treeview.selection().count_selected_rows() as usize).unwrap_or(0);
     }
+    
+    let mut selected = Vec::with_capacity(count);
+    
+    if selected.capacity() > 0 {
+        for treeview in &state.ui.widgets().window.files.treeviews {
+            treeview.selection().selected_foreach(|treemodel, _, treeiter| process_row(treemodel, treeiter, &mut selected));
+        }
+    }
+    
+    state.files.refresh_queue(&selected);
     
 }
 

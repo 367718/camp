@@ -14,11 +14,8 @@ pub struct Watchlist {
     pub listbox: gtk::ListBox,
     pub stack: gtk::Stack,
     
-    pub watching_treeview: gtk::TreeView,
-    pub on_hold_treeview: gtk::TreeView,
-    pub plan_to_watch_treeview: gtk::TreeView,
-    pub completed_treeview: gtk::TreeView,
-
+    pub treeviews: Vec<gtk::TreeView>,
+    
     pub buttons_box: gtk::Box,
 }
 
@@ -37,28 +34,8 @@ impl Watchlist {
                     separator
                 /header_box
                 
-                ----- watching -----
-                
                 listboxrow
-                    static_label ("Watching")
-                /listboxrow
-                
-                ----- on hold -----
-                
-                listboxrow
-                    static_label ("On-hold")
-                /listboxrow
-                
-                ----- plan to watch -----
-                
-                listboxrow
-                    static_label ("Plan to watch")
-                /listboxrow
-                
-                ----- completed -----
-                
-                listboxrow
-                    static_label ("Completed")
+                    static_label
                 /listboxrow
                 
             /listbox
@@ -69,29 +46,9 @@ impl Watchlist {
             
             { stack }
                 
-                ----- watching -----
-                
-                watching_scrolled_window
-                    { watchlist_treeview }
-                /watching_scrolled_window
-                
-                ----- on hold -----
-                
-                on_hold_scrolled_window
-                    { on_hold_treeview }
-                /on_hold_scrolled_window
-                
-                ----- plan to watch -----
-                
-                plan_to_watch_scrolled_window
-                    { plan_to_watch_treeview }
-                /plan_to_watch_scrolled_window
-                
-                ----- completed -----
-                
-                completed_scrolled_window
-                    { completed_treeview }
-                /completed_scrolled_window
+                scrolled_window
+                    treeview
+                /scrolled_window
                 
             /stack
             
@@ -161,22 +118,20 @@ impl Watchlist {
         
         section_box.add(&stack);
         
-        let (watching_scrolled_window, watching_treeview) = Self::build_treeview();
-        let (on_hold_scrolled_window, on_hold_treeview) = Self::build_treeview();
-        let (plan_to_watch_scrolled_window, plan_to_watch_treeview) = Self::build_treeview();
-        let (completed_scrolled_window, completed_treeview) = Self::build_treeview();
+        let mut treeviews = Vec::with_capacity(WatchlistSection::iter().count());
         
-        stack.add_named(&watching_scrolled_window, WatchlistSection::Watching.display());
-        stack.add_named(&on_hold_scrolled_window, WatchlistSection::OnHold.display());
-        stack.add_named(&plan_to_watch_scrolled_window, WatchlistSection::PlanToWatch.display());
-        stack.add_named(&completed_scrolled_window, WatchlistSection::Completed.display());
-        
-        // make sure global search scrolling works as intended
-        
-        watching_treeview.realize();
-        on_hold_treeview.realize();
-        plan_to_watch_treeview.realize();
-        completed_treeview.realize();
+        for section in WatchlistSection::iter() {
+            
+            let (scrolled_window, treeview) = Self::build_treeview();
+            stack.add_named(&scrolled_window, section.display());
+            
+            // make sure global search scrolling works as intended
+            
+            treeview.realize();
+            
+            treeviews.push(treeview);
+            
+        }
         
         // ---------- buttons ----------
         
@@ -190,10 +145,7 @@ impl Watchlist {
             listbox,
             stack,
             
-            watching_treeview,
-            on_hold_treeview,
-            plan_to_watch_treeview,
-            completed_treeview,
+            treeviews,
 
             buttons_box,
         }
@@ -231,15 +183,6 @@ impl Watchlist {
         treeview.selection().set_mode(gtk::SelectionMode::Multiple);
         
         // 0 => title
-        
-        // watching / on-hold:
-        // 1 => kind
-        // 2 => progress
-        
-        // plan to watch:
-        // 1 => kind
-        
-        // completed:
         // 1 => good
         // 2 => kind
         // 3 => progress

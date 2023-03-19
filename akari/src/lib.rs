@@ -50,7 +50,7 @@ mod lib {
             
             let mut server = mockito::Server::new();
             
-            let ok_mock = server.mock("GET", "/ok")
+            let mock = server.mock("GET", "/ok")
                 .with_status(200)
                 .with_body("12345")
                 .create();
@@ -61,7 +61,7 @@ mod lib {
             
             // control
             
-            ok_mock.assert();
+            mock.assert();
             
             assert!(output.is_ok());
             
@@ -78,7 +78,7 @@ mod lib {
             
             let mut server = mockito::Server::new();
             
-            let redirect_mock = server.mock("GET", "/redirect")
+            let mock = server.mock("GET", "/redirect")
                 .with_status(301)
                 .create();
             
@@ -88,7 +88,7 @@ mod lib {
             
             // control
             
-            redirect_mock.assert();
+            mock.assert();
             
             assert!(output.is_err());
         }

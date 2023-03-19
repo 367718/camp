@@ -11,20 +11,9 @@ pub struct Stores {
 
 pub struct Entries {
     pub store: gtk::ListStore,
-    
-    pub watching_filter: gtk::TreeModelFilter,
-    pub on_hold_filter: gtk::TreeModelFilter,
-    pub plan_to_watch_filter: gtk::TreeModelFilter,
-    pub completed_filter: gtk::TreeModelFilter,
-    
-    pub watching_sort: gtk::TreeModelSort,
-    pub on_hold_sort: gtk::TreeModelSort,
-    pub plan_to_watch_sort: gtk::TreeModelSort,
-    pub completed_sort: gtk::TreeModelSort,
-    
-    pub candidates_watching_sort: gtk::TreeModelSort,
-    pub candidates_on_hold_sort: gtk::TreeModelSort,
-    pub candidates_plan_to_watch_sort: gtk::TreeModelSort,
+    pub filters: Vec<gtk::TreeModelFilter>,
+    pub sorts: Vec<gtk::TreeModelSort>,
+    pub candidates_sorts: Vec<gtk::TreeModelSort>,
 }
 
 impl Stores {
@@ -66,54 +55,52 @@ impl Entries {
         
         // ---------- filters ----------
         
-        let watching_filter = gtk::TreeModelFilter::new(&store, None);
-        let on_hold_filter = gtk::TreeModelFilter::new(&store, None);
-        let plan_to_watch_filter = gtk::TreeModelFilter::new(&store, None);
-        let completed_filter = gtk::TreeModelFilter::new(&store, None);
+        let mut filters = Vec::with_capacity(WatchlistSection::iter().count());
         
-        Self::set_visible_func(&watching_filter, WatchlistSection::Watching.as_int());
-        Self::set_visible_func(&on_hold_filter, WatchlistSection::OnHold.as_int());
-        Self::set_visible_func(&plan_to_watch_filter, WatchlistSection::PlanToWatch.as_int());
-        Self::set_visible_func(&completed_filter, WatchlistSection::Completed.as_int());
+        for section in WatchlistSection::iter() {
+            
+            let filter = gtk::TreeModelFilter::new(&store, None);
+            Self::set_visible_func(&filter, section.as_int());
+            
+            filters.push(filter);
+            
+        }
         
         // ---------- sorts ----------
         
-        let watching_sort = gtk::TreeModelSort::new(&watching_filter);
-        let on_hold_sort = gtk::TreeModelSort::new(&on_hold_filter);
-        let plan_to_watch_sort = gtk::TreeModelSort::new(&plan_to_watch_filter);
-        let completed_sort = gtk::TreeModelSort::new(&completed_filter);
+        let mut sorts = Vec::with_capacity(filters.len());
         
-        Self::set_sort_func(&watching_sort);
-        Self::set_sort_func(&on_hold_sort);
-        Self::set_sort_func(&plan_to_watch_sort);
-        Self::set_sort_func(&completed_sort);
+        for filter in &filters {
+            
+            let sort = gtk::TreeModelSort::new(filter);
+            Self::set_sort_func(&sort);
+            
+            sorts.push(sort);
+            
+        }
         
-        let candidates_watching_sort = gtk::TreeModelSort::new(&watching_filter);
-        let candidates_on_hold_sort = gtk::TreeModelSort::new(&on_hold_filter);
-        let candidates_plan_to_watch_sort = gtk::TreeModelSort::new(&plan_to_watch_filter);
+        // ---------- candidates ----------
         
-        Self::set_sort_func(&candidates_watching_sort);
-        Self::set_sort_func(&candidates_on_hold_sort);
-        Self::set_sort_func(&candidates_plan_to_watch_sort);
+        let mut candidates_sorts = Vec::with_capacity(WatchlistSection::iter().count().saturating_sub(1));
+        
+        for (section, filter) in WatchlistSection::iter().zip(filters.iter()) {
+            if section != WatchlistSection::Completed {
+                
+                let sort = gtk::TreeModelSort::new(filter);
+                Self::set_sort_func(&sort);
+                
+                candidates_sorts.push(sort);
+                
+            }
+        }
         
         // ---------- return ----------
         
         Self {
             store,
-            
-            watching_filter,
-            on_hold_filter,
-            plan_to_watch_filter,
-            completed_filter,
-            
-            watching_sort,
-            on_hold_sort,
-            plan_to_watch_sort,
-            completed_sort,
-            
-            candidates_watching_sort,
-            candidates_on_hold_sort,
-            candidates_plan_to_watch_sort,
+            filters,
+            sorts,
+            candidates_sorts,
         }
         
     }

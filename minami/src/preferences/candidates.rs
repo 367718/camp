@@ -660,19 +660,17 @@ fn candidates_series_select(state: &mut State, sender: &Sender<Message>, prefill
     
     candidates_series.notebook.set_current_page(Some(0));
     
-    candidates_series.watching_treeview.realize();
-    candidates_series.on_hold_treeview.realize();
-    candidates_series.plan_to_watch_treeview.realize();
+    for treeview in &state.ui.widgets().dialogs.preferences.candidates_series.treeviews {
+        
+        treeview.realize();
+        treeview.set_cursor(&gtk::TreePath::new_first(), None::<&gtk::TreeViewColumn>, false);
+        treeview.selection().unselect_all();
+        
+    }
     
-    candidates_series.watching_treeview.set_cursor(&gtk::TreePath::new_first(), None::<&gtk::TreeViewColumn>, false);
-    candidates_series.on_hold_treeview.set_cursor(&gtk::TreePath::new_first(), None::<&gtk::TreeViewColumn>, false);
-    candidates_series.plan_to_watch_treeview.set_cursor(&gtk::TreePath::new_first(), None::<&gtk::TreeViewColumn>, false);
-    
-    candidates_series.watching_treeview.selection().unselect_all();
-    candidates_series.on_hold_treeview.selection().unselect_all();
-    candidates_series.plan_to_watch_treeview.selection().unselect_all();
-    
-    candidates_series.watching_treeview.grab_focus();
+    if let Some(treeview) = state.ui.widgets().dialogs.preferences.candidates_series.treeviews.first() {
+        treeview.grab_focus();
+    }
     
     loop {
         
@@ -687,15 +685,14 @@ fn candidates_series_select(state: &mut State, sender: &Sender<Message>, prefill
             
             gtk::ResponseType::Other(0) => {
                 
-                let current_tree = match state.ui.widgets().dialogs.preferences.candidates_series.notebook.current_page() {
-                    Some(0) => &state.ui.widgets().dialogs.preferences.candidates_series.watching_treeview,
-                    Some(1) => &state.ui.widgets().dialogs.preferences.candidates_series.on_hold_treeview,
-                    Some(2) => &state.ui.widgets().dialogs.preferences.candidates_series.plan_to_watch_treeview,
-                    _ => unreachable!(),
-                };
-                
-                if let Some((treemodel, treeiter)) = current_tree.selection().selected() {
-                    break Some(SeriesId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap()));
+                if let Some(current_page) = state.ui.widgets().dialogs.preferences.candidates_series.notebook.current_page() {
+                    if let Some(treeview) = state.ui.widgets().dialogs.preferences.candidates_series.treeviews.get(current_page as usize) {
+                        if let Some((treemodel, treeiter)) = treeview.selection().selected() {
+                            
+                            break Some(SeriesId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap()));
+                            
+                        }
+                    }
                 }
                 
             },

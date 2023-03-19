@@ -52,7 +52,7 @@ pub enum FilesActions {
     
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum FilesSection {
     New,
     Watched,

@@ -21,26 +21,12 @@ pub fn init(app: &gtk::Application, state: &mut State, sender: &Sender<Message>)
 }
 
 fn build(state: &mut State, sender: &Sender<Message>) {
-    // ---------- fill ----------
-    
     fill(state);
     
-    // ---------- widgets ----------
-    
-    let new_sort = &state.ui.widgets().stores.files.entries.new_sort;
-    let watched_sort = &state.ui.widgets().stores.files.entries.watched_sort;
-    
-    // ---------- set sort ids ----------
-    
-    new_sort.set_sort_column_id(gtk::SortColumn::Index(0), gtk::SortType::Ascending);
-    watched_sort.set_sort_column_id(gtk::SortColumn::Index(0), gtk::SortType::Ascending);
-    
-    // ---------- set models ----------
-    
-    state.ui.widgets().window.files.new_treeview.set_model(Some(new_sort));
-    state.ui.widgets().window.files.watched_treeview.set_model(Some(watched_sort));
-    
-    // ---------- file watcher ----------
+    for (treeview, sort) in state.ui.widgets().window.files.treeviews.iter().zip(state.ui.widgets().stores.files.entries.sorts.iter()) {
+        sort.set_sort_column_id(gtk::SortColumn::Index(0), gtk::SortType::Ascending);
+        treeview.set_model(Some(sort));
+    }
     
     mount_watcher(state, sender);
 }
@@ -253,48 +239,25 @@ pub fn remove(state: &mut State, sender: &Sender<Message>, path: &Path) {
 }
 
 pub fn reload(state: &mut State, sender: &Sender<Message>) {
-    // ---------- state ----------
-    
     state.files = Files::new(
         state.params.paths_files(true),
         state.params.media_flag(true),
         state.database.formats_iter().map(|(_, entry)| entry.name()),
     );
     
-    // ---------- widgets ----------
-    
-    let new_sort = &state.ui.widgets().stores.files.entries.new_sort;
-    let watched_sort = &state.ui.widgets().stores.files.entries.watched_sort;
-    
-    // ---------- unset models ----------
-    
-    state.ui.widgets().window.files.new_treeview.set_model(None::<&gtk::TreeModel>);
-    state.ui.widgets().window.files.watched_treeview.set_model(None::<&gtk::TreeModel>);
-    
-    // ---------- unset sort ids ----------
-    
-    new_sort.set_sort_column_id(gtk::SortColumn::Index(0), gtk::SortType::Ascending);
-    watched_sort.set_sort_column_id(gtk::SortColumn::Index(0), gtk::SortType::Ascending);
-    
-    // ---------- fill ----------
+    for (treeview, sort) in state.ui.widgets().window.files.treeviews.iter().zip(state.ui.widgets().stores.files.entries.sorts.iter()) {
+        treeview.set_model(None::<&gtk::TreeModel>);
+        sort.set_sort_column_id(gtk::SortColumn::Default, gtk::SortType::Ascending);
+    }
     
     fill(state);
     
-    // ---------- set sort ids ----------
-    
-    new_sort.set_sort_column_id(gtk::SortColumn::Index(0), gtk::SortType::Ascending);
-    watched_sort.set_sort_column_id(gtk::SortColumn::Index(0), gtk::SortType::Ascending);
-    
-    // ---------- set models ----------
-    
-    state.ui.widgets().window.files.new_treeview.set_model(Some(new_sort));
-    state.ui.widgets().window.files.watched_treeview.set_model(Some(watched_sort));
-    
-    // ---------- remount watcher ----------
+    for (treeview, sort) in state.ui.widgets().window.files.treeviews.iter().zip(state.ui.widgets().stores.files.entries.sorts.iter()) {
+        sort.set_sort_column_id(gtk::SortColumn::Index(0), gtk::SortType::Ascending);
+        treeview.set_model(Some(sort));
+    }
     
     mount_watcher(state, sender);
-    
-    // ---------- global search ----------
     
     sender.send(Message::General(GeneralActions::SearchShouldRecompute)).unwrap();
 }

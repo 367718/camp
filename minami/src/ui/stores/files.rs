@@ -5,6 +5,8 @@ use gtk::{
     prelude::*,
 };
 
+use crate::FilesSection;
+
 pub struct Stores {
     pub entries: Entries,
     pub move_to_folder: MoveToFolder,
@@ -12,12 +14,8 @@ pub struct Stores {
 
 pub struct Entries {
     pub store: gtk::TreeStore,
-    
-    pub new_filter: gtk::TreeModelFilter,
-    pub watched_filter: gtk::TreeModelFilter,
-    
-    pub new_sort: gtk::TreeModelSort,
-    pub watched_sort: gtk::TreeModelSort,
+    pub filters: Vec<gtk::TreeModelFilter>,
+    pub sorts: Vec<gtk::TreeModelSort>,
 }
 
 pub struct MoveToFolder {
@@ -59,30 +57,36 @@ impl Entries {
         
         // ---------- filters ----------
         
-        let new_filter = gtk::TreeModelFilter::new(&store, None);
-        let watched_filter = gtk::TreeModelFilter::new(&store, None);
+        let mut filters = Vec::with_capacity(FilesSection::iter().count());
         
-        Self::set_visible_func(&new_filter, false);
-        Self::set_visible_func(&watched_filter, true);
+        for section in FilesSection::iter() {
+            
+            let filter = gtk::TreeModelFilter::new(&store, None);
+            Self::set_visible_func(&filter, section != FilesSection::New);
+            
+            filters.push(filter);
+            
+        }
         
         // ---------- sorts ----------
         
-        let new_sort = gtk::TreeModelSort::new(&new_filter);
-        let watched_sort = gtk::TreeModelSort::new(&watched_filter);
+        let mut sorts = Vec::with_capacity(filters.len());
         
-        Self::set_sort_func(&new_sort);
-        Self::set_sort_func(&watched_sort);
+        for filter in &filters {
+            
+            let sort = gtk::TreeModelSort::new(filter);
+            Self::set_sort_func(&sort);
+            
+            sorts.push(sort);
+            
+        }
         
         // ---------- return ----------
         
         Self {
             store,
-            
-            new_filter,
-            watched_filter,
-            
-            new_sort,
-            watched_sort,
+            filters,
+            sorts,
         }
         
     }

@@ -48,12 +48,7 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     
     // ---------- treeviews ----------
     
-    let treeviews = [
-        &state.ui.widgets().window.files.new_treeview,
-        &state.ui.widgets().window.files.watched_treeview,
-    ];
-    
-    for treeview in treeviews {
+    for treeview in &state.ui.widgets().window.files.treeviews {
         
         // add candidate (Insert)
         // add series (SHIFT + Insert)

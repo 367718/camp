@@ -12,7 +12,7 @@ use gtk::{
 
 use crate::{
     STYLESHEET,
-    PreferencesSection, FilesSection, WatchlistSection,
+    PreferencesSection,
 };
 
 use stores::Stores;
@@ -88,47 +88,13 @@ impl Ui {
     }
     
     pub fn files_current_treeview(&self) -> Option<&gtk::TreeView> {
-        if let Some(selected) = self.widgets.window.files.listbox.selected_row() {
-            
-            let name = selected.widget_name();
-            
-            if name == FilesSection::New.display() {
-                return Some(&self.widgets.window.files.new_treeview);
-            }
-            
-            if name == FilesSection::Watched.display() {
-                return Some(&self.widgets.window.files.watched_treeview)
-            }
-            
-        }
-        
-        None
+        let selected = self.widgets.window.files.listbox.selected_row()?;
+        self.widgets.window.files.treeviews.get(selected.index() as usize)
     }
     
     pub fn watchlist_current_treeview(&self) -> Option<&gtk::TreeView> {
-        if let Some(selected) = self.widgets.window.watchlist.listbox.selected_row() {
-            
-            let name = selected.widget_name();
-            
-            if name == WatchlistSection::Watching.display() {
-                return Some(&self.widgets.window.watchlist.watching_treeview);
-            }
-            
-            if name == WatchlistSection::OnHold.display() {
-                return Some(&self.widgets.window.watchlist.on_hold_treeview);
-            }
-            
-            if name == WatchlistSection::PlanToWatch.display() {
-                return Some(&self.widgets.window.watchlist.plan_to_watch_treeview);
-            }
-            
-            if name == WatchlistSection::Completed.display() {
-                return Some(&self.widgets.window.watchlist.completed_treeview);
-            }
-            
-        }
-        
-        None
+        let selected = self.widgets.window.watchlist.listbox.selected_row()?;
+        self.widgets.window.watchlist.treeviews.get(selected.index() as usize)
     }
     
     pub fn preferences_current_treeview(&self) -> Option<&gtk::TreeView> {
