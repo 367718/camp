@@ -996,6 +996,10 @@ fn search_compute(state: &mut State) {
     
     if previous.is_none() {
         
+        let needles = input
+            .split_whitespace()
+            .collect::<Vec<&str>>();
+        
         search_store.clear();
         
         state.ui.widgets().stores.general.search.sort.set_sort_column_id(gtk::SortColumn::Default, gtk::SortType::Ascending);
@@ -1020,7 +1024,7 @@ fn search_compute(state: &mut State) {
                         let file_stem = files_store.value(store_iter, 3).get::<glib::GString>().unwrap();
                         
                         // skip element if neither its container nor its file_stem seem relevant
-                        if ! case_insensitive_contains(&container, &input) && ! case_insensitive_contains(&file_stem, &input) {
+                        if ! case_insensitive_contains(&container, &needles) && ! case_insensitive_contains(&file_stem, &needles) {
                             return false;
                         }
                         
@@ -1036,7 +1040,7 @@ fn search_compute(state: &mut State) {
                         let file_stem = files_store.value(store_iter, 3).get::<glib::GString>().unwrap();
                         
                         // skip element if its file_stem does not seem relevant
-                        if ! case_insensitive_contains(&file_stem, &input) {
+                        if ! case_insensitive_contains(&file_stem, &needles) {
                             return false;
                         }
                         
@@ -1076,7 +1080,7 @@ fn search_compute(state: &mut State) {
         watchlist_store.foreach(|_, _, store_iter| {
             let title = watchlist_store.value(store_iter, 3).get::<glib::GString>().unwrap();
             
-            if case_insensitive_contains(&title, &input) {
+            if case_insensitive_contains(&title, &needles) {
                 let status = watchlist_store.value(store_iter, 2).get::<u8>().unwrap();
                 let section = WatchlistSection::try_from(status).unwrap();
                 
@@ -1355,19 +1359,27 @@ pub fn natural_cmp(first: &str, second: &str) -> Ordering {
     
 }
 
-pub fn case_insensitive_contains(base: &str, search: &str) -> bool {
-    // windows method panics on zero size
-    if search.is_empty() {
-        return true;
+pub fn case_insensitive_contains(haystack: &str, needles: &[&str]) -> bool {
+    
+    fn contains(haystack: &str, needle: &str) -> bool {
+        if haystack.is_ascii() && needle.is_ascii() {
+            
+            // windows method panics on zero size
+            if needle.is_empty() {
+                return false;
+            }
+            
+            return haystack.as_bytes()
+                .windows(needle.len())
+                .any(|window| window.eq_ignore_ascii_case(needle.as_bytes()));
+            
+        }
+        
+        haystack.to_ascii_lowercase().contains(&needle.to_ascii_lowercase())
     }
     
-    if base.is_ascii() && search.is_ascii() {
-        return base.as_bytes()
-            .windows(search.len())
-            .any(|window| window.eq_ignore_ascii_case(search.as_bytes()));
-    }
+    needles.iter().all(|needle| contains(haystack, needle))
     
-    base.to_ascii_lowercase().contains(&search.to_ascii_lowercase())
 }
 
 macro_rules! concat_str {

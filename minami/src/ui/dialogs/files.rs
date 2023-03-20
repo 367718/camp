@@ -397,7 +397,11 @@ impl MoveToFolder {
             let model = comp.model().unwrap();
             let name = model.value(iter, 0).get::<glib::GString>().unwrap();
             
-            crate::general::case_insensitive_contains(&name, query)
+            let needles = query
+                .split_whitespace()
+                .collect::<Vec<&str>>();
+            
+            crate::general::case_insensitive_contains(&name, &needles)
             
         });
         
