@@ -24,7 +24,7 @@ fn build(state: &State) {
     
     // candidates
     
-    for (treeview, sort) in state.ui.widgets().dialogs.preferences.candidates_series.treeviews.iter().zip(state.ui.widgets().stores.watchlist.entries.candidates_sorts.iter()) {
+    for (treeview, sort) in state.ui.widgets().dialogs.preferences.candidates_series.treeviews.iter().zip(state.ui.widgets().stores.watchlist.entries.sorts.iter()) {
         sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
         treeview.set_model(Some(sort));
     }
@@ -62,7 +62,7 @@ fn fill(state: &State) {
 
 pub fn reload(state: &State, sender: &Sender<Message>) {
     // watchlist
-    
+
     for (treeview, sort) in state.ui.widgets().window.watchlist.treeviews.iter().zip(state.ui.widgets().stores.watchlist.entries.sorts.iter()) {
         treeview.set_model(None::<&gtk::TreeModel>);
         sort.set_sort_column_id(gtk::SortColumn::Default, gtk::SortType::Ascending);
@@ -70,7 +70,7 @@ pub fn reload(state: &State, sender: &Sender<Message>) {
     
     // candidates
     
-    for (treeview, sort) in state.ui.widgets().dialogs.preferences.candidates_series.treeviews.iter().zip(state.ui.widgets().stores.watchlist.entries.candidates_sorts.iter()) {
+    for (treeview, sort) in state.ui.widgets().dialogs.preferences.candidates_series.treeviews.iter().zip(state.ui.widgets().stores.watchlist.entries.sorts.iter()) {
         treeview.set_model(None::<&gtk::TreeModel>);
         sort.set_sort_column_id(gtk::SortColumn::Default, gtk::SortType::Ascending);
     }
@@ -86,7 +86,7 @@ pub fn reload(state: &State, sender: &Sender<Message>) {
     
     // candidates
     
-    for (treeview, sort) in state.ui.widgets().dialogs.preferences.candidates_series.treeviews.iter().zip(state.ui.widgets().stores.watchlist.entries.candidates_sorts.iter()) {
+    for (treeview, sort) in state.ui.widgets().dialogs.preferences.candidates_series.treeviews.iter().zip(state.ui.widgets().stores.watchlist.entries.sorts.iter()) {
         sort.set_sort_column_id(gtk::SortColumn::Index(3), gtk::SortType::Ascending);
         treeview.set_model(Some(sort));
     }

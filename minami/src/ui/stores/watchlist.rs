@@ -13,7 +13,6 @@ pub struct Entries {
     pub store: gtk::ListStore,
     pub filters: Vec<gtk::TreeModelFilter>,
     pub sorts: Vec<gtk::TreeModelSort>,
-    pub candidates_sorts: Vec<gtk::TreeModelSort>,
 }
 
 impl Stores {
@@ -79,28 +78,12 @@ impl Entries {
             
         }
         
-        // ---------- candidates ----------
-        
-        let mut candidates_sorts = Vec::with_capacity(WatchlistSection::iter().count().saturating_sub(1));
-        
-        for (section, filter) in WatchlistSection::iter().zip(filters.iter()) {
-            if section != WatchlistSection::Completed {
-                
-                let sort = gtk::TreeModelSort::new(filter);
-                Self::set_sort_func(&sort);
-                
-                candidates_sorts.push(sort);
-                
-            }
-        }
-        
         // ---------- return ----------
         
         Self {
             store,
             filters,
             sorts,
-            candidates_sorts,
         }
         
     }

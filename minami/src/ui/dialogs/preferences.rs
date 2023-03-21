@@ -549,26 +549,24 @@ impl CandidatesSeries {
         let mut treeviews = Vec::with_capacity(WatchlistSection::iter().count().saturating_sub(1));
         
         for section in WatchlistSection::iter() {
-            if section != WatchlistSection::Completed {
-                
-                let (scrolled, treeview) = Self::build_treeview();
-                
-                notebook.append_page(
-                    &scrolled,
-                    Some(&{
-                        
-                        gtk::Label::builder()
-                        .visible(true)
-                        .label(section.display())
-                        .width_chars(12)
-                        .build()
-                        
-                    })
-                );
-                
-                treeviews.push(treeview);
-                
-            }
+            
+            let (scrolled, treeview) = Self::build_treeview();
+            
+            notebook.append_page(
+                &scrolled,
+                Some(&{
+                    
+                    gtk::Label::builder()
+                    .visible(true)
+                    .label(section.display())
+                    .width_chars(12)
+                    .build()
+                    
+                })
+            );
+            
+            treeviews.push(treeview);
+            
         }
         
         // ---------- buttons ----------
