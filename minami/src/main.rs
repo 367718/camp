@@ -59,7 +59,7 @@ mod ffi {
         
         // https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shellexecutew
         pub fn ShellExecuteW(
-            hwnd: *mut c_void, // HWMD
+            hwnd: *mut c_void, // HWND
             lpoperation: *const c_ushort,
             lpfile: *const c_ushort,
             lpparameters: *const c_ushort,

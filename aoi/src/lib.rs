@@ -113,17 +113,30 @@ impl RemoteControlServer {
                 continue;
             };
             
+            // index
+            
+            if request.starts_with(b"GET / ") {
+                Self::send_response(&mut stream, "200 OK", Some(INDEX)).ok();
+                continue;
+            }
+            
+            // command
+            
             if let Some(command) = Self::get_command(&request) {
                 
                 if let Err(error) = pipe.write_all(command.as_bytes()) {
-                    Self::send_response(&mut stream, "500 Internal Server Error", &error.to_string()).ok();
+                    Self::send_response(&mut stream, "500 Internal Server Error", Some(&error.to_string())).ok();
                     return Err(error);
                 }
                 
+                Self::send_response(&mut stream, "204 No Content", None).ok();
+                continue;
+                
             }
             
-            // always send index if no error ocurred
-            Self::send_response(&mut stream, "200 OK", INDEX).ok();
+            // not found
+            
+            Self::send_response(&mut stream, "404 Not Found", Some("Endpoint not found")).ok();
             
         }
     }
@@ -157,31 +170,52 @@ impl RemoteControlServer {
     
     fn get_command(bytes: &[u8]) -> Option<&str> {
         match bytes {
-            _ if bytes.starts_with(b"GET /play? ") => Some("cycle pause\n"),
-            _ if bytes.starts_with(b"GET /minuschapter? ") => Some("cycle chapter down\n"),
-            _ if bytes.starts_with(b"GET /pluschapter? ") => Some("cycle chapter up\n"),
-            _ if bytes.starts_with(b"GET /minusplaylist? ") => Some("playlist-prev\n"),
-            _ if bytes.starts_with(b"GET /plusplaylist? ") => Some("playlist-next\n"),
-            _ if bytes.starts_with(b"GET /minus5? ") => Some("seek -5\n"),
-            _ if bytes.starts_with(b"GET /plus5? ") => Some("seek 5\n"),
-            _ if bytes.starts_with(b"GET /minus85? ") => Some("seek -85\n"),
-            _ if bytes.starts_with(b"GET /plus85? ") => Some("seek 85\n"),
-            _ if bytes.starts_with(b"GET /fullscreen? ") => Some("cycle fullscreen\n"),
-            _ if bytes.starts_with(b"GET /subtitles? ") => Some("cycle sub\n"),
-            _ if bytes.starts_with(b"GET /title? ") => Some("show-text ${media-title} 5000\n"),
-            _ if bytes.starts_with(b"GET /time? ") => Some("show-text \"${playback-time} (${time-remaining})\" 5000\n"),
+            _ if bytes.starts_with(b"GET /play ") => Some("cycle pause\n"),
+            _ if bytes.starts_with(b"GET /minuschapter ") => Some("cycle chapter down\n"),
+            _ if bytes.starts_with(b"GET /pluschapter ") => Some("cycle chapter up\n"),
+            _ if bytes.starts_with(b"GET /minusplaylist ") => Some("playlist-prev\n"),
+            _ if bytes.starts_with(b"GET /plusplaylist ") => Some("playlist-next\n"),
+            _ if bytes.starts_with(b"GET /minus5 ") => Some("seek -5\n"),
+            _ if bytes.starts_with(b"GET /plus5 ") => Some("seek 5\n"),
+            _ if bytes.starts_with(b"GET /minus75 ") => Some("seek -75\n"),
+            _ if bytes.starts_with(b"GET /plus75 ") => Some("seek 75\n"),
+            _ if bytes.starts_with(b"GET /fullscreen ") => Some("cycle fullscreen\n"),
+            _ if bytes.starts_with(b"GET /subtitles ") => Some("cycle sub\n"),
+            _ if bytes.starts_with(b"GET /title ") => Some("show-text ${media-title} 5000\n"),
+            _ if bytes.starts_with(b"GET /time ") => Some("show-text \"${playback-time} (${time-remaining})\" 5000\n"),
             _ => None,
         }
     }
     
-    fn send_response(stream: &mut TcpStream, status: &str, body: &str) -> Result<(), Error> {
-        let mut response = Vec::with_capacity(50 + status.len() + (body.len().ilog10() + 1) as usize + body.len());
+    fn send_response(stream: &mut TcpStream, status: &str, body: Option<&str>) -> Result<(), Error> {
+        let mut response = Vec::new();
         
-        write!(response, "HTTP/1.0 {}\r\n", status).unwrap();
-        write!(response, "Connection: close\r\n").unwrap();
-        write!(response, "Content-Length: {}\r\n", body.len()).unwrap();
-        write!(response, "\r\n").unwrap();
-        write!(response, "{}", body).unwrap();
+        match body {
+            
+            Some(payload) => {
+                
+                response.reserve(50 + status.len() + (payload.len().ilog10() + 1) as usize + payload.len());
+                
+                write!(response, "HTTP/1.0 {}\r\n", status).unwrap();
+                write!(response, "Connection: close\r\n").unwrap();
+                write!(response, "Content-Length: {}\r\n", payload.len()).unwrap();
+                write!(response, "\r\n").unwrap();
+                write!(response, "{}", payload).unwrap();
+                
+            },
+            
+            None => {
+                
+                response.reserve(50 + status.len() + 1);
+                
+                write!(response, "HTTP/1.0 {}\r\n", status).unwrap();
+                write!(response, "Connection: close\r\n").unwrap();
+                write!(response, "Content-Length: 0\r\n").unwrap();
+                write!(response, "\r\n").unwrap();
+                
+            },
+            
+        }
         
         stream.write_all(&response)
     }
