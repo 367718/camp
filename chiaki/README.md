@@ -4,8 +4,6 @@ Database operations.
 
 ## Behavior
 
-Changes are not committed to disk automatically. The "save" method must be called manually.
-
 Available modules:
 
 * Feeds
@@ -29,11 +27,10 @@ Available modules:
  	* **title**: non-empty, unique UTF-8 string.
  	* **group**: UTF-8 string.
  	* **quality**: UTF-8 string.
- 	* **offset**: not-greater-than-99999 number.
+ 	* **offset**: greater than or equal to zero number.
  	* **current**: "Yes"/"No" enum.
  	* **downloaded**: non-zero number set. Empty if current is "No".
 
 ## Issues and limitations
 
-* Concurrent use of this library is discouraged.
-* Database size is limited to 50 Megabytes.
+* Concurrent use of this library over the same database is discouraged.

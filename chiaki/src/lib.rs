@@ -77,7 +77,7 @@ impl Database {
 
 macro_rules! api_impl {
 	
-	($module: ident, $id: ident, $entry: ident $(,$r:tt: $t:ty)*) => {
+	($module: ident, $id: ident, $entry: ident $(,$related:tt: $t:ty)*) => {
 		
         paste! {
             
@@ -103,11 +103,11 @@ macro_rules! api_impl {
                 
                 
                 pub fn [<$module _add>](&mut self, entry: $entry) -> Result<$id, Box<dyn std::error::Error>> {
-                    self.$module.add(&mut self.persistence $(,&self.$r)*, entry)
+                    self.$module.add(&mut self.persistence $(,&self.$related)*, entry)
                 }
                 
                 pub fn [<$module _edit>](&mut self, id: $id, entry: $entry) -> Result<$entry, Box<dyn std::error::Error>> {
-                    self.$module.edit(&mut self.persistence $(,&self.$r)*, id, entry)
+                    self.$module.edit(&mut self.persistence $(,&self.$related)*, id, entry)
                 }
                 
                 pub fn [<$module _remove>](&mut self, id: $id) -> Result<$entry, Box<dyn std::error::Error>> {
@@ -115,11 +115,11 @@ macro_rules! api_impl {
                 }
                 
                 pub fn [<$module _mass_add>](&mut self, entries: impl Iterator<Item = $entry>) -> Result<(), Box<dyn std::error::Error>> {
-                    self.$module.mass_add(&mut self.persistence $(,&self.$r)*, entries)
+                    self.$module.mass_add(&mut self.persistence $(,&self.$related)*, entries)
                 }
                 
                 pub fn [<$module _mass_edit>](&mut self, entries: impl Iterator<Item = ($id, $entry)>) -> Result<(), Box<dyn std::error::Error>> {
-                    self.$module.mass_edit(&mut self.persistence $(,&self.$r)*, entries)
+                    self.$module.mass_edit(&mut self.persistence $(,&self.$related)*, entries)
                 }
                 
                 pub fn [<$module _mass_remove>](&mut self, entries: impl Iterator<Item = $id>) -> Result<(), Box<dyn std::error::Error>> {
@@ -135,7 +135,7 @@ macro_rules! api_impl {
                 }
                 
                 pub fn [<$module _validate_entry>](&self, entry: &$entry, id: Option<$id>) -> Result<(), Box<dyn std::error::Error>> {
-                    self.$module.validate_entry($(&self.$r,)* entry, id)
+                    self.$module.validate_entry($(&self.$related,)* entry, id)
                 }
                 
             }
@@ -150,7 +150,7 @@ pub(crate) use api_impl;
 
 macro_rules! module_impl {
 	
-	($module: ident, $id: ident, $entry: ident $(,$r:tt: $t:ty)*) => {
+	($module: ident, $id: ident, $entry: ident $(,$related:tt: $t:ty)*) => {
 		
 		impl $module {
             
@@ -167,7 +167,7 @@ macro_rules! module_impl {
                 Ok(module)
             }
             
-            pub fn load(persistence: &crate::Persistence $(,$r: $t)*) -> Result<Self, Box<dyn std::error::Error>> {
+            pub fn load(persistence: &crate::Persistence $(,$related: $t)*) -> Result<Self, Box<dyn std::error::Error>> {
                 let mut module = Self {
                     entries: HashMap::new(),
                 };
@@ -176,7 +176,7 @@ macro_rules! module_impl {
                 
                 for (id, entry) in persistence.select::<$id, $entry>(&module)? {
                     module.validate_id(id, true)?;
-                    module.validate_entry($($r,)* &entry, Some(id))?;
+                    module.validate_entry($($related,)* &entry, Some(id))?;
                     module.entries.insert(id, entry);
                 }
                 
@@ -203,16 +203,16 @@ macro_rules! module_impl {
             // ---------- mutators ----------
             
             
-            pub fn add(&mut self, persistence: &mut crate::Persistence $(,$r: $t)*, entry: $entry) -> Result<$id, Box<dyn std::error::Error>> {
-                let (id, entry) = self.insert_operation(persistence $(,$r)*, entry)?;
+            pub fn add(&mut self, persistence: &mut crate::Persistence $(,$related: $t)*, entry: $entry) -> Result<$id, Box<dyn std::error::Error>> {
+                let (id, entry) = self.insert_operation(persistence $(,$related)*, entry)?;
                 
                 self.entries.insert(id, entry);
                 
                 Ok(id)
             }
             
-            pub fn edit(&mut self, persistence: &mut crate::Persistence $(,$r: $t)*, id: $id, entry: $entry) -> Result<$entry, Box<dyn std::error::Error>> {
-                let (id, entry) = self.update_operation(persistence $(,$r)*, id, entry)?;
+            pub fn edit(&mut self, persistence: &mut crate::Persistence $(,$related: $t)*, id: $id, entry: $entry) -> Result<$entry, Box<dyn std::error::Error>> {
+                let (id, entry) = self.update_operation(persistence $(,$related)*, id, entry)?;
                 
                 Ok(self.entries.insert(id, entry).unwrap())
             }
@@ -229,10 +229,10 @@ macro_rules! module_impl {
                 Ok(entry)
             }
             
-            pub fn mass_add(&mut self, persistence: &mut crate::Persistence $(,$r: $t)*, entries: impl Iterator<Item = $entry>) -> Result<(), Box<dyn std::error::Error>> {
+            pub fn mass_add(&mut self, persistence: &mut crate::Persistence $(,$related: $t)*, entries: impl Iterator<Item = $entry>) -> Result<(), Box<dyn std::error::Error>> {
                 persistence.begin_transaction()?;
                 
-                let result = entries.map(|entry| self.insert_operation(persistence $(,$r)*, entry))
+                let result = entries.map(|entry| self.insert_operation(persistence $(,$related)*, entry))
                     .collect::<Result<Vec<($id, $entry)>, _>>();
                 
                 match result {
@@ -260,10 +260,10 @@ macro_rules! module_impl {
                 }
             }
             
-            pub fn mass_edit(&mut self, persistence: &mut crate::Persistence $(,$r: $t)*, entries: impl Iterator<Item = ($id, $entry)>) -> Result<(), Box<dyn std::error::Error>> {
+            pub fn mass_edit(&mut self, persistence: &mut crate::Persistence $(,$related: $t)*, entries: impl Iterator<Item = ($id, $entry)>) -> Result<(), Box<dyn std::error::Error>> {
                 persistence.begin_transaction()?;
                 
-                let result = entries.map(|(id, entry)| self.update_operation(persistence $(,$r)*, id, entry))
+                let result = entries.map(|(id, entry)| self.update_operation(persistence $(,$related)*, id, entry))
                     .collect::<Result<Vec<($id, $entry)>, _>>();
                 
                 match result {
@@ -326,8 +326,8 @@ macro_rules! module_impl {
                 }
             }
             
-            fn insert_operation(&mut self, persistence: &mut crate::Persistence $(,$r: $t)*, entry: $entry) -> Result<($id, $entry), Box<dyn std::error::Error>> {
-                self.validate_entry($($r,)* &entry, None)?;
+            fn insert_operation(&mut self, persistence: &mut crate::Persistence $(,$related: $t)*, entry: $entry) -> Result<($id, $entry), Box<dyn std::error::Error>> {
+                self.validate_entry($($related,)* &entry, None)?;
                 
                 let id = $id::from(persistence.insert(self, &entry)?);
                 
@@ -336,9 +336,9 @@ macro_rules! module_impl {
                 Ok((id, entry))
             }
             
-            fn update_operation(&mut self, persistence: &mut crate::Persistence $(,$r: $t)*, id: $id, entry: $entry) -> Result<($id, $entry), Box<dyn std::error::Error>> {
+            fn update_operation(&mut self, persistence: &mut crate::Persistence $(,$related: $t)*, id: $id, entry: $entry) -> Result<($id, $entry), Box<dyn std::error::Error>> {
                 self.validate_id(id, false)?;
-                self.validate_entry($($r,)* &entry, Some(id))?;
+                self.validate_entry($($related,)* &entry, Some(id))?;
                 
                 persistence.update(self, &entry, id)?;
                 
@@ -361,8 +361,8 @@ macro_rules! module_impl {
                 id.validate(self, insertion)
             }
             
-            pub fn validate_entry(&self $(,$r: $t)*, entry: &$entry, id: Option<$id>) -> Result<(), Box<dyn std::error::Error>> {
-                entry.validate(self $(,$r)*, id)
+            pub fn validate_entry(&self $(,$related: $t)*, entry: &$entry, id: Option<$id>) -> Result<(), Box<dyn std::error::Error>> {
+                entry.validate(self $(,$related)*, id)
             }
             
 		}

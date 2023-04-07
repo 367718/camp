@@ -13,6 +13,14 @@ enum NameError {
     NonUnique,
 }
 
+impl Default for KindsEntry {
+    
+    fn default() -> Self {
+        Self::new()
+    }
+    
+}
+
 impl KindsEntry {
     
     // ---------- constructors ----------

@@ -13,6 +13,14 @@ enum UrlError {
     NonUnique,
 }
 
+impl Default for FeedsEntry {
+    
+    fn default() -> Self {
+        Self::new()
+    }
+    
+}
+
 impl FeedsEntry {
     
     // ---------- constructors ----------

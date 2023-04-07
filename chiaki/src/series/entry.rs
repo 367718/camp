@@ -39,12 +39,21 @@ enum KindError {
 }
 
 enum ProgressError {
+    LowerThanZero,
     Zero,
     NonZero,
 }
 
 enum GoodError {
     CannotBeSet,
+}
+
+impl Default for SeriesEntry {
+    
+    fn default() -> Self {
+        Self::new()
+    }
+    
 }
 
 impl SeriesEntry {
@@ -137,6 +146,7 @@ impl SeriesEntry {
         
         if let Err(error) = self.validate_progress() {
             match error {
+                ProgressError::LowerThanZero => errors.push("Progress: cannot be lower than 0"),
                 ProgressError::Zero => errors.push("Progress: must be greater than 0 for the specified status"),
                 ProgressError::NonZero => errors.push("Progress: cannot be greater than 0 for the specified status"),
             }
@@ -184,6 +194,10 @@ impl SeriesEntry {
     }
     
     fn validate_progress(&self) -> Result<(), ProgressError> {
+        if self.progress() < 0 {
+            return Err(ProgressError::LowerThanZero);
+        }
+        
         match self.status() {
             
             // cannot be 0

@@ -13,6 +13,14 @@ enum NameError {
     NonUnique,
 }
 
+impl Default for FormatsEntry {
+    
+    fn default() -> Self {
+        Self::new()
+    }
+    
+}
+
 impl FormatsEntry {
     
     // ---------- constructors ----------

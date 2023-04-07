@@ -36,9 +36,21 @@ enum TitleError {
     NonUnique,
 }
 
+enum OffsetError {
+    LowerThanZero,
+}
+
 enum DownloadedError {
     ZeroOrLower,
     CannotBeSet,
+}
+
+impl Default for CandidatesEntry {
+    
+    fn default() -> Self {
+        Self::new()
+    }
+    
 }
 
 impl CandidatesEntry {
@@ -134,7 +146,7 @@ impl CandidatesEntry {
     
     
     pub(crate) fn validate(&self, candidates: &Candidates, series: &Series, id: Option<CandidatesId>) -> Result<(), Box<dyn Error>> {
-        let mut errors = Vec::with_capacity(3);
+        let mut errors = Vec::with_capacity(4);
         
         if let Err(error) = self.validate_series(candidates, series, id) {
             match error {
@@ -151,9 +163,15 @@ impl CandidatesEntry {
             }
         }
         
+        if let Err(error) = self.validate_offset() {
+            match error {
+                OffsetError::LowerThanZero => errors.push("Offset: cannot be lower than 0"),
+            }
+        }
+        
         if let Err(error) = self.validate_downloaded() {
             match error {
-                DownloadedError::ZeroOrLower => errors.push("Downloaded: cannot be lower than or equal to zero"),
+                DownloadedError::ZeroOrLower => errors.push("Downloaded: cannot be lower than or equal to 0"),
                 DownloadedError::CannotBeSet => errors.push("Downloaded: cannot be set if not current"),
             }
         }
@@ -203,6 +221,14 @@ impl CandidatesEntry {
                 return Err(TitleError::NonUnique);
             },
             
+        }
+        
+        Ok(())
+    }
+    
+    fn validate_offset(&self) -> Result<(), OffsetError> {
+        if self.offset() < 0 {
+            return Err(OffsetError::LowerThanZero);
         }
         
         Ok(())
