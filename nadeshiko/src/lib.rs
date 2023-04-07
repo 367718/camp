@@ -8,10 +8,10 @@ pub trait IsCandidate {
     
     fn clean(&self, current: &str) -> String;
     
-    fn can_download(&self, episode: u32) -> bool;
+    fn can_download(&self, episode: i64) -> bool;
     
-    fn can_update(&self, episode: u32) -> bool;
+    fn can_update(&self, episode: i64) -> bool;
     
-    fn id(&self) -> u32;
+    fn id(&self) -> i64;
     
 }

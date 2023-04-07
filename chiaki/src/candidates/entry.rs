@@ -3,47 +3,42 @@ use std::{
     error::Error,
 };
 
-use bincode::{ Decode, Encode };
+use super::{ Candidates, CandidatesId };
+use crate::{ Series, SeriesId, SeriesStatus };
 
-use crate::SeriesId;
-
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Decode, Encode)]
-#[cfg_attr(debug_assertions, derive(Debug))]
-pub struct CandidatesId(u32);
-
-#[derive(Clone, PartialEq, Eq, Decode, Encode)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct CandidatesEntry {
     series: SeriesId,
     title: Box<str>,
     group: Box<str>,
     quality: Box<str>,
-    offset: u32,
+    offset: i64,
     current: CandidatesCurrent,
-    downloaded: HashSet<u32>,
+    downloaded: HashSet<i64>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Decode, Encode)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub enum CandidatesCurrent {
     Yes,
     No,
 }
 
-impl From<u32> for CandidatesId {
-    
-    fn from(id: u32) -> Self {
-        Self(id)
-    }
-    
+enum SeriesError {
+    NonUnique,
+    NotFound,
+    NotWatching,
 }
 
-impl CandidatesId {
-    
-    pub fn as_int(self) -> u32 {
-        self.0
-    }
-    
+enum TitleError {
+    Empty,
+    NonUnique,
+}
+
+enum DownloadedError {
+    ZeroOrLower,
+    CannotBeSet,
 }
 
 impl CandidatesEntry {
@@ -57,7 +52,7 @@ impl CandidatesEntry {
             title: Box::default(),
             group: Box::default(),
             quality: Box::default(),
-            offset: u32::default(),
+            offset: i64::default(),
             current: CandidatesCurrent::Yes,
             downloaded: HashSet::default(),
         }
@@ -83,7 +78,7 @@ impl CandidatesEntry {
         &self.quality
     }
     
-    pub fn offset(&self) -> u32 {
+    pub fn offset(&self) -> i64 {
         self.offset
     }
     
@@ -91,7 +86,7 @@ impl CandidatesEntry {
         self.current
     }
     
-    pub fn downloaded(&self) -> &HashSet<u32> {
+    pub fn downloaded(&self) -> &HashSet<i64> {
         &self.downloaded
     }
     
@@ -119,7 +114,7 @@ impl CandidatesEntry {
         self
     }
     
-    pub fn with_offset(mut self, offset: u32) -> Self {
+    pub fn with_offset(mut self, offset: i64) -> Self {
         self.offset = offset;
         self
     }
@@ -129,9 +124,100 @@ impl CandidatesEntry {
         self
     }
     
-    pub fn with_downloaded(mut self, downloaded: HashSet<u32>) -> Self {
+    pub fn with_downloaded(mut self, downloaded: HashSet<i64>) -> Self {
         self.downloaded = downloaded;
         self
+    }
+    
+    
+    // ---------- validators ----------    
+    
+    
+    pub(crate) fn validate(&self, candidates: &Candidates, series: &Series, id: Option<CandidatesId>) -> Result<(), Box<dyn Error>> {
+        let mut errors = Vec::with_capacity(3);
+        
+        if let Err(error) = self.validate_series(candidates, series, id) {
+            match error {
+                SeriesError::NonUnique => errors.push("Series: already defined for another entry"),
+                SeriesError::NotFound => errors.push("Series: not found"),
+                SeriesError::NotWatching => errors.push("Series: status not 'Watching'"),
+            }
+        }
+        
+        if let Err(error) = self.validate_title(candidates, id) {
+            match error {
+                TitleError::Empty => errors.push("Title: cannot be empty"),
+                TitleError::NonUnique => errors.push("Title: already defined for another entry"),
+            }
+        }
+        
+        if let Err(error) = self.validate_downloaded() {
+            match error {
+                DownloadedError::ZeroOrLower => errors.push("Downloaded: cannot be lower than or equal to zero"),
+                DownloadedError::CannotBeSet => errors.push("Downloaded: cannot be set if not current"),
+            }
+        }
+        
+        if ! errors.is_empty() {
+            return Err(errors.join("\n\n").into());
+        }
+        
+        Ok(())
+    }
+    
+    fn validate_series(&self, candidates: &Candidates, series: &Series, id: Option<CandidatesId>) -> Result<(), SeriesError> {
+        let found = series.get(self.series())
+            .ok_or(SeriesError::NotFound)?;
+        
+        if found.status() != SeriesStatus::Watching {
+            return Err(SeriesError::NotWatching);
+        }
+        
+        match id {
+            
+            Some(id) => if candidates.iter().any(|(&k, v)| v.series() == self.series() && k != id) {
+                return Err(SeriesError::NonUnique);
+            },
+            
+            None => if candidates.iter().any(|(_, v)| v.series() == self.series()) {
+                return Err(SeriesError::NonUnique);
+            },
+            
+        }
+        
+        Ok(())
+    }
+    
+    fn validate_title(&self, candidates: &Candidates, id: Option<CandidatesId>) -> Result<(), TitleError> {
+        if self.title().is_empty() {
+            return Err(TitleError::Empty);
+        }
+        
+        match id {
+            
+            Some(id) => if candidates.iter().any(|(&k, v)| v.title().eq_ignore_ascii_case(self.title()) && k != id) {
+                return Err(TitleError::NonUnique);
+            },
+            
+            None => if candidates.iter().any(|(_, v)| v.title().eq_ignore_ascii_case(self.title())) {
+                return Err(TitleError::NonUnique);
+            },
+            
+        }
+        
+        Ok(())
+    }
+    
+    fn validate_downloaded(&self) -> Result<(), DownloadedError> {
+        if self.downloaded().iter().any(|&download| download <= 0) {
+            return Err(DownloadedError::ZeroOrLower);
+        }
+        
+        if ! self.downloaded().is_empty() && self.current() == CandidatesCurrent::No {
+            return Err(DownloadedError::CannotBeSet);
+        }
+        
+        Ok(())
     }
     
 }
@@ -148,11 +234,11 @@ impl From<bool> for CandidatesCurrent {
     
 }
 
-impl TryFrom<u8> for CandidatesCurrent {
+impl TryFrom<i64> for CandidatesCurrent {
     
     type Error = Box<dyn Error>;
     
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+    fn try_from(value: i64) -> Result<Self, Self::Error> {
         match value {
             1 => Ok(Self::No),
             2 => Ok(Self::Yes),
@@ -178,7 +264,7 @@ impl TryFrom<&str> for CandidatesCurrent {
 
 impl CandidatesCurrent {
     
-    pub fn as_int(&self) -> u8 {
+    pub fn as_int(&self) -> i64 {
         match self {
             Self::No => 1,
             Self::Yes => 2,
@@ -227,15 +313,15 @@ impl nadeshiko::IsCandidate for CandidatesEntry {
             .replacen(&self.quality.to_ascii_lowercase(), "", 1)
     }
     
-    fn can_download(&self, episode: u32) -> bool {
+    fn can_download(&self, episode: i64) -> bool {
         ! self.downloaded.contains(&episode)
     }
     
-    fn can_update(&self, _episode: u32) -> bool {
+    fn can_update(&self, _episode: i64) -> bool {
         true
     }
     
-    fn id(&self) -> u32 {
+    fn id(&self) -> i64 {
         self.series.as_int()
     }
     
@@ -252,15 +338,15 @@ impl nadeshiko::IsCandidate for &'_ CandidatesEntry {
         (**self).clean(current)
     }
     
-    fn can_download(&self, episode: u32) -> bool {
+    fn can_download(&self, episode: i64) -> bool {
         (**self).can_download(episode)
     }
     
-    fn can_update(&self, episode: u32) -> bool {
+    fn can_update(&self, episode: i64) -> bool {
         (**self).can_update(episode)
     }
     
-    fn id(&self) -> u32 {
+    fn id(&self) -> i64 {
         (**self).id()
     }
     

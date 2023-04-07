@@ -7,8 +7,8 @@ use crate::IsCandidate;
 pub struct UpdatesEntry<'f> {
     pub name: &'f str,
     pub path: &'f Path,
-    pub episode: u32,
-    pub id: u32,
+    pub episode: i64,
+    pub id: i64,
 }
 
 const RESULT_VEC_INITIAL_CAPACITY: usize = 50;

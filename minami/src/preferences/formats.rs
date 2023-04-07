@@ -228,7 +228,7 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
         return;
     };
     
-    let id = FormatsId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap());
+    let id = FormatsId::from(treemodel.value(&treeiter, 0).get::<i64>().unwrap());
     
     match state.database.formats_get(id) {
         
@@ -318,7 +318,7 @@ pub fn delete(state: &mut State, sender: &Sender<Message>) {
     
     if response == gtk::ResponseType::Ok {
         
-        let id = FormatsId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap());
+        let id = FormatsId::from(treemodel.value(&treeiter, 0).get::<i64>().unwrap());
         
         match state.database.formats_remove(id) {
             

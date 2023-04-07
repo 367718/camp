@@ -295,7 +295,7 @@ pub fn show_info(state: &State) {
     
     if let Some((candidates_treemodel, candidates_treeiter)) = candidates_treeview.selection().selected() {
         
-        let id = CandidatesId::from(candidates_treemodel.value(&candidates_treeiter, 0).get::<u32>().unwrap());
+        let id = CandidatesId::from(candidates_treemodel.value(&candidates_treeiter, 0).get::<i64>().unwrap());
         
         if let Some(candidate) = state.database.candidates_get(id) {
             
@@ -481,7 +481,7 @@ pub fn candidates_edit(state: &mut State, sender: &Sender<Message>) {
         return;
     };
     
-    let id = CandidatesId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap());
+    let id = CandidatesId::from(treemodel.value(&treeiter, 0).get::<i64>().unwrap());
     
     match state.database.candidates_get(id) {
         
@@ -506,7 +506,7 @@ pub fn candidates_edit(state: &mut State, sender: &Sender<Message>) {
             group_entry.set_text(previous.group());
             quality_entry.set_text(previous.quality());
             series_entry.set_text(series_title);
-            offset_spin.set_value(f64::from(previous.offset()));
+            offset_spin.set_value(previous.offset() as f64);
             current_switch.set_active(previous.current() == CandidatesCurrent::Yes);
             downloaded_spin.set_sensitive(false);
             downloaded_spin.set_value(0.0);
@@ -633,7 +633,7 @@ pub fn candidates_delete(state: &mut State) {
     
     if response == gtk::ResponseType::Ok {
         
-        let id = CandidatesId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap());
+        let id = CandidatesId::from(treemodel.value(&treeiter, 0).get::<i64>().unwrap());
         
         match state.database.candidates_remove(id) {
             
@@ -689,7 +689,7 @@ fn candidates_series_select(state: &mut State, sender: &Sender<Message>, prefill
                     if let Some(treeview) = state.ui.widgets().dialogs.preferences.candidates_series.treeviews.get(current_page as usize) {
                         if let Some((treemodel, treeiter)) = treeview.selection().selected() {
                             
-                            break Some(SeriesId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap()));
+                            break Some(SeriesId::from(treemodel.value(&treeiter, 0).get::<i64>().unwrap()));
                             
                         }
                     }
@@ -786,7 +786,7 @@ fn candidates_series_add(state: &mut State, sender: &Sender<Message>, prefill: &
                             &[
                                 (0, &id.as_int()),
                                 
-                                (1, &(u32::from(series.good().as_int()) * 400)),
+                                (1, &(series.good().as_int() * 400)),
                                 (2, &series.status().as_int()),
                                 
                                 (3, &series.title()),
@@ -857,7 +857,7 @@ fn candidates_series_edit(state: &mut State, sender: &Sender<Message>, series: S
         let watchlist_store = &state.ui.widgets().stores.watchlist.entries.store;
         
         watchlist_store.foreach(|_, _, store_iter| {
-            let current = SeriesId::from(watchlist_store.value(store_iter, 0).get::<u32>().unwrap());
+            let current = SeriesId::from(watchlist_store.value(store_iter, 0).get::<i64>().unwrap());
             
             if current == series {
                 watchlist_store.set(
@@ -905,7 +905,7 @@ pub fn downloaded_add(state: &mut State) {
         return;
     };
     
-    let id = CandidatesId::from(candidates_treemodel.value(&candidates_treeiter, 0).get::<u32>().unwrap());
+    let id = CandidatesId::from(candidates_treemodel.value(&candidates_treeiter, 0).get::<i64>().unwrap());
     
     match state.database.candidates_get(id) {
         
@@ -921,7 +921,7 @@ pub fn downloaded_add(state: &mut State) {
             let download_spin = &state.ui.widgets().dialogs.preferences.candidates_downloaded.download_spin;
             
             title_label.set_text(candidate.title());
-            download_spin.set_value(f64::from(candidate.downloaded().iter().max().unwrap_or(&0).saturating_add(1)));
+            download_spin.set_value(candidate.downloaded().iter().max().unwrap_or(&0).saturating_add(1) as f64);
             
             download_spin.grab_focus();
             
@@ -957,7 +957,7 @@ pub fn downloaded_add(state: &mut State) {
                                 if previous.downloaded().contains(&download) {
                                     
                                     downloaded_sort.foreach(|_, sort_path, sort_iter| {
-                                        let current = downloaded_sort.value(sort_iter, 0).get::<u32>().unwrap();
+                                        let current = downloaded_sort.value(sort_iter, 0).get::<i64>().unwrap();
                                         
                                         if current == download {
                                             downloaded_treeview.set_cursor(sort_path, None::<&gtk::TreeViewColumn>, false);
@@ -1025,13 +1025,13 @@ pub fn downloaded_delete(state: &mut State) {
         return;
     };
     
-    let id = CandidatesId::from(candidates_treemodel.value(&candidates_treeiter, 0).get::<u32>().unwrap());
+    let id = CandidatesId::from(candidates_treemodel.value(&candidates_treeiter, 0).get::<i64>().unwrap());
     
     match state.database.candidates_get(id) {
         
         Some(candidate) => {
             
-            let download = downloaded_treemodel.value(&downloaded_treeiter, 0).get::<u32>().unwrap();
+            let download = downloaded_treemodel.value(&downloaded_treeiter, 0).get::<i64>().unwrap();
             
             let mut downloaded = candidate.downloaded().clone();
             downloaded.remove(&download);
@@ -1062,7 +1062,7 @@ pub fn downloaded_delete(state: &mut State) {
     }
 }
 
-pub fn downloaded_update(state: &mut State, sender: &Sender<Message>, downloads: Vec<(SeriesId, u32)>) {
+pub fn downloaded_update(state: &mut State, sender: &Sender<Message>, downloads: Vec<(SeriesId, i64)>) {
     if downloads.is_empty() {
         return;
     }

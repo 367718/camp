@@ -1,29 +1,16 @@
-use bincode::{ Decode, Encode };
+use std::error::Error;
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Decode, Encode)]
-#[cfg_attr(debug_assertions, derive(Debug))]
-pub struct KindsId(u32);
+use super::{ Kinds, KindsId };
 
-#[derive(Clone, PartialEq, Eq, Decode, Encode)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct KindsEntry {
     name: Box<str>,
 }
 
-impl From<u32> for KindsId {
-    
-    fn from(id: u32) -> Self {
-        Self(id)
-    }
-    
-}
-
-impl KindsId {
-    
-    pub fn as_int(self) -> u32 {
-        self.0
-    }
-    
+enum NameError {
+    Empty,
+    NonUnique,
 }
 
 impl KindsEntry {
@@ -36,7 +23,6 @@ impl KindsEntry {
             name: Box::default(),
         }
     }
-    
     
     // ---------- accessors ----------
     
@@ -52,6 +38,41 @@ impl KindsEntry {
     pub fn with_name(mut self, name: String) -> Self {
         self.name = name.into_boxed_str();
         self
+    }
+    
+    
+    // ---------- validators ----------    
+    
+    
+    pub(crate) fn validate(&self, kinds: &Kinds, id: Option<KindsId>) -> Result<(), Box<dyn Error>> {
+        if let Err(error) = self.validate_name(kinds, id) {
+            match error {
+                NameError::Empty => return Err("Name: cannot be empty".into()),
+                NameError::NonUnique => return Err("Name: already defined for another entry".into()),
+            }
+        }
+        
+        Ok(())
+    }
+    
+    fn validate_name(&self, kinds: &Kinds, id: Option<KindsId>) -> Result<(), NameError> {
+        if self.name().is_empty() {
+            return Err(NameError::Empty);
+        }
+        
+        match id {
+            
+            Some(id) => if kinds.iter().any(|(&k, v)| v.name().eq_ignore_ascii_case(self.name()) && k != id) {
+                return Err(NameError::NonUnique);
+            },
+            
+            None => if kinds.iter().any(|(_, v)| v.name().eq_ignore_ascii_case(self.name())) {
+                return Err(NameError::NonUnique);
+            },
+            
+        }
+        
+        Ok(())
     }
     
 }

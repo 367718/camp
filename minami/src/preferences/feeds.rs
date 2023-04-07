@@ -226,7 +226,7 @@ pub fn edit(state: &mut State) {
         return;
     };
     
-    let id = FeedsId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap());
+    let id = FeedsId::from(treemodel.value(&treeiter, 0).get::<i64>().unwrap());
     
     match state.database.feeds_get(id) {
         
@@ -314,7 +314,7 @@ pub fn delete(state: &mut State) {
     
     if response == gtk::ResponseType::Ok {
         
-        let id = FeedsId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap());
+        let id = FeedsId::from(treemodel.value(&treeiter, 0).get::<i64>().unwrap());
         
         match state.database.feeds_remove(id) {
             

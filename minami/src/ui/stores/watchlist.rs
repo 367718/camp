@@ -34,12 +34,12 @@ impl Entries {
         let store = gtk::ListStore::new(
             &[
                 // 0 => id
-                glib::types::Type::U32,
+                glib::types::Type::I64,
                 
                 // 1 => weight
-                glib::types::Type::U32,
+                glib::types::Type::I64,
                 // 2 => status
-                glib::types::Type::U8,
+                glib::types::Type::I64,
                 
                 // 3 => title
                 glib::types::Type::STRING,
@@ -48,7 +48,7 @@ impl Entries {
                 // 5 => kind
                 glib::types::Type::STRING,
                 // 6 => progress
-                glib::types::Type::U32,
+                glib::types::Type::I64,
             ],
         );
         
@@ -88,10 +88,10 @@ impl Entries {
         
     }
     
-    fn set_visible_func(filter: &gtk::TreeModelFilter, show: u8) {
+    fn set_visible_func(filter: &gtk::TreeModelFilter, show: i64) {
         filter.set_visible_func(move |model, iter| {
             
-            model.value(iter, 2).get::<u8>().unwrap() == show
+            model.value(iter, 2).get::<i64>().unwrap() == show
             
         });
     }

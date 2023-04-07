@@ -32,7 +32,7 @@ pub enum FilesActions {
     MoveToFolder,
     Delete,
     MarkAsWatched,
-    MarkAsUpdated(Vec<(SeriesId, u32, PathBuf)>),
+    MarkAsUpdated(Vec<(SeriesId, i64, PathBuf)>),
     RefreshQueue,
     Maintenance,
     OpenDirectory,

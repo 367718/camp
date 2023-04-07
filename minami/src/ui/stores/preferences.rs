@@ -55,7 +55,7 @@ impl Candidates {
         let store = gtk::ListStore::new(
             &[
                 // 0 => id
-                glib::types::Type::U32,
+                glib::types::Type::I64,
                 // 1 => title
                 glib::types::Type::STRING,
             ],
@@ -64,7 +64,7 @@ impl Candidates {
         let downloaded_store = gtk::ListStore::new(
             &[
                 // 0 => download
-                glib::types::Type::U32,
+                glib::types::Type::I64,
             ],
         );
         
@@ -106,7 +106,7 @@ impl Feeds {
         let store = gtk::ListStore::new(
             &[
                 // 0 => id
-                glib::types::Type::U32,
+                glib::types::Type::I64,
                 // 1 => url
                 glib::types::Type::STRING,
             ],
@@ -136,7 +136,7 @@ impl Kinds {
         let store = gtk::ListStore::new(
             &[
                 // 0 => id
-                glib::types::Type::U32,
+                glib::types::Type::I64,
                 // 1 => name
                 glib::types::Type::STRING,
                 // 2 => id for combo
@@ -168,7 +168,7 @@ impl Formats {
         let store = gtk::ListStore::new(
             &[
                 // 0 => id
-                glib::types::Type::U32,
+                glib::types::Type::I64,
                 // 1 => name
                 glib::types::Type::STRING,
             ],

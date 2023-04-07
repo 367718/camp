@@ -28,7 +28,7 @@ pub enum PreferencesActions {
     CandidatesFocusLastButton,
     DownloadedAdd,
     DownloadedDelete,
-    DownloadedUpdate(Vec<(SeriesId, u32)>),
+    DownloadedUpdate(Vec<(SeriesId, i64)>),
     DownloadedFocusTreeview,
     DownloadedFocusFirstButton,
     

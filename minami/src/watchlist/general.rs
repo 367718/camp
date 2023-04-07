@@ -48,7 +48,7 @@ fn fill(state: &State) {
             &[
                 (0, &id.as_int()),
                 
-                (1, &(u32::from(entry.good().as_int()) * 400)),
+                (1, &(entry.good().as_int() * 400)),
                 (2, &entry.status().as_int()),
                 
                 (3, &entry.title()),

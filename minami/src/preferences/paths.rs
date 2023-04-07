@@ -345,59 +345,9 @@ fn commit_pipe(state: &mut State) -> bool {
 }
 
 fn commit_database(state: &mut State, sender: &Sender<Message>) -> bool {
-    let new = state.ui.widgets().window.preferences.paths.database_entry.text();
-    let previous = state.params.paths_database(false).to_owned();
+    let path = state.ui.widgets().window.preferences.paths.database_entry.text();
     
-    // make sure uncommitted changes to databse are saved before proceeding
-    if let Err(err) = state.database.save(&previous) {
-        
-        let mut error = err.to_string();
-        let file_save_dialog = &state.ui.widgets().dialogs.general.file_save_error.dialog;
-        
-        state.ui.widgets().dialogs.general.file_save_error.message_label.set_text("The database file could not be saved.");
-        
-        loop {
-            
-            state.ui.widgets().dialogs.general.file_save_error.path_label.set_text(&previous.to_string_lossy());
-            state.ui.widgets().dialogs.general.file_save_error.error_label.set_text(&error);
-            
-            let response = file_save_dialog.run();
-            
-            file_save_dialog.unrealize();
-            file_save_dialog.hide();
-            
-            match response {
-                
-                // try again
-                
-                gtk::ResponseType::Ok => {
-                    
-                    if let Err(err) = state.database.save(&previous) {
-                        error = err.to_string();
-                        continue;
-                    }
-                    
-                    break;
-                    
-                },
-                
-                // give up
-                
-                _ => {
-                    
-                    state.ui.widgets().window.preferences.paths.database_entry.set_text(&previous.to_string_lossy());
-                    
-                    return false;
-                    
-                },
-                
-            }
-            
-        }
-        
-    }
-    
-    match state.params.paths_set_database(&new) {
+    match state.params.paths_set_database(&path) {
         
         Ok(changed) => if changed && state.params.args_paths_database().is_none() {
             sender.send(Message::General(GeneralActions::ReloadDatabase)).unwrap();

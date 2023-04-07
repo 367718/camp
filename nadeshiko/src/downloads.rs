@@ -10,8 +10,8 @@ use crate::IsCandidate;
 pub struct DownloadsEntry<'f> {
     pub title: &'f str,
     pub link: &'f str,
-    pub episode: u32,
-    pub id: u32,
+    pub episode: i64,
+    pub id: i64,
 }
 
 const RESULT_VEC_INITIAL_CAPACITY: usize = 20;

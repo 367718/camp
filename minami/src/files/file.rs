@@ -405,7 +405,7 @@ pub fn mark_as_watched(state: &mut State) {
     }
 }
 
-pub fn mark_as_updated(state: &mut State, updates: Vec<(SeriesId, u32, PathBuf)>) {
+pub fn mark_as_updated(state: &mut State, updates: Vec<(SeriesId, i64, PathBuf)>) {
     if updates.is_empty() {
         return;
     }
@@ -428,7 +428,7 @@ pub fn mark_as_updated(state: &mut State, updates: Vec<(SeriesId, u32, PathBuf)>
             }
             
             watchlist_store.foreach(|_, _, store_iter| {
-                let current = SeriesId::from(watchlist_store.value(store_iter, 0).get::<u32>().unwrap());
+                let current = SeriesId::from(watchlist_store.value(store_iter, 0).get::<i64>().unwrap());
                 
                 if current == id {
                     watchlist_store.set(

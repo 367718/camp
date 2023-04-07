@@ -230,7 +230,7 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
         return;
     };
     
-    let id = KindsId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap());
+    let id = KindsId::from(treemodel.value(&treeiter, 0).get::<i64>().unwrap());
     
     match state.database.kinds_get(id) {
         
@@ -323,7 +323,7 @@ pub fn delete(state: &mut State) {
     
     if response == gtk::ResponseType::Ok {
         
-        let id = KindsId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap());
+        let id = KindsId::from(treemodel.value(&treeiter, 0).get::<i64>().unwrap());
         
         match state.database.kinds_remove(id) {
             

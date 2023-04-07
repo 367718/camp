@@ -464,47 +464,6 @@ fn reload_database(state: &mut State, sender: &Sender<Message>) {
 }
 
 fn backup_database(state: &mut State) {
-    // make sure uncommitted changes are saved
-    if let Err(err) = state.database.save(state.params.paths_database(true)) {
-        
-        let mut error = err.to_string();
-        let file_save_dialog = &state.ui.widgets().dialogs.general.file_save_error.dialog;
-        
-        state.ui.widgets().dialogs.general.file_save_error.message_label.set_text("The database file could not be saved.");
-        
-        loop {
-            
-            state.ui.widgets().dialogs.general.file_save_error.path_label.set_text(&state.params.paths_database(true).to_string_lossy());
-            state.ui.widgets().dialogs.general.file_save_error.error_label.set_text(&error);
-            
-            let response = file_save_dialog.run();
-            
-            file_save_dialog.unrealize();
-            file_save_dialog.hide();
-            
-            match response {
-                
-                // try again
-                
-                gtk::ResponseType::Ok => {
-                    
-                    if let Err(err) = state.database.save(state.params.paths_database(true)) {
-                        error = err.to_string();
-                        continue;
-                    }
-                    
-                },
-                
-                // give up
-                
-                _ => return,
-                
-            }
-            
-        }
-        
-    }
-    
     let file_chooser_dialog = &state.ui.widgets().dialogs.general.file_chooser.dialog;
     
     file_chooser_dialog.set_title("Backup database");
@@ -640,52 +599,6 @@ fn save_and_quit(state: &mut State) {
         };
         
         exit_code = result;
-        
-    }
-    
-    // save database
-    
-    if let Err(err) = state.database.save(state.params.paths_database(true)) {
-        
-        let mut error = err.to_string();
-        let file_save_dialog = &state.ui.widgets().dialogs.general.file_save_error.dialog;
-        
-        state.ui.widgets().dialogs.general.file_save_error.message_label.set_text("The database file could not be saved.");
-        
-        let result = loop {
-            
-            state.ui.widgets().dialogs.general.file_save_error.path_label.set_text(&state.params.paths_database(true).to_string_lossy());
-            state.ui.widgets().dialogs.general.file_save_error.error_label.set_text(&error);
-            
-            let response = file_save_dialog.run();
-            
-            file_save_dialog.unrealize();
-            file_save_dialog.hide();
-            
-            match response {
-                
-                // try again
-                
-                gtk::ResponseType::Ok => {
-                    
-                    if let Err(err) = state.database.save(state.params.paths_database(true)) {
-                        error = err.to_string();
-                        continue;
-                    }
-                    
-                    break 0;
-                    
-                },
-                
-                // give up
-                
-                _ => break 1,
-                
-            }
-            
-        };
-        
-        exit_code |= result;
         
     }
     
@@ -1081,7 +994,7 @@ fn search_compute(state: &mut State) {
             let title = watchlist_store.value(store_iter, 3).get::<glib::GString>().unwrap();
             
             if case_insensitive_contains(&title, &needles) {
-                let status = watchlist_store.value(store_iter, 2).get::<u8>().unwrap();
+                let status = watchlist_store.value(store_iter, 2).get::<i64>().unwrap();
                 let section = WatchlistSection::try_from(status).unwrap();
                 
                 let display = concat_str!(&title, " (", section.display(), ") (w)");
@@ -1181,7 +1094,7 @@ fn search_select(state: &State, string_iter: &str) {
             
             if current == title {
                 
-                let status = watchlist_store.value(store_iter, 2).get::<u8>().unwrap();
+                let status = watchlist_store.value(store_iter, 2).get::<i64>().unwrap();
                 let section = WatchlistSection::try_from(status).unwrap();
                 
                 if let Some(row) = state.ui.widgets().window.watchlist.listbox.children().iter().find(|child| child.widget_name() == section.display()) {

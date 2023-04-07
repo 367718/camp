@@ -162,7 +162,7 @@ pub fn add(state: &mut State, sender: &Sender<Message>, prefill: &Option<String>
                             &[
                                 (0, &id.as_int()),
                                 
-                                (1, &(u32::from(series.good().as_int()) * 400)),
+                                (1, &(series.good().as_int() * 400)),
                                 (2, &series.status().as_int()),
                                 
                                 (3, &series.title()),
@@ -254,7 +254,7 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
     }
     
     let treeiter = treemodel.iter(treepaths.first().unwrap()).unwrap();
-    let id = SeriesId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap());
+    let id = SeriesId::from(treemodel.value(&treeiter, 0).get::<i64>().unwrap());
     
     match state.database.series_get(id) {
         
@@ -275,7 +275,7 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
             kind_combo.set_active_id(Some(&current.kind().as_int().to_string()));
             status_combo.set_sensitive(true);
             status_combo.set_active_id(Some(&current.status().as_int().to_string()));
-            progress_spin.set_value(f64::from(current.progress()));
+            progress_spin.set_value(current.progress() as f64);
             good_switch.set_sensitive(true);
             good_switch.set_active(current.good() == SeriesGood::Yes);
             
@@ -339,7 +339,7 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
                                 watchlist_store.set(
                                     &store_iter,
                                     &[
-                                        (1, &(u32::from(series.good().as_int()) * 400)),
+                                        (1, &(series.good().as_int() * 400)),
                                         (2, &series.status().as_int()),
                                         
                                         (3, &series.title()),
@@ -425,7 +425,7 @@ pub fn delete(state: &mut State, sender: &Sender<Message>) {
     }
     
     let treeiter = treemodel.iter(treepaths.first().unwrap()).unwrap();
-    let id = SeriesId::from(treemodel.value(&treeiter, 0).get::<u32>().unwrap());
+    let id = SeriesId::from(treemodel.value(&treeiter, 0).get::<i64>().unwrap());
     
     let delete_dialog = &state.ui.widgets().dialogs.general.delete.dialog;
     
@@ -506,7 +506,7 @@ fn delete_related_candidate(state: &mut State, id: SeriesId) -> Result<(), Box<d
         let candidates_store = &state.ui.widgets().stores.preferences.candidates.store;
         
         candidates_store.foreach(|_, _, store_iter| {
-            let current = CandidatesId::from(candidates_store.value(store_iter, 0).get::<u32>().unwrap());
+            let current = CandidatesId::from(candidates_store.value(store_iter, 0).get::<i64>().unwrap());
             
             if current == candidate_id {
                 candidates_store.remove(store_iter);

@@ -1,24 +1,19 @@
 use std::error::Error;
 
-use bincode::{ Decode, Encode };
+use super::{ Series, SeriesId };
+use crate::{ Kinds, KindsId };
 
-use crate::KindsId;
-
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Decode, Encode)]
-#[cfg_attr(debug_assertions, derive(Debug))]
-pub struct SeriesId(u32);
-
-#[derive(Clone, PartialEq, Eq, Decode, Encode)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct SeriesEntry {
     title: Box<str>,
     kind: KindsId,
     status: SeriesStatus,
-    progress: u32,
+    progress: i64,
     good: SeriesGood,
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Decode, Encode)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub enum SeriesStatus {
     Watching,
@@ -27,27 +22,29 @@ pub enum SeriesStatus {
     Completed,
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Decode, Encode)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub enum SeriesGood {
     Yes,
     No,
 }
 
-impl From<u32> for SeriesId {
-    
-    fn from(id: u32) -> Self {
-        Self(id)
-    }
-    
+enum TitleError {
+    Empty,
+    NonUnique,
 }
 
-impl SeriesId {
-    
-    pub fn as_int(self) -> u32 {
-        self.0
-    }
-    
+enum KindError {
+    NotFound,
+}
+
+enum ProgressError {
+    Zero,
+    NonZero,
+}
+
+enum GoodError {
+    CannotBeSet,
 }
 
 impl SeriesEntry {
@@ -60,7 +57,7 @@ impl SeriesEntry {
             title: Box::default(),
             kind: KindsId::from(0),
             status: SeriesStatus::Watching,
-            progress: 0,
+            progress: i64::default(),
             good: SeriesGood::No,
         }
     }
@@ -81,7 +78,7 @@ impl SeriesEntry {
         self.status
     }
     
-    pub fn progress(&self) -> u32 {
+    pub fn progress(&self) -> i64 {
         self.progress
     }
     
@@ -108,7 +105,7 @@ impl SeriesEntry {
         self
     }
     
-    pub fn with_progress(mut self, progress: u32) -> Self {
+    pub fn with_progress(mut self, progress: i64) -> Self {
         self.progress = progress;
         self
     }
@@ -118,13 +115,115 @@ impl SeriesEntry {
         self
     }
     
+    
+    // ---------- validators ----------    
+    
+    
+    pub(crate) fn validate(&self, series: &Series, kinds: &Kinds, id: Option<SeriesId>) -> Result<(), Box<dyn Error>> {
+        let mut errors = Vec::with_capacity(4);
+        
+        if let Err(error) = self.validate_title(series, id) {
+            match error {
+                TitleError::Empty => errors.push("Title: cannot be empty"),
+                TitleError::NonUnique => errors.push("Title: already defined for another entry"),
+            }
+        }
+        
+        if let Err(error) = self.validate_kind(kinds) {
+            match error {
+                KindError::NotFound => errors.push("Kind: not found"),
+            }
+        }
+        
+        if let Err(error) = self.validate_progress() {
+            match error {
+                ProgressError::Zero => errors.push("Progress: must be greater than 0 for the specified status"),
+                ProgressError::NonZero => errors.push("Progress: cannot be greater than 0 for the specified status"),
+            }
+        }
+        
+        if let Err(error) = self.validate_good() {
+            match error {
+                GoodError::CannotBeSet => errors.push("Good: cannot be set for the specified status"),
+            }
+        }
+        
+        if ! errors.is_empty() {
+            return Err(errors.join("\n\n").into());
+        }
+        
+        Ok(())
+    }
+    
+    fn validate_title(&self, series: &Series, id: Option<SeriesId>) -> Result<(), TitleError> {
+        if self.title().is_empty() {
+            return Err(TitleError::Empty);
+        }
+        
+        match id {
+            
+            Some(id) => if series.iter().any(|(&k, v)| v.title().eq_ignore_ascii_case(self.title()) && k != id) {
+                return Err(TitleError::NonUnique);
+            },
+            
+            None => if series.iter().any(|(_, v)| v.title().eq_ignore_ascii_case(self.title())) {
+                return Err(TitleError::NonUnique);
+            },
+            
+        }
+        
+        Ok(())
+    }
+    
+    fn validate_kind(&self, kinds: &Kinds) -> Result<(), KindError> {
+        if ! kinds.iter().any(|(&k, _)| k == self.kind) {
+            return Err(KindError::NotFound);
+        }
+        
+        Ok(())
+    }
+    
+    fn validate_progress(&self) -> Result<(), ProgressError> {
+        match self.status() {
+            
+            // cannot be 0
+            SeriesStatus::Watching | SeriesStatus::OnHold | SeriesStatus::Completed => {
+                
+                if self.progress() == 0 {
+                    return Err(ProgressError::Zero);
+                }
+                
+            },
+            
+            // must be 0
+            SeriesStatus::PlanToWatch => {
+                
+                if self.progress() != 0 {
+                    return Err(ProgressError::NonZero);
+                }
+                
+            },
+            
+        }
+        
+        Ok(())
+    }
+    
+    fn validate_good(&self) -> Result<(), GoodError> {
+        if self.good() == SeriesGood::Yes && self.status() != SeriesStatus::Completed {
+            return Err(GoodError::CannotBeSet);
+        }
+        
+        Ok(())
+    }
+    
 }
 
-impl TryFrom<u8> for SeriesStatus {
+impl TryFrom<i64> for SeriesStatus {
     
     type Error = Box<dyn Error>;
     
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+    fn try_from(value: i64) -> Result<Self, Self::Error> {
         match value {
             1 => Ok(Self::Watching),
             2 => Ok(Self::OnHold),
@@ -154,7 +253,7 @@ impl TryFrom<&str> for SeriesStatus {
 
 impl SeriesStatus {
     
-    pub fn as_int(&self) -> u8 {
+    pub fn as_int(&self) -> i64 {
         match self {
             Self::Watching => 1,
             Self::OnHold => 2,
@@ -204,11 +303,11 @@ impl From<bool> for SeriesGood {
     
 }
 
-impl TryFrom<u8> for SeriesGood {
+impl TryFrom<i64> for SeriesGood {
     
     type Error = Box<dyn Error>;
     
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+    fn try_from(value: i64) -> Result<Self, Self::Error> {
         match value {
             1 => Ok(Self::No),
             2 => Ok(Self::Yes),
@@ -234,7 +333,7 @@ impl TryFrom<&str> for SeriesGood {
 
 impl SeriesGood {
     
-    pub fn as_int(&self) -> u8 {
+    pub fn as_int(&self) -> i64 {
         match self {
             Self::No => 1,
             Self::Yes => 2,

@@ -1,13 +1,13 @@
-pub fn get(clean: &str) -> Option<u32> {
+pub fn get(clean: &str) -> Option<i64> {
     let mut chars = clean.chars();
     
-    if let Some(digit) = chars.find_map(|curr| curr.to_digit(10)) {
+    if let Some(digit) = chars.find_map(|curr| curr.to_digit(10)).and_then(|digit| i64::try_from(digit).ok()) {
         
         let mut number = digit;
         
         while let Some(curr) = chars.next() {
             
-            if let Some(digit) = curr.to_digit(10) {
+            if let Some(digit) = curr.to_digit(10).and_then(|digit| i64::try_from(digit).ok()) {
                 number = number.checked_mul(10)?.checked_add(digit)?;
                 continue;
             }

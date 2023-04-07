@@ -3,11 +3,10 @@ mod formats;
 mod kinds;
 mod series;
 mod candidates;
+mod persistence;
 
 use std::{
     error::Error,
-    ffi::OsString,
-    fs::{ self, File, OpenOptions },
     path::Path,
 };
 
@@ -16,6 +15,7 @@ use formats::Formats;
 use kinds::Kinds;
 use series::Series;
 use candidates::Candidates;
+use persistence::{ Persistence, PersistenceQueries, PersistenceBinds, FromRow };
 
 pub use feeds::{ FeedsId, FeedsEntry };
 pub use formats::{ FormatsId, FormatsEntry };
@@ -23,15 +23,8 @@ pub use kinds::{ KindsId, KindsEntry };
 pub use series::{ SeriesId, SeriesEntry, SeriesStatus, SeriesGood };
 pub use candidates::{ CandidatesId, CandidatesEntry, CandidatesCurrent };
 
-use bincode::{ Decode, Encode };
-
 pub struct Database {
-    data: Data,
-    modified: bool,
-}
-
-#[derive(Decode, Encode)]
-struct Data {
+    persistence: Persistence,
     feeds: Feeds,
     formats: Formats,
     kinds: Kinds,
@@ -39,301 +32,343 @@ struct Data {
     candidates: Candidates,
 }
 
-const DATABASE_SIZE_LIMIT: usize = 50 * 1024 * 1024;
-
 impl Database {
     
     // ---------- constructors ----------
     
     
     pub fn new<S: AsRef<Path>>(path: S) -> Result<Self, Box<dyn Error>> {
-        let mut database = Self {
-            data: Data {
-                feeds: Feeds::new(),
-                formats: Formats::new(),
-                kinds: Kinds::new(),
-                series: Series::new(),
-                candidates: Candidates::new(),
-            },
-            modified: true,
-        };
+        let mut persistence = Persistence::new(path)?;
+        let feeds = Feeds::new(&mut persistence)?;
+        let formats = Formats::new(&mut persistence)?;
+        let kinds = Kinds::new(&mut persistence)?;
+        let series = Series::new(&mut persistence)?;
+        let candidates = Candidates::new(&mut persistence)?;
         
-        database.save(path)?;
-        
-        Ok(database)
+        Ok(Self {
+            persistence,
+            feeds,
+            formats,
+            kinds,
+            series,
+            candidates,
+        })
     }
     
     pub fn load<S: AsRef<Path>>(path: S) -> Result<Self, Box<dyn Error>> {
-        let config = bincode::config::standard()
-            .with_little_endian()
-            .with_fixed_int_encoding()
-            .with_limit::<DATABASE_SIZE_LIMIT>();
+        let persistence = Persistence::load(path)?;
+        let feeds = Feeds::load(&persistence)?;
+        let formats = Formats::load(&persistence)?;
+        let kinds = Kinds::load(&persistence)?;
+        let series = Series::load(&persistence, &kinds)?;
+        let candidates = Candidates::load(&persistence, &series)?;
         
-        let database = Self {
-            data: bincode::decode_from_std_read(&mut File::open(path)?, config)?,
-            modified: false,
-        };
-        
-        Ok(database)
+        Ok(Self {
+            persistence,
+            feeds,
+            formats,
+            kinds,
+            series,
+            candidates,
+        })
     }
     
-    
-    // ---------- mutators ----------
-    
-    
-    pub fn save<S: AsRef<Path>>(&mut self, path: S) -> Result<(), Box<dyn Error>> {
-        if self.modified {
+}
+
+macro_rules! api_impl {
+	
+	($module: ident, $id: ident, $entry: ident $(,$r:tt: $t:ty)*) => {
+		
+        paste! {
             
-            let path = path.as_ref();
-            
-            let extension = if let Some(current) = path.extension() {
-                let mut composite = OsString::with_capacity(current.len() + 4);
-                composite.push(current);
-                composite.push(".tmp");
-                composite
-            } else {
-                OsString::from("tmp")
-            };
-            
-            let tmp_path = path.with_extension(extension);
-            
-            let mut tmp_file = OpenOptions::new()
-                .write(true)
-                .create(true)
-                .open(&tmp_path)
-                .map_err(|_| format!("Could not create file: {}", tmp_path.to_string_lossy()))?;
-            
-            let config = bincode::config::standard()
-                .with_little_endian()
-                .with_fixed_int_encoding()
-                .write_fixed_array_length()
-                .with_limit::<DATABASE_SIZE_LIMIT>();
-            
-            bincode::encode_into_std_write(&self.data, &mut tmp_file, config)?;
-            
-            // attempt to perform the update atomically
-            fs::rename(&tmp_path, path)?;
-            
-            self.modified = false;
+            impl crate::Database {
+                
+                // ---------- accessors ----------
+                
+                
+                pub fn [<$module _get>](&self, id: $id) -> Option<&$entry> {
+                    self.$module.get(id)
+                }
+                
+                pub fn [<$module _iter>](&self) -> impl Iterator<Item = (&$id, &$entry)> {
+                    self.$module.iter()
+                }
+                
+                pub fn [<$module _count>](&self) -> usize {
+                    self.$module.count()
+                }
+                
+                
+                // ---------- mutators ----------
+                
+                
+                pub fn [<$module _add>](&mut self, entry: $entry) -> Result<$id, Box<dyn std::error::Error>> {
+                    self.$module.add(&mut self.persistence $(,&self.$r)*, entry)
+                }
+                
+                pub fn [<$module _edit>](&mut self, id: $id, entry: $entry) -> Result<$entry, Box<dyn std::error::Error>> {
+                    self.$module.edit(&mut self.persistence $(,&self.$r)*, id, entry)
+                }
+                
+                pub fn [<$module _remove>](&mut self, id: $id) -> Result<$entry, Box<dyn std::error::Error>> {
+                    self.$module.remove(&mut self.persistence, id)
+                }
+                
+                pub fn [<$module _mass_add>](&mut self, entries: impl Iterator<Item = $entry>) -> Result<(), Box<dyn std::error::Error>> {
+                    self.$module.mass_add(&mut self.persistence $(,&self.$r)*, entries)
+                }
+                
+                pub fn [<$module _mass_edit>](&mut self, entries: impl Iterator<Item = ($id, $entry)>) -> Result<(), Box<dyn std::error::Error>> {
+                    self.$module.mass_edit(&mut self.persistence $(,&self.$r)*, entries)
+                }
+                
+                pub fn [<$module _mass_remove>](&mut self, entries: impl Iterator<Item = $id>) -> Result<(), Box<dyn std::error::Error>> {
+                    self.$module.mass_remove(&mut self.persistence, entries)
+                }
+                
+                
+                // ---------- validators ----------
+                
+                
+                pub fn [<$module _validate_id>](&self, id: $id, insertion: bool) -> Result<(), Box<dyn std::error::Error>> {
+                    self.$module.validate_id(id, insertion)
+                }
+                
+                pub fn [<$module _validate_entry>](&self, entry: &$entry, id: Option<$id>) -> Result<(), Box<dyn std::error::Error>> {
+                    self.$module.validate_entry($(&self.$r,)* entry, id)
+                }
+                
+            }
             
         }
         
-        Ok(())
     }
     
 }
 
-// feeds
+pub(crate) use api_impl;
 
-impl Database {
-    
-    // ---------- accessors ----------
-    
-    
-    pub fn feeds_get(&self, id: FeedsId) -> Option<&FeedsEntry> {
-        self.data.feeds.get(id)
-    }
-    
-    pub fn feeds_iter(&self) -> impl Iterator<Item = (&FeedsId, &FeedsEntry)> {
-        self.data.feeds.iter()
-    }
-    
-    pub fn feeds_count(&self) -> usize {
-        self.data.feeds.count()
-    }
-    
-    
-    // ---------- mutators ----------
-    
-    
-    pub fn feeds_add(&mut self, entry: FeedsEntry) -> Result<FeedsId, Box<dyn Error>> {
-        let result = self.data.feeds.add(entry)?;
-        self.modified = true;
-        Ok(result)
-    }
-    
-    pub fn feeds_edit(&mut self, id: FeedsId, entry: FeedsEntry) -> Result<FeedsEntry, Box<dyn Error>> {
-        let result = self.data.feeds.edit(id, entry)?;
-        self.modified = true;
-        Ok(result)
-    }
-    
-    pub fn feeds_remove(&mut self, id: FeedsId) -> Result<FeedsEntry, Box<dyn Error>> {
-        let result = self.data.feeds.remove(id)?;
-        self.modified = true;
-        Ok(result)
-    }
-    
+macro_rules! module_impl {
+	
+	($module: ident, $id: ident, $entry: ident $(,$r:tt: $t:ty)*) => {
+		
+		impl $module {
+            
+            // ---------- constructors ----------
+            
+            
+            pub fn new(persistence: &mut crate::Persistence) -> Result<Self, Box<dyn std::error::Error>> {
+                let module = Self {
+                    entries: HashMap::new(),
+                };
+                
+                persistence.create(&module)?;
+                
+                Ok(module)
+            }
+            
+            pub fn load(persistence: &crate::Persistence $(,$r: $t)*) -> Result<Self, Box<dyn std::error::Error>> {
+                let mut module = Self {
+                    entries: HashMap::new(),
+                };
+                
+                module.entries.reserve(persistence.count(&module)?.try_into()?);
+                
+                for (id, entry) in persistence.select::<$id, $entry>(&module)? {
+                    module.validate_id(id, true)?;
+                    module.validate_entry($($r,)* &entry, Some(id))?;
+                    module.entries.insert(id, entry);
+                }
+                
+                Ok(module)
+            }
+            
+            
+            // ---------- accessors ----------
+            
+            
+            pub fn get(&self, id: $id) -> Option<&$entry> {
+                self.entries.get(&id)
+            }
+            
+            pub fn iter(&self) -> impl Iterator<Item = (&$id, &$entry)> {
+                self.entries.iter()
+            }
+            
+            pub fn count(&self) -> usize {
+                self.entries.len()
+            }
+            
+            
+            // ---------- mutators ----------
+            
+            
+            pub fn add(&mut self, persistence: &mut crate::Persistence $(,$r: $t)*, entry: $entry) -> Result<$id, Box<dyn std::error::Error>> {
+                let (id, entry) = self.insert_operation(persistence $(,$r)*, entry)?;
+                
+                self.entries.insert(id, entry);
+                
+                Ok(id)
+            }
+            
+            pub fn edit(&mut self, persistence: &mut crate::Persistence $(,$r: $t)*, id: $id, entry: $entry) -> Result<$entry, Box<dyn std::error::Error>> {
+                let (id, entry) = self.update_operation(persistence $(,$r)*, id, entry)?;
+                
+                Ok(self.entries.insert(id, entry).unwrap())
+            }
+            
+            pub fn remove(&mut self, persistence: &mut crate::Persistence, id: $id) -> Result<$entry, Box<dyn std::error::Error>> {
+                let id = self.delete_operation(persistence, id)?;
+                
+                let entry = self.entries.remove(&id).unwrap();
+                
+                if self.entries.capacity() > self.entries.len().saturating_mul(2) {
+                    self.entries.shrink_to_fit();
+                }
+                
+                Ok(entry)
+            }
+            
+            pub fn mass_add(&mut self, persistence: &mut crate::Persistence $(,$r: $t)*, entries: impl Iterator<Item = $entry>) -> Result<(), Box<dyn std::error::Error>> {
+                persistence.begin_transaction()?;
+                
+                let result = entries.map(|entry| self.insert_operation(persistence $(,$r)*, entry))
+                    .collect::<Result<Vec<($id, $entry)>, _>>();
+                
+                match result {
+                    
+                    Ok(entries) => {
+                        
+                        persistence.commit();
+                        
+                        for (id, entry) in entries {
+                            self.entries.insert(id, entry);
+                        }
+                        
+                        Ok(())
+                        
+                    },
+                    
+                    Err(error) => {
+                        
+                        persistence.rollback();
+                        
+                        Err(error)
+                        
+                    },
+                    
+                }
+            }
+            
+            pub fn mass_edit(&mut self, persistence: &mut crate::Persistence $(,$r: $t)*, entries: impl Iterator<Item = ($id, $entry)>) -> Result<(), Box<dyn std::error::Error>> {
+                persistence.begin_transaction()?;
+                
+                let result = entries.map(|(id, entry)| self.update_operation(persistence $(,$r)*, id, entry))
+                    .collect::<Result<Vec<($id, $entry)>, _>>();
+                
+                match result {
+                
+                    Ok(entries) => {
+                        
+                        persistence.commit();
+                        
+                        for (id, entry) in entries {
+                            self.entries.insert(id, entry);
+                        }
+                        
+                        Ok(())
+                        
+                    },
+                    
+                    Err(error) => {
+                        
+                        persistence.rollback();
+                        
+                        Err(error)
+                        
+                    },
+                    
+                }
+            }
+            
+            pub fn mass_remove(&mut self, persistence: &mut crate::Persistence, entries: impl Iterator<Item = $id>) -> Result<(), Box<dyn std::error::Error>> {
+                persistence.begin_transaction()?;
+                
+                let result = entries.map(|id| self.delete_operation(persistence, id))
+                    .collect::<Result<Vec<$id>, _>>();
+                
+                match result {
+            
+                    Ok(entries) => {
+                        
+                        persistence.commit();
+                        
+                        for id in &entries {
+                            self.entries.remove(id).unwrap();
+                        }
+                        
+                        if self.entries.capacity() > self.entries.len().saturating_mul(2) {
+                            self.entries.shrink_to_fit();
+                        }
+                        
+                        Ok(())
+                        
+                    },
+                    
+                    Err(error) => {
+                        
+                        persistence.rollback();
+                        
+                        Err(error)
+                        
+                    },
+                    
+                }
+            }
+            
+            fn insert_operation(&mut self, persistence: &mut crate::Persistence $(,$r: $t)*, entry: $entry) -> Result<($id, $entry), Box<dyn std::error::Error>> {
+                self.validate_entry($($r,)* &entry, None)?;
+                
+                let id = $id::from(persistence.insert(self, &entry)?);
+                
+                self.validate_id(id, true)?;
+                
+                Ok((id, entry))
+            }
+            
+            fn update_operation(&mut self, persistence: &mut crate::Persistence $(,$r: $t)*, id: $id, entry: $entry) -> Result<($id, $entry), Box<dyn std::error::Error>> {
+                self.validate_id(id, false)?;
+                self.validate_entry($($r,)* &entry, Some(id))?;
+                
+                persistence.update(self, &entry, id)?;
+                
+                Ok((id, entry))
+            }
+            
+            fn delete_operation(&mut self, persistence: &mut crate::Persistence, id: $id) -> Result<$id, Box<dyn std::error::Error>> {
+                self.validate_id(id, false)?;
+                
+                persistence.delete(self, id)?;
+                
+                Ok(id)
+            }
+            
+            
+            // ---------- validators ----------
+            
+            
+            pub fn validate_id(&self, id: $id, insertion: bool) -> Result<(), Box<dyn std::error::Error>> {
+                id.validate(self, insertion)
+            }
+            
+            pub fn validate_entry(&self $(,$r: $t)*, entry: &$entry, id: Option<$id>) -> Result<(), Box<dyn std::error::Error>> {
+                entry.validate(self $(,$r)*, id)
+            }
+            
+		}
+		
+	};
+	
 }
 
-// formats
-
-impl Database {
-    
-    // ---------- accessors ----------
-    
-    
-    pub fn formats_get(&self, id: FormatsId) -> Option<&FormatsEntry> {
-        self.data.formats.get(id)
-    }
-    
-    pub fn formats_iter(&self) -> impl Iterator<Item = (&FormatsId, &FormatsEntry)> {
-        self.data.formats.iter()
-    }
-    
-    pub fn formats_count(&self) -> usize {
-        self.data.formats.count()
-    }
-    
-    
-    // ---------- mutators ----------
-    
-    
-    pub fn formats_add(&mut self, entry: FormatsEntry) -> Result<FormatsId, Box<dyn Error>> {
-        let result = self.data.formats.add(entry)?;
-        self.modified = true;
-        Ok(result)
-    }
-    
-    pub fn formats_edit(&mut self, id: FormatsId, entry: FormatsEntry) -> Result<FormatsEntry, Box<dyn Error>> {
-        let result = self.data.formats.edit(id, entry)?;
-        self.modified = true;
-        Ok(result)
-    }
-    
-    pub fn formats_remove(&mut self, id: FormatsId) -> Result<FormatsEntry, Box<dyn Error>> {
-        let result = self.data.formats.remove(id)?;
-        self.modified = true;
-        Ok(result)
-    }
-    
-}
-
-// kinds
-
-impl Database {
-    
-    // ---------- accessors ----------
-    
-    
-    pub fn kinds_get(&self, id: KindsId) -> Option<&KindsEntry> {
-        self.data.kinds.get(id)
-    }
-    
-    pub fn kinds_iter(&self) -> impl Iterator<Item = (&KindsId, &KindsEntry)> {
-        self.data.kinds.iter()
-    }
-    
-    pub fn kinds_count(&self) -> usize {
-        self.data.kinds.count()
-    }
-    
-    
-    // ---------- mutators ----------
-    
-    
-    pub fn kinds_add(&mut self, entry: KindsEntry) -> Result<KindsId, Box<dyn Error>> {
-        let result = self.data.kinds.add(entry)?;
-        self.modified = true;
-        Ok(result)
-    }
-    
-    pub fn kinds_edit(&mut self, id: KindsId, entry: KindsEntry) -> Result<KindsEntry, Box<dyn Error>> {
-        let result = self.data.kinds.edit(id, entry)?;
-        self.modified = true;
-        Ok(result)
-    }
-    
-    pub fn kinds_remove(&mut self, id: KindsId) -> Result<KindsEntry, Box<dyn Error>> {
-        let result = self.data.kinds.remove(id, &self.data.series)?;
-        self.modified = true;
-        Ok(result)
-    }
-    
-}
-
-// series
-
-impl Database {
-    
-    // ---------- accessors ----------
-    
-    
-    pub fn series_get(&self, id: SeriesId) -> Option<&SeriesEntry> {
-        self.data.series.get(id)
-    }
-    
-    pub fn series_iter(&self) -> impl Iterator<Item = (&SeriesId, &SeriesEntry)> {
-        self.data.series.iter()
-    }
-    
-    pub fn series_count(&self) -> usize {
-        self.data.series.count()
-    }
-    
-    
-    // ---------- mutators ----------
-    
-    
-    pub fn series_add(&mut self, entry: SeriesEntry) -> Result<SeriesId, Box<dyn Error>> {
-        let result = self.data.series.add(entry, &self.data.kinds, &self.data.candidates)?;
-        self.modified = true;
-        Ok(result)
-    }
-    
-    pub fn series_edit(&mut self, id: SeriesId, entry: SeriesEntry) -> Result<SeriesEntry, Box<dyn Error>> {
-        let result = self.data.series.edit(id, entry, &self.data.kinds, &self.data.candidates)?;
-        self.modified = true;
-        Ok(result)
-    }
-    
-    pub fn series_remove(&mut self, id: SeriesId) -> Result<SeriesEntry, Box<dyn Error>> {
-        let result = self.data.series.remove(id, &self.data.candidates)?;
-        self.modified = true;
-        Ok(result)
-    }
-    
-}
-
-// candidates
-
-impl Database {
-    
-    // ---------- accessors ----------
-    
-    
-    pub fn candidates_get(&self, id: CandidatesId) -> Option<&CandidatesEntry> {
-        self.data.candidates.get(id)
-    }
-    
-    pub fn candidates_iter(&self) -> impl Iterator<Item = (&CandidatesId, &CandidatesEntry)> {
-        self.data.candidates.iter()
-    }
-    
-    pub fn candidates_count(&self) -> usize {
-        self.data.candidates.count()
-    }
-    
-    
-    // ---------- mutators ----------
-    
-    
-    pub fn candidates_add(&mut self, entry: CandidatesEntry) -> Result<CandidatesId, Box<dyn Error>> {
-        let result = self.data.candidates.add(entry, &self.data.series)?;
-        self.modified = true;
-        Ok(result)
-    }
-    
-    pub fn candidates_edit(&mut self, id: CandidatesId, entry: CandidatesEntry) -> Result<CandidatesEntry, Box<dyn Error>> {
-        let result = self.data.candidates.edit(id, entry, &self.data.series)?;
-        self.modified = true;
-        Ok(result)
-    }
-    
-    pub fn candidates_remove(&mut self, id: CandidatesId) -> Result<CandidatesEntry, Box<dyn Error>> {
-        let result = self.data.candidates.remove(id)?;
-        self.modified = true;
-        Ok(result)
-    }
-    
-}
+pub(crate) use module_impl;
