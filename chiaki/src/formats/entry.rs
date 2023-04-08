@@ -52,7 +52,7 @@ impl FormatsEntry {
     // ---------- validators ----------    
     
     
-    pub(crate) fn validate(&self, formats: &Formats, id: Option<FormatsId>) -> Result<(), Box<dyn Error>> {
+    pub(crate) fn validate(&self, formats: &Formats, id: FormatsId) -> Result<(), Box<dyn Error>> {
         if let Err(error) = self.validate_name(formats, id) {
             match error {
                 NameError::Empty => return Err("Name: cannot be empty".into()),
@@ -63,21 +63,13 @@ impl FormatsEntry {
         Ok(())
     }
     
-    fn validate_name(&self, formats: &Formats, id: Option<FormatsId>) -> Result<(), NameError> {
+    fn validate_name(&self, formats: &Formats, id: FormatsId) -> Result<(), NameError> {
         if self.name().is_empty() {
             return Err(NameError::Empty);
         }
         
-        match id {
-            
-            Some(id) => if formats.iter().any(|(&k, v)| v.name().eq_ignore_ascii_case(self.name()) && k != id) {
-                return Err(NameError::NonUnique);
-            },
-            
-            None => if formats.iter().any(|(_, v)| v.name().eq_ignore_ascii_case(self.name())) {
-                return Err(NameError::NonUnique);
-            },
-            
+        if formats.iter().any(|(k, v)| v.name().eq_ignore_ascii_case(self.name()) && k != id) {
+            return Err(NameError::NonUnique);
         }
         
         Ok(())

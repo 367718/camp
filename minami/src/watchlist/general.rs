@@ -46,10 +46,10 @@ fn fill(state: &State) {
         watchlist_store.insert_with_values(
             None,
             &[
-                (0, &id.as_int()),
+                (0, &i64::from(id)),
                 
-                (1, &(entry.good().as_int() * 400)),
-                (2, &entry.status().as_int()),
+                (1, &(i64::from(entry.good()) * 400)),
+                (2, &i64::from(entry.status())),
                 
                 (3, &entry.title()),
                 (4, &entry.good().display()),

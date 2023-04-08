@@ -14,26 +14,27 @@ impl From<i64> for FormatsId {
     
 }
 
-impl FormatsId {
+impl From<FormatsId> for i64 {
     
-    // ---------- accessors ----------
-    
-    
-    pub fn as_int(self) -> i64 {
-        self.0
+    fn from(value: FormatsId) -> i64 {
+        value.0
     }
     
-    
-    // ---------- validators ----------    
-    
+}
+
+impl FormatsId {
     
     pub(crate) fn validate(self, formats: &Formats, insertion: bool) -> Result<(), Box<dyn Error>> {
-        if self.as_int() <= 0 {
-            return Err("Id: cannot be lower than or equal to zero".into());
+        if i64::from(self) <= 0 {
+            return Err("Id: cannot be lower than or equal to 0".into());
         }
         
-        if insertion && formats.iter().any(|(&k, _)| k == self) {
+        if insertion && formats.iter().any(|(k, _)| k == self) {
             return Err("Id: already in use for another entry".into());
+        }
+        
+        if ! insertion && ! formats.iter().any(|(k, _)| k == self) {
+            return Err("Id: does not correspond to any valid entry".into());
         }
         
         Ok(())

@@ -45,7 +45,7 @@ fn fill(state: &State) {
         feeds_store.insert_with_values(
             None,
             &[
-                (0, &id.as_int()),
+                (0, &i64::from(id)),
                 (1, &feed.url()),
             ],
         );
@@ -190,7 +190,7 @@ pub fn add(state: &mut State) {
                         let store_iter = feeds_store.insert_with_values(
                             None,
                             &[
-                                (0, &id.as_int()),
+                                (0, &i64::from(id)),
                                 (1, &feed.url()),
                             ],
                         );

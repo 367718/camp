@@ -62,13 +62,13 @@ impl PersistenceBinds for SeriesId {
     }
     
     fn update(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":id", self.as_int()))?;
+        statement.bind((":id", i64::from(*self)))?;
         
         Ok(())
     }
     
     fn delete(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":id", self.as_int()))?;
+        statement.bind((":id", i64::from(*self)))?;
         
         Ok(())
     }
@@ -79,10 +79,10 @@ impl PersistenceBinds for SeriesEntry {
     
     fn insert(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
         statement.bind((":title", self.title()))?;
-        statement.bind((":kind", self.kind().as_int()))?;
-        statement.bind((":status", self.status().as_int()))?;
+        statement.bind((":kind", i64::from(self.kind())))?;
+        statement.bind((":status", i64::from(self.status())))?;
         statement.bind((":progress", self.progress()))?;
-        statement.bind((":good", self.good().as_int()))?;
+        statement.bind((":good", i64::from(self.good())))?;
         
         Ok(())
     }
@@ -90,10 +90,10 @@ impl PersistenceBinds for SeriesEntry {
     fn update(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
         statement.bind_iter::<_, (_, sqlite::Value)>([
             (":title", self.title().into()),
-            (":kind", self.kind().as_int().into()),
-            (":status", self.status().as_int().into()),
+            (":kind", i64::from(self.kind()).into()),
+            (":status", i64::from(self.status()).into()),
             (":progress", self.progress().into()),
-            (":good", self.good().as_int().into()),
+            (":good", i64::from(self.good()).into()),
         ])?;
         
         Ok(())

@@ -260,9 +260,9 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
     candidates.sort_unstable_by(|a, b| crate::general::natural_cmp(a.title(), b.title()));
     
     let mut feeds = state.database.feeds_iter()
-        .collect::<Vec<(&FeedsId, &FeedsEntry)>>();
+        .collect::<Vec<(FeedsId, &FeedsEntry)>>();
     
-    feeds.sort_unstable_by(|a, b| a.0.as_int().cmp(&b.0.as_int()));
+    feeds.sort_unstable_by(|a, b| i64::from(a.0).cmp(&i64::from(b.0)));
     
     let feeds = feeds.drain(..)
         .map(|(_, entry)| entry)

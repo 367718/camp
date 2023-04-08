@@ -52,7 +52,7 @@ impl FeedsEntry {
     // ---------- validators ----------    
     
     
-    pub(crate) fn validate(&self, feeds: &Feeds, id: Option<FeedsId>) -> Result<(), Box<dyn Error>> {
+    pub(crate) fn validate(&self, feeds: &Feeds, id: FeedsId) -> Result<(), Box<dyn Error>> {
         if let Err(error) = self.validate_url(feeds, id) {
             match error {
                 UrlError::Empty => return Err("URL: cannot be empty".into()),
@@ -63,21 +63,13 @@ impl FeedsEntry {
         Ok(())
     }
     
-    fn validate_url(&self, feeds: &Feeds, id: Option<FeedsId>) -> Result<(), UrlError> {
+    fn validate_url(&self, feeds: &Feeds, id: FeedsId) -> Result<(), UrlError> {
         if self.url().is_empty() {
             return Err(UrlError::Empty);
         }
         
-        match id {
-            
-            Some(id) => if feeds.iter().any(|(&k, v)| v.url().eq_ignore_ascii_case(self.url()) && k != id) {
-                return Err(UrlError::NonUnique);
-            },
-            
-            None => if feeds.iter().any(|(_, v)| v.url().eq_ignore_ascii_case(self.url())) {
-                return Err(UrlError::NonUnique);
-            },
-            
+        if feeds.iter().any(|(k, v)| v.url().eq_ignore_ascii_case(self.url()) && k != id) {
+            return Err(UrlError::NonUnique);
         }
         
         Ok(())

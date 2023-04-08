@@ -128,7 +128,7 @@ impl SeriesEntry {
     // ---------- validators ----------    
     
     
-    pub(crate) fn validate(&self, series: &Series, kinds: &Kinds, id: Option<SeriesId>) -> Result<(), Box<dyn Error>> {
+    pub(crate) fn validate(&self, series: &Series, kinds: &Kinds, id: SeriesId) -> Result<(), Box<dyn Error>> {
         let mut errors = Vec::with_capacity(4);
         
         if let Err(error) = self.validate_title(series, id) {
@@ -165,28 +165,20 @@ impl SeriesEntry {
         Ok(())
     }
     
-    fn validate_title(&self, series: &Series, id: Option<SeriesId>) -> Result<(), TitleError> {
+    fn validate_title(&self, series: &Series, id: SeriesId) -> Result<(), TitleError> {
         if self.title().is_empty() {
             return Err(TitleError::Empty);
         }
         
-        match id {
-            
-            Some(id) => if series.iter().any(|(&k, v)| v.title().eq_ignore_ascii_case(self.title()) && k != id) {
-                return Err(TitleError::NonUnique);
-            },
-            
-            None => if series.iter().any(|(_, v)| v.title().eq_ignore_ascii_case(self.title())) {
-                return Err(TitleError::NonUnique);
-            },
-            
+        if series.iter().any(|(k, v)| v.title().eq_ignore_ascii_case(self.title()) && k != id) {
+            return Err(TitleError::NonUnique);
         }
         
         Ok(())
     }
     
     fn validate_kind(&self, kinds: &Kinds) -> Result<(), KindError> {
-        if ! kinds.iter().any(|(&k, _)| k == self.kind) {
+        if ! kinds.iter().any(|(k, _)| k == self.kind) {
             return Err(KindError::NotFound);
         }
         
@@ -265,16 +257,20 @@ impl TryFrom<&str> for SeriesStatus {
     
 }
 
-impl SeriesStatus {
+impl From<SeriesStatus> for i64 {
     
-    pub fn as_int(&self) -> i64 {
-        match self {
-            Self::Watching => 1,
-            Self::OnHold => 2,
-            Self::PlanToWatch => 3,
-            Self::Completed => 4,
+    fn from(value: SeriesStatus) -> i64 {
+        match value {
+            SeriesStatus::Watching => 1,
+            SeriesStatus::OnHold => 2,
+            SeriesStatus::PlanToWatch => 3,
+            SeriesStatus::Completed => 4,
         }
     }
+    
+}
+
+impl SeriesStatus {
     
     pub fn as_str(&self) -> &str {
         match self {
@@ -345,14 +341,18 @@ impl TryFrom<&str> for SeriesGood {
     
 }
 
-impl SeriesGood {
+impl From<SeriesGood> for i64 {
     
-    pub fn as_int(&self) -> i64 {
-        match self {
-            Self::No => 1,
-            Self::Yes => 2,
+    fn from(value: SeriesGood) -> i64 {
+        match value {
+            SeriesGood::No => 1,
+            SeriesGood::Yes => 2,
         }
     }
+    
+}
+
+impl SeriesGood {
     
     pub fn as_str(&self) -> &str {
         match self {

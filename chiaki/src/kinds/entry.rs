@@ -52,7 +52,7 @@ impl KindsEntry {
     // ---------- validators ----------    
     
     
-    pub(crate) fn validate(&self, kinds: &Kinds, id: Option<KindsId>) -> Result<(), Box<dyn Error>> {
+    pub(crate) fn validate(&self, kinds: &Kinds, id: KindsId) -> Result<(), Box<dyn Error>> {
         if let Err(error) = self.validate_name(kinds, id) {
             match error {
                 NameError::Empty => return Err("Name: cannot be empty".into()),
@@ -63,21 +63,13 @@ impl KindsEntry {
         Ok(())
     }
     
-    fn validate_name(&self, kinds: &Kinds, id: Option<KindsId>) -> Result<(), NameError> {
+    fn validate_name(&self, kinds: &Kinds, id: KindsId) -> Result<(), NameError> {
         if self.name().is_empty() {
             return Err(NameError::Empty);
         }
         
-        match id {
-            
-            Some(id) => if kinds.iter().any(|(&k, v)| v.name().eq_ignore_ascii_case(self.name()) && k != id) {
-                return Err(NameError::NonUnique);
-            },
-            
-            None => if kinds.iter().any(|(_, v)| v.name().eq_ignore_ascii_case(self.name())) {
-                return Err(NameError::NonUnique);
-            },
-            
+        if kinds.iter().any(|(k, v)| v.name().eq_ignore_ascii_case(self.name()) && k != id) {
+            return Err(NameError::NonUnique);
         }
         
         Ok(())

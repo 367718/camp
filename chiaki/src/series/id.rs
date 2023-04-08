@@ -14,26 +14,27 @@ impl From<i64> for SeriesId {
     
 }
 
-impl SeriesId {
+impl From<SeriesId> for i64 {
     
-    // ---------- accessors ----------
-    
-    
-    pub fn as_int(self) -> i64 {
-        self.0
+    fn from(value: SeriesId) -> i64 {
+        value.0
     }
     
-    
-    // ---------- validators ----------    
-    
+}
+
+impl SeriesId {
     
     pub(crate) fn validate(self, series: &Series, insertion: bool) -> Result<(), Box<dyn Error>> {
-        if self.as_int() <= 0 {
-            return Err("Id: cannot be lower than or equal to zero".into());
+        if i64::from(self) <= 0 {
+            return Err("Id: cannot be lower than or equal to 0".into());
         }
         
-        if insertion && series.iter().any(|(&k, _)| k == self) {
+        if insertion && series.iter().any(|(k, _)| k == self) {
             return Err("Id: already in use for another entry".into());
+        }
+        
+        if ! insertion && ! series.iter().any(|(k, _)| k == self) {
+            return Err("Id: does not correspond to any valid entry".into());
         }
         
         Ok(())

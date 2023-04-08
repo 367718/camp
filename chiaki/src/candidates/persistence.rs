@@ -71,13 +71,13 @@ impl PersistenceBinds for CandidatesId {
     }
     
     fn update(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":id", self.as_int()))?;
+        statement.bind((":id", i64::from(*self)))?;
         
         Ok(())
     }
     
     fn delete(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":id", self.as_int()))?;
+        statement.bind((":id", i64::from(*self)))?;
         
         Ok(())
     }
@@ -87,12 +87,12 @@ impl PersistenceBinds for CandidatesId {
 impl PersistenceBinds for CandidatesEntry {
     
     fn insert(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":series", self.series().as_int()))?;
+        statement.bind((":series", i64::from(self.series())))?;
         statement.bind((":title", self.title()))?;
         statement.bind((":grp", self.group()))?;
         statement.bind((":quality", self.quality()))?;
         statement.bind((":offset", self.offset()))?;
-        statement.bind((":current", self.current().as_int()))?;
+        statement.bind((":current", i64::from(self.current())))?;
         statement.bind((":downloaded", encode_downloaded(self.downloaded()).as_str()))?;
         
         Ok(())
@@ -100,12 +100,12 @@ impl PersistenceBinds for CandidatesEntry {
     
     fn update(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
         statement.bind_iter::<_, (_, sqlite::Value)>([
-            (":series", self.series().as_int().into()),
+            (":series", i64::from(self.series()).into()),
             (":title", self.title().into()),
             (":grp", self.group().into()),
             (":quality", self.quality().into()),
             (":offset", self.offset().into()),
-            (":current", self.current().as_int().into()),
+            (":current", i64::from(self.current()).into()),
             (":downloaded", encode_downloaded(self.downloaded()).into()),
         ])?;
         

@@ -145,7 +145,7 @@ impl CandidatesEntry {
     // ---------- validators ----------    
     
     
-    pub(crate) fn validate(&self, candidates: &Candidates, series: &Series, id: Option<CandidatesId>) -> Result<(), Box<dyn Error>> {
+    pub(crate) fn validate(&self, candidates: &Candidates, series: &Series, id: CandidatesId) -> Result<(), Box<dyn Error>> {
         let mut errors = Vec::with_capacity(4);
         
         if let Err(error) = self.validate_series(candidates, series, id) {
@@ -183,7 +183,7 @@ impl CandidatesEntry {
         Ok(())
     }
     
-    fn validate_series(&self, candidates: &Candidates, series: &Series, id: Option<CandidatesId>) -> Result<(), SeriesError> {
+    fn validate_series(&self, candidates: &Candidates, series: &Series, id: CandidatesId) -> Result<(), SeriesError> {
         let found = series.get(self.series())
             .ok_or(SeriesError::NotFound)?;
         
@@ -191,36 +191,20 @@ impl CandidatesEntry {
             return Err(SeriesError::NotWatching);
         }
         
-        match id {
-            
-            Some(id) => if candidates.iter().any(|(&k, v)| v.series() == self.series() && k != id) {
-                return Err(SeriesError::NonUnique);
-            },
-            
-            None => if candidates.iter().any(|(_, v)| v.series() == self.series()) {
-                return Err(SeriesError::NonUnique);
-            },
-            
+        if candidates.iter().any(|(k, v)| v.series() == self.series() && k != id) {
+            return Err(SeriesError::NonUnique);
         }
         
         Ok(())
     }
     
-    fn validate_title(&self, candidates: &Candidates, id: Option<CandidatesId>) -> Result<(), TitleError> {
+    fn validate_title(&self, candidates: &Candidates, id: CandidatesId) -> Result<(), TitleError> {
         if self.title().is_empty() {
             return Err(TitleError::Empty);
         }
         
-        match id {
-            
-            Some(id) => if candidates.iter().any(|(&k, v)| v.title().eq_ignore_ascii_case(self.title()) && k != id) {
-                return Err(TitleError::NonUnique);
-            },
-            
-            None => if candidates.iter().any(|(_, v)| v.title().eq_ignore_ascii_case(self.title())) {
-                return Err(TitleError::NonUnique);
-            },
-            
+        if candidates.iter().any(|(k, v)| v.title().eq_ignore_ascii_case(self.title()) && k != id) {
+            return Err(TitleError::NonUnique);
         }
         
         Ok(())
@@ -288,14 +272,18 @@ impl TryFrom<&str> for CandidatesCurrent {
     
 }
 
-impl CandidatesCurrent {
+impl From<CandidatesCurrent> for i64 {
     
-    pub fn as_int(&self) -> i64 {
-        match self {
-            Self::No => 1,
-            Self::Yes => 2,
+    fn from(value: CandidatesCurrent) -> i64 {
+        match value {
+            CandidatesCurrent::No => 1,
+            CandidatesCurrent::Yes => 2,
         }
     }
+    
+}
+
+impl CandidatesCurrent {
     
     pub fn as_str(&self) -> &str {
         match self {
@@ -348,7 +336,7 @@ impl nadeshiko::IsCandidate for CandidatesEntry {
     }
     
     fn id(&self) -> i64 {
-        self.series.as_int()
+        i64::from(self.series)
     }
     
 }

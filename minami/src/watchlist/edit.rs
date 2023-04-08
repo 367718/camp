@@ -160,10 +160,10 @@ pub fn add(state: &mut State, sender: &Sender<Message>, prefill: &Option<String>
                         let store_iter = watchlist_store.insert_with_values(
                             None,
                             &[
-                                (0, &id.as_int()),
+                                (0, &i64::from(id)),
                                 
-                                (1, &(series.good().as_int() * 400)),
-                                (2, &series.status().as_int()),
+                                (1, &(i64::from(series.good()) * 400)),
+                                (2, &i64::from(series.status())),
                                 
                                 (3, &series.title()),
                                 
@@ -272,9 +272,9 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
             let good_switch = &state.ui.widgets().dialogs.watchlist.series.good_switch;
             
             title_entry.set_text(current.title());
-            kind_combo.set_active_id(Some(&current.kind().as_int().to_string()));
+            kind_combo.set_active_id(Some(&i64::from(current.kind()).to_string()));
             status_combo.set_sensitive(true);
-            status_combo.set_active_id(Some(&current.status().as_int().to_string()));
+            status_combo.set_active_id(Some(&i64::from(current.status()).to_string()));
             progress_spin.set_value(current.progress() as f64);
             good_switch.set_sensitive(true);
             good_switch.set_active(current.good() == SeriesGood::Yes);
@@ -339,8 +339,8 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
                                 watchlist_store.set(
                                     &store_iter,
                                     &[
-                                        (1, &(series.good().as_int() * 400)),
-                                        (2, &series.status().as_int()),
+                                        (1, &(i64::from(series.good()) * 400)),
+                                        (2, &i64::from(series.status())),
                                         
                                         (3, &series.title()),
                                         
@@ -497,7 +497,7 @@ pub fn copy_titles(state: &State) {
 fn delete_related_candidate(state: &mut State, id: SeriesId) -> Result<(), Box<dyn Error>> {
     let candidate_id = state.database.candidates_iter()
         .find(|(_, current)| current.series() == id)
-        .map(|(&candidate_id, _)| candidate_id);
+        .map(|(candidate_id, _)| candidate_id);
     
     if let Some(candidate_id) = candidate_id {
         

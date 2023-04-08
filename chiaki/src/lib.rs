@@ -90,7 +90,7 @@ macro_rules! api_impl {
                     self.$module.get(id)
                 }
                 
-                pub fn [<$module _iter>](&self) -> impl Iterator<Item = (&$id, &$entry)> {
+                pub fn [<$module _iter>](&self) -> impl Iterator<Item = ($id, &$entry)> {
                     self.$module.iter()
                 }
                 
@@ -130,12 +130,12 @@ macro_rules! api_impl {
                 // ---------- validators ----------
                 
                 
-                pub fn [<$module _validate_id>](&self, id: $id, insertion: bool) -> Result<(), Box<dyn std::error::Error>> {
-                    self.$module.validate_id(id, insertion)
+                pub fn [<$module _validate_id>](&self, id: $id) -> Result<(), Box<dyn std::error::Error>> {
+                    self.$module.validate_id(id, false)
                 }
                 
                 pub fn [<$module _validate_entry>](&self, entry: &$entry, id: Option<$id>) -> Result<(), Box<dyn std::error::Error>> {
-                    self.$module.validate_entry($(&self.$related,)* entry, id)
+                    self.$module.validate_entry($(&self.$related,)* entry, id.unwrap_or_else(|| $id::from(0)))
                 }
                 
             }
@@ -176,7 +176,7 @@ macro_rules! module_impl {
                 
                 for (id, entry) in persistence.select::<$id, $entry>(&module)? {
                     module.validate_id(id, true)?;
-                    module.validate_entry($($related,)* &entry, Some(id))?;
+                    module.validate_entry($($related,)* &entry, id)?;
                     module.entries.insert(id, entry);
                 }
                 
@@ -191,8 +191,8 @@ macro_rules! module_impl {
                 self.entries.get(&id)
             }
             
-            pub fn iter(&self) -> impl Iterator<Item = (&$id, &$entry)> {
-                self.entries.iter()
+            pub fn iter(&self) -> impl Iterator<Item = ($id, &$entry)> {
+                self.entries.iter().map(|(&id, entry)| (id, entry))
             }
             
             pub fn count(&self) -> usize {
@@ -327,7 +327,7 @@ macro_rules! module_impl {
             }
             
             fn insert_operation(&mut self, persistence: &mut crate::Persistence $(,$related: $t)*, entry: $entry) -> Result<($id, $entry), Box<dyn std::error::Error>> {
-                self.validate_entry($($related,)* &entry, None)?;
+                self.validate_entry($($related,)* &entry, $id::from(0))?;
                 
                 let id = $id::from(persistence.insert(self, &entry)?);
                 
@@ -338,7 +338,7 @@ macro_rules! module_impl {
             
             fn update_operation(&mut self, persistence: &mut crate::Persistence $(,$related: $t)*, id: $id, entry: $entry) -> Result<($id, $entry), Box<dyn std::error::Error>> {
                 self.validate_id(id, false)?;
-                self.validate_entry($($related,)* &entry, Some(id))?;
+                self.validate_entry($($related,)* &entry, id)?;
                 
                 persistence.update(self, &entry, id)?;
                 
@@ -361,14 +361,14 @@ macro_rules! module_impl {
                 id.validate(self, insertion)
             }
             
-            pub fn validate_entry(&self $(,$related: $t)*, entry: &$entry, id: Option<$id>) -> Result<(), Box<dyn std::error::Error>> {
+            pub fn validate_entry(&self $(,$related: $t)*, entry: &$entry, id: $id) -> Result<(), Box<dyn std::error::Error>> {
                 entry.validate(self $(,$related)*, id)
             }
             
-		}
-		
-	};
-	
+        }
+        
+    };
+    
 }
 
 pub(crate) use module_impl;

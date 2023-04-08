@@ -50,13 +50,13 @@ impl PersistenceBinds for KindsId {
     }
     
     fn update(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":id", self.as_int()))?;
+        statement.bind((":id", i64::from(*self)))?;
         
         Ok(())
     }
     
     fn delete(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":id", self.as_int()))?;
+        statement.bind((":id", i64::from(*self)))?;
         
         Ok(())
     }

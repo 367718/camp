@@ -45,7 +45,7 @@ fn fill(state: &State) {
         formats_store.insert_with_values(
             None,
             &[
-                (0, &id.as_int()),
+                (0, &i64::from(id)),
                 (1, &format.name()),
             ],
         );
@@ -190,7 +190,7 @@ pub fn add(state: &mut State, sender: &Sender<Message>) {
                         let store_iter = formats_store.insert_with_values(
                             None,
                             &[
-                                (0, &id.as_int()),
+                                (0, &i64::from(id)),
                                 (1, &format.name()),
                             ],
                         );
