@@ -82,11 +82,7 @@ impl Persistence {
         
         statement.next()?;
         
-        if self.connection.change_count() != 1 {
-            return Err("Database insert operation failed".into());
-        }
-        
-        Ok(statement.read::<i64, _>(0)?)
+        Ok(statement.read::<i64, _>("id")?)
     }
     
     pub fn update(&mut self, queries: &impl Queries, binds: impl Binds) -> Result<(), Box<dyn Error>> {

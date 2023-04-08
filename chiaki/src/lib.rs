@@ -175,9 +175,9 @@ macro_rules! module_impl {
                 module.entries.reserve(persistence.count(&module)?.try_into()?);
                 
                 for (id, entry) in persistence.select::<($id, $entry)>(&module)? {
-                    module.validate_id(id, true)?;
-                    module.validate_entry($($related,)* &entry, id)?;
-                    module.entries.insert(id, entry);
+                    if module.validate_id(id, true).is_ok() && module.validate_entry($($related,)* &entry, id).is_ok() {
+                        module.entries.insert(id, entry);
+                    }
                 }
                 
                 Ok(module)
