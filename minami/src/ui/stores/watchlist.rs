@@ -59,7 +59,7 @@ impl Entries {
         for section in WatchlistSection::iter() {
             
             let filter = gtk::TreeModelFilter::new(&store, None);
-            Self::set_visible_func(&filter, i64::from(section));
+            Self::set_visible_func(&filter, section.to_int());
             
             filters.push(filter);
             

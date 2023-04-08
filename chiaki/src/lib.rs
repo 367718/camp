@@ -15,7 +15,7 @@ use formats::Formats;
 use kinds::Kinds;
 use series::Series;
 use candidates::Candidates;
-use persistence::{ Persistence, PersistenceQueries, PersistenceBinds, FromRow };
+use persistence::{ Persistence, Queries, Binds, FromRow };
 
 pub use feeds::{ FeedsId, FeedsEntry };
 pub use formats::{ FormatsId, FormatsEntry };
@@ -174,7 +174,7 @@ macro_rules! module_impl {
                 
                 module.entries.reserve(persistence.count(&module)?.try_into()?);
                 
-                for (id, entry) in persistence.select::<$id, $entry>(&module)? {
+                for (id, entry) in persistence.select::<($id, $entry)>(&module)? {
                     module.validate_id(id, true)?;
                     module.validate_entry($($related,)* &entry, id)?;
                     module.entries.insert(id, entry);
@@ -329,7 +329,7 @@ macro_rules! module_impl {
             fn insert_operation(&mut self, persistence: &mut crate::Persistence $(,$related: $t)*, entry: $entry) -> Result<($id, $entry), Box<dyn std::error::Error>> {
                 self.validate_entry($($related,)* &entry, $id::from(0))?;
                 
-                let id = $id::from(persistence.insert(self, &entry)?);
+                let id = $id::from(persistence.insert(self, (None, Some(&entry)))?);
                 
                 self.validate_id(id, true)?;
                 
@@ -340,7 +340,7 @@ macro_rules! module_impl {
                 self.validate_id(id, false)?;
                 self.validate_entry($($related,)* &entry, id)?;
                 
-                persistence.update(self, &entry, id)?;
+                persistence.update(self, (Some(id), Some(&entry)))?;
                 
                 Ok((id, entry))
             }
@@ -348,7 +348,7 @@ macro_rules! module_impl {
             fn delete_operation(&mut self, persistence: &mut crate::Persistence, id: $id) -> Result<$id, Box<dyn std::error::Error>> {
                 self.validate_id(id, false)?;
                 
-                persistence.delete(self, id)?;
+                persistence.delete(self, (Some(id), None))?;
                 
                 Ok(id)
             }

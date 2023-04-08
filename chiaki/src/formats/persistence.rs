@@ -1,9 +1,9 @@
 use std::error::Error;
 
 use super::{ Formats, FormatsId, FormatsEntry };
-use crate::{ PersistenceQueries, PersistenceBinds, FromRow };
+use crate::{ Queries, Binds, FromRow };
 
-impl PersistenceQueries for Formats {
+impl Queries for Formats {
     
     fn create(&self) -> &str {
         "CREATE TABLE IF NOT EXISTS formats (
@@ -43,61 +43,52 @@ impl PersistenceQueries for Formats {
     
 }
 
-impl PersistenceBinds for FormatsId {
+impl Binds for (Option<FormatsId>, Option<&FormatsEntry>) {
     
-    fn insert(&self, _statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        Ok(())
-    }
-    
-    fn update(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":id", i64::from(*self)))?;
+    fn insert(self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
+        let (_, entry) = self;
+        
+        let entry = entry.ok_or("Entry not provided")?;
+        
+        statement.bind((":name", entry.name()))?;
         
         Ok(())
     }
     
-    fn delete(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":id", i64::from(*self)))?;
+    fn update(self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
+        let (id, entry) = self;
+        
+        let id = id.ok_or("Id not provided")?;
+        let entry = entry.ok_or("Entry not provided")?;
+        
+        statement.bind_iter::<_, (_, sqlite::Value)>([
+            (":name", entry.name().into()),
+            (":id", id.to_int().into()),
+        ])?;
+        
+        Ok(())
+    }
+    
+    fn delete(self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
+        let (id, _) = self;
+        
+        let id = id.ok_or("Id not provided")?;
+        
+        statement.bind((":id", id.to_int()))?;
         
         Ok(())
     }
     
 }
 
-impl PersistenceBinds for FormatsEntry {
+impl FromRow for (FormatsId, FormatsEntry) {
     
-    fn insert(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":name", self.name()))?;
-        
-        Ok(())
-    }
-    
-    fn update(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":name", self.name()))?;
-        
-        Ok(())
-    }
-    
-    fn delete(&self, _statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        Ok(())
-    }
-    
-}
-
-impl FromRow for FormatsId {
-    
-    fn from_row(row: &sqlite::Row) -> Option<Self> {
-        Some(Self::from(row.try_read::<i64, _>("id").ok()?))
-    }
-    
-}
-
-impl FromRow for FormatsEntry {
-    
-    fn from_row(row: &sqlite::Row) -> Option<Self> {
-        let entry = Self::new()
+    fn from_row(row: sqlite::Row) -> Option<(FormatsId, FormatsEntry)> {
+        let id = FormatsId::from(row.try_read::<i64, _>("id").ok()?);
+        let entry = FormatsEntry::new()
             .with_name(row.try_read::<&str, _>("name").ok()?.to_string());
         
-        Some(entry)
+        Some((id, entry))
     }
     
 }

@@ -460,7 +460,7 @@ mod bin {
             let count = FilesSection::iter().count();
             let mut collected = Vec::new();
             
-            for display in FilesSection::iter().map(|section| section.display().to_string()) {
+            for display in FilesSection::iter().map(|section| section.to_str().to_string()) {
                 if ! collected.contains(&display) {
                     collected.push(display);
                 }
@@ -482,7 +482,7 @@ mod bin {
             let count = WatchlistSection::iter().count();
             let mut collected = Vec::new();
             
-            for display in WatchlistSection::iter().map(|section| section.display().to_string()) {
+            for display in WatchlistSection::iter().map(|section| section.to_str().to_string()) {
                 if ! collected.contains(&display) {
                     collected.push(display);
                 }
@@ -504,7 +504,7 @@ mod bin {
             let count = PreferencesSection::iter().count();
             let mut collected = Vec::new();
             
-            for section in PreferencesSection::iter().map(|section| section.display().to_string()) {
+            for section in PreferencesSection::iter().map(|section| section.to_str().to_string()) {
                 if ! collected.contains(&section) {
                     collected.push(section);
                 }

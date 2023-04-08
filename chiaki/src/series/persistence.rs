@@ -1,9 +1,9 @@
 use std::error::Error;
 
 use super::{ Series, SeriesId, SeriesEntry, SeriesStatus, SeriesGood, KindsId };
-use crate::{ PersistenceQueries, PersistenceBinds, FromRow };
+use crate::{ Queries, Binds, FromRow };
 
-impl PersistenceQueries for Series {
+impl Queries for Series {
     
     fn create(&self) -> &str {
         "CREATE TABLE IF NOT EXISTS series (
@@ -55,75 +55,66 @@ impl PersistenceQueries for Series {
     
 }
 
-impl PersistenceBinds for SeriesId {
+impl Binds for (Option<SeriesId>, Option<&SeriesEntry>) {
     
-    fn insert(&self, _statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        Ok(())
-    }
-    
-    fn update(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":id", i64::from(*self)))?;
+    fn insert(self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
+        let (_, entry) = self;
         
-        Ok(())
-    }
-    
-    fn delete(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":id", i64::from(*self)))?;
+        let entry = entry.ok_or("Entry not provided")?;
         
-        Ok(())
-    }
-    
-}
-
-impl PersistenceBinds for SeriesEntry {
-    
-    fn insert(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":title", self.title()))?;
-        statement.bind((":kind", i64::from(self.kind())))?;
-        statement.bind((":status", i64::from(self.status())))?;
-        statement.bind((":progress", self.progress()))?;
-        statement.bind((":good", i64::from(self.good())))?;
-        
-        Ok(())
-    }
-    
-    fn update(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
         statement.bind_iter::<_, (_, sqlite::Value)>([
-            (":title", self.title().into()),
-            (":kind", i64::from(self.kind()).into()),
-            (":status", i64::from(self.status()).into()),
-            (":progress", self.progress().into()),
-            (":good", i64::from(self.good()).into()),
+            (":title", entry.title().into()),
+            (":kind", entry.kind().to_int().into()),
+            (":status", entry.status().to_int().into()),
+            (":progress", entry.progress().into()),
+            (":good", entry.good().to_int().into()),
         ])?;
         
         Ok(())
     }
     
-    fn delete(&self, _statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
+    fn update(self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
+        let (id, entry) = self;
+        
+        let id = id.ok_or("Id not provided")?;
+        let entry = entry.ok_or("Entry not provided")?;
+        
+        statement.bind_iter::<_, (_, sqlite::Value)>([
+            (":title", entry.title().into()),
+            (":kind", entry.kind().to_int().into()),
+            (":status", entry.status().to_int().into()),
+            (":progress", entry.progress().into()),
+            (":good", entry.good().to_int().into()),
+            (":id", id.to_int().into()),
+        ])?;
+        
+        Ok(())
+    }
+    
+    fn delete(self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
+        let (id, _) = self;
+        
+        let id = id.ok_or("Id not provided")?;
+        
+        statement.bind((":id", id.to_int()))?;
+        
         Ok(())
     }
     
 }
 
-impl FromRow for SeriesId {
+impl FromRow for (SeriesId, SeriesEntry) {
     
-    fn from_row(row: &sqlite::Row) -> Option<Self> {
-        Some(Self::from(row.try_read::<i64, _>("id").ok()?))
-    }
-    
-}
-
-impl FromRow for SeriesEntry {
-    
-    fn from_row(row: &sqlite::Row) -> Option<Self> {
-        let entry = Self::new()
+    fn from_row(row: sqlite::Row) -> Option<(SeriesId, SeriesEntry)> {
+        let id = SeriesId::from(row.try_read::<i64, _>("id").ok()?);
+        let entry = SeriesEntry::new()
             .with_title(row.try_read::<&str, _>("title").ok()?.to_string())
             .with_kind(KindsId::try_from(row.try_read::<i64, _>("kind").ok()?).ok()?)
             .with_status(SeriesStatus::try_from(row.try_read::<i64, _>("status").ok()?).ok()?)
             .with_progress(row.try_read::<i64, _>("progress").ok()?)
             .with_good(SeriesGood::try_from(row.try_read::<i64, _>("good").ok()?).ok()?);
         
-        Some(entry)
+        Some((id, entry))
     }
     
 }

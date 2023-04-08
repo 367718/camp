@@ -46,13 +46,13 @@ fn fill(state: &State) {
         watchlist_store.insert_with_values(
             None,
             &[
-                (0, &i64::from(id)),
+                (0, &id.to_int()),
                 
-                (1, &(i64::from(entry.good()) * 400)),
-                (2, &i64::from(entry.status())),
+                (1, &(entry.good().to_int() * 400)),
+                (2, &entry.status().to_int()),
                 
                 (3, &entry.title()),
-                (4, &entry.good().display()),
+                (4, &entry.good().to_str()),
                 (5, &state.database.kinds_get(entry.kind()).map_or("", |kind| kind.name())),
                 (6, &entry.progress()),
             ],

@@ -1,9 +1,9 @@
 use std::error::Error;
 
 use super::{ Feeds, FeedsId, FeedsEntry };
-use crate::{ PersistenceQueries, PersistenceBinds, FromRow };
+use crate::{ Queries, Binds, FromRow };
 
-impl PersistenceQueries for Feeds {
+impl Queries for Feeds {
     
     fn create(&self) -> &str {
         "CREATE TABLE IF NOT EXISTS feeds (
@@ -43,61 +43,52 @@ impl PersistenceQueries for Feeds {
     
 }
 
-impl PersistenceBinds for FeedsId {
+impl Binds for (Option<FeedsId>, Option<&FeedsEntry>) {
     
-    fn insert(&self, _statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        Ok(())
-    }
-    
-    fn update(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":id", i64::from(*self)))?;
+    fn insert(self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
+        let (_, entry) = self;
+        
+        let entry = entry.ok_or("Entry not provided")?;
+        
+        statement.bind((":url", entry.url()))?;
         
         Ok(())
     }
     
-    fn delete(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":id", i64::from(*self)))?;
+    fn update(self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
+        let (id, entry) = self;
+        
+        let id = id.ok_or("Id not provided")?;
+        let entry = entry.ok_or("Entry not provided")?;
+        
+        statement.bind_iter::<_, (_, sqlite::Value)>([
+            (":url", entry.url().into()),
+            (":id", id.to_int().into()),
+        ])?;
+        
+        Ok(())
+    }
+    
+    fn delete(self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
+        let (id, _) = self;
+        
+        let id = id.ok_or("Id not provided")?;
+        
+        statement.bind((":id", id.to_int()))?;
         
         Ok(())
     }
     
 }
 
-impl PersistenceBinds for FeedsEntry {
+impl FromRow for (FeedsId, FeedsEntry) {
     
-    fn insert(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":url", self.url()))?;
-        
-        Ok(())
-    }
-    
-    fn update(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        statement.bind((":url", self.url()))?;
-        
-        Ok(())
-    }
-    
-    fn delete(&self, _statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>> {
-        Ok(())
-    }
-    
-}
-
-impl FromRow for FeedsId {
-    
-    fn from_row(row: &sqlite::Row) -> Option<Self> {
-        Some(Self::from(row.try_read::<i64, _>("id").ok()?))
-    }
-    
-}
-
-impl FromRow for FeedsEntry {
-    
-    fn from_row(row: &sqlite::Row) -> Option<Self> {
-        let entry = Self::new()
+    fn from_row(row: sqlite::Row) -> Option<(FeedsId, FeedsEntry)> {
+        let id = FeedsId::from(row.try_read::<i64, _>("id").ok()?);
+        let entry = FeedsEntry::new()
             .with_url(row.try_read::<&str, _>("url").ok()?.to_string());
         
-        Some(entry)
+        Some((id, entry))
     }
     
 }

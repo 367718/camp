@@ -262,7 +262,7 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
     let mut feeds = state.database.feeds_iter()
         .collect::<Vec<(FeedsId, &FeedsEntry)>>();
     
-    feeds.sort_unstable_by(|a, b| i64::from(a.0).cmp(&i64::from(b.0)));
+    feeds.sort_unstable_by(|a, b| a.0.to_int().cmp(&b.0.to_int()));
     
     let feeds = feeds.drain(..)
         .map(|(_, entry)| entry)

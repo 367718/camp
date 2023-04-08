@@ -156,7 +156,7 @@ impl Preferences {
         let listbox = super::build_section_listbox("Preferences");
         
         for section in PreferencesSection::iter() {
-            listbox.add(&super::build_section_listboxrow(section.display()));
+            listbox.add(&super::build_section_listboxrow(section.to_str()));
         }
         
         scrolled_window.add(&listbox);
@@ -181,12 +181,12 @@ impl Preferences {
         let (media_box, media) = Media::new();
         let (paths_box, paths) = Paths::new();
         
-        stack.add_named(&candidates_box, PreferencesSection::Candidates.display());
-        stack.add_named(&feeds_box, PreferencesSection::Feeds.display());
-        stack.add_named(&kinds_box, PreferencesSection::Kinds.display());
-        stack.add_named(&formats_box, PreferencesSection::Formats.display());
-        stack.add_named(&media_box, PreferencesSection::Media.display());
-        stack.add_named(&paths_box, PreferencesSection::Paths.display());
+        stack.add_named(&candidates_box, PreferencesSection::Candidates.to_str());
+        stack.add_named(&feeds_box, PreferencesSection::Feeds.to_str());
+        stack.add_named(&kinds_box, PreferencesSection::Kinds.to_str());
+        stack.add_named(&formats_box, PreferencesSection::Formats.to_str());
+        stack.add_named(&media_box, PreferencesSection::Media.to_str());
+        stack.add_named(&paths_box, PreferencesSection::Paths.to_str());
         
         // ---------- return ----------
         

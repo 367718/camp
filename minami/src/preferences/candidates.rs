@@ -54,7 +54,7 @@ fn fill(state: &State) {
         candidates_store.insert_with_values(
             None,
             &[
-                (0, &i64::from(id)),
+                (0, &id.to_int()),
                 (1, &entry.title()),
             ],
         );
@@ -426,7 +426,7 @@ pub fn candidates_add(state: &mut State, sender: &Sender<Message>, prefill: &Opt
                         let store_iter = candidates_store.insert_with_values(
                             None,
                             &[
-                                (0, &i64::from(id)),
+                                (0, &id.to_int()),
                                 (1, &candidate.title()),
                             ],
                         );
@@ -784,14 +784,14 @@ fn candidates_series_add(state: &mut State, sender: &Sender<Message>, prefill: &
                         watchlist_store.insert_with_values(
                             None,
                             &[
-                                (0, &i64::from(id)),
+                                (0, &id.to_int()),
                                 
-                                (1, &(i64::from(series.good()) * 400)),
-                                (2, &i64::from(series.status())),
+                                (1, &(series.good().to_int() * 400)),
+                                (2, &series.status().to_int()),
                                 
                                 (3, &series.title()),
                                 
-                                (4, &series.good().display()),
+                                (4, &series.good().to_str()),
                                 (5, &state.database.kinds_get(series.kind()).map_or("", |kind| kind.name())),
                                 (6, &series.progress()),
                             ],
@@ -863,7 +863,7 @@ fn candidates_series_edit(state: &mut State, sender: &Sender<Message>, series: S
                 watchlist_store.set(
                     store_iter,
                     &[
-                        (2, &i64::from(new.status())),
+                        (2, &new.status().to_int()),
                         (6, &new.progress()),
                     ],
                 );

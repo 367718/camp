@@ -263,7 +263,7 @@ impl Series {
         status_box.add(&status_combo);
         
         for status in SeriesStatus::iter() {
-            status_combo.append(Some(&i64::from(status).to_string()), status.display());
+            status_combo.append(Some(&status.to_int().to_string()), status.to_str());
         }
         
         // ---------- image ----------

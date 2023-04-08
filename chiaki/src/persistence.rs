@@ -49,7 +49,7 @@ impl Persistence {
     // ---------- accessors ----------
     
     
-    pub fn count(&self, queries: &impl PersistenceQueries) -> Result<i64, Box<dyn Error>> {
+    pub fn count(&self, queries: &impl Queries) -> Result<i64, Box<dyn Error>> {
         let mut statement = self.connection.prepare(queries.count())?;
         
         statement.next()?;
@@ -57,63 +57,60 @@ impl Persistence {
         Ok(statement.read::<i64, _>(0)?)
     }
     
-    pub fn select<'p, I: FromRow, E: FromRow>(&'p self, queries: &impl PersistenceQueries) -> Result<impl Iterator<Item = (I, E)> + 'p, Box<dyn Error>> {
-        
-        fn from_row<I: FromRow, E: FromRow>(row: &sqlite::Row) -> Option<(I, E)> {
-            Some((I::from_row(row)?, E::from_row(row)?))
-        }
-        
+    pub fn select<'p, R: FromRow + 'p>(&'p self, queries: &impl Queries) -> Result<impl Iterator<Item = R> + 'p, Box<dyn Error>> {
         let entries = self.connection
             .prepare(queries.select())?
             .into_iter()
             .filter_map(Result::ok)
-            .filter_map(|row| from_row(&row));
+            .filter_map(R::from_row);
         
         Ok(entries)
-        
     }
     
     
     // ---------- mutators ----------
     
     
-    pub fn create(&mut self, queries: &impl PersistenceQueries) -> Result<(), Box<dyn Error>> {
+    pub fn create(&mut self, queries: &impl Queries) -> Result<(), Box<dyn Error>> {
         Ok(self.connection.execute(queries.create())?)
     }
     
-    pub fn insert(&mut self, queries: &impl PersistenceQueries, entry: &impl PersistenceBinds) -> Result<i64, Box<dyn Error>> {
+    pub fn insert(&mut self, queries: &impl Queries, binds: impl Binds) -> Result<i64, Box<dyn Error>> {
         let mut statement = self.connection.prepare(queries.insert())?;
         
-        entry.insert(&mut statement)?;
+        binds.insert(&mut statement)?;
         
         statement.next()?;
+        
+        if self.connection.change_count() != 1 {
+            return Err("Database insert operation failed".into());
+        }
         
         Ok(statement.read::<i64, _>(0)?)
     }
     
-    pub fn update(&mut self, queries: &impl PersistenceQueries, entry: &impl PersistenceBinds, id: impl PersistenceBinds) -> Result<(), Box<dyn Error>> {
+    pub fn update(&mut self, queries: &impl Queries, binds: impl Binds) -> Result<(), Box<dyn Error>> {
         let mut statement = self.connection.prepare(queries.update())?;
         
-        entry.update(&mut statement)?;
-        id.update(&mut statement)?;
+        binds.update(&mut statement)?;
         
         statement.next()?;
         
-        if self.connection.change_count() == 0 {
+        if self.connection.change_count() != 1 {
             return Err("Database update operation failed".into());
         }
         
         Ok(())
     }
     
-    pub fn delete(&mut self, queries: &impl PersistenceQueries, id: impl PersistenceBinds) -> Result<(), Box<dyn Error>> {
+    pub fn delete(&mut self, queries: &impl Queries, binds: impl Binds) -> Result<(), Box<dyn Error>> {
         let mut statement = self.connection.prepare(queries.delete())?;
         
-        id.delete(&mut statement)?;
+        binds.delete(&mut statement)?;
         
         statement.next()?;
         
-        if self.connection.change_count() == 0 {
+        if self.connection.change_count() != 1 {
             return Err("Database delete operation failed".into());
         }
         
@@ -134,7 +131,7 @@ impl Persistence {
     
 }
 
-pub trait PersistenceQueries {
+pub trait Queries {
     
     fn create(&self) -> &str;
     
@@ -150,18 +147,18 @@ pub trait PersistenceQueries {
     
 }
 
-pub trait PersistenceBinds {
+pub trait Binds {
     
-    fn insert(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>>;
+    fn insert(self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>>;
     
-    fn update(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>>;
+    fn update(self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>>;
     
-    fn delete(&self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>>;
+    fn delete(self, statement: &mut sqlite::Statement) -> Result<(), Box<dyn Error>>;
     
 }
 
 pub trait FromRow {
     
-    fn from_row(row: &sqlite::Row) -> Option<Self> where Self: Sized;
+    fn from_row(row: sqlite::Row) -> Option<Self> where Self: Sized;
     
 }

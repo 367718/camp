@@ -102,19 +102,19 @@ impl Ui {
             
             let name = selected.widget_name();
             
-            if name == PreferencesSection::Candidates.display() {
+            if name == PreferencesSection::Candidates.to_str() {
                 return Some(&self.widgets.window.preferences.candidates.candidates_treeview);
             }
             
-            if name == PreferencesSection::Feeds.display() {
+            if name == PreferencesSection::Feeds.to_str() {
                 return Some(&self.widgets.window.preferences.feeds.treeview);
             }
             
-            if name == PreferencesSection::Kinds.display() {
+            if name == PreferencesSection::Kinds.to_str() {
                 return Some(&self.widgets.window.preferences.kinds.treeview);
             }
             
-            if name == PreferencesSection::Formats.display() {
+            if name == PreferencesSection::Formats.to_str() {
                 return Some(&self.widgets.window.preferences.formats.treeview);
             }
             

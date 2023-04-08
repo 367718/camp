@@ -558,7 +558,7 @@ impl CandidatesSeries {
                     
                     gtk::Label::builder()
                     .visible(true)
-                    .label(section.display())
+                    .label(section.to_str())
                     .width_chars(12)
                     .build()
                     

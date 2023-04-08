@@ -164,7 +164,7 @@ mod tests {
         fn overflow() {
             // setup
             
-            let value = "[]  - 4294967296 []";
+            let value = "[]  - 90223372036854775807 []";
             
             // operation
             

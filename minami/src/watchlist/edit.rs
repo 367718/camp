@@ -160,14 +160,14 @@ pub fn add(state: &mut State, sender: &Sender<Message>, prefill: &Option<String>
                         let store_iter = watchlist_store.insert_with_values(
                             None,
                             &[
-                                (0, &i64::from(id)),
+                                (0, &id.to_int()),
                                 
-                                (1, &(i64::from(series.good()) * 400)),
-                                (2, &i64::from(series.status())),
+                                (1, &(series.good().to_int() * 400)),
+                                (2, &series.status().to_int()),
                                 
                                 (3, &series.title()),
                                 
-                                (4, &series.good().display()),
+                                (4, &series.good().to_str()),
                                 (5, &state.database.kinds_get(series.kind()).map_or("", |kind| kind.name())),
                                 (6, &series.progress()),
                             ],
@@ -178,7 +178,7 @@ pub fn add(state: &mut State, sender: &Sender<Message>, prefill: &Option<String>
                         if state.params.media_autoselect(true) && prefill.is_none() {
                             
                             for row in state.ui.widgets().window.watchlist.listbox.children() {
-                                if row.widget_name() == series.status().display() {
+                                if row.widget_name() == series.status().to_str() {
                                     row.activate();
                                     select_series(state, &store_iter);
                                     break;
@@ -272,9 +272,9 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
             let good_switch = &state.ui.widgets().dialogs.watchlist.series.good_switch;
             
             title_entry.set_text(current.title());
-            kind_combo.set_active_id(Some(&i64::from(current.kind()).to_string()));
+            kind_combo.set_active_id(Some(&current.kind().to_int().to_string()));
             status_combo.set_sensitive(true);
-            status_combo.set_active_id(Some(&i64::from(current.status()).to_string()));
+            status_combo.set_active_id(Some(&current.status().to_int().to_string()));
             progress_spin.set_value(current.progress() as f64);
             good_switch.set_sensitive(true);
             good_switch.set_active(current.good() == SeriesGood::Yes);
@@ -339,12 +339,12 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
                                 watchlist_store.set(
                                     &store_iter,
                                     &[
-                                        (1, &(i64::from(series.good()) * 400)),
-                                        (2, &i64::from(series.status())),
+                                        (1, &(series.good().to_int() * 400)),
+                                        (2, &series.status().to_int()),
                                         
                                         (3, &series.title()),
                                         
-                                        (4, &series.good().display()),
+                                        (4, &series.good().to_str()),
                                         (5, &state.database.kinds_get(series.kind()).map_or("", |kind| kind.name())),
                                         (6, &series.progress()),
                                     ],
@@ -355,7 +355,7 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
                                 if state.params.media_autoselect(true) {
                                     
                                     for row in state.ui.widgets().window.watchlist.listbox.children() {
-                                        if row.widget_name() == series.status().display() {
+                                        if row.widget_name() == series.status().to_str() {
                                             row.activate();
                                             select_series(state, &store_iter);
                                             break;

@@ -60,7 +60,7 @@ pub enum FilesSection {
 
 impl FilesSection {
     
-    pub fn display(&self) -> &str {
+    pub fn to_str(self) -> &'static str {
         match self {
             Self::New => "New",
             Self::Watched => "Watched",

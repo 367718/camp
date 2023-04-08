@@ -157,7 +157,7 @@ pub fn play(state: &mut State) {
             return;
         };
         
-        let unmarked = list.widget_name() == FilesSection::New.display();
+        let unmarked = list.widget_name() == FilesSection::New.to_str();
         
         let result = Command::new(player)
             .stdout(Stdio::null())
@@ -373,7 +373,7 @@ pub fn mark_as_watched(state: &mut State) {
     if let Some(list) = state.ui.widgets().window.files.listbox.selected_row() {
         
         // unset mark
-        let mark = if list.widget_name() == FilesSection::Watched.display() {
+        let mark = if list.widget_name() == FilesSection::Watched.to_str() {
             FilesMark::None
         } else {
             FilesMark::Watched

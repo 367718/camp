@@ -82,7 +82,7 @@ pub enum PreferencesSection {
 
 impl PreferencesSection {
     
-    pub fn display(&self) -> &str {
+    pub fn to_str(self) -> &'static str {
         match self {
             Self::Candidates => "Candidates",
             Self::Feeds => "Feeds",

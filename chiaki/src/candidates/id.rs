@@ -24,8 +24,12 @@ impl From<CandidatesId> for i64 {
 
 impl CandidatesId {
     
+    pub fn to_int(self) -> i64 {
+        self.into()
+    }
+    
     pub(crate) fn validate(self, candidates: &Candidates, insertion: bool) -> Result<(), Box<dyn Error>> {
-        if i64::from(self) <= 0 {
+        if self.to_int() <= 0 {
             return Err("Id: cannot be lower than or equal to 0".into());
         }
         

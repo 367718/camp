@@ -47,9 +47,9 @@ fn fill(state: &State) {
         kinds_store.insert_with_values(
             None,
             &[
-                (0, &i64::from(id)),
+                (0, &id.to_int()),
                 (1, &kind.name()),
-                (2, &i64::from(id).to_string()),
+                (2, &id.to_int().to_string()),
             ],
         );
     }
@@ -193,9 +193,9 @@ pub fn add(state: &mut State) {
                         let store_iter = kinds_store.insert_with_values(
                             None,
                             &[
-                                (0, &i64::from(id)),
+                                (0, &id.to_int()),
                                 (1, &kind.name()),
-                                (2, &i64::from(id).to_string()),
+                                (2, &id.to_int().to_string()),
                             ],
                         );
                         

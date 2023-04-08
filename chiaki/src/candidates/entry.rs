@@ -283,20 +283,25 @@ impl From<CandidatesCurrent> for i64 {
     
 }
 
-impl CandidatesCurrent {
+impl From<CandidatesCurrent> for &str {
     
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::No => "no",
-            Self::Yes => "yes",
+    fn from(value: CandidatesCurrent) -> &'static str {
+        match value {
+            CandidatesCurrent::No => "No",
+            CandidatesCurrent::Yes => "Yes",
         }
     }
     
-    pub fn display(&self) -> &str {
-        match self {
-            Self::No => "No",
-            Self::Yes => "Yes",
-        }
+}
+
+impl CandidatesCurrent {
+    
+    pub fn to_int(self) -> i64 {
+        self.into()
+    }
+    
+    pub fn to_str(self) -> &'static str {
+        self.into()
     }
     
     pub fn iter() -> impl Iterator<Item = Self> {
@@ -336,7 +341,7 @@ impl nadeshiko::IsCandidate for CandidatesEntry {
     }
     
     fn id(&self) -> i64 {
-        i64::from(self.series)
+        self.series.to_int()
     }
     
 }

@@ -91,7 +91,7 @@ impl Files {
         let listbox = super::build_section_listbox("Files");
         
         for section in FilesSection::iter() {
-            listbox.add(&super::build_section_listboxrow(section.display()));
+            listbox.add(&super::build_section_listboxrow(section.to_str()));
         }
         
         scrolled_window.add(&listbox);
@@ -127,7 +127,7 @@ impl Files {
         for section in FilesSection::iter() {
             
             let (scrolled_window, treeview) = Self::build_treeview();
-            stack.add_named(&scrolled_window, section.display());
+            stack.add_named(&scrolled_window, section.to_str());
             
             // make sure global search scrolling works as intended
             

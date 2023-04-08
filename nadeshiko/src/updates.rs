@@ -55,7 +55,7 @@ mod tests {
     
     struct CandidatesEntry {
         title: String,
-        id: u32,
+        id: i64,
     }
     
     impl IsCandidate for CandidatesEntry {
@@ -68,15 +68,15 @@ mod tests {
             current.replace(&self.title, "")
         }
         
-        fn can_download(&self, _episode: u32) -> bool {
+        fn can_download(&self, _episode: i64) -> bool {
             true
         }
         
-        fn can_update(&self, _episode: u32) -> bool {
+        fn can_update(&self, _episode: i64) -> bool {
             true
         }
         
-        fn id(&self) -> u32 {
+        fn id(&self) -> i64 {
             self.id
         }
         

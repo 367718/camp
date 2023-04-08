@@ -649,7 +649,7 @@ fn section_focus_start(state: &State) {
         
         // ---------- media ----------
         
-        if name == PreferencesSection::Media.display() {
+        if name == PreferencesSection::Media.to_str() {
             
             if state.ui.widgets().window.preferences.media.player_entry.is_sensitive() {
                 state.ui.widgets().window.preferences.media.player_entry.grab_focus();
@@ -663,7 +663,7 @@ fn section_focus_start(state: &State) {
         
         // ---------- paths ----------
         
-        if name == PreferencesSection::Paths.display() {
+        if name == PreferencesSection::Paths.to_str() {
             
             if state.ui.widgets().window.preferences.paths.files_button.is_sensitive() {
                 state.ui.widgets().window.preferences.paths.files_button.grab_focus();
@@ -707,37 +707,37 @@ fn section_focus_end(state: &State) {
             
             // ---------- candidates ----------
             
-            name if name == PreferencesSection::Candidates.display() => {
+            name if name == PreferencesSection::Candidates.to_str() => {
                 focus_last_sensitive_child(&state.ui.widgets().window.preferences.candidates.downloaded_buttons_box);
             },
             
             // ---------- feeds ----------
             
-            name if name == PreferencesSection::Feeds.display() => {
+            name if name == PreferencesSection::Feeds.to_str() => {
                 focus_last_sensitive_child(&state.ui.widgets().window.preferences.feeds.buttons_box);
             },
             
             // ---------- kinds ----------
             
-            name if name == PreferencesSection::Kinds.display() => {
+            name if name == PreferencesSection::Kinds.to_str() => {
                 focus_last_sensitive_child(&state.ui.widgets().window.preferences.kinds.buttons_box);
             },
             
             // ---------- formats ----------
             
-            name if name == PreferencesSection::Formats.display() => {
+            name if name == PreferencesSection::Formats.to_str() => {
                 focus_last_sensitive_child(&state.ui.widgets().window.preferences.formats.buttons_box);
             },
             
             // ---------- media ----------
             
-            name if name == PreferencesSection::Media.display() => {
+            name if name == PreferencesSection::Media.to_str() => {
                 focus_last_sensitive_child(&state.ui.widgets().window.preferences.media.buttons_box);
             },
             
             // ---------- paths ----------
             
-            name if name == PreferencesSection::Paths.display() => {
+            name if name == PreferencesSection::Paths.to_str() => {
                 focus_last_sensitive_child(&state.ui.widgets().window.preferences.paths.buttons_box);
             },
             
@@ -944,7 +944,7 @@ fn search_compute(state: &mut State) {
                         let watched = files_store.value(store_iter, 2).get::<bool>().unwrap();
                         let section = FilesSection::from(watched);
                         
-                        concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem, " (", section.display(), ") (f)")
+                        concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem, " (", section.to_str(), ") (f)")
                         
                     },
                     
@@ -960,7 +960,7 @@ fn search_compute(state: &mut State) {
                         let watched = files_store.value(store_iter, 2).get::<bool>().unwrap();
                         let section = FilesSection::from(watched);
                         
-                        concat_str!(&file_stem, " (", section.display(), ") (f)")
+                        concat_str!(&file_stem, " (", section.to_str(), ") (f)")
                         
                     },
                     
@@ -997,7 +997,7 @@ fn search_compute(state: &mut State) {
                 let status = watchlist_store.value(store_iter, 2).get::<i64>().unwrap();
                 let section = WatchlistSection::try_from(status).unwrap();
                 
-                let display = concat_str!(&title, " (", section.display(), ") (w)");
+                let display = concat_str!(&title, " (", section.to_str(), ") (w)");
                 
                 search_store.insert_with_values(
                     None,
@@ -1056,7 +1056,7 @@ fn search_select(state: &State, string_iter: &str) {
                 let watched = files_store.value(store_iter, 2).get::<bool>().unwrap();
                 let section = FilesSection::from(watched);
                 
-                if let Some(row) = state.ui.widgets().window.files.listbox.children().iter().find(|child| child.widget_name() == section.display()) {
+                if let Some(row) = state.ui.widgets().window.files.listbox.children().iter().find(|child| child.widget_name() == section.to_str()) {
                     
                     row.activate();
                     
@@ -1097,7 +1097,7 @@ fn search_select(state: &State, string_iter: &str) {
                 let status = watchlist_store.value(store_iter, 2).get::<i64>().unwrap();
                 let section = WatchlistSection::try_from(status).unwrap();
                 
-                if let Some(row) = state.ui.widgets().window.watchlist.listbox.children().iter().find(|child| child.widget_name() == section.display()) {
+                if let Some(row) = state.ui.widgets().window.watchlist.listbox.children().iter().find(|child| child.widget_name() == section.to_str()) {
                     
                     row.activate();
                     

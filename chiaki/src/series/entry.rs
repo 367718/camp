@@ -270,24 +270,27 @@ impl From<SeriesStatus> for i64 {
     
 }
 
-impl SeriesStatus {
+impl From<SeriesStatus> for &str {
     
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Watching => "watching",
-            Self::OnHold => "on-hold",
-            Self::PlanToWatch => "plan to watch",
-            Self::Completed => "completed",
+    fn from(value: SeriesStatus) -> &'static str {
+        match value {
+            SeriesStatus::Watching => "Watching",
+            SeriesStatus::OnHold => "On-hold",
+            SeriesStatus::PlanToWatch => "Plan to watch",
+            SeriesStatus::Completed => "Completed",
         }
     }
     
-    pub fn display(&self) -> &str {
-        match self {
-            Self::Watching => "Watching",
-            Self::OnHold => "On-hold",
-            Self::PlanToWatch => "Plan to watch",
-            Self::Completed => "Completed",
-        }
+}
+
+impl SeriesStatus {
+    
+    pub fn to_int(self) -> i64 {
+        self.into()
+    }
+    
+    pub fn to_str(self) -> &'static str {
+        self.into()
     }
     
     pub fn iter() -> impl Iterator<Item = Self> {
@@ -352,20 +355,25 @@ impl From<SeriesGood> for i64 {
     
 }
 
-impl SeriesGood {
+impl From<SeriesGood> for &str {
     
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::No => "no",
-            Self::Yes => "yes",
+    fn from(value: SeriesGood) -> &'static str {
+        match value {
+            SeriesGood::No => "No",
+            SeriesGood::Yes => "Yes",
         }
     }
     
-    pub fn display(&self) -> &str {
-        match self {
-            Self::No => "No",
-            Self::Yes => "Yes",
-        }
+}
+
+impl SeriesGood {
+    
+    pub fn to_int(self) -> i64 {
+        self.into()
+    }
+    
+    pub fn to_str(self) -> &'static str {
+        self.into()
     }
     
     pub fn iter() -> impl Iterator<Item = Self> {
