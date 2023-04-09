@@ -76,9 +76,9 @@ impl Database {
 }
 
 macro_rules! api_impl {
-	
-	($module: ident, $id: ident, $entry: ident $(,$related:tt: $t:ty)*) => {
-		
+    
+    ($module: ident, $id: ident, $entry: ident $(,$related:tt: $t:ty)*) => {
+        
         paste! {
             
             impl crate::Database {
@@ -149,10 +149,10 @@ macro_rules! api_impl {
 pub(crate) use api_impl;
 
 macro_rules! module_impl {
-	
-	($module: ident, $id: ident, $entry: ident $(,$related:tt: $t:ty)*) => {
-		
-		impl $module {
+    
+    ($module: ident, $id: ident, $entry: ident $(,$related:tt: $t:ty)*) => {
+        
+        impl $module {
             
             // ---------- constructors ----------
             
