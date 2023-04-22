@@ -7,11 +7,12 @@ members = [
   "chiaki",
   "aoi",
   "akari",
+  "chikuwa",
 ]
 
 [workspace.package]
 version = "1.0.0"
-rust-version = "1.68.2"
+rust-version = "1.69.0"
 edition = "2021"
 license = "0BSD"
 

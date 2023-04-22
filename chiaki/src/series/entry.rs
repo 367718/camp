@@ -178,7 +178,7 @@ impl SeriesEntry {
     }
     
     fn validate_kind(&self, kinds: &Kinds) -> Result<(), KindError> {
-        if ! kinds.iter().any(|(k, _)| k == self.kind) {
+        if kinds.get(self.kind).is_none() {
             return Err(KindError::NotFound);
         }
         

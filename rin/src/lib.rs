@@ -349,11 +349,9 @@ mod lib {
         
         let args = Args::new(data, flags, pairs);
         
-        let cfgpath = tempfile::NamedTempFile::new()
-            .unwrap()
-            .into_temp_path();
+        let tmp_path = chikuwa::EphemeralPath::builder().build();
         
-        let config = Config::new(&cfgpath).unwrap();
+        let config = Config::new(&tmp_path).unwrap();
         
         // operation
         
@@ -408,11 +406,9 @@ mod lib {
         
         let args = Args::new(data, flags, pairs);
         
-        let cfgpath = tempfile::NamedTempFile::new()
-            .unwrap()
-            .into_temp_path();
+        let tmp_path = chikuwa::EphemeralPath::builder().build();
         
-        let config = Config::new(&cfgpath).unwrap();
+        let config = Config::new(&tmp_path).unwrap();
         
         // operation
         
@@ -469,11 +465,9 @@ mod lib {
         
         let args = Args::new(data, flags, pairs);
         
-        let cfgpath = tempfile::NamedTempFile::new()
-            .unwrap()
-            .into_temp_path();
+        let tmp_path = chikuwa::EphemeralPath::builder().build();
         
-        let config = Config::new(&cfgpath).unwrap();
+        let config = Config::new(&tmp_path).unwrap();
         
         // operation
         

@@ -406,45 +406,58 @@ pub fn mark_as_watched(state: &mut State) {
 }
 
 pub fn mark_as_updated(state: &mut State, updates: Vec<(SeriesId, i64, PathBuf)>) {
-    if updates.is_empty() {
+    let mut entries = Vec::with_capacity(updates.len());
+    let mut episodes = Vec::with_capacity(updates.len());
+    let mut paths = Vec::with_capacity(updates.len());
+    
+    for (id, episode, path) in updates {
+        
+        if let Some(current) = state.database.series_get(id) {
+            
+            if current.progress() < episode {
+                
+                let entry = current.clone()
+                    .with_progress(episode);
+                
+                entries.push((id, entry));
+                episodes.push((id, episode));
+                
+            }
+            
+            paths.push(path);
+            
+        }
+        
+    }
+    
+    if state.database.series_mass_edit(entries.into_iter()).is_err() {
         return;
     }
     
     let watchlist_store = &state.ui.widgets().stores.watchlist.entries.store;
     
-    for (id, episode, path) in updates {
+    for (id, episode) in episodes {
         
-        let Some(current) = state.database.series_get(id) else {
-            continue;
-        };
-        
-        if current.progress() < episode {
+        watchlist_store.foreach(|_, _, store_iter| {
+            let current = SeriesId::from(watchlist_store.value(store_iter, 0).get::<i64>().unwrap());
             
-            let new = current.clone()
-                .with_progress(episode);
-            
-            if state.database.series_edit(id, new).is_err() {
-                continue;
+            if current == id {
+                watchlist_store.set(
+                    store_iter,
+                    &[
+                        (6, &episode),
+                    ],
+                );
+                
+                return true;
             }
             
-            watchlist_store.foreach(|_, _, store_iter| {
-                let current = SeriesId::from(watchlist_store.value(store_iter, 0).get::<i64>().unwrap());
-                
-                if current == id {
-                    watchlist_store.set(
-                        store_iter,
-                        &[
-                            (6, &episode),
-                        ],
-                    );
-                    
-                    return true;
-                }
-                
-                false
-            });
-            
-        }
+            false
+        });
+        
+    }
+    
+    for path in paths {
         
         state.files.mark(&path, FilesMark::Updated).ok();
         

@@ -10,7 +10,6 @@ use gtk::{
 use crate::{
     State, Message,
     PreferencesActions, FilesActions, WatchlistActions,
-    concat_str,
 };
 
 pub fn init(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
@@ -111,7 +110,7 @@ fn selected_name(state: &State) -> Option<String> {
             let container = treemodel.value(&parent_iter, 3).get::<glib::GString>().unwrap();
             let file_stem = treemodel.value(&treeiter, 3).get::<glib::GString>().unwrap();
             
-            concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem)
+            chikuwa::concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem)
             
         },
         
@@ -152,7 +151,7 @@ pub fn copy_names(state: &State) {
                 loop {
                     
                     let file_stem = treemodel.value(&iter_child, 3).get::<glib::GString>().unwrap();
-                    names.push(concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem));
+                    names.push(chikuwa::concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem));
                     
                     if ! treemodel.iter_next(&iter_child) {
                         break;
@@ -178,7 +177,7 @@ pub fn copy_names(state: &State) {
                     let container = treemodel.value(&parent_iter, 3).get::<glib::GString>().unwrap();
                     let file_stem = treemodel.value(treeiter, 3).get::<glib::GString>().unwrap();
                     
-                    names.push(concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem));
+                    names.push(chikuwa::concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem));
                     
                 },
                 

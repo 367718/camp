@@ -22,7 +22,6 @@ use crate::{
     FilesEntry, FilesMark,
     RemoteControlServer,
     HttpClient,
-    concat_str,
 };
 
 pub fn init(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
@@ -124,7 +123,7 @@ pub fn lookup(state: &State) {
             let container = treemodel.value(&parent_iter, 3).get::<glib::GString>().unwrap();
             let file_stem = treemodel.value(&treeiter, 3).get::<glib::GString>().unwrap();
             
-            concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem)
+            chikuwa::concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem)
             
         },
         
@@ -165,8 +164,8 @@ pub fn remote(state: &mut State) {
     
     // ---------- startup ----------
     
-    append_text(&progress_buffer, &crate::general::concat_str!("Pipe: ", &pipe.to_string_lossy(), "\n"));
-    append_text(&progress_buffer, &crate::general::concat_str!("Bind: ", bind, "\n"));
+    append_text(&progress_buffer, &chikuwa::concat_str!("Pipe: ", &pipe.to_string_lossy(), "\n"));
+    append_text(&progress_buffer, &chikuwa::concat_str!("Bind: ", bind, "\n"));
     append_text(&progress_buffer, "\nConnecting to player instance and starting HTTP server...\n\n");
     
     // ---------- channel ----------
@@ -192,13 +191,13 @@ pub fn remote(state: &mut State) {
             // ---------- error ----------
             
             job_receiver.attach(None, move |error| {
-                append_text(&progress_buffer, &crate::general::concat_str!("ERROR: ", &error.to_string()));
+                append_text(&progress_buffer, &chikuwa::concat_str!("ERROR: ", &error.to_string()));
                 glib::Continue(true)
             });
             
         },
         
-        Err(error) => append_text(&progress_buffer, &crate::general::concat_str!("ERROR: ", &error.to_string())),
+        Err(error) => append_text(&progress_buffer, &chikuwa::concat_str!("ERROR: ", &error.to_string())),
         
     }
     
@@ -240,7 +239,7 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
         fs::create_dir_all(directory)?;
         
         if destination.exists() {
-            return Err(crate::general::concat_str!("File already exists: ", &destination.to_string_lossy()).into());
+            return Err(chikuwa::concat_str!("File already exists: ", &destination.to_string_lossy()).into());
         }
         
         let content = client.get(url)?;
@@ -319,13 +318,13 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
                                 
                                 if ! result.contains(&current) {
                                     
-                                    job_sender.send(Some(crate::general::concat_str!(download.title, "\n"))).unwrap();
+                                    job_sender.send(Some(chikuwa::concat_str!(download.title, "\n"))).unwrap();
                                     
                                     found_releases = true;
                                     
                                     // commit to disk
                                     if let Err(error) = get_torrent(&mut client, download.title, download.link, directory) {
-                                        job_sender.send(Some(crate::general::concat_str!("ERROR: ", &error.to_string(), "\n"))).unwrap();
+                                        job_sender.send(Some(chikuwa::concat_str!("ERROR: ", &error.to_string(), "\n"))).unwrap();
                                         continue;
                                     }
                                     
@@ -343,7 +342,7 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
                         
                     },
                     
-                    Err(error) => job_sender.send(Some(crate::general::concat_str!("ERROR: ", &error.to_string(), "\n"))).unwrap(),
+                    Err(error) => job_sender.send(Some(chikuwa::concat_str!("ERROR: ", &error.to_string(), "\n"))).unwrap(),
                     
                 }
                 
@@ -463,7 +462,7 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
                     
                     progress_buffer.insert(
                         &mut progress_buffer.end_iter(),
-                        &crate::general::concat_str!(update.name, "\n"),
+                        &chikuwa::concat_str!(update.name, "\n"),
                     );
                     
                     result.push((id, episode, update.path.to_owned()));

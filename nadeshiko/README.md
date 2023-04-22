@@ -1,6 +1,6 @@
 # nadeshiko
 
-File downloads and series updates.
+Candidates downloads and series updates.
 
 ## Behavior
 

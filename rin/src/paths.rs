@@ -1,7 +1,6 @@
 use std::{
     error::Error,
-    fs::File,
-    io::{ Write, BufWriter },
+    io::Write,
     path::{ Path, PathBuf },
 };
 
@@ -40,7 +39,7 @@ impl Paths {
         }
     }
     
-    pub fn serialize(&self, writer: &mut BufWriter<&File>) -> Result<(), Box<dyn Error>> {
+    pub fn serialize(&self, writer: &mut impl Write) -> Result<(), Box<dyn Error>> {
         writeln!(writer, "paths.files = {}", self.files.to_string_lossy())?;
         writeln!(writer, "paths.downloads = {}", self.downloads.to_string_lossy())?;
         writeln!(writer, "paths.pipe = {}", self.pipe.to_string_lossy())?;
@@ -178,9 +177,9 @@ impl Paths {
     fn check_path(path: &Path, field: &str) -> Result<(), Box<dyn Error>> {
         if let Err(error) = Self::validate_path(path) {
             match error {
-                PathError::Encoding => return Err([field, ": invalid character detected"].concat().into()),
-                PathError::Empty => return Err([field, ": cannot be empty"].concat().into()),
-                PathError::Linebreak => return Err([field, ": cannot contain linebreaks"].concat().into()),
+                PathError::Encoding => return Err(chikuwa::concat_str!(field, ": invalid character detected").into()),
+                PathError::Empty => return Err(chikuwa::concat_str!(field, ": cannot be empty").into()),
+                PathError::Linebreak => return Err(chikuwa::concat_str!(field, ": cannot contain linebreaks").into()),
             }
         }
         

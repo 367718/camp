@@ -86,7 +86,7 @@ impl Files {
         if entry.path.as_ref() != destination {
             
             if destination.exists() {
-                return Err(format!("File already exists: {}", destination.to_string_lossy()).into());
+                return Err(chikuwa::concat_str!("File already exists: ", &destination.to_string_lossy()).into());
             }
             
             fs::rename(&entry.path, &destination)?;
@@ -130,7 +130,7 @@ impl Files {
         if entry.path.as_ref() != destination {
             
             if destination.exists() {
-                return Err(format!("File already exists: {}", destination.to_string_lossy()).into());
+                return Err(chikuwa::concat_str!("File already exists: ", &destination.to_string_lossy()).into());
             }
             
             fs::rename(&entry.path, &destination)?;
@@ -416,6 +416,8 @@ impl FilesEntry {
 #[cfg(test)]
 mod lib {
     
+    use std::fs::File;
+    
     use super::*;
     
     mod add {
@@ -433,25 +435,22 @@ mod lib {
                 // root
                 //  |-> tempfile
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let tempfile = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile_in(&root)
-                    .unwrap();
+                let file_path = build_file(Some(&root), ".mkv");
                 
                 let entry = FilesEntry {
-                    path: tempfile.path().to_owned().into_boxed_path(),
-                    name: tempfile.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    path: file_path.to_path_buf().into_boxed_path(),
+                    name: file_path.file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: None,
                     mark: FilesMark::None,
                 };
                 
                 // operation
                 
-                let output = files.add(tempfile.path());
+                let output = files.add(&file_path);
                 
                 // control
                 
@@ -463,7 +462,7 @@ mod lib {
                 
                 assert_eq!(output.first().unwrap(), &entry);
                 
-                assert_eq!(files.get(tempfile.path()), Some(&entry));
+                assert_eq!(files.get(&file_path), Some(&entry));
             }
             
             #[test]
@@ -473,24 +472,21 @@ mod lib {
                 // root
                 //  |-> tempfile
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let tempfile = tempfile::Builder::new()
-                    .suffix(".pdf")
-                    .tempfile_in(&root)
-                    .unwrap();
+                let file_path = build_file(Some(&root), ".pdf");
                 
                 // operation
                 
-                let output = files.add(tempfile.path());
+                let output = files.add(&file_path);
                 
                 // control
                 
                 assert!(output.is_err());
                 
-                assert_eq!(files.get(tempfile.path()), None);
+                assert_eq!(files.get(&file_path), None);
             }
             
             #[test]
@@ -501,36 +497,31 @@ mod lib {
                 //  |-> subdirectory
                 //      |-> tempfile
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let subdirectory = tempfile::Builder::new()
-                    .tempdir_in(&root)
-                    .unwrap();
+                let dir_path = build_dir(Some(&root));
                 
-                let tempfile = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
+                let file_path = build_file(Some(&dir_path), ".mkv");
                 
-                let container = subdirectory.path()
-                    .strip_prefix(root.path())
+                let container = dir_path
+                    .strip_prefix(&root)
                     .unwrap()
                     .as_os_str()
                     .to_owned()
                     .into_boxed_os_str();
                 
                 let entry = FilesEntry {
-                    path: tempfile.path().to_owned().into_boxed_path(),
-                    name: tempfile.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    path: file_path.to_path_buf().into_boxed_path(),
+                    name: file_path.file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: Some(container),
                     mark: FilesMark::None,
                 };
                 
                 // operation
                 
-                let output = files.add(tempfile.path());
+                let output = files.add(&file_path);
                 
                 // control
                 
@@ -542,7 +533,7 @@ mod lib {
                 
                 assert_eq!(output.first().unwrap(), &entry);
                 
-                assert_eq!(files.get(tempfile.path()), Some(&entry));
+                assert_eq!(files.get(&file_path), Some(&entry));
             }
             
             #[test]
@@ -552,27 +543,24 @@ mod lib {
                 // root
                 //  |-> tempfile
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let tempfile = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile_in(&root)
-                    .unwrap();
+                let file_path = build_file(Some(&root), ".mkv");
                 
                 let entry = FilesEntry {
-                    path: tempfile.path().to_owned().into_boxed_path(),
-                    name: tempfile.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    path: file_path.to_path_buf().into_boxed_path(),
+                    name: file_path.file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: None,
                     mark: FilesMark::None,
                 };
                 
-                files.add(tempfile.path()).unwrap();
+                files.add(&file_path).unwrap();
                 
                 // operation
                 
-                let output = files.add(tempfile.path());
+                let output = files.add(&file_path);
                 
                 // control
                 
@@ -580,31 +568,28 @@ mod lib {
                 
                 assert_eq!(files.count(), 1);
                 
-                assert_eq!(files.get(tempfile.path()), Some(&entry));
+                assert_eq!(files.get(&file_path), Some(&entry));
             }
             
             #[test]
             fn outside_of_root() {
                 // setup
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let tempfile = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile()
-                    .unwrap();
+                let file_path = build_file(None::<PathBuf>, ".mkv");
                 
                 // operation
                 
-                let output = files.add(tempfile.path());
+                let output = files.add(&file_path);
                 
                 // control
                 
                 assert!(output.is_err());
                 
-                assert_eq!(files.get(tempfile.path()), None);
+                assert_eq!(files.get(&file_path), None);
             }
             
         }
@@ -622,41 +607,33 @@ mod lib {
                 //      |-> tempfile_first
                 //      |-> tempfile_second
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let subdirectory = tempfile::Builder::new()
-                    .tempdir_in(&root)
-                    .unwrap();
+                let dir_path = build_dir(Some(&root));
                 
-                let tempfile_first = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
+                let file_path_first = build_file(Some(&dir_path), ".mkv");
                 
                 let entry_first = FilesEntry {
-                    path: tempfile_first.path().to_owned().into_boxed_path(),
-                    name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
+                    path: file_path_first.to_path_buf().into_boxed_path(),
+                    name: file_path_first.file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(dir_path.file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
-                let tempfile_second = tempfile::Builder::new()
-                    .suffix(".mp4")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
+                let file_path_second = build_file(Some(&dir_path), ".mp4");
                 
                 let entry_second = FilesEntry {
-                    path: tempfile_second.path().to_owned().into_boxed_path(),
-                    name: tempfile_second.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
+                    path: file_path_second.to_path_buf().into_boxed_path(),
+                    name: file_path_second.file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(dir_path.file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
                 // operation
                 
-                let output = files.add(subdirectory.path());
+                let output = files.add(&dir_path);
                 
                 // control
                 
@@ -669,8 +646,8 @@ mod lib {
                 assert!(output.contains(&entry_first));
                 assert!(output.contains(&entry_second));
                 
-                assert_eq!(files.get(tempfile_first.path()), Some(&entry_first));
-                assert_eq!(files.get(tempfile_second.path()), Some(&entry_second));
+                assert_eq!(files.get(&file_path_first), Some(&entry_first));
+                assert_eq!(files.get(&file_path_second), Some(&entry_second));
             }
             
             #[test]
@@ -682,34 +659,25 @@ mod lib {
                 //      |-> tempfile_first
                 //      |-> tempfile_second
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let subdirectory = tempfile::Builder::new()
-                    .tempdir_in(&root)
-                    .unwrap();
+                let dir_path = build_dir(Some(&root));
                 
-                let tempfile_first = tempfile::Builder::new()
-                    .suffix(".txt")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
-                
-                let tempfile_second = tempfile::Builder::new()
-                    .suffix(".pdf")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
+                let file_path_first = build_file(Some(&dir_path), ".txt");
+                let file_path_second = build_file(Some(&dir_path), ".pdf");
                 
                 // operation
                 
-                let output = files.add(subdirectory.path());
+                let output = files.add(&dir_path);
                 
                 // control
                 
                 assert!(output.is_err());
                 
-                assert_eq!(files.get(tempfile_first.path()), None);
-                assert_eq!(files.get(tempfile_second.path()), None);
+                assert_eq!(files.get(&file_path_first), None);
+                assert_eq!(files.get(&file_path_second), None);
             }
             
             #[test]
@@ -721,34 +689,25 @@ mod lib {
                 //      |-> tempfile_first
                 //      |-> tempfile_second
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let subdirectory = tempfile::Builder::new()
-                    .tempdir_in(&root)
-                    .unwrap();
+                let dir_path = build_dir(Some(&root));
                 
-                let tempfile_first = tempfile::Builder::new()
-                    .suffix(".txt")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
-                
-                let tempfile_second = tempfile::Builder::new()
-                    .suffix(".mp4")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
+                let file_path_first = build_file(Some(&dir_path), ".txt");
+                let file_path_second = build_file(Some(&dir_path), ".mp4");
                 
                 let entry_second = FilesEntry {
-                    path: tempfile_second.path().to_owned().into_boxed_path(),
-                    name: tempfile_second.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
+                    path: file_path_second.to_path_buf().into_boxed_path(),
+                    name: file_path_second.file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(dir_path.file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
                 // operation
                 
-                let output = files.add(subdirectory.path());
+                let output = files.add(&dir_path);
                 
                 // control
                 
@@ -760,8 +719,8 @@ mod lib {
                 
                 assert_eq!(output.first().unwrap(), &entry_second);
                 
-                assert_eq!(files.get(tempfile_first.path()), None);
-                assert_eq!(files.get(tempfile_second.path()), Some(&entry_second));
+                assert_eq!(files.get(&file_path_first), None);
+                assert_eq!(files.get(&file_path_second), Some(&entry_second));
             }
             
             #[test]
@@ -776,82 +735,65 @@ mod lib {
                 //          |-> tempfile_second
                 //          |-> tempfile_third
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let depth_one = tempfile::Builder::new()
-                    .tempdir_in(&root)
-                    .unwrap();
+                let dir_path_first = build_dir(Some(&root));
+                let dir_path_second = build_dir(Some(&dir_path_first));
+                let dir_path_third = build_dir(Some(&dir_path_second));
                 
-                let depth_two = tempfile::Builder::new()
-                    .tempdir_in(&depth_one)
-                    .unwrap();
+                let file_path_first = build_file(Some(&dir_path_third), ".mkv");
                 
-                let depth_three = tempfile::Builder::new()
-                    .tempdir_in(&depth_two)
-                    .unwrap();
-                
-                let tempfile_first = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile_in(&depth_three)
-                    .unwrap();
-                
-                let container = depth_three.path()
-                    .strip_prefix(root.path())
+                let container = dir_path_third
+                    .strip_prefix(&root)
                     .unwrap()
                     .as_os_str()
                     .to_owned()
                     .into_boxed_os_str();
                 
                 let entry_first = FilesEntry {
-                    path: tempfile_first.path().to_owned().into_boxed_path(),
-                    name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    path: file_path_first.to_path_buf().into_boxed_path(),
+                    name: file_path_first.file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: Some(container),
                     mark: FilesMark::None,
                 };
                 
-                let tempfile_second = tempfile::Builder::new()
-                    .suffix(".mp4")
-                    .tempfile_in(&depth_two)
-                    .unwrap();
+                let file_path_second = build_file(Some(&dir_path_second), ".mp4");
                 
-                let container = depth_two.path()
-                    .strip_prefix(root.path())
+                let container = dir_path_second
+                    .strip_prefix(&root)
                     .unwrap()
                     .as_os_str()
                     .to_owned()
                     .into_boxed_os_str();
                 
                 let entry_second = FilesEntry {
-                    path: tempfile_second.path().to_owned().into_boxed_path(),
-                    name: tempfile_second.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    path: file_path_second.to_path_buf().into_boxed_path(),
+                    name: file_path_second.file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: Some(container),
                     mark: FilesMark::None,
                 };
                 
-                let tempfile_third = tempfile::Builder::new()
-                    .suffix(".mp4")
-                    .tempfile_in(&depth_two)
-                    .unwrap();
+                let file_path_third = build_file(Some(&dir_path_second), ".mp4");
                 
-                let container = depth_two.path()
-                    .strip_prefix(root.path())
+                let container = dir_path_second
+                    .strip_prefix(&root)
                     .unwrap()
                     .as_os_str()
                     .to_owned()
                     .into_boxed_os_str();
                 
                 let entry_third = FilesEntry {
-                    path: tempfile_third.path().to_owned().into_boxed_path(),
-                    name: tempfile_third.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    path: file_path_third.to_path_buf().into_boxed_path(),
+                    name: file_path_third.file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: Some(container),
                     mark: FilesMark::None,
                 };
                 
                 // operation
                 
-                let output = files.add(depth_two.path());
+                let output = files.add(&dir_path_second);
                 
                 // control
                 
@@ -865,9 +807,9 @@ mod lib {
                 assert!(output.contains(&entry_second));
                 assert!(output.contains(&entry_third));
                 
-                assert_eq!(files.get(tempfile_first.path()), Some(&entry_first));
-                assert_eq!(files.get(tempfile_second.path()), Some(&entry_second));
-                assert_eq!(files.get(tempfile_third.path()), Some(&entry_third));
+                assert_eq!(files.get(&file_path_first), Some(&entry_first));
+                assert_eq!(files.get(&file_path_second), Some(&entry_second));
+                assert_eq!(files.get(&file_path_third), Some(&entry_third));
             }
             
             #[test]
@@ -879,43 +821,35 @@ mod lib {
                 //      |-> tempfile_first
                 //      |-> tempfile_second
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let subdirectory = tempfile::Builder::new()
-                    .tempdir_in(&root)
-                    .unwrap();
+                let dir_path = build_dir(Some(&root));
                 
-                let tempfile_first = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
+                let file_path_first = build_file(Some(&dir_path), ".mkv");
                 
                 let entry_first = FilesEntry {
-                    path: tempfile_first.path().to_owned().into_boxed_path(),
-                    name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
+                    path: file_path_first.to_path_buf().into_boxed_path(),
+                    name: file_path_first.file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(dir_path.file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
-                let tempfile_second = tempfile::Builder::new()
-                    .suffix(".mp4")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
+                let file_path_second = build_file(Some(&dir_path), ".mp4");
                 
                 let entry_second = FilesEntry {
-                    path: tempfile_second.path().to_owned().into_boxed_path(),
-                    name: tempfile_second.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
+                    path: file_path_second.to_path_buf().into_boxed_path(),
+                    name: file_path_second.file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(dir_path.file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
-                files.add(subdirectory.path()).unwrap();
+                files.add(&dir_path).unwrap();
                 
                 // operation
                 
-                let output = files.add(subdirectory.path());
+                let output = files.add(&dir_path);
                 
                 // control
                 
@@ -923,8 +857,8 @@ mod lib {
                 
                 assert_eq!(files.count(), 2);
                 
-                assert_eq!(files.get(tempfile_first.path()), Some(&entry_first));
-                assert_eq!(files.get(tempfile_second.path()), Some(&entry_second));
+                assert_eq!(files.get(&file_path_first), Some(&entry_first));
+                assert_eq!(files.get(&file_path_second), Some(&entry_second));
             }
             
             #[test]
@@ -936,32 +870,25 @@ mod lib {
                 //      |-> tempfile_first
                 //      |-> tempfile_second
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let subdirectory = tempfile::tempdir().unwrap();
+                let dir_path = build_dir(None::<PathBuf>);
                 
-                let tempfile_first = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
-                
-                let tempfile_second = tempfile::Builder::new()
-                    .suffix(".mp4")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
+                let file_path_first = build_file(Some(&dir_path), ".mkv");
+                let file_path_second = build_file(Some(&dir_path), ".mp4");
                 
                 // operation
                 
-                let output = files.add(subdirectory.path());
+                let output = files.add(&dir_path);
                 
                 // control
                 
                 assert!(output.is_err());
                 
-                assert_eq!(files.get(tempfile_first.path()), None);
-                assert_eq!(files.get(tempfile_second.path()), None);
+                assert_eq!(files.get(&file_path_first), None);
+                assert_eq!(files.get(&file_path_second), None);
             }
             
         }
@@ -980,27 +907,24 @@ mod lib {
             fn valid() {
                 // setup
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let tempfile = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile_in(&root)
-                    .unwrap();
+                let file_path = build_file(Some(&root), ".mkv");
                 
                 let entry = FilesEntry {
-                    path: tempfile.path().to_owned().into_boxed_path(),
-                    name: tempfile.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    path: file_path.to_path_buf().into_boxed_path(),
+                    name: file_path.file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: None,
                     mark: FilesMark::None,
                 };
                 
-                files.add(tempfile.path()).unwrap();
+                files.add(&file_path).unwrap();
                 
                 // operation
                 
-                let output = files.remove(tempfile.path());
+                let output = files.remove(&file_path);
                 
                 // control
                 
@@ -1012,69 +936,61 @@ mod lib {
                 
                 assert_eq!(output.first().unwrap(), &entry);
                 
-                assert_eq!(files.get(tempfile.path()), None);
+                assert_eq!(files.get(&file_path), None);
             }
             
             #[test]
             fn not_found() {
                 // setup
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let tempfile = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile_in(&root)
-                    .unwrap();
+                let file_path = build_file(Some(&root), ".mkv");
                 
                 // operation
                 
-                let output = files.remove(tempfile.path());
+                let output = files.remove(&file_path);
                 
                 // control
                 
                 assert!(output.is_err());
                 
-                assert_eq!(files.get(tempfile.path()), None);
+                assert_eq!(files.get(&file_path), None);
             }
             
             #[test]
             fn in_subdirectory() {
                 // setup
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let subdirectory = tempfile::Builder::new()
-                    .tempdir_in(&root)
-                    .unwrap();
+                let dir_path = build_dir(Some(&root));
                 
-                let tempfile = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
+                let file_path = build_file(Some(&dir_path), ".mkv");
                 
-                let container = subdirectory.path()
-                    .strip_prefix(root.path())
+                let container = dir_path
+                    .strip_prefix(&root)
                     .unwrap()
                     .as_os_str()
                     .to_owned()
                     .into_boxed_os_str();
                 
                 let entry = FilesEntry {
-                    path: tempfile.path().to_owned().into_boxed_path(),
-                    name: tempfile.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    path: file_path.to_path_buf().into_boxed_path(),
+                    name: file_path.file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: Some(container),
                     mark: FilesMark::None,
                 };
                 
-                files.add(subdirectory.path()).unwrap();
+                files.add(&dir_path).unwrap();
                 
                 // operation
                 
-                let output = files.remove(tempfile.path());
+                let output = files.remove(&file_path);
                 
                 // control
                 
@@ -1086,68 +1002,59 @@ mod lib {
                 
                 assert_eq!(output.first().unwrap(), &entry);
                 
-                assert_eq!(files.get(tempfile.path()), None);
+                assert_eq!(files.get(&file_path), None);
             }
             
             #[test]
             fn in_queue() {
                 // setup
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let tempfile_first = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile_in(&root)
-                    .unwrap();
+                let file_path_first = build_file(Some(&root), ".mkv");
                 
                 let entry_first = FilesEntry {
-                    path: tempfile_first.path().to_owned().into_boxed_path(),
-                    name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    path: file_path_first.to_path_buf().into_boxed_path(),
+                    name: file_path_first.file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: None,
                     mark: FilesMark::None,
                 };
                 
-                files.add(tempfile_first.path()).unwrap();
+                files.add(&file_path_first).unwrap();
                 
-                let tempfile_second = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile_in(&root)
-                    .unwrap();
+                let file_path_second = build_file(Some(&root), ".mkv");
                 
                 let entry_second = FilesEntry {
-                    path: tempfile_second.path().to_owned().into_boxed_path(),
-                    name: tempfile_second.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    path: file_path_second.to_path_buf().into_boxed_path(),
+                    name: file_path_second.file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: None,
                     mark: FilesMark::None,
                 };
                 
-                files.add(tempfile_second.path()).unwrap();
+                files.add(&file_path_second).unwrap();
                 
-                let tempfile_third = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile_in(&root)
-                    .unwrap();
+                let file_path_third = build_file(Some(&root), ".mkv");
                     
                 let entry_third = FilesEntry {
-                    path: tempfile_third.path().to_owned().into_boxed_path(),
-                    name: tempfile_third.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    path: file_path_third.to_path_buf().into_boxed_path(),
+                    name: file_path_third.file_stem().unwrap().to_owned().into_boxed_os_str(),
                     container: None,
                     mark: FilesMark::None,
                 };
                 
-                files.add(tempfile_third.path()).unwrap();
+                files.add(&file_path_third).unwrap();
                 
                 files.refresh_queue(&[
-                    tempfile_first.path(),
-                    tempfile_second.path(),
-                    tempfile_third.path(),
+                    &file_path_first,
+                    &file_path_second,
+                    &file_path_third,
                 ]);
                 
                 // operation
                 
-                let output = files.remove(tempfile_second.path());
+                let output = files.remove(&file_path_second);
                 
                 // control
                 
@@ -1159,7 +1066,7 @@ mod lib {
                 
                 assert_eq!(output.first().unwrap(), &entry_second);
                 
-                assert_eq!(files.get(tempfile_second.path()), None);
+                assert_eq!(files.get(&file_path_second), None);
                 
                 assert_eq!(files.queue().collect::<Vec<&FilesEntry>>(), [&entry_first, &entry_third]);
             }
@@ -1174,43 +1081,35 @@ mod lib {
             fn valid() {
                 // setup
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let subdirectory = tempfile::Builder::new()
-                    .tempdir_in(&root)
-                    .unwrap();
+                let dir_path = build_dir(Some(&root));
                 
-                let tempfile_first = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
+                let file_path_first = build_file(Some(&dir_path), ".mkv");
                 
                 let entry_first = FilesEntry {
-                    path: tempfile_first.path().to_owned().into_boxed_path(),
-                    name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
+                    path: file_path_first.to_path_buf().into_boxed_path(),
+                    name: file_path_first.file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(dir_path.file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
-                let tempfile_second = tempfile::Builder::new()
-                    .suffix(".mp4")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
+                let file_path_second = build_file(Some(&dir_path), ".mp4");
                 
                 let entry_second = FilesEntry {
-                    path: tempfile_second.path().to_owned().into_boxed_path(),
-                    name: tempfile_second.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
+                    path: file_path_second.to_path_buf().into_boxed_path(),
+                    name: file_path_second.file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(dir_path.file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
-                files.add(subdirectory.path()).unwrap();
+                files.add(&dir_path).unwrap();
                 
                 // operation
                 
-                let output = files.remove(subdirectory.path());
+                let output = files.remove(&dir_path);
                 
                 // control
                 
@@ -1223,72 +1122,59 @@ mod lib {
                 assert!(output.contains(&entry_first));
                 assert!(output.contains(&entry_second));
                 
-                assert_eq!(files.get(tempfile_first.path()), None);
-                assert_eq!(files.get(tempfile_second.path()), None);
+                assert_eq!(files.get(&file_path_first), None);
+                assert_eq!(files.get(&file_path_second), None);
             }
             
             #[test]
             fn not_found() {
                 // setup
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let subdirectory = tempfile::Builder::new()
-                    .tempdir_in(&root)
-                    .unwrap();
+                let dir_path = build_dir(Some(&root));
                 
-                let tempfile = tempfile::Builder::new()
-                    .suffix(".xls")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
+                let file_path = build_file(Some(&dir_path), ".xls");
                 
                 // operation
                 
-                let output = files.remove(subdirectory.path());
+                let output = files.remove(&dir_path);
                 
                 // control
                 
                 assert!(output.is_err());
                 
-                assert_eq!(files.get(tempfile.path()), None);
+                assert_eq!(files.get(&file_path), None);
             }
             
             #[test]
             fn in_subdirectory() {
                 // setup
                 
-                let root = tempfile::tempdir().unwrap();
+                let root = build_dir(None::<PathBuf>);
                 
-                let mut files = new(root.path());
+                let mut files = new(&root);
                 
-                let subdirectory = tempfile::Builder::new()
-                    .tempdir_in(&root)
-                    .unwrap();
+                let dir_path = build_dir(Some(&root));
                 
-                let tempfile_first = tempfile::Builder::new()
-                    .suffix(".mkv")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
+                let file_path_first = build_file(Some(&dir_path), ".mkv");
                 
                 let entry = FilesEntry {
-                    path: tempfile_first.path().to_owned().into_boxed_path(),
-                    name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
-                    container: Some(subdirectory.path().file_stem().unwrap().to_owned().into_boxed_os_str()),
+                    path: file_path_first.to_path_buf().into_boxed_path(),
+                    name: file_path_first.file_stem().unwrap().to_owned().into_boxed_os_str(),
+                    container: Some(dir_path.file_stem().unwrap().to_owned().into_boxed_os_str()),
                     mark: FilesMark::None,
                 };
                 
-                let tempfile_second = tempfile::Builder::new()
-                    .suffix(".pdf")
-                    .tempfile_in(&subdirectory)
-                    .unwrap();
+                let file_path_second = build_file(Some(&dir_path), ".pdf");
                 
-                files.add(subdirectory.path()).unwrap();
+                files.add(&dir_path).unwrap();
                 
                 // operation
                 
-                let output = files.remove(subdirectory.path());
+                let output = files.remove(&dir_path);
                 
                 // control
                 
@@ -1300,8 +1186,8 @@ mod lib {
                 
                 assert_eq!(output.first().unwrap(), &entry);
                 
-                assert_eq!(files.get(tempfile_first.path()), None);
-                assert_eq!(files.get(tempfile_second.path()), None);
+                assert_eq!(files.get(&file_path_first), None);
+                assert_eq!(files.get(&file_path_second), None);
             }
             
         }
@@ -1316,87 +1202,78 @@ mod lib {
         fn valid() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path = build_file(Some(&root), ".mkv");
             
             let entry = FilesEntry {
-                path: tempfile.path().to_owned().into_boxed_path(),
-                name: tempfile.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                path: file_path.to_path_buf().into_boxed_path(),
+                name: file_path.file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: None,
                 mark: FilesMark::Watched,
             };
             
-            files.add(tempfile.path()).unwrap();
+            files.add(&file_path).unwrap();
             
             // operation
             
-            let output = files.mark(tempfile.path(), FilesMark::Watched);
+            let output = files.mark(&file_path, FilesMark::Watched);
             
             // control
             
             assert!(output.is_ok());
             
-            files.remove(tempfile.path()).unwrap();
-            files.add(tempfile.path()).unwrap();
+            files.remove(&file_path).unwrap();
+            files.add(&file_path).unwrap();
             
-            assert_eq!(files.get(tempfile.path()), Some(&entry));
+            assert_eq!(files.get(&file_path), Some(&entry));
         }
         
         #[test]
         fn no_change() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path = build_file(Some(&root), ".mkv");
             
             let entry = FilesEntry {
-                path: tempfile.path().to_owned().into_boxed_path(),
-                name: tempfile.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                path: file_path.to_path_buf().into_boxed_path(),
+                name: file_path.file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: None,
                 mark: FilesMark::None,
             };
             
-            files.add(tempfile.path()).unwrap();
+            files.add(&file_path).unwrap();
             
             // operation
             
-            let output = files.mark(tempfile.path(), FilesMark::Watched);
+            let output = files.mark(&file_path, FilesMark::Watched);
             
             // control
             
             assert!(output.is_ok());
             
-            assert_eq!(files.get(tempfile.path()), Some(&entry));
+            assert_eq!(files.get(&file_path), Some(&entry));
         }
         
         #[test]
         fn invalid() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let files = new(root.path());
+            let files = new(&root);
             
-            let tempfile = tempfile::Builder::new()
-                .suffix(".pdf")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path = build_file(Some(&root), ".pdf");
             
             // operation
             
-            let output = files.mark(tempfile.path(), FilesMark::Watched);
+            let output = files.mark(&file_path, FilesMark::Watched);
             
             // control
             
@@ -1413,35 +1290,29 @@ mod lib {
         fn file() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile_first = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path_first = build_file(Some(&root), ".mkv");
             
             let entry = FilesEntry {
-                path: tempfile_first.path().to_owned().into_boxed_path(),
-                name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                path: file_path_first.to_path_buf().into_boxed_path(),
+                name: file_path_first.file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: None,
                 mark: FilesMark::None,
             };
             
-            files.add(tempfile_first.path()).unwrap();
+            files.add(&file_path_first).unwrap();
             
-            let tempfile_second = tempfile::Builder::new()
-                .suffix(".txt")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path_second = build_file(Some(&root), ".txt");
             
             // operation
             
             files.refresh_queue(&[
-                tempfile_first.path(),
-                tempfile_second.path(),
-                tempfile_first.path(),
+                &file_path_first,
+                &file_path_second,
+                &file_path_first,
             ]);
             
             // control
@@ -1457,90 +1328,79 @@ mod lib {
         fn directory() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let subdirectory = tempfile::Builder::new()
-                .tempdir_in(&root)
-                .unwrap();
+            let dir_path = build_dir(Some(&root));
             
-            let tempfile_first = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&subdirectory)
-                .unwrap();
+            let file_path_first = build_file(Some(&dir_path), ".mkv");
             
-            let container = subdirectory.path()
-                .strip_prefix(root.path())
+            let container = dir_path
+                .strip_prefix(&root)
                 .unwrap()
                 .as_os_str()
                 .to_owned()
                 .into_boxed_os_str();
             
             let entry_first = FilesEntry {
-                path: tempfile_first.path().to_owned().into_boxed_path(),
-                name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                path: file_path_first.to_path_buf().into_boxed_path(),
+                name: file_path_first.file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: Some(container),
                 mark: FilesMark::None,
             };
             
-            files.add(tempfile_first.path()).unwrap();
+            files.add(&file_path_first).unwrap();
             
-            let tempfile_second = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&subdirectory)
-                .unwrap();
+            let file_path_second = build_file(Some(&dir_path), ".mkv");
             
-            let container = subdirectory.path()
-                .strip_prefix(root.path())
+            let container = dir_path
+                .strip_prefix(&root)
                 .unwrap()
                 .as_os_str()
                 .to_owned()
                 .into_boxed_os_str();
             
             let entry_second = FilesEntry {
-                path: tempfile_second.path().to_owned().into_boxed_path(),
-                name: tempfile_second.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                path: file_path_second.to_path_buf().into_boxed_path(),
+                name: file_path_second.file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: Some(container),
                 mark: FilesMark::None,
             };
             
-            files.add(tempfile_second.path()).unwrap();
+            files.add(&file_path_second).unwrap();
             
-            let tempfile_third = tempfile::Builder::new()
-                .suffix(".mp4")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path_third = build_file(Some(&root), ".mp4");
             
             let entry_third = FilesEntry {
-                path: tempfile_third.path().to_owned().into_boxed_path(),
-                name: tempfile_third.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                path: file_path_third.to_path_buf().into_boxed_path(),
+                name: file_path_third.file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: None,
                 mark: FilesMark::None,
             };
             
-            files.add(tempfile_third.path()).unwrap();
+            files.add(&file_path_third).unwrap();
             
             files.refresh_queue(&[
-                tempfile_first.path(),
-                tempfile_third.path(),
-                tempfile_second.path(),
+                &file_path_first,
+                &file_path_third,
+                &file_path_second,
             ]);
             
             // operation
             
-            let container = subdirectory.path()
-                .strip_prefix(root.path())
+            let container = dir_path
+                .strip_prefix(&root)
                 .unwrap()
                 .as_os_str();
             
             files.refresh_queue(&[
-                tempfile_first.path().as_os_str(),
+                file_path_first.as_os_str(),
                 container,
-                tempfile_first.path().as_os_str(),
-                tempfile_second.path().as_os_str(),
-                tempfile_third.path().as_os_str(),
-                tempfile_second.path().as_os_str(),
+                file_path_first.as_os_str(),
+                file_path_second.as_os_str(),
+                file_path_third.as_os_str(),
+                file_path_second.as_os_str(),
             ]);
             
             // control
@@ -1556,56 +1416,47 @@ mod lib {
         fn deselection() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile_first = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path_first = build_file(Some(&root), ".mkv");
             
             let entry_first = FilesEntry {
-                path: tempfile_first.path().to_owned().into_boxed_path(),
-                name: tempfile_first.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                path: file_path_first.to_path_buf().into_boxed_path(),
+                name: file_path_first.file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: None,
                 mark: FilesMark::None,
             };
             
-            files.add(tempfile_first.path()).unwrap();
+            files.add(&file_path_first).unwrap();
             
-            let tempfile_second = tempfile::Builder::new()
-                .suffix(".mp4")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path_second = build_file(Some(&root), ".mp4");
             
-            files.add(tempfile_second.path()).unwrap();
+            files.add(&file_path_second).unwrap();
             
-            let tempfile_third = tempfile::Builder::new()
-                .suffix(".mp4")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path_third = build_file(Some(&root), ".mp4");
             
             let entry_third = FilesEntry {
-                path: tempfile_third.path().to_owned().into_boxed_path(),
-                name: tempfile_third.path().file_stem().unwrap().to_owned().into_boxed_os_str(),
+                path: file_path_third.to_path_buf().into_boxed_path(),
+                name: file_path_third.file_stem().unwrap().to_owned().into_boxed_os_str(),
                 container: None,
                 mark: FilesMark::None,
             };
             
-            files.add(tempfile_third.path()).unwrap();
+            files.add(&file_path_third).unwrap();
             
             files.refresh_queue(&[
-                tempfile_first.path(),
-                tempfile_second.path(),
-                tempfile_third.path(),
+                &file_path_first,
+                &file_path_second,
+                &file_path_third,
             ]);
             
             // operation
             
             files.refresh_queue(&[
-                tempfile_first.path(),
-                tempfile_third.path(),
+                &file_path_first,
+                &file_path_third,
             ]);
             
             // control
@@ -1621,25 +1472,19 @@ mod lib {
         fn empty() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile_first = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path_first = build_file(Some(&root), ".mkv");
             
-            files.add(tempfile_first.path()).unwrap();
+            files.add(&file_path_first).unwrap();
             
-            let tempfile_second = tempfile::Builder::new()
-                .suffix(".mp4")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path_second = build_file(Some(&root), ".mp4");
             
             files.refresh_queue(&[
-                tempfile_first.path(),
-                tempfile_second.path(),
+                &file_path_first,
+                &file_path_second,
             ]);
             
             // operation
@@ -1663,134 +1508,116 @@ mod lib {
         fn valid() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path_first = build_file(Some(&root), ".mkv");
             
-            files.add(tempfile.path()).unwrap();
+            files.add(&file_path_first).unwrap();
             
             // operation
             
-            let output = files.rename(tempfile.path(), "testing.txt");
+            let output = files.rename(&file_path_first, "testing.txt");
             
             // control
             
             assert!(output.is_ok());
             
-            assert!(tempfile.path().with_file_name("testing").with_extension("mkv").exists());
+            assert!(file_path_first.with_file_name("testing").with_extension("mkv").exists());
         }
         
         #[test]
         fn invalid() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile = tempfile::Builder::new()
-                .suffix(".mp4")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path = build_file(Some(&root), ".mp4");
             
-            files.add(tempfile.path()).unwrap();
+            files.add(&file_path).unwrap();
             
             // operation
             
-            let output = files.rename(tempfile.path(), "..");
+            let output = files.rename(&file_path, "..");
             
             // control
             
             assert!(output.is_err());
             
-            assert!(tempfile.path().exists());
+            assert!(file_path.exists());
         }
         
         #[test]
         fn not_found() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let files = new(root.path());
+            let files = new(&root);
             
-            let tempfile = tempfile::Builder::new()
-                .suffix(".mp4")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path = build_file(Some(&root), ".mp4");
             
             // operation
             
-            let output = files.rename(tempfile.path(), "testing.txt");
+            let output = files.rename(&file_path, "testing.txt");
             
             // control
             
             assert!(output.is_err());
             
-            assert!(tempfile.path().exists());
+            assert!(file_path.exists());
         }
         
         #[test]
         fn overwrite() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile_first = tempfile::Builder::new()
-                .suffix(".mp4")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path_first = build_file(Some(&root), ".mp4");
             
-            let tempfile_second = tempfile::Builder::new()
-                .suffix(".mp4")
-                .tempfile_in(&root)
-                .unwrap();
+            files.add(&file_path_first).unwrap();
             
-            files.add(tempfile_first.path()).unwrap();
+            let file_path_second = build_file(Some(&root), ".mp4");
             
             // operation
             
-            let output = files.rename(tempfile_first.path(), tempfile_second.path().file_name().unwrap());
+            let output = files.rename(&file_path_first, file_path_second.file_name().unwrap());
             
             // control
             
             assert!(output.is_err());
             
-            assert!(tempfile_first.path().exists());
-            assert!(tempfile_second.path().exists());
+            assert!(&file_path_first.exists());
+            assert!(&file_path_second.exists());
         }
         
         #[test]
         fn no_change() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path = build_file(Some(&root), ".mkv");
             
-            files.add(tempfile.path()).unwrap();
+            files.add(&file_path).unwrap();
             
             // operation
             
-            let output = files.rename(tempfile.path(), tempfile.path().file_name().unwrap());
+            let output = files.rename(&file_path, file_path.file_name().unwrap());
             
             // control
             
             assert!(output.is_ok());
             
-            assert!(tempfile.path().exists());
+            assert!(file_path.exists());
         }
         
     }
@@ -1803,145 +1630,128 @@ mod lib {
         fn valid() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path = build_file(Some(&root), ".mkv");
             
-            files.add(tempfile.path()).unwrap();
+            files.add(&file_path).unwrap();
             
             // operation
             
-            let output = files.move_to_folder(tempfile.path(), Some("../../test"));
+            let output = files.move_to_folder(&file_path, Some("../../test"));
             
             // control
             
             assert!(output.is_ok());
             
-            assert!(root.path().join("test").join(tempfile.path().file_name().unwrap()).exists());
+            assert!(root.join("test").join(file_path.file_name().unwrap()).exists());
         }
         
         #[test]
         fn invalid() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path = build_file(Some(&root), ".mkv");
             
-            files.add(tempfile.path()).unwrap();
+            files.add(&file_path).unwrap();
             
             // operation
             
-            let output = files.move_to_folder(tempfile.path(), Some(".."));
+            let output = files.move_to_folder(&file_path, Some(".."));
             
             // control
             
             assert!(output.is_err());
             
-            assert!(tempfile.path().exists());
+            assert!(file_path.exists());
         }
         
         #[test]
         fn to_root() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let subdirectory = tempfile::Builder::new()
-                .tempdir_in(&root)
-                .unwrap();
+            let dir_path = build_dir(Some(&root));
             
-            let tempfile = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&subdirectory)
-                .unwrap();
+            let file_path = build_file(Some(&dir_path), ".mkv");
             
-            files.add(tempfile.path()).unwrap();
+            files.add(&file_path).unwrap();
             
             // operation
             
-            let output = files.move_to_folder(tempfile.path(), None::<&OsStr>);
+            let output = files.move_to_folder(&file_path, None::<&OsStr>);
             
             // control
             
             assert!(output.is_ok());
             
-            assert!(root.path().join(tempfile.path().file_name().unwrap()).exists());
+            assert!(root.join(file_path.file_name().unwrap()).exists());
         }
         
         #[test]
         fn overwrite() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile_first = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path_first = build_file(Some(&root), ".mkv");
             
-            let subdirectory = tempfile::Builder::new()
-                .tempdir_in(&root)
-                .unwrap();
+            files.add(&file_path_first).unwrap();
             
-            let tempfile_second = tempfile::Builder::new()
-                .prefix(tempfile_first.path().file_name().unwrap())
-                .rand_bytes(0)
-                .tempfile_in(&subdirectory)
-                .unwrap();
+            let dir_path = build_dir(Some(&root));
             
-            files.add(tempfile_first.path()).unwrap();
+            let file_path_second = build_file(Some(&dir_path), ".mkv");
+            
+            files.rename(&file_path_first, file_path_second.file_stem().unwrap()).unwrap();
+            
+            file_path_first.unmanage();
+            
+            let file_path_first = chikuwa::EphemeralPath::from(file_path_second.to_path_buf());
             
             // operation
             
-            let output = files.move_to_folder(tempfile_first.path(), subdirectory.path().file_name());
+            let output = files.move_to_folder(&file_path_first, dir_path.file_name());
             
             // control
             
             assert!(output.is_err());
             
-            assert!(tempfile_first.path().exists());
-            assert!(tempfile_second.path().exists());
+            assert!(file_path_first.exists());
+            assert!(file_path_second.exists());
         }
         
         #[test]
         fn already_in_root() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path_first = build_file(Some(&root), ".mkv");
             
-            files.add(tempfile.path()).unwrap();
+            files.add(&file_path_first).unwrap();
             
             // operation
             
-            let output = files.move_to_folder(tempfile.path(), None::<&OsStr>);
+            let output = files.move_to_folder(&file_path_first, None::<&OsStr>);
             
             // control
             
             assert!(output.is_ok());
             
-            assert!(tempfile.path().exists());
+            assert!(file_path_first.exists());
         }
         
         #[test]
@@ -1952,30 +1762,25 @@ mod lib {
             //  |-> subdirectory
             //      |-> tempfile
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let subdirectory = tempfile::Builder::new()
-                .tempdir_in(&root)
-                .unwrap();
+            let dir_path = build_dir(Some(&root));
             
-            let tempfile = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&subdirectory)
-                .unwrap();
+            let file_path = build_file(Some(&dir_path), ".mkv");
             
-            files.add(tempfile.path()).unwrap();
+            files.add(&file_path).unwrap();
             
             // operation
             
-            let output = files.move_to_folder(tempfile.path(), subdirectory.path().file_stem());
+            let output = files.move_to_folder(&file_path, dir_path.file_stem());
             
             // control
             
             assert!(output.is_ok());
             
-            assert!(tempfile.path().exists());
+            assert!(file_path.exists());
         }
         
     }
@@ -1988,50 +1793,44 @@ mod lib {
         fn valid() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path = build_file(Some(&root), ".mkv");
             
-            files.add(tempfile.path()).unwrap();
+            files.add(&file_path).unwrap();
             
             // operation
             
-            let output = files.delete(tempfile.path());
+            let output = files.delete(&file_path);
             
             // control
             
             assert!(output.is_ok());
             
-            assert!(! tempfile.path().exists());
+            assert!(! file_path.exists());
         }
         
         #[test]
         fn not_found() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let files = new(root.path());
+            let files = new(&root);
             
-            let tempfile = tempfile::Builder::new()
-                .suffix(".mp4")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path = build_file(Some(&root), ".mp4");
             
             // operation
             
-            let output = files.delete(tempfile.path());
+            let output = files.delete(&file_path);
             
             // control
             
             assert!(output.is_err());
             
-            assert!(tempfile.path().exists());
+            assert!(file_path.exists());
         }
         
     }
@@ -2044,40 +1843,27 @@ mod lib {
         fn updated_files() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile_first = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path_first = build_file(Some(&root), ".mkv");
             
-            files.add(tempfile_first.path()).unwrap();
+            files.add(&file_path_first).unwrap();
+            files.mark(&file_path_first, FilesMark::Updated).unwrap();
+            files.remove(&file_path_first).unwrap();
+            files.add(&file_path_first).unwrap();
             
-            files.mark(tempfile_first.path(), FilesMark::Updated).unwrap();
+            let file_path_second = build_file(Some(&root), ".mkv");
             
-            files.remove(tempfile_first.path()).unwrap();
-            files.add(tempfile_first.path()).unwrap();
+            files.add(&file_path_second).unwrap();
+            files.mark(&file_path_second, FilesMark::Updated).unwrap();
+            files.remove(&file_path_second).unwrap();
+            files.add(&file_path_second).unwrap();
             
-            let tempfile_second = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path_third = build_file(Some(&root), ".mkv");
             
-            files.add(tempfile_second.path()).unwrap();
-            
-            files.mark(tempfile_second.path(), FilesMark::Updated).unwrap();
-            
-            files.remove(tempfile_second.path()).unwrap();
-            files.add(tempfile_second.path()).unwrap();
-            
-            let tempfile_third = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
-            
-            files.add(tempfile_third.path()).unwrap();
+            files.add(&file_path_third).unwrap();
             
             // operation
             
@@ -2087,68 +1873,46 @@ mod lib {
             
             assert!(output.is_ok());
             
-            assert!(! tempfile_first.path().exists());
-            assert!(! tempfile_second.path().exists());
-            assert!(tempfile_third.path().exists());
+            assert!(! file_path_first.exists());
+            assert!(! file_path_second.exists());
+            assert!(file_path_third.exists());
         }
         
         #[test]
         fn empty_directories() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let mut files = new(root.path());
+            let mut files = new(&root);
             
-            let tempfile_first = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
+            let file_path_first = build_file(Some(&root), ".mkv");
             
-            files.add(tempfile_first.path()).unwrap();
+            files.add(&file_path_first).unwrap();
             
-            let subdirectory_first = tempfile::Builder::new()
-                .tempdir_in(&root)
-                .unwrap();
+            let dir_path_first = build_dir(Some(&root));
             
-            let tempfile_second = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&subdirectory_first)
-                .unwrap();
+            let file_path_second = build_file(Some(&dir_path_first), ".mkv");
             
-            files.add(tempfile_second.path()).unwrap();
+            files.add(&file_path_second).unwrap();
+            files.mark(&file_path_second, FilesMark::Updated).unwrap();
+            files.remove(&file_path_second).unwrap();
+            files.add(&file_path_second).unwrap();
             
-            files.mark(tempfile_second.path(), FilesMark::Updated).unwrap();
+            let dir_path_second = build_dir(Some(&root));
             
-            files.remove(tempfile_second.path()).unwrap();
-            files.add(tempfile_second.path()).unwrap();
+            let file_path_third = build_file(Some(&dir_path_second), ".mkv");
             
-            let subdirectory_second = tempfile::Builder::new()
-                .tempdir_in(&root)
-                .unwrap();
+            files.add(&file_path_third).unwrap();
+            files.mark(&file_path_third, FilesMark::Updated).unwrap();
+            files.remove(&file_path_third).unwrap();
+            files.add(&file_path_third).unwrap();
             
-            let tempfile_third = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&subdirectory_second)
-                .unwrap();
+            let file_path_fourth = build_file(Some(&dir_path_second), ".mkv");
             
-            files.add(tempfile_third.path()).unwrap();
+            files.add(&file_path_fourth).unwrap();
             
-            files.mark(tempfile_third.path(), FilesMark::Updated).unwrap();
-            
-            files.remove(tempfile_third.path()).unwrap();
-            files.add(tempfile_third.path()).unwrap();
-            
-            let tempfile_fourth = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&subdirectory_second)
-                .unwrap();
-            
-            files.add(tempfile_fourth.path()).unwrap();
-            
-            let subdirectory_third = tempfile::Builder::new()
-                .tempdir_in(&root)
-                .unwrap();
+            let dir_path_third = build_dir(Some(&root));
             
             // operation
             
@@ -2158,13 +1922,13 @@ mod lib {
             
             assert!(output.is_ok());
             
-            assert!(tempfile_first.path().exists());
-            assert!(! tempfile_second.path().exists());
-            assert!(! subdirectory_first.path().exists());
-            assert!(! tempfile_third.path().exists());
-            assert!(tempfile_fourth.path().exists());
-            assert!(subdirectory_second.path().exists());
-            assert!(! subdirectory_third.path().exists());
+            assert!(file_path_first.exists());
+            assert!(! file_path_second.exists());
+            assert!(! dir_path_first.exists());
+            assert!(! file_path_third.exists());
+            assert!(file_path_fourth.exists());
+            assert!(dir_path_second.exists());
+            assert!(! dir_path_third.exists());
         }
         
     }
@@ -2177,51 +1941,64 @@ mod lib {
         fn pre_existing() {
             // setup
             
-            let root = tempfile::tempdir().unwrap();
+            let root = build_dir(None::<PathBuf>);
             
-            let tempfile_first = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
-            
-            let tempfile_second = tempfile::Builder::new()
-                .suffix(".mkv")
-                .tempfile_in(&root)
-                .unwrap();
-            
-            let tempfile_third = tempfile::Builder::new()
-                .suffix(".pdf")
-                .tempfile_in(&root)
-                .unwrap();
-            
-            let files = new(root.path());
+            let file_path_first = build_file(Some(&root), ".mkv");
+            let file_path_second = build_file(Some(&root), ".mkv");
+            let file_path_third = build_file(Some(&root), ".pdf");
             
             // operation
             
-            let output = files.iter();
+            let output = new(&root);
             
             // control
             
-            for file in output {
-                assert!(file.path() == tempfile_first.path() || file.path() == tempfile_second.path());
-            }
+            assert_eq!(output.count(), 2);
             
-            assert_eq!(files.count(), 2);
+            assert!(output.get(&file_path_first).is_some());
+            assert!(output.get(&file_path_second).is_some());
+            assert!(output.get(&file_path_third).is_none());
             
-            assert!(files.get(tempfile_first.path()).is_some());
-            assert!(files.get(tempfile_second.path()).is_some());
-            assert!(files.get(tempfile_third.path()).is_none());
-            
-            assert!(files.queue().next().is_none());
+            assert!(output.queue().next().is_none());
         }
         
     }
     
-    fn new(path: &Path) -> Files {
+    fn new<P: Into<PathBuf>>(path: P) -> Files {
         let flag = "user.app.ena";
         let formats = Vec::from(["mkv", "mp4", "avi"]);
         
         Files::new(path, flag, formats.iter())
+    }
+    
+    fn build_dir<P: Into<PathBuf>>(base: Option<P>) -> chikuwa::EphemeralPath {
+        let path = build_path(base, None);
+        
+        fs::create_dir(&path).unwrap();
+        
+        path
+    }
+    
+    fn build_file<P: Into<PathBuf>>(base: Option<P>, extension: &str) -> chikuwa::EphemeralPath {
+        let path = build_path(base, Some(extension));
+        
+        File::create(&path).unwrap();
+        
+        path
+    }
+    
+    fn build_path<P: Into<PathBuf>>(base: Option<P>, suffix: Option<&str>) -> chikuwa::EphemeralPath {
+        let mut builder = chikuwa::EphemeralPath::builder();
+        
+        if let Some(base) = base {
+            builder = builder.with_base(base);
+        }
+        
+        if let Some(suffix) = suffix {
+            builder = builder.with_suffix(suffix);
+        }
+        
+        builder.build()
     }
     
 }

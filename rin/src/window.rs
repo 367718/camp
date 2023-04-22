@@ -1,7 +1,6 @@
 use std::{
     error::Error,
-    fs::File,
-    io::{ Write, BufWriter },
+    io::Write,
 };
 
 use crate::Config;
@@ -44,7 +43,7 @@ impl Window {
         }
     }
     
-    pub fn serialize(&self, writer: &mut BufWriter<&File>) -> Result<(), Box<dyn Error>> {
+    pub fn serialize(&self, writer: &mut impl Write) -> Result<(), Box<dyn Error>> {
         writeln!(writer, "window.maximized = {}", self.maximized)?;
         writeln!(writer, "window.width = {}", self.width)?;
         writeln!(writer, "window.height = {}", self.height)?;
@@ -191,7 +190,7 @@ impl Window {
     fn check_dimension(dimension: i32, field: &str) -> Result<(), Box<dyn Error>> {
         if let Err(error) = Self::validate_dimension(dimension) {
             match error {
-                DimensionError::ZeroOrLess => return Err([field, ": cannot be less than or equal to zero"].concat().into()),
+                DimensionError::ZeroOrLess => return Err(chikuwa::concat_str!(field, ": cannot be less than or equal to zero").into()),
             }
         }
         
@@ -201,7 +200,7 @@ impl Window {
     fn check_coordinate(coordinate: i32, field: &str) -> Result<(), Box<dyn Error>> {
         if let Err(error) = Self::validate_coordinate(coordinate) {
             match error {
-                CoordinateError::Less => return Err([field, ": cannot be less than zero"].concat().into()),
+                CoordinateError::Less => return Err(chikuwa::concat_str!(field, ": cannot be less than zero").into()),
             }
         }
         

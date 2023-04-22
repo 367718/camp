@@ -1063,28 +1063,30 @@ pub fn downloaded_delete(state: &mut State) {
 }
 
 pub fn downloaded_update(state: &mut State, sender: &Sender<Message>, downloads: Vec<(SeriesId, i64)>) {
-    if downloads.is_empty() {
-        return;
-    }
+    let mut entries = Vec::with_capacity(downloads.len());
     
     for (series, download) in downloads {
         
-        let Some((id, candidate)) = state.database.candidates_iter().find(|(_, current)| current.series() == series) else {
-            continue;
-        };
-        
-        if ! candidate.downloaded().contains(&download) {
+        if let Some((id, candidate)) = state.database.candidates_iter().find(|(_, current)| current.series() == series) {
             
-            let mut downloaded = candidate.downloaded().clone();
-            downloaded.insert(download);
-            
-            let new = candidate.clone()
-                .with_downloaded(downloaded);
-            
-            state.database.candidates_edit(id, new).ok();
+            if ! candidate.downloaded().contains(&download) {
+                
+                let mut downloaded = candidate.downloaded().clone();
+                downloaded.insert(download);
+                
+                let new = candidate.clone()
+                    .with_downloaded(downloaded);
+                
+                entries.push((id, new));
+                
+            }
             
         }
         
+    }
+    
+    if state.database.candidates_mass_edit(entries.into_iter()).is_err() {
+        return;
     }
     
     // make sure shown downloads are up to date

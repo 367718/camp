@@ -1,7 +1,6 @@
 use std::{
     error::Error,
-    fs::File,
-    io::{ Write, BufWriter },
+    io::Write,
     time::Duration,
 };
 
@@ -68,7 +67,7 @@ impl Media {
         }
     }
     
-    pub fn serialize(&self, writer: &mut BufWriter<&File>) -> Result<(), Box<dyn Error>> {
+    pub fn serialize(&self, writer: &mut impl Write) -> Result<(), Box<dyn Error>> {
         writeln!(writer, "media.player = {}", self.player)?;
         writeln!(writer, "media.iconify = {}", self.iconify)?;
         writeln!(writer, "media.flag = {}", self.flag.as_ref())?;

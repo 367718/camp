@@ -24,7 +24,7 @@ impl Persistence {
             .write(true)
             .create_new(true)
             .open(path)
-            .map_err(|_| format!("File already exists or write error: {}", path.to_string_lossy()))?;
+            .map_err(|_| chikuwa::concat_str!("File already exists or write error: ", &path.to_string_lossy()))?;
         
         let flags = sqlite::OpenFlags::new()
             .set_read_write();
@@ -35,8 +35,6 @@ impl Persistence {
     }
     
     pub fn load<S: AsRef<Path>>(path: S) -> Result<Self, Box<dyn Error>> {
-        let path = path.as_ref();
-        
         let flags = sqlite::OpenFlags::new()
             .set_read_write();
         

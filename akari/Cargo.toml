@@ -11,4 +11,3 @@ schannel = "0.1.21"
 
 [dev-dependencies]
 mockito = "1.0.2"
-tempfile = "3.5.0"

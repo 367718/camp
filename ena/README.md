@@ -1,6 +1,6 @@
 # ena
 
-File operations.
+Files operations.
 
 ## Behavior
 

@@ -1,8 +1,7 @@
 use std::{
     error::Error,
-    ffi::OsString,
-    fs::{ self, OpenOptions },
-    io::{ Write, BufWriter },
+    fs::{ self, File },
+    io::Write,
     path::Path,
     str,
     time::Duration,
@@ -79,35 +78,20 @@ impl Config {
     pub fn save<P: AsRef<Path>>(&mut self, path: P) -> Result<(), Box<dyn Error>> {
         if self.modified {
             
-            let path = path.as_ref();
-            
-            let extension = if let Some(current) = path.extension() {
-                let mut composite = OsString::with_capacity(current.len() + 4);
-                composite.push(current);
-                composite.push(".tmp");
-                composite
-            } else {
-                OsString::from("tmp")
-            };
-            
-            let tmp_path = path.with_extension(extension);
-            
-            let tmp_file = OpenOptions::new()
-                .write(true)
-                .create(true)
-                .open(&tmp_path)
-                .map_err(|_| format!("Could not create file: {}", tmp_path.to_string_lossy()))?;
-            
-            let mut writer = BufWriter::new(&tmp_file);
-            
-            self.window.serialize(&mut writer)?;
-            self.media.serialize(&mut writer)?;
-            self.paths.serialize(&mut writer)?;
-            
-            writer.flush()?;
-            
             // attempt to perform the update atomically
+            
+            let tmp_path = chikuwa::EphemeralPath::builder().build();
+            let mut tmp_file = File::create(&tmp_path)?;
+            
+            self.window.serialize(&mut tmp_file)?;
+            self.media.serialize(&mut tmp_file)?;
+            self.paths.serialize(&mut tmp_file)?;
+            
+            tmp_file.flush()?;
+            
             fs::rename(&tmp_path, path)?;
+            
+            tmp_path.unmanage();
             
             self.modified = false;
             
@@ -338,19 +322,17 @@ mod tests {
     
     use super::*;
     
-    use std::fmt::Write;
+    use std::io::Write;
     
     #[test]
     fn new() {
         // setup
         
-        let cfgpath = tempfile::NamedTempFile::new()
-            .unwrap()
-            .into_temp_path();
+        let tmp_path = chikuwa::EphemeralPath::builder().build();
         
         // operation
         
-        let output = Config::new(&cfgpath);
+        let output = Config::new(&tmp_path);
         
         // control
         
@@ -365,11 +347,9 @@ mod tests {
         fn valid_lf() {
             // setup
             
-            let cfgpath = tempfile::NamedTempFile::new()
-                .unwrap()
-                .into_temp_path();
+            let tmp_path = chikuwa::EphemeralPath::builder().build();
             
-            let mut data = String::new();
+            let mut data = Vec::new();
             
             writeln!(data, "window.maximized = true").unwrap();
             writeln!(data, "window.width = 750").unwrap();
@@ -390,11 +370,11 @@ mod tests {
             writeln!(data, "paths.pipe = //./pipe/placeholder").unwrap();
             writeln!(data, "paths.database = /placeholder/database").unwrap();
             
-            fs::write(&cfgpath, data).unwrap();
+            fs::write(&tmp_path, &data).unwrap();
             
             // operation
             
-            let output = Config::load(&cfgpath);
+            let output = Config::load(&tmp_path);
             
             // control
             
@@ -444,11 +424,9 @@ mod tests {
         fn valid_crlf() {
             // setup
             
-            let cfgpath = tempfile::NamedTempFile::new()
-                .unwrap()
-                .into_temp_path();
+            let tmp_path = chikuwa::EphemeralPath::builder().build();
             
-            let mut data = String::new();
+            let mut data = Vec::new();
             
             writeln!(data, "window.maximized = true\r").unwrap();
             writeln!(data, "window.width = 750\r").unwrap();
@@ -469,11 +447,11 @@ mod tests {
             writeln!(data, "paths.pipe = //./pipe/placeholder\r").unwrap();
             writeln!(data, "paths.database = /placeholder/database\r").unwrap();
             
-            fs::write(&cfgpath, data).unwrap();
+            fs::write(&tmp_path, &data).unwrap();
             
             // operation
             
-            let output = Config::load(&cfgpath);
+            let output = Config::load(&tmp_path);
             
             // control
             
@@ -523,11 +501,9 @@ mod tests {
         fn invalid() {
             // setup
             
-            let cfgpath = tempfile::NamedTempFile::new()
-                .unwrap()
-                .into_temp_path();
+            let tmp_path = chikuwa::EphemeralPath::builder().build();
             
-            let mut data = String::new();
+            let mut data = Vec::new();
             
             writeln!(data, "window.maximized = false").unwrap();
             writeln!(data, "window.width = 0").unwrap();
@@ -548,11 +524,11 @@ mod tests {
             writeln!(data, "paths.pipe = ").unwrap();
             writeln!(data, "paths.database = ").unwrap();
             
-            fs::write(&cfgpath, data).unwrap();
+            fs::write(&tmp_path, &data).unwrap();
             
             // operation
             
-            let output = Config::load(&cfgpath);
+            let output = Config::load(&tmp_path);
             
             // control
             
@@ -589,53 +565,23 @@ mod tests {
         fn valid() {
             // setup
             
-            let cfgpath = tempfile::NamedTempFile::new()
-                .unwrap()
-                .into_temp_path();
+            let tmp_path = chikuwa::EphemeralPath::builder().build();
             
-            let mut config = Config::new(&cfgpath).unwrap();
+            let mut config = Config::new(&tmp_path).unwrap();
             
             config.media_set_player("mpc-hc").unwrap();
             
             // operation
             
-            let output = config.save(&cfgpath);
+            let output = config.save(&tmp_path);
             
             // control
             
             assert!(output.is_ok());
             
-            let config = Config::load(&cfgpath).unwrap();
+            let config = Config::load(&tmp_path).unwrap();
             
             assert_eq!(config.media_player(), "mpc-hc");
-        }
-        
-        #[test]
-        fn invalid() {
-            // setup
-            
-            let cfgpath = tempfile::NamedTempFile::new()
-                .unwrap()
-                .into_temp_path();
-            
-            let _tmppath = tempfile::Builder::new()
-                .prefix(cfgpath.file_name().unwrap())
-                .suffix(".tmp")
-                .rand_bytes(0)
-                .tempfile()
-                .unwrap();
-            
-            let mut config = Config::new(&cfgpath).unwrap();
-            
-            config.media_set_player("mpc-hc").unwrap();
-            
-            // operation
-            
-            let output = config.save(&cfgpath);
-            
-            // control
-            
-            assert!(output.is_err());
         }
         
     }

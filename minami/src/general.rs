@@ -468,7 +468,7 @@ fn backup_database(state: &mut State) {
     
     file_chooser_dialog.set_title("Backup database");
     file_chooser_dialog.set_action(gtk::FileChooserAction::Save);
-    file_chooser_dialog.set_current_name(&concat_str!(APP_NAME, "-", &current_date(), ".db"));
+    file_chooser_dialog.set_current_name(&chikuwa::concat_str!(APP_NAME, "-", &current_date(), ".db"));
     
     loop {
         
@@ -499,7 +499,7 @@ fn backup_database(state: &mut State) {
                         .write(true)
                         .create_new(true)
                         .open(&path)
-                        .map_err(|_| concat_str!("File already exists or write error: ", &path.to_string_lossy()));
+                        .map_err(|_| chikuwa::concat_str!("File already exists or write error: ", &path.to_string_lossy()));
                     
                     if let Err(error) = creation {
                         state.ui.dialogs_error_show(&error);
@@ -944,7 +944,7 @@ fn search_compute(state: &mut State) {
                         let watched = files_store.value(store_iter, 2).get::<bool>().unwrap();
                         let section = FilesSection::from(watched);
                         
-                        concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem, " (", section.to_str(), ") (f)")
+                        chikuwa::concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem, " (", section.to_str(), ") (f)")
                         
                     },
                     
@@ -960,7 +960,7 @@ fn search_compute(state: &mut State) {
                         let watched = files_store.value(store_iter, 2).get::<bool>().unwrap();
                         let section = FilesSection::from(watched);
                         
-                        concat_str!(&file_stem, " (", section.to_str(), ") (f)")
+                        chikuwa::concat_str!(&file_stem, " (", section.to_str(), ") (f)")
                         
                     },
                     
@@ -997,7 +997,7 @@ fn search_compute(state: &mut State) {
                 let status = watchlist_store.value(store_iter, 2).get::<i64>().unwrap();
                 let section = WatchlistSection::try_from(status).unwrap();
                 
-                let display = concat_str!(&title, " (", section.to_str(), ") (w)");
+                let display = chikuwa::concat_str!(&title, " (", section.to_str(), ") (w)");
                 
                 search_store.insert_with_values(
                     None,
@@ -1294,23 +1294,3 @@ pub fn case_insensitive_contains(haystack: &str, needles: &[&str]) -> bool {
     needles.iter().all(|needle| contains(haystack, needle))
     
 }
-
-macro_rules! concat_str {
-    
-    ( ) => { String::new() };
-    
-    ( $( $component:expr ),+ ) => {{
-        
-        let mut capacity = 0;
-        $( capacity += $component.len(); )+
-        
-        let mut string = String::with_capacity(capacity);
-        $( string.push_str($component); )+
-        
-        string
-        
-    }};
-    
-}
-
-pub(crate) use concat_str;

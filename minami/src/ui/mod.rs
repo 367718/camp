@@ -149,7 +149,7 @@ impl Ui {
         );
         
         if let Some(error) = load_from_arg_error {
-            return Err(crate::general::concat_str!("Could not load the specified stylesheet: ", error.message()).into());
+            return Err(chikuwa::concat_str!("Could not load the specified stylesheet: ", error.message()).into());
         }
         
         Ok(())
