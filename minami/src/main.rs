@@ -8,15 +8,9 @@ mod watchlist;
 
 use std::{
     env,
-    error::Error,
     io::{ self, Write },
-    os::{
-        raw::*,
-        windows::raw::HANDLE,
-    },
     path::{ Path, PathBuf },
     process,
-    ptr,
 };
 
 use gtk::{
@@ -43,52 +37,6 @@ use general::GeneralActions;
 use preferences::{ PreferencesActions, PreferencesSection };
 use files::{ FilesActions, FilesSection };
 use watchlist::{ WatchlistActions, WatchlistSection };
-
-mod ffi {
-    
-    use super::*;
-    
-    extern "system" {
-        
-        // https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createmutexw
-        pub fn CreateMutexW(
-            lpmutexattributes: *const c_void, // SECURITY_ATTRIBUTES
-            binitialowner: c_int,
-            lpname: *const c_ushort,
-        ) -> HANDLE;
-        
-        // https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shellexecutew
-        pub fn ShellExecuteW(
-            hwnd: *mut c_void, // HWND
-            lpoperation: *const c_ushort,
-            lpfile: *const c_ushort,
-            lpparameters: *const c_ushort,
-            lpdirectory: *const c_ushort,
-            nshowcmd: c_int,
-        ) -> *mut c_void; // HINSTANCE
-        
-        // https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getlocaltime
-        pub fn GetLocalTime(
-            lpsystemtime: *mut SYSTEMTIME,
-        );
-        
-    }
-    
-    #[repr(C)]
-    #[allow(non_snake_case)]
-    // https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-systemtime
-    pub struct SYSTEMTIME {
-        pub wYear: c_ushort,
-        pub wMonth: c_ushort,
-        pub wDayOfWeek: c_ushort,
-        pub wDay: c_ushort,
-        pub wHour: c_ushort,
-        pub wMinute: c_ushort,
-        pub wSecond: c_ushort,
-        pub wMilliseconds: c_ushort,
-    }
-    
-}
 
 const APP_ID: &str = concat!("app.", env!("CARGO_PKG_NAME"));
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
@@ -152,7 +100,7 @@ fn init_app(app: &gtk::Application) {
     
     // ---------- enforce process uniqueness ----------
     
-    if let Err(error) = register_app() {
+    if let Err(error) = chikuwa::register_app(APP_ID) {
         ui.dialogs_error_show(&error.to_string());
         process::exit(1);
     }
@@ -260,30 +208,6 @@ fn show_help() {
     writeln!(&mut stdout, "--downloads   Sets the path of the directory to download torrent files in").unwrap();
     writeln!(&mut stdout, "--pipe        Sets the path of the named pipe to use for remote control").unwrap();
     writeln!(&mut stdout, "--database    Sets the path of the database file").unwrap();
-}
-
-fn register_app() -> Result<(), Box<dyn Error>> {
-    let name: Vec<c_ushort> = APP_ID.encode_utf16()
-        .chain(Some(0))
-        .collect();
-    
-    // mutex will be automatically released on application shutdown
-    unsafe {
-        
-        ffi::CreateMutexW(
-            ptr::null(),
-            0,
-            name.as_ptr(),
-        )
-        
-    };
-    
-    // allow app to run even if mutex could not be created
-    if io::Error::last_os_error().kind() == io::ErrorKind::AlreadyExists {
-        return Err("Only one instance of the application can be running at one time".into());
-    }
-    
-    Ok(())
 }
 
 fn init_config(path: Option<&str>, ui: &Ui) -> Option<Config> {

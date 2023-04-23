@@ -549,7 +549,7 @@ pub fn open_directory(state: &State) {
         
         if let Some(root) = root.to_str() {
             
-            if let Err(error) = crate::general::open(root) {
+            if let Err(error) = chikuwa::execute_app(root) {
                 state.ui.dialogs_error_show(&error.to_string());
             }
             

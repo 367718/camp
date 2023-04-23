@@ -72,7 +72,7 @@ pub fn lookup(state: &State) {
     let lookup = state.params.media_lookup(true);
     let url = lookup.replace("%s", &crate::general::percent_encode(&title));
     
-    if let Err(error) = crate::general::open(&url) {
+    if let Err(error) = chikuwa::execute_app(&url) {
         state.ui.dialogs_error_show(&error.to_string());
     }
 }

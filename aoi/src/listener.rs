@@ -34,7 +34,7 @@ mod ffi {
             addressstring: *const c_ushort,
             addressfamily: c_int,
             lpprotocolinfo: *const c_void, // WSAPROTOCOL_INFOW
-            lpaddress: *mut SOCKADDR,
+            lpaddress: *mut Sockaddr,
             lpaddresslength: *mut c_int,
         ) -> c_int;
         
@@ -54,7 +54,7 @@ mod ffi {
         // https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-bind
         pub fn bind(
             s: SOCKET,
-            name: *const SOCKADDR,
+            name: *const Sockaddr,
             namelen: c_int,
         ) -> c_int;
         
@@ -67,7 +67,7 @@ mod ffi {
         // https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-accept
         pub fn accept(
             s: SOCKET,
-            addr: *mut SOCKADDR,
+            addr: *mut Sockaddr,
             addrlen: *mut c_int,
         ) -> SOCKET;
         
@@ -80,7 +80,7 @@ mod ffi {
     
     #[repr(C)]
     // https://learn.microsoft.com/en-us/windows/win32/api/winsock/ns-winsock-sockaddr
-    pub struct SOCKADDR {
+    pub struct Sockaddr {
         pub sa_family: c_ushort,
         pub sa_data: [c_char; 14],
     }
@@ -126,7 +126,7 @@ impl Listener {
         
         let mut address = unsafe {
             
-            mem::zeroed::<ffi::SOCKADDR>()
+            mem::zeroed::<ffi::Sockaddr>()
             
         };
         

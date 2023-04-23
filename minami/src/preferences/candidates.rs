@@ -819,7 +819,7 @@ fn candidates_series_add(state: &mut State, sender: &Sender<Message>, prefill: &
                     let lookup = state.params.media_lookup(true);
                     let url = lookup.replace("%s", &crate::general::percent_encode(&title));
                     
-                    if let Err(error) = crate::general::open(&url) {
+                    if let Err(error) = chikuwa::execute_app(&url) {
                         series_dialog.unrealize();
                         series_dialog.hide();
                         

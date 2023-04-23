@@ -1,16 +1,11 @@
 use std::{
     cmp::Ordering,
     env,
-    error::Error,
     ffi::OsString,
     fs::{ self, OpenOptions },
-    io,
     iter::Peekable,
-    mem,
-    os::raw::*,
     path::{ MAIN_SEPARATOR_STR, PathBuf },
     process,
-    ptr,
     str::{ self, Chars },
 };
 
@@ -468,7 +463,7 @@ fn backup_database(state: &mut State) {
     
     file_chooser_dialog.set_title("Backup database");
     file_chooser_dialog.set_action(gtk::FileChooserAction::Save);
-    file_chooser_dialog.set_current_name(&chikuwa::concat_str!(APP_NAME, "-", &current_date(), ".db"));
+    file_chooser_dialog.set_current_name(&chikuwa::concat_str!(APP_NAME, "-", &chikuwa::current_date(), ".db"));
     
     loop {
         
@@ -1130,53 +1125,6 @@ fn search_select(state: &State, string_iter: &str) {
 
 // ---------- misc ----------
 
-
-pub fn open(file: &str) -> Result<(), Box<dyn Error>> {
-    let encoded_operation: Vec<c_ushort> = "open".encode_utf16()
-        .chain(Some(0))
-        .collect();
-    
-    let encoded_file: Vec<c_ushort> = file.encode_utf16()
-        .chain(Some(0))
-        .collect();
-    
-    let result = unsafe {
-        
-        crate::ffi::ShellExecuteW(
-            ptr::null_mut(),
-            encoded_operation.as_ptr(),
-            encoded_file.as_ptr(),
-            ptr::null(),
-            ptr::null(),
-            5, // SW_SHOW
-        )
-        
-    };
-    
-    if result as isize <= 32 {
-        return Err(io::Error::last_os_error().into());
-    }
-    
-    Ok(())
-}
-
-pub fn current_date() -> String {
-    let mut st = unsafe {
-        
-        mem::zeroed::<crate::ffi::SYSTEMTIME>()
-        
-    };
-    
-    unsafe {
-        
-        crate::ffi::GetLocalTime(
-            &mut st,
-        );
-        
-    }
-    
-    format!("{:04}{:02}{:02}", st.wYear, st.wMonth, st.wDay)
-}
 
 pub fn percent_encode(value: &str) -> String {
     const ENCODED: &str = concat!(
