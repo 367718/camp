@@ -102,7 +102,7 @@ impl Entries {
             let first_title = model.value(first_iter, 3).get::<glib::GString>().unwrap();
             let second_title = model.value(second_iter, 3).get::<glib::GString>().unwrap();
             
-            crate::general::natural_cmp(&first_title, &second_title)
+            chikuwa::natural_cmp(&first_title, &second_title)
             
         });
     }

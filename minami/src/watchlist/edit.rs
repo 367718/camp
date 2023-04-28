@@ -217,7 +217,7 @@ pub fn add(state: &mut State, sender: &Sender<Message>, prefill: &Option<String>
                 
                 if ! title.is_empty() {
                     let lookup = state.params.media_lookup(true);
-                    let url = lookup.replace("%s", &crate::general::percent_encode(&title));
+                    let url = lookup.replace("%s", &chikuwa::percent_encode(&title));
                     
                     if let Err(error) = chikuwa::execute_app(&url) {
                         series_dialog.unrealize();
@@ -382,7 +382,7 @@ pub fn edit(state: &mut State, sender: &Sender<Message>) {
                         
                         if ! title.is_empty() {
                             let lookup = state.params.media_lookup(true);
-                            let url = lookup.replace("%s", &crate::general::percent_encode(&title));
+                            let url = lookup.replace("%s", &chikuwa::percent_encode(&title));
                             
                             if let Err(error) = chikuwa::execute_app(&url) {
                                 state.ui.widgets().dialogs.watchlist.series.dialog.unrealize();

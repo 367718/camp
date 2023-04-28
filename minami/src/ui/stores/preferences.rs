@@ -77,7 +77,7 @@ impl Candidates {
             let first_title = model.value(first_iter, 1).get::<glib::GString>().unwrap();
             let second_title = model.value(second_iter, 1).get::<glib::GString>().unwrap();
             
-            crate::general::natural_cmp(&first_title, &second_title)
+            chikuwa::natural_cmp(&first_title, &second_title)
             
         });
         

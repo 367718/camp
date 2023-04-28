@@ -317,11 +317,10 @@ impl CandidatesCurrent {
 impl nadeshiko::IsCandidate for CandidatesEntry {
     
     fn is_relevant(&self, current: &str) -> bool {
-        let current = current.to_ascii_lowercase();
-        
-        current.contains(&self.title.to_ascii_lowercase()) &&
-            current.contains(&self.group.to_ascii_lowercase()) &&
-            current.contains(&self.quality.to_ascii_lowercase())
+        chikuwa::case_insensitive_contains(
+            current,
+            &[&self.title, &self.group, &self.quality],
+        )
     }
     
     fn clean(&self, current: &str) -> String {

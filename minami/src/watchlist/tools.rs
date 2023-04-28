@@ -70,7 +70,7 @@ pub fn lookup(state: &State) {
     let title = treemodel.value(&treeiter, 3).get::<glib::GString>().unwrap();
     
     let lookup = state.params.media_lookup(true);
-    let url = lookup.replace("%s", &crate::general::percent_encode(&title));
+    let url = lookup.replace("%s", &chikuwa::percent_encode(&title));
     
     if let Err(error) = chikuwa::execute_app(&url) {
         state.ui.dialogs_error_show(&error.to_string());

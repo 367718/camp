@@ -132,7 +132,7 @@ pub fn lookup(state: &State) {
     };
     
     let lookup = state.params.media_lookup(true);
-    let url = lookup.replace("%s", &crate::general::percent_encode(&name));
+    let url = lookup.replace("%s", &chikuwa::percent_encode(&name));
     
     if let Err(error) = chikuwa::execute_app(&url) {
         state.ui.dialogs_error_show(&error.to_string());
@@ -256,7 +256,7 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
         .map(|(_, entry)| entry)
         .collect::<Vec<&CandidatesEntry>>();
     
-    candidates.sort_unstable_by(|a, b| crate::general::natural_cmp(a.title(), b.title()));
+    candidates.sort_unstable_by(|a, b| chikuwa::natural_cmp(a.title(), b.title()));
     
     let mut feeds = state.database.feeds_iter()
         .collect::<Vec<(FeedsId, &FeedsEntry)>>();
@@ -310,7 +310,7 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
                             
                             result.reserve(downloads.len());
                             
-                            downloads.sort_unstable_by(|a, b| crate::general::natural_cmp(a.title, b.title));
+                            downloads.sort_unstable_by(|a, b| chikuwa::natural_cmp(a.title, b.title));
                             
                             for download in downloads {
                                 
@@ -426,7 +426,7 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
         .map(|(_, entry)| entry)
         .collect::<Vec<&CandidatesEntry>>();
     
-    candidates.sort_unstable_by(|a, b| crate::general::natural_cmp(a.title(), b.title()));
+    candidates.sort_unstable_by(|a, b| chikuwa::natural_cmp(a.title(), b.title()));
     
     let files = state.files.iter()
         .filter(|entry| entry.mark() == FilesMark::Watched)
@@ -448,7 +448,7 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
         
         result.reserve(updates.len());
         
-        updates.sort_unstable_by(|a, b| crate::general::natural_cmp(a.name, b.name));
+        updates.sort_unstable_by(|a, b| chikuwa::natural_cmp(a.name, b.name));
         
         for update in updates {
             

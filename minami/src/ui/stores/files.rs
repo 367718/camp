@@ -112,7 +112,7 @@ impl Entries {
                 let first_file_stem = model.value(first_iter, 3).get::<glib::GString>().unwrap();
                 let second_file_stem = model.value(second_iter, 3).get::<glib::GString>().unwrap();
                 
-                crate::general::natural_cmp(&first_file_stem, &second_file_stem)
+                chikuwa::natural_cmp(&first_file_stem, &second_file_stem)
                 
             }
             
@@ -143,7 +143,7 @@ impl MoveToFolder {
             let first_name = model.value(first_iter, 0).get::<glib::GString>().unwrap();
             let second_name = model.value(second_iter, 0).get::<glib::GString>().unwrap();
             
-            crate::general::natural_cmp(&first_name, &second_name)
+            chikuwa::natural_cmp(&first_name, &second_name)
             
         });
         

@@ -58,7 +58,7 @@ impl Search {
                 let first_name = model.value(first_iter, 1).get::<glib::GString>().unwrap();
                 let second_name = model.value(second_iter, 1).get::<glib::GString>().unwrap();
                 
-                crate::general::natural_cmp(&first_name, &second_name)
+                chikuwa::natural_cmp(&first_name, &second_name)
                 
             }
             
