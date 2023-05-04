@@ -3,6 +3,10 @@ pub fn case_insensitive_contains(haystack: &str, needles: &[&str]) -> bool {
 }
 
 fn contains(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    
     if haystack.is_ascii() && needle.is_ascii() {
         
         // windows method panics on zero size
