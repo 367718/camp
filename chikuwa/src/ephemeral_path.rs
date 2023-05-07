@@ -122,11 +122,11 @@ impl EphemeralPathBuilder {
             .finish()
             .to_string();
         
-        let base = crate::concat_str!(start, "-", &middle, "-", &end);
+        let sections = crate::concat_str!(start, "-", &middle, "-", &end);
         
-        let mut name = OsString::with_capacity(base.len() + suffix.len());
+        let mut name = OsString::with_capacity(sections.len() + suffix.len());
         
-        name.push(base);
+        name.push(sections);
         name.push(suffix);
         
         inner.push(name);

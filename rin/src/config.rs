@@ -78,9 +78,14 @@ impl Config {
     pub fn save<P: AsRef<Path>>(&mut self, path: P) -> Result<(), Box<dyn Error>> {
         if self.modified {
             
-            // attempt to perform the update atomically
+            let path = path.as_ref();
+            let parent = path.parent().ok_or("Invalid path")?;
             
-            let tmp_path = chikuwa::EphemeralPath::builder().build();
+            let tmp_path = chikuwa::EphemeralPath::builder()
+                .with_base(parent)
+                .with_suffix(".tmp")
+                .build();
+            
             let mut tmp_file = File::create(&tmp_path)?;
             
             self.window.serialize(&mut tmp_file)?;
@@ -89,6 +94,7 @@ impl Config {
             
             tmp_file.flush()?;
             
+            // attempt to perform the update atomically
             fs::rename(&tmp_path, path)?;
             
             tmp_path.unmanage();
