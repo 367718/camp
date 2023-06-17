@@ -4,10 +4,7 @@ use std::{
     fs::{ OpenOptions, File },
     io::{ Read, Write, Error },
     net::TcpStream,
-    os::{
-        raw::*,
-        windows::ffi::OsStrExt,
-    },
+    os::raw::*,
     path::Path,
     thread,
     time::Duration,
@@ -45,11 +42,8 @@ impl RemoteControlServer {
     // ---------- constructors ----------
     
     
-    pub fn start<N: FnOnce(Error) + Send + 'static>(pipe: &Path, bind: &str, notify: N) -> Result<Self, Error> {
-        let encoded_pipe: Vec<u16> = pipe.as_os_str()
-            .encode_wide()
-            .chain(Some(0))
-            .collect();
+    pub fn start<N: FnOnce(Error) + Send + 'static>(pipe: &Path, bind: &str, notify: N) -> Result<Self, Error> {        
+        let encoded_pipe = chikuwa::WinString::from(pipe);
         
         let available = unsafe {
             

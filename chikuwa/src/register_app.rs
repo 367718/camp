@@ -8,6 +8,8 @@ use std::{
     ptr,
 };
 
+use crate::WinString;
+
 extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createmutexw
@@ -20,17 +22,13 @@ extern "system" {
 }
 
 pub fn register_app(name: &str) -> Result<(), Box<dyn Error>> {
-    let name_encoded: Vec<c_ushort> = name.encode_utf16()
-        .chain(Some(0))
-        .collect();
-    
     // mutex will be automatically released on application shutdown
     unsafe {
         
         CreateMutexW(
             ptr::null(),
             0,
-            name_encoded.as_ptr(),
+            WinString::from(name).as_ptr(),
         )
         
     };

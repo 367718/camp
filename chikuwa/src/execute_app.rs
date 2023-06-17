@@ -5,6 +5,8 @@ use std::{
     ptr,
 };
 
+use crate::WinString;
+
 extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shellexecutew
@@ -20,23 +22,15 @@ extern "system" {
 }
 
 pub fn execute_app(path: &str) -> Result<(), Box<dyn Error>> {
-    let encoded_operation: Vec<c_ushort> = "open".encode_utf16()
-        .chain(Some(0))
-        .collect();
-    
-    let encoded_path: Vec<c_ushort> = path.encode_utf16()
-        .chain(Some(0))
-        .collect();
-    
     let result = unsafe {
         
         ShellExecuteW(
             ptr::null_mut(),
-            encoded_operation.as_ptr(),
-            encoded_path.as_ptr(),
+            WinString::from("open").as_ptr(),
+            WinString::from(path).as_ptr(),
             ptr::null(),
             ptr::null(),
-            5, // SW_SHOW
+            1, // SW_NORMAL
         )
         
     };

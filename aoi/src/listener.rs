@@ -120,9 +120,7 @@ impl Listener {
         
         // ---------- address ----------
         
-        let encoded_address: Vec<c_ushort> = bind_address.encode_utf16()
-            .chain(Some(0))
-            .collect();
+        let encoded_address = chikuwa::WinString::from(bind_address);
         
         let mut address = unsafe {
             

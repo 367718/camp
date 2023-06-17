@@ -4,7 +4,7 @@ use std::{
     os::{
         raw::*,
         windows::{
-            ffi::{ OsStrExt, OsStringExt },
+            ffi::OsStringExt,
             io::{ OwnedHandle, HandleOrInvalid, AsRawHandle },
             raw::HANDLE,
         },
@@ -85,10 +85,7 @@ impl FilesWatcher {
     
     
     pub fn mount<N: Fn(FilesWatcherEvent) + Send + 'static>(root_path: &Path, notify: N) -> Result<Self, Error> {
-        let encoded_path: Vec<c_ushort> = root_path.as_os_str()
-            .encode_wide()
-            .chain(Some(0))
-            .collect();
+        let encoded_path = chikuwa::WinString::from(root_path);
         
         let owned_handle = unsafe {
             
