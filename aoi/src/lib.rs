@@ -58,7 +58,7 @@ impl RemoteControlServer {
         
         let pipe = OpenOptions::new()
             .write(true)
-            .open(pipe)?;
+            .open(name)?;
         
         let (listener, stopper) = Listener::new(bind)?;
         
