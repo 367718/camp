@@ -120,8 +120,6 @@ impl Listener {
         
         // ---------- address ----------
         
-        let encoded_address = chikuwa::WinString::from(bind_address);
-        
         let mut address = unsafe {
             
             mem::zeroed::<ffi::Sockaddr>()
@@ -133,7 +131,7 @@ impl Listener {
             let mut address_length = mem::size_of_val(&address) as c_int;
             
             ffi::WSAStringToAddressW(
-                encoded_address.as_ptr(),
+                chikuwa::WinString::from(bind_address).as_ptr(),
                 2, // AF_INET
                 ptr::null(),
                 &mut address,

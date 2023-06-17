@@ -85,12 +85,10 @@ impl FilesWatcher {
     
     
     pub fn mount<N: Fn(FilesWatcherEvent) + Send + 'static>(root_path: &Path, notify: N) -> Result<Self, Error> {
-        let encoded_path = chikuwa::WinString::from(root_path);
-        
         let owned_handle = unsafe {
             
             let result = ffi::CreateFileW(
-                encoded_path.as_ptr(),
+                chikuwa::WinString::from(root_path).as_ptr(),
                 1, // FILE_LIST_DIRECTORY
                 0x0000_0001 | 0x0000_0002 | 0x0000_0004, // FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_SHARE_DELETE
                 ptr::null(),

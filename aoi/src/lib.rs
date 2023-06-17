@@ -42,13 +42,11 @@ impl RemoteControlServer {
     // ---------- constructors ----------
     
     
-    pub fn start<N: FnOnce(Error) + Send + 'static>(pipe: &Path, bind: &str, notify: N) -> Result<Self, Error> {        
-        let encoded_pipe = chikuwa::WinString::from(pipe);
-        
+    pub fn start<N: FnOnce(Error) + Send + 'static>(name: &Path, bind: &str, notify: N) -> Result<Self, Error> {
         let available = unsafe {
             
             ffi::WaitNamedPipeW(
-                encoded_pipe.as_ptr(),
+                chikuwa::WinString::from(name).as_ptr(),
                 PIPE_MAX_WAIT,
             )
             
