@@ -43,17 +43,17 @@ impl RemoteControlServer {
     
     
     pub fn start<N: FnOnce(Error) + Send + 'static>(name: &Path, bind: &str, notify: N) -> Result<Self, Error> {
-        let available = unsafe {
+        unsafe {
             
-            ffi::WaitNamedPipeW(
+            let result = ffi::WaitNamedPipeW(
                 chikuwa::WinString::from(name).as_ptr(),
                 PIPE_MAX_WAIT,
-            )
+            );
             
-        };
-        
-        if available == 0 {
-            return Err(Error::last_os_error());
+            if result == 0 {
+                return Err(Error::last_os_error());
+            }
+            
         }
         
         let pipe = OpenOptions::new()

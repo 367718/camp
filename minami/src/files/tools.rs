@@ -140,14 +140,6 @@ pub fn lookup(state: &State) {
 }
 
 pub fn remote(state: &mut State) {
-    
-    fn append_text(buffer: &gtk::TextBuffer, text: &str) {
-        buffer.insert(
-            &mut buffer.end_iter(),
-            text,
-        );
-    }
-    
     // ---------- parameters ----------
     
     let pipe = state.params.paths_pipe(true);
@@ -156,7 +148,6 @@ pub fn remote(state: &mut State) {
     // ---------- dialog ----------
     
     let job_dialog = state.ui.widgets().dialogs.files.job.dialog.clone();
-    
     job_dialog.set_title("Remote control");
     
     let progress_buffer = state.ui.widgets().dialogs.files.job.progress_textview.buffer().unwrap();
@@ -190,6 +181,7 @@ pub fn remote(state: &mut State) {
             
             // ---------- error ----------
             
+            // this can end up printing a message to the buffer after the dialog has been closed
             job_receiver.attach(None, move |error| {
                 append_text(&progress_buffer, &chikuwa::concat_str!("ERROR: ", &error.to_string()));
                 glib::Continue(true)
@@ -216,7 +208,6 @@ pub fn remote(state: &mut State) {
     // ---------- cleanup ----------
     
     state.ui.widgets().dialogs.files.job.progress_textview.buffer().unwrap().set_text("");
-    
 }
 
 pub fn download(state: &mut State, sender: &Sender<Message>) {
@@ -273,12 +264,11 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
     // ---------- dialog ----------
     
     let job_dialog = state.ui.widgets().dialogs.files.job.dialog.clone();
-    
     job_dialog.set_title("Download new releases");
+    job_dialog.set_response_sensitive(gtk::ResponseType::Close, false);
     
     let progress_buffer = state.ui.widgets().dialogs.files.job.progress_textview.buffer().unwrap();
-    
-    job_dialog.set_response_sensitive(gtk::ResponseType::Close, false);
+    progress_buffer.set_text("");
     
     // ---------- channel ----------
     
@@ -360,7 +350,7 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
         
         job_receiver.attach(None, move |message| {
             match message {
-                Some(message) => progress_buffer.insert(&mut progress_buffer.end_iter(), &message),
+                Some(message) => append_text(&progress_buffer, &message),
                 None => job_dialog.set_response_sensitive(gtk::ResponseType::Close, true),
             }
             
@@ -439,6 +429,7 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
     job_dialog.set_title("Update watched releases");
     
     let progress_buffer = state.ui.widgets().dialogs.files.job.progress_textview.buffer().unwrap();
+    progress_buffer.set_text("");
     
     // ---------- updates and progress ----------
     
@@ -459,14 +450,8 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
                 let episode = update.episode.saturating_sub(candidate.offset());
                 
                 if episode > 0 {
-                    
-                    progress_buffer.insert(
-                        &mut progress_buffer.end_iter(),
-                        &chikuwa::concat_str!(update.name, "\n"),
-                    );
-                    
+                    append_text(&progress_buffer, &chikuwa::concat_str!(update.name, "\n"));
                     result.push((id, episode, update.path.to_owned()));
-                    
                 }
                 
             }
@@ -476,7 +461,7 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
     }
     
     if result.is_empty() {
-        progress_buffer.insert(&mut progress_buffer.end_iter(), "No updates found");
+        append_text(&progress_buffer, "No updates found");
     } else {
         sender.send(Message::Files(FilesActions::MarkAsUpdated(result))).unwrap();
     }
@@ -491,4 +476,11 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
     
     state.ui.widgets().dialogs.files.job.progress_textview.buffer().unwrap().set_text("");
     
+}
+
+fn append_text(buffer: &gtk::TextBuffer, text: &str) {
+    buffer.insert(
+        &mut buffer.end_iter(),
+        text,
+    );
 }
