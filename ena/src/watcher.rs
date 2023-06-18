@@ -54,6 +54,24 @@ mod ffi {
         
     }
     
+    pub const FILE_LIST_DIRECTORY: c_ulong = 1;
+    
+    pub const FILE_SHARE_READ: c_ulong = 0x0000_0001;
+    pub const FILE_SHARE_WRITE: c_ulong = 0x0000_0002;
+    pub const FILE_SHARE_DELETE: c_ulong = 0x0000_0004;
+    
+    pub const OPEN_EXISTING: c_ulong = 3;
+    
+    pub const FILE_FLAG_BACKUP_SEMANTICS: c_ulong = 0x0200_0000;
+    
+    pub const FILE_NOTIFY_CHANGE_FILE_NAME: c_ulong = 0x0000_0001;
+    pub const FILE_NOTIFY_CHANGE_DIR_NAME: c_ulong = 0x0000_0002;
+    
+    pub const FILE_ACTION_ADDED: c_ulong = 0x0000_0001;
+    pub const FILE_ACTION_REMOVED: c_ulong = 0x0000_0002;
+    pub const FILE_ACTION_RENAMED_OLD_NAME: c_ulong = 0x0000_0004;
+    pub const FILE_ACTION_RENAMED_NEW_NAME: c_ulong = 0x0000_0005;
+    
     #[repr(C)]
     #[allow(non_snake_case)]
     // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-file_notify_information
@@ -89,11 +107,11 @@ impl FilesWatcher {
             
             let result = ffi::CreateFileW(
                 chikuwa::WinString::from(root_path).as_ptr(),
-                1, // FILE_LIST_DIRECTORY
-                0x0000_0001 | 0x0000_0002 | 0x0000_0004, // FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_SHARE_DELETE
+                ffi::FILE_LIST_DIRECTORY,
+                ffi::FILE_SHARE_READ | ffi::FILE_SHARE_WRITE | ffi::FILE_SHARE_DELETE,
                 ptr::null(),
-                3, // OPEN_EXISTING
-                0x0200_0000, // FILE_FLAG_BACKUP_SEMANTICS
+                ffi::OPEN_EXISTING,
+                ffi::FILE_FLAG_BACKUP_SEMANTICS,
                 ptr::null_mut(),
             );
             
@@ -124,31 +142,31 @@ impl FilesWatcher {
                 let mut buffer = [0 as c_char; EVENT_BUFFER_SIZE as usize];
                 let mut bytes = 0 as c_ulong;
                 
-                let result = unsafe {
+                unsafe {
                     
-                    ffi::ReadDirectoryChangesW(
+                    let result = ffi::ReadDirectoryChangesW(
                         directory_handle.as_raw_handle(),
                         buffer.as_mut_ptr().cast::<c_void>(),
                         EVENT_BUFFER_SIZE,
-                        1,
-                        0x0000_0001 | 0x0000_0002, // FILE_NOTIFY_CHANGE_FILE_NAME, FILE_NOTIFY_CHANGE_DIR_NAME
+                        true as c_int,
+                        ffi::FILE_NOTIFY_CHANGE_FILE_NAME | ffi::FILE_NOTIFY_CHANGE_DIR_NAME,
                         &mut bytes,
                         ptr::null_mut(),
                         ptr::null_mut(),
-                    )
+                    );
                     
-                };
-                
-                if result == 0 {
-                    
-                    let error = Error::last_os_error();
-                    
-                    // produced by CancelSynchronousIo
-                    if error.kind() != ErrorKind::TimedOut {
-                        notify(FilesWatcherEvent::Interrupted(error));
+                    if result == 0 {
+                        
+                        let error = Error::last_os_error();
+                        
+                        // produced by CancelSynchronousIo
+                        if error.kind() != ErrorKind::TimedOut {
+                            notify(FilesWatcherEvent::Interrupted(error));
+                        }
+                        
+                        break;
+                        
                     }
-                    
-                    break;
                     
                 }
                 
@@ -172,26 +190,19 @@ impl FilesWatcher {
                         
                     };
                     
-                    let length = current_entry.FileNameLength as usize / 2;
-                    
-                    let filename: &[c_ushort] = unsafe {
+                    let path = unsafe {
                         
-                        slice::from_raw_parts(current_entry.FileName.as_ptr(), length)
+                        let length = current_entry.FileNameLength as usize / 2;
+                        let filename: &[c_ushort] = slice::from_raw_parts(current_entry.FileName.as_ptr(), length);
+                        
+                        root_path.join(OsString::from_wide(filename))
                         
                     };
                     
-                    let path = root_path.join(OsString::from_wide(filename));
-                    
                     match current_entry.Action {
-                        
-                        // FILE_ACTION_ADDED, FILE_ACTION_RENAMED_NEW_NAME
-                        0x0000_0001 | 0x0000_0005 => notify(FilesWatcherEvent::FileAdded(path)),
-                        
-                        // FILE_ACTION_REMOVED, FILE_ACTION_RENAMED_OLD_NAME
-                        0x0000_0002 | 0x0000_0004 => notify(FilesWatcherEvent::FileRemoved(path)),
-                        
+                        ffi::FILE_ACTION_ADDED | ffi::FILE_ACTION_RENAMED_NEW_NAME => notify(FilesWatcherEvent::FileAdded(path)),
+                        ffi::FILE_ACTION_REMOVED | ffi::FILE_ACTION_RENAMED_OLD_NAME => notify(FilesWatcherEvent::FileRemoved(path)),
                         _ => unreachable!(),
-                        
                     }
                     
                     if current_entry.NextEntryOffset == 0 {

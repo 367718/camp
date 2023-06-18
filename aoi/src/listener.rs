@@ -78,6 +78,19 @@ mod ffi {
         
     }
     
+    pub const WS_VERSION: c_ushort = 0x202; // 2.2
+    
+    pub const AF_INET: c_int = 2;
+    
+    pub const INVALID_SOCKET: SOCKET = SOCKET::MAX;
+    pub const SOCKET_ERROR: c_int = -1;
+    
+    pub const SOCK_STREAM: c_int = 1;
+    pub const IPPROTO_TCP: c_int = 6;
+    pub const SG_UNCONSTRAINED_GROUP: c_uint = 0x01;
+    pub const WSA_FLAG_OVERLAPPED: c_ulong = 0x01;
+    pub const WSA_FLAG_NO_HANDLE_INHERIT: c_ulong = 0x80;
+    
     #[repr(C)]
     // https://learn.microsoft.com/en-us/windows/win32/api/winsock/ns-winsock-sockaddr
     pub struct Sockaddr {
@@ -103,131 +116,100 @@ impl Listener {
     pub fn new(bind_address: &str) -> Result<(Self, ListenerStopper), Error> {
         // ---------- startup ----------
         
-        let startup = unsafe {
+        unsafe {
             
             let mut imp_details = mem::zeroed();
             
-            ffi::WSAStartup(
-                0x202, // 2.2
+            let result = ffi::WSAStartup(
+                ffi::WS_VERSION,
                 &mut imp_details,
-            )
+            );
             
-        };
-        
-        if startup != 0 {
-            return Err(Error::from_raw_os_error(startup));
+            if result != 0 {
+                return Err(Error::from_raw_os_error(result));
+            }
+            
         }
         
         // ---------- address ----------
         
-        // value stored to prevent crash in optimized build
-        let encoded_address = chikuwa::WinString::from(bind_address);
-        
-        let mut address = unsafe {
+        let address = unsafe {
             
-            mem::zeroed::<ffi::Sockaddr>()
+            // value stored to prevent crash in optimized build
+            let encoded_address = chikuwa::WinString::from(bind_address);
             
-        };
-        
-        let conversion = unsafe {
+            let mut store = mem::zeroed::<ffi::Sockaddr>();
+            let mut store_length = mem::size_of_val(&store) as c_int;
             
-            let mut address_length = mem::size_of_val(&address) as c_int;
-            
-            ffi::WSAStringToAddressW(
+            let result = ffi::WSAStringToAddressW(
                 encoded_address.as_ptr(),
-                2, // AF_INET
+                ffi::AF_INET,
                 ptr::null(),
-                &mut address,
-                &mut address_length,
-            )
+                &mut store,
+                &mut store_length,
+            );
+            
+            if result == ffi::SOCKET_ERROR {
+                close_and_cleanup(None);
+                return Err(Error::from_raw_os_error(ffi::WSAGetLastError()));
+            }
+            
+            store
             
         };
-        
-        if conversion != 0 {
-            
-            let error = unsafe {
-                
-                ffi::WSAGetLastError()
-                
-            };
-            
-            close_and_cleanup(None);
-            
-            return Err(Error::from_raw_os_error(error));
-            
-        }
         
         // ---------- socket ----------
         
         let socket = unsafe {
             
-            ffi::WSASocketW(
-                2, // AF_INET
-                1, // SOCK_STREAM
-                6, // IPPROTO_TCP
+            let result = ffi::WSASocketW(
+                ffi::AF_INET,
+                ffi::SOCK_STREAM,
+                ffi::IPPROTO_TCP,
                 ptr::null_mut(),
-                0x01, // SG_UNCONSTRAINED_GROUP
-                0x01 | 0x80, // WSA_FLAG_OVERLAPPED, WSA_FLAG_NO_HANDLE_INHERIT
-            )
+                ffi::SG_UNCONSTRAINED_GROUP,
+                ffi::WSA_FLAG_OVERLAPPED | ffi::WSA_FLAG_NO_HANDLE_INHERIT,
+            );
+            
+            if result == ffi::INVALID_SOCKET {
+                close_and_cleanup(None);
+                return Err(Error::last_os_error());
+            }
+            
+            result
             
         };
-        
-        if socket == ! 0 as SOCKET {
-            
-            close_and_cleanup(None);
-            
-            return Err(Error::last_os_error());
-            
-        }
         
         // ---------- bind ----------
         
-        let bind = unsafe {
+        unsafe {
             
-            ffi::bind(
+            let result = ffi::bind(
                 socket,
                 &address,
                 mem::size_of_val(&address) as c_int,
-            )
+            );
+            
+            if result == ffi::SOCKET_ERROR {
+                close_and_cleanup(Some(socket));
+                return Err(Error::from_raw_os_error(ffi::WSAGetLastError()));
+            }
             
         };
-        
-        if bind != 0 {
-            
-            let error = unsafe {
-                
-                ffi::WSAGetLastError()
-                
-            };
-            
-            close_and_cleanup(Some(socket));
-            
-            return Err(Error::from_raw_os_error(error));
-            
-        }
         
         // ---------- listen ----------
         
-        let listen = unsafe {
+        unsafe {
             
-            ffi::listen(
+            let result = ffi::listen(
                 socket,
                 128,
-            )
+            );
             
-        };
-        
-        if listen == -1 {
-            
-            let error = unsafe {
-                
-                ffi::WSAGetLastError()
-                
-            };
-            
-            close_and_cleanup(Some(socket));
-            
-            return Err(Error::from_raw_os_error(error));
+            if result == ffi::SOCKET_ERROR {
+                close_and_cleanup(Some(socket));
+                return Err(Error::from_raw_os_error(ffi::WSAGetLastError()));
+            }
             
         }
         
@@ -257,25 +239,19 @@ impl Listener {
         
         let accept = unsafe {
             
-            ffi::accept(
+            let result = ffi::accept(
                 *socket,
                 ptr::null_mut(),
                 ptr::null_mut(),
-            )
+            );
+            
+            if result == ffi::INVALID_SOCKET {
+                return Err(Error::from_raw_os_error(ffi::WSAGetLastError()));
+            }
+            
+            result
             
         };
-        
-        if accept == ! 0 as SOCKET {
-            
-            let error = unsafe {
-                
-                ffi::WSAGetLastError()
-                
-            };
-            
-            return Err(Error::from_raw_os_error(error));
-            
-        }
         
         let stream = unsafe {
             

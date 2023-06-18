@@ -10,14 +10,20 @@ use std::{
 
 use crate::WinString;
 
-extern "system" {
+mod ffi {
     
-    // https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createmutexw
-    fn CreateMutexW(
-        lpmutexattributes: *const c_void, // SECURITY_ATTRIBUTES
-        binitialowner: c_int,
-        lpname: *const c_ushort,
-    ) -> HANDLE;
+    use super::*;
+    
+    extern "system" {
+        
+        // https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createmutexw
+        pub fn CreateMutexW(
+            lpmutexattributes: *const c_void, // SECURITY_ATTRIBUTES
+            binitialowner: c_int,
+            lpname: *const c_ushort,
+        ) -> HANDLE;
+        
+    }
     
 }
 
@@ -25,13 +31,13 @@ pub fn register_app(name: &str) -> Result<(), Box<dyn Error>> {
     // mutex will be automatically released on application shutdown
     unsafe {
         
-        CreateMutexW(
+        let _ = ffi::CreateMutexW(
             ptr::null(),
-            0,
+            false as c_int,
             WinString::from(name).as_ptr(),
-        )
+        );
         
-    };
+    }
     
     // allow app to run even if mutex could not be created
     if io::Error::last_os_error().kind() == io::ErrorKind::AlreadyExists {

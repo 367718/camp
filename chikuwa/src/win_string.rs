@@ -1,7 +1,7 @@
 use std::{
     ops::Deref,
     os::{
-        raw::c_ushort,
+        raw::*,
         windows::ffi::OsStrExt,
     },
     path::Path,

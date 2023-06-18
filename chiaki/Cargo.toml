@@ -10,5 +10,5 @@ license.workspace = true
 chikuwa = { path = "../chikuwa" }
 nadeshiko = { path = "../nadeshiko", optional = true }
 
-sqlite = "0.30.5"
+sqlite = "0.31.0"
 paste = "1.0.12"
