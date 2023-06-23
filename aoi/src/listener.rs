@@ -173,7 +173,7 @@ impl Listener {
             
             if result == ffi::INVALID_SOCKET {
                 close_and_cleanup(None);
-                return Err(Error::last_os_error());
+                return Err(Error::from_raw_os_error(ffi::WSAGetLastError()));
             }
             
             result
@@ -237,7 +237,7 @@ impl Listener {
             return Err(Error::new(ErrorKind::Other, "The socket has been closed"));
         };
         
-        let accept = unsafe {
+        let stream = unsafe {
             
             let result = ffi::accept(
                 *socket,
@@ -249,13 +249,7 @@ impl Listener {
                 return Err(Error::from_raw_os_error(ffi::WSAGetLastError()));
             }
             
-            result
-            
-        };
-        
-        let stream = unsafe {
-            
-            TcpStream::from_raw_socket(accept)
+            TcpStream::from_raw_socket(result)
             
         };
         
@@ -285,7 +279,6 @@ impl Drop for ListenerStopper {
 fn close_and_cleanup(socket: Option<SOCKET>) {
     
     if let Some(socket) = socket {
-        
         unsafe {
             
             ffi::closesocket(
@@ -293,7 +286,6 @@ fn close_and_cleanup(socket: Option<SOCKET>) {
             )
             
         };
-        
     }
     
     unsafe {
