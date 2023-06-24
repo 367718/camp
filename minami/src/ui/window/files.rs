@@ -14,9 +14,8 @@ pub struct Files {
     pub listbox: gtk::ListBox,
     pub stack: gtk::Stack,
     
-    pub treeviews: Vec<gtk::TreeView>,
-    
     pub frame: gtk::Frame,
+    pub treeviews: Vec<gtk::TreeView>,
     pub buttons_box: gtk::Box,
 }
 
@@ -45,6 +44,10 @@ impl Files {
         
         section_box
             
+            { frame }
+                static_label ("The file watcher is not currently running. Changes will not be detected.")
+            /frame
+            
             { stack }
                 
                 scrolled_window
@@ -52,10 +55,6 @@ impl Files {
                 /scrolled_window
                 
             /stack
-            
-            { frame }
-                static_label ("The file watcher is not currently running. Changes will not be detected.")
-            /frame
             
             { buttons_box }
                 
@@ -109,6 +108,29 @@ impl Files {
         
         general.sections_stack.add_named(&section_box, "Files");
         
+        // ---------- frame ----------
+        
+        let frame = gtk::Frame::builder()
+            .no_show_all(true)
+            .shadow_type(gtk::ShadowType::In)
+            .child(&{
+                
+                let label = gtk::Label::builder()
+                .visible(true)
+                .label("The file watcher is not currently running. Changes will not be detected.")
+                .xalign(0.0)
+                .margin(6)
+                .build();
+                
+                label.style_context().add_class("weight-bold");
+                
+                label
+                
+            })
+            .build();
+        
+        section_box.add(&frame);
+        
         // ---------- subsections ----------
         
         let stack = {
@@ -137,29 +159,6 @@ impl Files {
             
         }
         
-        // ---------- frame ----------
-        
-        let frame = gtk::Frame::builder()
-            .no_show_all(true)
-            .shadow_type(gtk::ShadowType::In)
-            .child(&{
-                
-                let label = gtk::Label::builder()
-                .visible(true)
-                .label("The file watcher is not currently running. Changes will not be detected.")
-                .xalign(0.0)
-                .margin(6)
-                .build();
-                
-                label.style_context().add_class("foreground-red");
-                
-                label
-                
-            })
-            .build();
-        
-        section_box.add(&frame);
-        
         // ---------- buttons ----------
         
         let buttons_box = Self::build_buttons();
@@ -172,9 +171,8 @@ impl Files {
             listbox,
             stack,
             
-            treeviews,
-            
             frame,
+            treeviews,
             buttons_box,
         }
         

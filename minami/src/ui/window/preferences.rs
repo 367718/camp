@@ -22,7 +22,7 @@ pub struct Preferences {
 pub struct Candidates {
     pub candidates_treeview: gtk::TreeView,
     pub downloaded_treeview: gtk::TreeView,
-
+    
     pub candidates_buttons_box: gtk::Box,
     pub downloaded_buttons_box: gtk::Box,
 }

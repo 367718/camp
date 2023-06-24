@@ -15,7 +15,6 @@ pub struct Watchlist {
     pub stack: gtk::Stack,
     
     pub treeviews: Vec<gtk::TreeView>,
-    
     pub buttons_box: gtk::Box,
 }
 
@@ -146,7 +145,6 @@ impl Watchlist {
             stack,
             
             treeviews,
-
             buttons_box,
         }
         
