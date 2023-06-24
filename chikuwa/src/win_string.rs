@@ -32,7 +32,7 @@ impl From<&Path> for WinString {
 
 impl Deref for WinString {
     
-    type Target = Vec<c_ushort>;
+    type Target = [c_ushort];
     
     fn deref(&self) -> &Self::Target {
         &self.0
