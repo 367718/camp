@@ -329,8 +329,6 @@ pub fn handle_action(state: &mut State, sender: &Sender<Message>, action: Genera
 
 
 fn reload_database(state: &mut State, sender: &Sender<Message>) {
-    // CAUTION: this will discard uncommited changes in current database
-    
     let mut database = None;
     
     let mut dbpath = state.params.paths_database(false).to_owned();
