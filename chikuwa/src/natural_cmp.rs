@@ -43,10 +43,10 @@ pub fn natural_cmp(first: &str, second: &str) -> Ordering {
 }
 
 fn extract_number(chars: &mut Peekable<Chars>) -> u32 {
-    let mut number = 0;
+    let mut number: u32 = 0;
     
     while let Some(digit) = chars.peek().and_then(|curr| curr.to_digit(10)) {
-        number = number * 10 + digit;
+        number = number.saturating_mul(10).saturating_add(digit);
         chars.next();
     }
     

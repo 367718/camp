@@ -15,19 +15,25 @@ pub struct DownloadsEntry<'f> {
 }
 
 const RESULT_VEC_INITIAL_CAPACITY: usize = 20;
+const ITEM_OPEN_TAG: &[u8] = b"<item>";
+const ITEM_CLOSE_TAG: &[u8] = b"</item>";
+const TITLE_OPEN_TAG: &[u8] = b"<title>";
+const TITLE_CLOSE_TAG: &[u8] = b"</title>";
+const LINK_OPEN_TAG: &[u8] = b"<link>";
+const LINK_CLOSE_TAG: &[u8] = b"</link>";
 
 pub fn get<'f>(feed: &'f [u8], candidates: &[impl IsCandidate]) -> Option<Vec<DownloadsEntry<'f>>> {
     let mut result = Vec::with_capacity(RESULT_VEC_INITIAL_CAPACITY);
     
     let mut content = feed;
     
-    while let Some(item) = get_tag_range(content, b"<item>", b"</item>") {
+    while let Some(item) = get_tag_range(content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
         
         if let Some(entry) = build_entry(&content[item.start..item.end], candidates) {
             result.push(entry);
         }
         
-        match item.end.checked_add(b"</item>".len()) {
+        match item.end.checked_add(ITEM_CLOSE_TAG.len()) {
             Some(start) => content = &content[start..],
             None => break,
         };
@@ -42,7 +48,7 @@ pub fn get<'f>(feed: &'f [u8], candidates: &[impl IsCandidate]) -> Option<Vec<Do
 }
 
 fn build_entry<'f>(item: &'f [u8], candidates: &[impl IsCandidate]) -> Option<DownloadsEntry<'f>> {
-    let title = get_tag_range(item, b"<title>", b"</title>")
+    let title = get_tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG)
         .and_then(|field| str::from_utf8(&item[field]).ok())
         .map(str::trim)?;
     
@@ -52,7 +58,7 @@ fn build_entry<'f>(item: &'f [u8], candidates: &[impl IsCandidate]) -> Option<Do
     let episode = crate::extractor::get(&candidate.clean(title))
         .filter(|&episode| candidate.can_download(episode))?;
     
-    let link = get_tag_range(item, b"<link>", b"</link>")
+    let link = get_tag_range(item, LINK_OPEN_TAG, LINK_CLOSE_TAG)
         .and_then(|field| str::from_utf8(&item[field]).ok())
         .map(str::trim)?;
     
