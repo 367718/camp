@@ -1,19 +1,19 @@
 pub fn get(clean: &str) -> Option<i64> {
     let mut chars = clean.chars();
     
-    if let Some(digit) = chars.find_map(|curr| curr.to_digit(10)).and_then(|digit| i64::try_from(digit).ok()) {
+    if let Some(digit) = chars.find_map(|current| current.to_digit(10)).and_then(|digit| i64::try_from(digit).ok()) {
         
         let mut number = digit;
         
-        while let Some(curr) = chars.next() {
+        while let Some(current) = chars.next() {
             
-            if let Some(digit) = curr.to_digit(10).and_then(|digit| i64::try_from(digit).ok()) {
+            if let Some(digit) = current.to_digit(10).and_then(|digit| i64::try_from(digit).ok()) {
                 number = number.checked_mul(10)?.checked_add(digit)?;
                 continue;
             }
             
             // if next to a digit is a dot and next to the dot is another digit, abort
-            if curr == '.' && chars.next().filter(char::is_ascii_digit).is_some() {
+            if current == '.' && chars.next().filter(char::is_ascii_digit).is_some() {
                 return None;
             }
             

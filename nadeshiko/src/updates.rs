@@ -179,6 +179,68 @@ mod tests {
             assert!(output.is_empty());
         }
         
+        #[test]
+        fn empty() {
+            // setup
+            
+            let files = Vec::new();
+            
+            let candidates: Vec<CandidatesEntry> = Vec::new();
+            
+            // operation
+            
+            let output = UpdatesEntries::get(&files, &candidates);
+            
+            // control
+            
+            let output: Vec<UpdatesEntry> = output.collect();
+            
+            assert!(output.is_empty());
+        }
+        
+        #[test]
+        fn empty_files() {
+            // setup
+            
+            let files = Vec::new();
+            
+            let candidates = [
+                CandidatesEntry {
+                    title: String::from("Not defined"),
+                    id: 2,
+                },
+            ];
+            
+            // operation
+            
+            let output = UpdatesEntries::get(&files, &candidates);
+            
+            // control
+            
+            let output: Vec<UpdatesEntry> = output.collect();
+            
+            assert!(output.is_empty());
+        }
+        
+        #[test]
+        fn empty_candidates() {
+            // setup
+            
+            let files = generate_files();
+            
+            let candidates: Vec<CandidatesEntry> = Vec::new();
+            
+            // operation
+            
+            let output = UpdatesEntries::get(&files, &candidates);
+            
+            // control
+            
+            let output: Vec<UpdatesEntry> = output.collect();
+            
+            assert!(output.is_empty());
+        }
+        
         fn generate_files() -> Vec<(&'static str, &'static Path)> {
             Vec::from([
                 (

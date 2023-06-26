@@ -42,10 +42,6 @@ impl<'f, T: IsCandidate> Iterator for DownloadsEntries<'f, T> {
     type Item = DownloadsEntry<'f>;
     
     fn next(&mut self) -> Option<Self::Item> {
-        if self.feed.is_empty() {
-            return None;
-        }
-        
         while let Some(item) = get_tag_range(self.feed, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
             
             let result = build_entry(&self.feed[item.start..item.end], self.candidates);
@@ -104,6 +100,8 @@ mod tests {
     
     use super::*;
     
+    use std::io::Write;
+    
     struct CandidatesEntry {
         title: String,
         id: i64,
@@ -137,8 +135,6 @@ mod tests {
     mod get {
         
         use super::*;
-        
-        use std::io::Write;
         
         #[test]
         fn valid() {
@@ -221,6 +217,76 @@ mod tests {
             assert!(output.is_empty());
         }
         
+        #[test]
+        fn empty() {
+            // setup
+            
+            let feed = Vec::new();
+            
+            let candidates: Vec<CandidatesEntry> = Vec::new();
+            
+            // operation
+            
+            let output = DownloadsEntries::get(&feed, &candidates);
+            
+            // control
+            
+            let output: Vec<DownloadsEntry> = output.collect();
+            
+            assert!(output.is_empty());
+        }
+        
+        #[test]
+        fn empty_feed() {
+            // setup
+            
+            let feed = Vec::new();
+            
+            let candidates = [
+                CandidatesEntry {
+                    title: String::from("Fictional"),
+                    id: 15,
+                },
+                CandidatesEntry {
+                    title: String::from("Not defined"),
+                    id: 2,
+                },
+                CandidatesEntry {
+                    title: String::from("Test"),
+                    id: 10,
+                },
+            ];
+            
+            // operation
+            
+            let output = DownloadsEntries::get(&feed, &candidates);
+            
+            // control
+            
+            let output: Vec<DownloadsEntry> = output.collect();
+            
+            assert!(output.is_empty());
+        }
+        
+        #[test]
+        fn empty_candidates() {
+            // setup
+            
+            let feed = generate_feed();
+            
+            let candidates: Vec<CandidatesEntry> = Vec::new();
+            
+            // operation
+            
+            let output = DownloadsEntries::get(&feed, &candidates);
+            
+            // control
+            
+            let output: Vec<DownloadsEntry> = output.collect();
+            
+            assert!(output.is_empty());
+        }
+        
         fn generate_feed() -> Vec<u8> {
             let mut feed = Vec::new();
             
@@ -230,6 +296,9 @@ mod tests {
             write!(feed, "<item>").unwrap();
             write!(feed, "<title>[Imaginary] Fictional - 10 [480p]</title>").unwrap();
             write!(feed, "<link>http://example.com/invalid</link>").unwrap();
+            write!(feed, "</item>").unwrap();
+            
+            write!(feed, "<item>").unwrap();
             write!(feed, "</item>").unwrap();
             
             write!(feed, "<item>").unwrap();
