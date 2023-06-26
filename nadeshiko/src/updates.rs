@@ -2,6 +2,11 @@ use std::path::Path;
 
 use crate::IsCandidate;
 
+pub struct UpdatesEntries<'f, T> {
+    files: &'f [(&'f str, &'f Path)],
+    candidates: &'f [T],
+}
+
 #[derive(PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct UpdatesEntry<'f> {
@@ -11,27 +16,39 @@ pub struct UpdatesEntry<'f> {
     pub id: i64,
 }
 
-const RESULT_VEC_INITIAL_CAPACITY: usize = 50;
-
-pub fn get<'f>(files: &[(&'f str, &'f Path)], candidates: &[impl IsCandidate]) -> Option<Vec<UpdatesEntry<'f>>> {
-    let mut result = Vec::with_capacity(RESULT_VEC_INITIAL_CAPACITY);
+impl<'f, T: IsCandidate> UpdatesEntries<'f, T> {
     
-    for (name, path) in files {
-        
-        if let Some(entry) = build_entry(name, path, candidates) {
-            result.push(entry);
+    pub fn get(files: &'f [(&'f str, &'f Path)], candidates: &'f [T]) -> Self {
+        Self {
+            files,
+            candidates,
         }
-        
     }
     
-    if result.is_empty() {
-        return None;
-    }
-    
-    Some(result)
 }
 
-fn build_entry<'f>(name: &'f str, path: &'f Path, candidates: &[impl IsCandidate]) -> Option<UpdatesEntry<'f>> {
+impl<'f, T: IsCandidate> Iterator for UpdatesEntries<'f, T> {
+    
+    type Item = UpdatesEntry<'f>;
+    
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(((name, path), rest)) = self.files.split_first() {
+            
+            let result = build_entry(name, path, self.candidates);
+            self.files = rest;
+            
+            if result.is_some() {
+                return result;
+            }
+            
+        }
+        
+        None
+    }
+    
+}
+
+fn build_entry<'f, T: IsCandidate>(name: &'f str, path: &'f Path, candidates: &'f [T]) -> Option<UpdatesEntry<'f>> {
     let candidate = candidates.iter()
         .find(|candidate| candidate.is_relevant(name))?;
     
@@ -110,13 +127,11 @@ mod tests {
             
             // operation
             
-            let output = get(&files, &candidates);
+            let output = UpdatesEntries::get(&files, &candidates);
             
             // control
             
-            assert!(output.is_some());
-            
-            let output = output.unwrap();
+            let output: Vec<UpdatesEntry> = output.collect();
             
             assert_eq!(output, Vec::from([
                 UpdatesEntry {
@@ -155,11 +170,13 @@ mod tests {
             
             // operation
             
-            let output = get(&files, &candidates);
+            let output = UpdatesEntries::get(&files, &candidates);
             
             // control
             
-            assert!(output.is_none());
+            let output: Vec<UpdatesEntry> = output.collect();
+            
+            assert!(output.is_empty());
         }
         
         fn generate_files() -> Vec<(&'static str, &'static Path)> {
@@ -173,12 +190,12 @@ mod tests {
                     Path::new("fake/path/[Imaginary] Fictional - 10 [480p].mp4"),
                 ),
                 (
-                    "[Placeholder] Test - 12 [1080p]",
-                    Path::new("fake/path/[Placeholder] Test - 12 [1080p].mkv"),
-                ),
-                (
                     "[Not-present] Other - 17 [720p]",
                     Path::new("fake/path/[Not-present] Other - 17 [720p].mkv"),
+                ),
+                (
+                    "[Placeholder] Test - 12 [1080p]",
+                    Path::new("fake/path/[Placeholder] Test - 12 [1080p].mkv"),
                 ),
             ])
         }

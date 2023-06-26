@@ -5,6 +5,11 @@ use std::{
 
 use crate::IsCandidate;
 
+pub struct DownloadsEntries<'f, T> {
+    feed: &'f [u8],
+    candidates: &'f [T],
+}
+
 #[derive(PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct DownloadsEntry<'f> {
@@ -14,7 +19,6 @@ pub struct DownloadsEntry<'f> {
     pub id: i64,
 }
 
-const RESULT_VEC_INITIAL_CAPACITY: usize = 20;
 const ITEM_OPEN_TAG: &[u8] = b"<item>";
 const ITEM_CLOSE_TAG: &[u8] = b"</item>";
 const TITLE_OPEN_TAG: &[u8] = b"<title>";
@@ -22,32 +26,43 @@ const TITLE_CLOSE_TAG: &[u8] = b"</title>";
 const LINK_OPEN_TAG: &[u8] = b"<link>";
 const LINK_CLOSE_TAG: &[u8] = b"</link>";
 
-pub fn get<'f>(feed: &'f [u8], candidates: &[impl IsCandidate]) -> Option<Vec<DownloadsEntry<'f>>> {
-    let mut result = Vec::with_capacity(RESULT_VEC_INITIAL_CAPACITY);
+impl<'f, T: IsCandidate> DownloadsEntries<'f, T> {
     
-    let mut content = feed;
-    
-    while let Some(item) = get_tag_range(content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
-        
-        if let Some(entry) = build_entry(&content[item.start..item.end], candidates) {
-            result.push(entry);
+    pub fn get(feed: &'f [u8], candidates: &'f [T]) -> Self {
+        Self {
+            feed,
+            candidates,
         }
-        
-        match item.end.checked_add(ITEM_CLOSE_TAG.len()) {
-            Some(start) => content = &content[start..],
-            None => break,
-        };
-        
     }
     
-    if result.is_empty() {
-        return None;
-    }
-    
-    Some(result)
 }
 
-fn build_entry<'f>(item: &'f [u8], candidates: &[impl IsCandidate]) -> Option<DownloadsEntry<'f>> {
+impl<'f, T: IsCandidate> Iterator for DownloadsEntries<'f, T> {
+    
+    type Item = DownloadsEntry<'f>;
+    
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.feed.is_empty() {
+            return None;
+        }
+        
+        while let Some(item) = get_tag_range(self.feed, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
+            
+            let result = build_entry(&self.feed[item.start..item.end], self.candidates);
+            self.feed = &self.feed[item.end.saturating_add(ITEM_CLOSE_TAG.len())..];
+            
+            if result.is_some() {
+                return result;
+            }
+            
+        }
+        
+        None
+    }
+    
+}
+
+fn build_entry<'f, T: IsCandidate>(item: &'f [u8], candidates: &'f [T]) -> Option<DownloadsEntry<'f>> {
     let title = get_tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG)
         .and_then(|field| str::from_utf8(&item[field]).ok())
         .map(str::trim)?;
@@ -148,13 +163,11 @@ mod tests {
             
             // operation
             
-            let output = get(&feed, &candidates);
+            let output = DownloadsEntries::get(&feed, &candidates);
             
             // control
             
-            assert!(output.is_some());
-            
-            let output = output.unwrap();
+            let output: Vec<DownloadsEntry> = output.collect();
             
             assert_eq!(output, Vec::from([
                 DownloadsEntry {
@@ -199,11 +212,13 @@ mod tests {
             
             // operation
             
-            let output = get(&feed, &candidates);
+            let output = DownloadsEntries::get(&feed, &candidates);
             
             // control
             
-            assert!(output.is_none());
+            let output: Vec<DownloadsEntry> = output.collect();
+            
+            assert!(output.is_empty());
         }
         
         fn generate_feed() -> Vec<u8> {
@@ -215,6 +230,11 @@ mod tests {
             write!(feed, "<item>").unwrap();
             write!(feed, "<title>[Imaginary] Fictional - 10 [480p]</title>").unwrap();
             write!(feed, "<link>http://example.com/invalid</link>").unwrap();
+            write!(feed, "</item>").unwrap();
+            
+            write!(feed, "<item>").unwrap();
+            write!(feed, "<title>[Invalid] Undefined - 2 [720p]</title>").unwrap();
+            write!(feed, "<link>http://example.com/undefined</link>").unwrap();
             write!(feed, "</item>").unwrap();
             
             write!(feed, "<item>").unwrap();

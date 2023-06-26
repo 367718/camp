@@ -20,6 +20,7 @@ use crate::{
     FeedsId, FeedsEntry, SeriesId,
     CandidatesEntry, CandidatesCurrent,
     FilesEntry, FilesMark,
+    DownloadsEntries, DownloadsEntry, UpdatesEntries, UpdatesEntry,
     RemoteControlServer,
     HttpClient,
 };
@@ -282,7 +283,7 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
         
         let result = scope.spawn(|| {
             
-            let mut result = Vec::new();
+            let mut result = Vec::with_capacity(25);
             let mut client = HttpClient::new(timeout);
             
             for feed in feeds {
@@ -296,31 +297,26 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
                         
                         let mut found_releases = false;
                         
-                        if let Some(mut downloads) = nadeshiko::downloads::get(&content, &candidates) {
+                        let mut downloads: Vec<DownloadsEntry> = DownloadsEntries::get(&content, &candidates).collect();
+                        downloads.sort_unstable_by(|a, b| chikuwa::natural_cmp(a.title, b.title));
+                        
+                        for download in downloads {
                             
-                            result.reserve(downloads.len());
+                            let current = (SeriesId::from(download.id), download.episode);
                             
-                            downloads.sort_unstable_by(|a, b| chikuwa::natural_cmp(a.title, b.title));
-                            
-                            for download in downloads {
+                            if ! result.contains(&current) {
                                 
-                                let current = (SeriesId::from(download.id), download.episode);
+                                job_sender.send(Some(chikuwa::concat_str!(download.title, "\n"))).unwrap();
                                 
-                                if ! result.contains(&current) {
-                                    
-                                    job_sender.send(Some(chikuwa::concat_str!(download.title, "\n"))).unwrap();
-                                    
-                                    found_releases = true;
-                                    
-                                    // commit to disk
-                                    if let Err(error) = get_torrent(&mut client, download.title, download.link, directory) {
-                                        job_sender.send(Some(chikuwa::concat_str!("ERROR: ", &error.to_string(), "\n"))).unwrap();
-                                        continue;
-                                    }
-                                    
-                                    result.push(current);
-                                    
+                                found_releases = true;
+                                
+                                // commit to disk
+                                if let Err(error) = get_torrent(&mut client, download.title, download.link, directory) {
+                                    job_sender.send(Some(chikuwa::concat_str!("ERROR: ", &error.to_string(), "\n"))).unwrap();
+                                    continue;
                                 }
+                                
+                                result.push(current);
                                 
                             }
                             
@@ -433,27 +429,22 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
     
     // ---------- updates and progress ----------
     
-    let mut result = Vec::new();
+    let mut updates: Vec<UpdatesEntry> = UpdatesEntries::get(&files, &candidates).collect();
+    updates.sort_unstable_by(|a, b| chikuwa::natural_cmp(a.name, b.name));
     
-    if let Some(mut updates) = nadeshiko::updates::get(&files, &candidates) {
+    let mut result = Vec::with_capacity(updates.len());
+    
+    for update in updates {
         
-        result.reserve(updates.len());
+        let id = SeriesId::from(update.id);
         
-        updates.sort_unstable_by(|a, b| chikuwa::natural_cmp(a.name, b.name));
-        
-        for update in updates {
+        if let Some((_, candidate)) = state.database.candidates_iter().find(|(_, current)| current.series() == id) {
             
-            let id = SeriesId::from(update.id);
+            let episode = update.episode.saturating_sub(candidate.offset());
             
-            if let Some((_, candidate)) = state.database.candidates_iter().find(|(_, current)| current.series() == id) {
-                
-                let episode = update.episode.saturating_sub(candidate.offset());
-                
-                if episode > 0 {
-                    append_text(&progress_buffer, &chikuwa::concat_str!(update.name, "\n"));
-                    result.push((id, episode, update.path.to_owned()));
-                }
-                
+            if episode > 0 {
+                append_text(&progress_buffer, &chikuwa::concat_str!(update.name, "\n"));
+                result.push((id, episode, update.path.to_owned()));
             }
             
         }

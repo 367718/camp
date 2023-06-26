@@ -1,6 +1,9 @@
-pub mod downloads;
-pub mod updates;
+mod downloads;
+mod updates;
 mod extractor;
+
+pub use downloads::{ DownloadsEntries, DownloadsEntry };
+pub use updates::{ UpdatesEntries, UpdatesEntry };
 
 pub trait IsCandidate {
     
