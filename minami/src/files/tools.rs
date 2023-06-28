@@ -20,7 +20,7 @@ use crate::{
     FeedsId, FeedsEntry, SeriesId,
     CandidatesEntry, CandidatesCurrent,
     FilesEntry, FilesMark,
-    DownloadsEntries, DownloadsEntry, UpdatesEntries, UpdatesEntry,
+    DownloadsEntries, DownloadsEntry, UpdatesEntries,
     RemoteControlServer,
     HttpClient,
 };
@@ -243,12 +243,10 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
     
     // ---------- parameters ----------
     
-    let mut candidates = state.database.candidates_iter()
+    let candidates = state.database.candidates_iter()
         .filter(|(_, entry)| entry.current() == CandidatesCurrent::Yes)
         .map(|(_, entry)| entry)
         .collect::<Vec<&CandidatesEntry>>();
-    
-    candidates.sort_unstable_by(|a, b| chikuwa::natural_cmp(a.title(), b.title()));
     
     let mut feeds = state.database.feeds_iter()
         .collect::<Vec<(FeedsId, &FeedsEntry)>>();
@@ -299,6 +297,8 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
                         
                         let mut downloads: Vec<DownloadsEntry> = DownloadsEntries::get(&content, &candidates).collect();
                         downloads.sort_unstable_by(|a, b| chikuwa::natural_cmp(a.title, b.title));
+                        
+                        result.reserve(downloads.len());
                         
                         for download in downloads {
                             
@@ -408,16 +408,16 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
     
     // ---------- parameters ----------
     
-    let mut candidates = state.database.candidates_iter()
+    let candidates = state.database.candidates_iter()
         .map(|(_, entry)| entry)
         .collect::<Vec<&CandidatesEntry>>();
     
-    candidates.sort_unstable_by(|a, b| chikuwa::natural_cmp(a.title(), b.title()));
-    
-    let files = state.files.iter()
+    let mut files = state.files.iter()
         .filter(|entry| entry.mark() == FilesMark::Watched)
         .filter_map(|entry| Some((get_name(entry)?, entry.path())))
         .collect::<Vec<(&str, &Path)>>();
+    
+    files.sort_unstable_by(|a, b| chikuwa::natural_cmp(a.0, b.0));
     
     // ---------- dialog ----------
     
@@ -429,12 +429,9 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
     
     // ---------- updates and progress ----------
     
-    let mut updates: Vec<UpdatesEntry> = UpdatesEntries::get(&files, &candidates).collect();
-    updates.sort_unstable_by(|a, b| chikuwa::natural_cmp(a.name, b.name));
+    let mut result = Vec::with_capacity(25);
     
-    let mut result = Vec::with_capacity(updates.len());
-    
-    for update in updates {
+    for update in UpdatesEntries::get(&files, &candidates) {
         
         let id = SeriesId::from(update.id);
         

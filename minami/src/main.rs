@@ -29,7 +29,7 @@ use chiaki::{
     SeriesId, SeriesEntry, SeriesStatus, SeriesGood,
     CandidatesId, CandidatesEntry, CandidatesCurrent,
 };
-use nadeshiko::{ DownloadsEntries, DownloadsEntry, UpdatesEntries, UpdatesEntry };
+use nadeshiko::{ DownloadsEntries, DownloadsEntry, UpdatesEntries };
 use aoi::RemoteControlServer;
 use akari::HttpClient;
 
