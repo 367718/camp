@@ -5,9 +5,9 @@ use std::{
 
 use crate::IsCandidate;
 
-pub struct DownloadsEntries<'f, T> {
+pub struct DownloadsEntries<'f, 'c, T> {
     feed: &'f [u8],
-    candidates: &'f [T],
+    candidates: &'c [T],
 }
 
 #[derive(PartialEq, Eq)]
@@ -26,9 +26,9 @@ const TITLE_CLOSE_TAG: &[u8] = b"</title>";
 const LINK_OPEN_TAG: &[u8] = b"<link>";
 const LINK_CLOSE_TAG: &[u8] = b"</link>";
 
-impl<'f, T: IsCandidate> DownloadsEntries<'f, T> {
+impl<'f, 'c, T: IsCandidate> DownloadsEntries<'f, 'c, T> {
     
-    pub fn get(feed: &'f [u8], candidates: &'f [T]) -> Self {
+    pub fn get(feed: &'f [u8], candidates: &'c [T]) -> Self {
         Self {
             feed,
             candidates,
@@ -37,7 +37,7 @@ impl<'f, T: IsCandidate> DownloadsEntries<'f, T> {
     
 }
 
-impl<'f, T: IsCandidate> Iterator for DownloadsEntries<'f, T> {
+impl<'f, 'c, T: IsCandidate> Iterator for DownloadsEntries<'f, 'c, T> {
     
     type Item = DownloadsEntry<'f>;
     
@@ -58,7 +58,7 @@ impl<'f, T: IsCandidate> Iterator for DownloadsEntries<'f, T> {
     
 }
 
-fn build_entry<'f, T: IsCandidate>(item: &'f [u8], candidates: &'f [T]) -> Option<DownloadsEntry<'f>> {
+fn build_entry<'f, T: IsCandidate>(item: &'f [u8], candidates: &[T]) -> Option<DownloadsEntry<'f>> {
     let title = get_tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG)
         .and_then(|field| str::from_utf8(&item[field]).ok())
         .map(str::trim)?;

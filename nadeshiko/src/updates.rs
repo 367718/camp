@@ -2,9 +2,9 @@ use std::path::Path;
 
 use crate::IsCandidate;
 
-pub struct UpdatesEntries<'f, T> {
+pub struct UpdatesEntries<'f, 'c, T> {
     files: &'f [(&'f str, &'f Path)],
-    candidates: &'f [T],
+    candidates: &'c [T],
 }
 
 #[derive(PartialEq, Eq)]
@@ -16,9 +16,9 @@ pub struct UpdatesEntry<'f> {
     pub id: i64,
 }
 
-impl<'f, T: IsCandidate> UpdatesEntries<'f, T> {
+impl<'f, 'c, T: IsCandidate> UpdatesEntries<'f, 'c, T> {
     
-    pub fn get(files: &'f [(&'f str, &'f Path)], candidates: &'f [T]) -> Self {
+    pub fn get(files: &'f [(&'f str, &'f Path)], candidates: &'c [T]) -> Self {
         Self {
             files,
             candidates,
@@ -27,7 +27,7 @@ impl<'f, T: IsCandidate> UpdatesEntries<'f, T> {
     
 }
 
-impl<'f, T: IsCandidate> Iterator for UpdatesEntries<'f, T> {
+impl<'f, 'c, T: IsCandidate> Iterator for UpdatesEntries<'f, 'c, T> {
     
     type Item = UpdatesEntry<'f>;
     
@@ -48,7 +48,7 @@ impl<'f, T: IsCandidate> Iterator for UpdatesEntries<'f, T> {
     
 }
 
-fn build_entry<'f, T: IsCandidate>(name: &'f str, path: &'f Path, candidates: &'f [T]) -> Option<UpdatesEntry<'f>> {
+fn build_entry<'f, T: IsCandidate>(name: &'f str, path: &'f Path, candidates: &[T]) -> Option<UpdatesEntry<'f>> {
     let candidate = candidates.iter()
         .find(|candidate| candidate.is_relevant(name))?;
     

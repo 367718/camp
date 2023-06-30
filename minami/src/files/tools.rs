@@ -156,9 +156,9 @@ pub fn remote(state: &mut State) {
     
     // ---------- startup ----------
     
-    append_text(&progress_buffer, &chikuwa::concat_str!("Pipe: ", &pipe.to_string_lossy(), "\n"));
-    append_text(&progress_buffer, &chikuwa::concat_str!("Bind: ", bind, "\n"));
-    append_text(&progress_buffer, "\nConnecting to player instance and starting HTTP server...\n\n");
+    progress_buffer.insert(&mut progress_buffer.end_iter(), &chikuwa::concat_str!("Pipe: ", &pipe.to_string_lossy(), "\n"));
+    progress_buffer.insert(&mut progress_buffer.end_iter(), &chikuwa::concat_str!("Bind: ", bind, "\n"));
+    progress_buffer.insert(&mut progress_buffer.end_iter(), "\nConnecting to player instance and starting HTTP server...\n\n");
     
     // ---------- channel ----------
     
@@ -168,29 +168,25 @@ pub fn remote(state: &mut State) {
     
     let mut server = None;
     
-    let subscription = move |error| {
-        job_sender.send(error).unwrap();
-    };
-    
-    match RemoteControlServer::start(pipe, bind, subscription) {
+    match RemoteControlServer::start(pipe, bind, move |error| job_sender.send(error).unwrap()) {
         
         Ok(started) => {
             
             server = Some(started);
             
-            append_text(&progress_buffer, "Success, listening for commands...\n\n");
+            progress_buffer.insert(&mut progress_buffer.end_iter(), "Success, listening for commands...\n\n");
             
             // ---------- error ----------
             
             // this can end up printing a message to the buffer after the dialog has been closed
             job_receiver.attach(None, move |error| {
-                append_text(&progress_buffer, &chikuwa::concat_str!("ERROR: ", &error.to_string()));
+                progress_buffer.insert(&mut progress_buffer.end_iter(), &chikuwa::concat_str!("ERROR: ", &error.to_string()));
                 glib::Continue(true)
             });
             
         },
         
-        Err(error) => append_text(&progress_buffer, &chikuwa::concat_str!("ERROR: ", &error.to_string())),
+        Err(error) => progress_buffer.insert(&mut progress_buffer.end_iter(), &chikuwa::concat_str!("ERROR: ", &error.to_string())),
         
     }
     
@@ -346,7 +342,7 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
         
         job_receiver.attach(None, move |message| {
             match message {
-                Some(message) => append_text(&progress_buffer, &message),
+                Some(message) => progress_buffer.insert(&mut progress_buffer.end_iter(), &message),
                 None => job_dialog.set_response_sensitive(gtk::ResponseType::Close, true),
             }
             
@@ -440,7 +436,7 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
             let episode = update.episode.saturating_sub(candidate.offset());
             
             if episode > 0 {
-                append_text(&progress_buffer, &chikuwa::concat_str!(update.name, "\n"));
+                progress_buffer.insert(&mut progress_buffer.end_iter(), &chikuwa::concat_str!(update.name, "\n"));
                 result.push((id, episode, update.path.to_owned()));
             }
             
@@ -449,7 +445,7 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
     }
     
     if result.is_empty() {
-        append_text(&progress_buffer, "No updates found");
+        progress_buffer.insert(&mut progress_buffer.end_iter(), "No updates found");
     } else {
         sender.send(Message::Files(FilesActions::MarkAsUpdated(result))).unwrap();
     }
@@ -464,11 +460,4 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
     
     state.ui.widgets().dialogs.files.job.progress_textview.buffer().unwrap().set_text("");
     
-}
-
-fn append_text(buffer: &gtk::TextBuffer, text: &str) {
-    buffer.insert(
-        &mut buffer.end_iter(),
-        text,
-    );
 }
