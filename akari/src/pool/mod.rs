@@ -34,29 +34,23 @@ impl Pool {
         let (host, port, path, secure) = Self::extract_params(url.as_ref())
             .ok_or("Invalid URL")?;
         
-        let mut entry = self.reuse_entry_or_create_new(host, port, secure)?;
+        let previous = self.entries.iter()
+            .position(|entry| entry == &(host, port, secure))
+            .map(|index| self.entries.swap_remove(index))
+            .filter(Entry::can_be_reused);
         
-        let (body, keep_alive) = entry.send_request(path)?;
+        let mut entry = match previous {
+            Some(entry) => entry,
+            None => Entry::new(host, port, secure, self.timeout)?,
+        };
+        
+        let (body, keep_alive) = entry.body(path)?;
         
         if keep_alive {
             self.entries.push(entry);
         }
         
         Ok(body)
-    }
-    
-    fn reuse_entry_or_create_new(&mut self, host: &str, port: u16, secure: bool) -> Result<Entry, Box<dyn Error>> {
-        // reused
-        if let Some(index) = self.entries.iter().position(|entry| entry.is_connection_already_open(host, port, secure)) {
-            let mut entry = self.entries.swap_remove(index);
-            
-            entry.reopen_connection_if_needed(self.timeout)?;
-            
-            return Ok(entry);
-        }
-        
-        // new
-        Entry::new(host, port, secure, self.timeout)
     }
     
     

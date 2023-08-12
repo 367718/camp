@@ -2,7 +2,7 @@ mod listener;
 
 use std::{
     fs::{ OpenOptions, File },
-    io::{ Read, Write, Error },
+    io::{ Read, Write, BufWriter, Error },
     net::TcpStream,
     os::raw::*,
     path::Path,
@@ -114,7 +114,7 @@ impl RemoteControlServer {
             // index
             
             if method == b"GET" && path == b"/" {
-                Self::send_response(&mut stream, b"200 OK", Some(INDEX)).ok();
+                Self::send_response(stream, b"200 OK", Some(INDEX)).ok();
                 continue;
             }
             
@@ -123,18 +123,18 @@ impl RemoteControlServer {
             if let Some(command) = Self::get_command(method, path) {
                 
                 if let Err(error) = pipe.write_all(command) {
-                    Self::send_response(&mut stream, b"500 Internal Server Error", Some(error.to_string().as_bytes())).ok();
+                    Self::send_response(stream, b"500 Internal Server Error", Some(error.to_string().as_bytes())).ok();
                     return Err(error);
                 }
                 
-                Self::send_response(&mut stream, b"200 OK", None).ok();
+                Self::send_response(stream, b"200 OK", None).ok();
                 continue;
                 
             }
             
             // not found
             
-            Self::send_response(&mut stream, b"404 Not Found", Some(b"Endpoint not found")).ok();
+            Self::send_response(stream, b"404 Not Found", Some(b"Endpoint not found")).ok();
             
         }
     }
@@ -187,26 +187,28 @@ impl RemoteControlServer {
         }
     }
     
-    fn send_response(stream: &mut TcpStream, status: &[u8], body: Option<&[u8]>) -> Result<(), Error> {
-        stream.write_all(b"HTTP/1.0 ")?;
-        stream.write_all(status)?;
-        stream.write_all(b"\r\n")?;
+    fn send_response(stream: TcpStream, status: &[u8], body: Option<&[u8]>) -> Result<(), Error> {
+        let mut writer = BufWriter::new(stream);
         
-        stream.write_all(b"Connection: close\r\n")?;
+        writer.write_all(b"HTTP/1.0 ")?;
+        writer.write_all(status)?;
+        writer.write_all(b"\r\n")?;
+        
+        writer.write_all(b"Connection: close\r\n")?;
         
         match body {
             
             Some(payload) => {
-                stream.write_all(b"Content-Length: ")?;
-                stream.write_all(payload.len().to_string().as_bytes())?;
-                stream.write_all(b"\r\n")?;
-                stream.write_all(b"\r\n")?;
-                stream.write_all(payload)?;
+                writer.write_all(b"Content-Length: ")?;
+                writer.write_all(payload.len().to_string().as_bytes())?;
+                writer.write_all(b"\r\n")?;
+                writer.write_all(b"\r\n")?;
+                writer.write_all(payload)?;
             },
             
             None => {
-                stream.write_all(b"Content-Length: 0\r\n")?;
-                stream.write_all(b"\r\n")?;
+                writer.write_all(b"Content-Length: 0\r\n")?;
+                writer.write_all(b"\r\n")?;
             },
             
         }

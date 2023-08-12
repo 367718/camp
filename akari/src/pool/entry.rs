@@ -31,12 +31,10 @@ impl Entry {
     
     
     pub fn new(host: &str, port: u16, secure: bool, timeout: Duration) -> Result<Self, Box<dyn Error>> {
-        let connection = Self::connect(host, port, secure, timeout)?;
-        
         Ok(Self {
             host: host.to_string(),
             port,
-            connection,
+            connection: Connection::new(host, port, secure, timeout)?,
         })
     }
     
@@ -44,70 +42,20 @@ impl Entry {
     // ---------- accessors ----------
     
     
-    pub fn is_connection_already_open(&self, host: &str, port: u16, secure: bool) -> bool {
-        self.host == host && self.port == port && matches!(self.connection, Connection::Https(_)) == secure
+    pub fn can_be_reused(&self) -> bool {
+        self.connection.can_be_reused().unwrap_or(false)
     }
     
     
     // ---------- mutators ----------
     
     
-    pub fn reopen_connection_if_needed(&mut self, timeout: Duration) -> Result<(), Box<dyn Error>> {
+    pub fn body(&mut self, path: &str) -> Result<(Vec<u8>, bool), Box<dyn Error>> {
+        // request
         
-        fn can_be_reused(connection: &Connection) -> Result<bool, Box<dyn Error>> {
-            let mut reusable = false;
-            
-            let stream = match connection {
-                Connection::Http(stream) => stream,
-                Connection::Https(tls) => tls.get_ref(),
-            };
-            
-            stream.set_nonblocking(true)?;
-            
-            // the only acceptable condition here is a "WouldBlock" error, since an "Ok" would mean
-            // that bytes were read past the last request body and an EOF would mean the connection was closed
-            if let Err(error) = stream.peek(&mut [0; 1]) {
-                reusable = error.kind() == ErrorKind::WouldBlock;
-            }
-            
-            stream.set_nonblocking(false)?;
-            
-            Ok(reusable)
-        }
+        Self::send_request(&mut self.connection, path, &self.host, self.port)?;
         
-        if ! can_be_reused(&self.connection).unwrap_or(false) {
-            self.connection = Self::connect(&self.host, self.port, matches!(self.connection, Connection::Https(_)), timeout)?;
-        }
-        
-        Ok(())
-        
-    }
-    
-    pub fn send_request(&mut self, path: &str) -> Result<(Vec<u8>, bool), Box<dyn Error>> {
-        // ----- request -----
-        
-        {
-            
-            let mut writer = BufWriter::new(&mut self.connection);
-            
-            writer.write_all(b"GET ")?;
-            writer.write_all(path.as_bytes())?;
-            writer.write_all(b" HTTP/1.0\r\n")?;
-            
-            writer.write_all(b"Host: ")?;
-            writer.write_all(self.host.to_string().as_bytes())?;
-            writer.write_all(b":")?;
-            writer.write_all(self.port.to_string().as_bytes())?;
-            writer.write_all(b"\r\n")?;
-            
-            writer.write_all(b"Connection: keep-alive\r\n")?;
-            writer.write_all(b"Accept-Encoding: identity\r\n")?;
-            writer.write_all(b"Content-length: 0\r\n")?;
-            writer.write_all(b"\r\n")?;
-            
-        }
-        
-        // ----- response -----
+        // response
         
         let mut headers = Vec::new();
         let mut body = Vec::new();
@@ -146,37 +94,25 @@ impl Entry {
     // ---------- helpers ----------
     
     
-    fn connect(host: &str, port: u16, secure: bool, timeout: Duration) -> Result<Connection, Box<dyn Error>> {
-        let start = Instant::now()
-            .checked_add(timeout)
-            .ok_or("Bad timeout")?;
+    fn send_request(connection: &mut Connection, path: &str, host: &str, port: u16) -> Result<(), Box<dyn Error>> {
+        let mut writer = BufWriter::new(connection);
         
-        for address in (host, port).to_socket_addrs()? {
-            
-            let current = start.checked_duration_since(Instant::now())
-                .ok_or("DNS resolution exceeded the specified timeout or no connection could be established in time")?;
-            
-            if let Ok(stream) = TcpStream::connect_timeout(&address, current) {
-                
-                stream.set_read_timeout(Some(timeout))?;
-                stream.set_write_timeout(Some(timeout))?;
-                
-                if secure {
-                    
-                    let cred = SchannelCred::builder().acquire(Direction::Outbound)?;
-                    let tls = Builder::new().domain(host).connect(cred, stream)?;
-                    
-                    return Ok(Connection::Https(tls));
-                    
-                }
-                
-                return Ok(Connection::Http(stream));
-                
-            }
-            
-        }
+        writer.write_all(b"GET ")?;
+        writer.write_all(path.as_bytes())?;
+        writer.write_all(b" HTTP/1.0\r\n")?;
         
-        Err("Connection to remote host failed".into())
+        writer.write_all(b"Host: ")?;
+        writer.write_all(host.as_bytes())?;
+        writer.write_all(b":")?;
+        writer.write_all(port.to_string().as_bytes())?;
+        writer.write_all(b"\r\n")?;
+        
+        writer.write_all(b"Connection: keep-alive\r\n")?;
+        writer.write_all(b"Accept-Encoding: identity\r\n")?;
+        writer.write_all(b"Content-length: 0\r\n")?;
+        writer.write_all(b"\r\n")?;
+        
+        Ok(())
     }
     
     fn fill_headers(reader: &mut Take<&mut Connection>, headers: &mut Vec<u8>, body: &mut Vec<u8>) -> Result<(), Box<dyn Error>> {
@@ -251,6 +187,72 @@ impl Entry {
         }
         
         Ok(())
+    }
+    
+}
+
+impl PartialEq<(&str, u16, bool)> for Entry {
+    
+    fn eq(&self, other: &(&str, u16, bool)) -> bool {
+        self.host == other.0 && self.port == other.1 && matches!(self.connection, Connection::Https(_)) == other.2
+    }
+    
+}
+
+impl Connection {
+    
+    pub fn new(host: &str, port: u16, secure: bool, timeout: Duration) -> Result<Self, Box<dyn Error>> {
+        let start = Instant::now()
+            .checked_add(timeout)
+            .ok_or("Bad timeout")?;
+        
+        for address in (host, port).to_socket_addrs()? {
+            
+            let current = start.checked_duration_since(Instant::now())
+                .ok_or("DNS resolution exceeded the specified timeout or no connection could be established in time")?;
+            
+            if let Ok(stream) = TcpStream::connect_timeout(&address, current) {
+                
+                stream.set_read_timeout(Some(timeout))?;
+                stream.set_write_timeout(Some(timeout))?;
+                
+                if secure {
+                    
+                    let cred = SchannelCred::builder().acquire(Direction::Outbound)?;
+                    let tls = Builder::new().domain(host).connect(cred, stream)?;
+                    
+                    return Ok(Self::Https(tls));
+                    
+                }
+                
+                return Ok(Self::Http(stream));
+                
+            }
+            
+        }
+        
+        Err("Connection to remote host failed".into())
+    }
+    
+    pub fn can_be_reused(&self) -> Result<bool, Box<dyn Error>> {
+        let mut reusable = false;
+        
+        let stream = match self {
+            Connection::Http(stream) => stream,
+            Connection::Https(tls) => tls.get_ref(),
+        };
+        
+        stream.set_nonblocking(true)?;
+        
+        // the only acceptable condition here is a "WouldBlock" error, since an "Ok" would mean
+        // that bytes were read past the last request body and an EOF would mean the connection was closed
+        if let Err(error) = stream.peek(&mut [0; 1]) {
+            reusable = error.kind() == ErrorKind::WouldBlock;
+        }
+        
+        stream.set_nonblocking(false)?;
+        
+        Ok(reusable)
     }
     
 }
