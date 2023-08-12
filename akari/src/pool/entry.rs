@@ -1,6 +1,6 @@
 use std::{
     error::Error,
-    io::{ self, ErrorKind, Read, Write, Take },
+    io::{ self, ErrorKind, Read, Write, BufWriter, Take },
     net::{ TcpStream, ToSocketAddrs },
     str,
     time::{ Instant, Duration },
@@ -20,10 +20,6 @@ pub struct Entry {
 enum Connection {
     Http(TcpStream),
     Https(TlsStream<TcpStream>),
-}
-
-struct ReadHandle<'c> {
-    inner: Take<&'c mut Connection>,
 }
 
 const RESPONSE_SIZE_LIMIT: u64 = 50 * 1024 * 1024 + 1;
@@ -88,35 +84,41 @@ impl Entry {
     }
     
     pub fn send_request(&mut self, path: &str) -> Result<(Vec<u8>, bool), Box<dyn Error>> {
-        // ----- build request -----
+        // ----- request -----
         
-        let mut request: Vec<u8> = Vec::with_capacity(96 + path.len() + self.host.len() + (self.port.ilog10() + 1) as usize);
+        {
+            
+            let mut writer = BufWriter::new(&mut self.connection);
+            
+            writer.write_all(b"GET ")?;
+            writer.write_all(path.as_bytes())?;
+            writer.write_all(b" HTTP/1.0\r\n")?;
+            
+            writer.write_all(b"Host: ")?;
+            writer.write_all(self.host.to_string().as_bytes())?;
+            writer.write_all(b":")?;
+            writer.write_all(self.port.to_string().as_bytes())?;
+            writer.write_all(b"\r\n")?;
+            
+            writer.write_all(b"Connection: keep-alive\r\n")?;
+            writer.write_all(b"Accept-Encoding: identity\r\n")?;
+            writer.write_all(b"Content-length: 0\r\n")?;
+            writer.write_all(b"\r\n")?;
+            
+        }
         
-        write!(request, "GET {} HTTP/1.0\r\n", path).unwrap();
-        write!(request, "Host: {}:{}\r\n", self.host, self.port).unwrap();
-        write!(request, "Connection: keep-alive\r\n").unwrap();
-        write!(request, "Accept-Encoding: identity\r\n").unwrap();
-        write!(request, "Content-length: 0\r\n").unwrap();
-        write!(request, "\r\n").unwrap();
-        
-        // ----- write request -----
-        
-        self.connection.write_all(&request)?;
-        
-        // ----- sections -----
+        // ----- response -----
         
         let mut headers = Vec::new();
         let mut body = Vec::new();
         
-        // ----- build handle -----
+        let mut reader = (&mut self.connection).take(RESPONSE_SIZE_LIMIT);
         
-        let mut handle = ReadHandle::new(&mut self.connection);
+        // headers
         
-        // ----- read response headers -----
+        Self::fill_headers(&mut reader, &mut headers, &mut body)?;
         
-        Self::fill_headers(&mut handle, &mut headers, &mut body)?;
-        
-        // ----- check status code and keep-alive -----
+        // status code
         
         let status_code = headers.split(|&curr| curr == b' ')
             .nth(1)
@@ -126,14 +128,16 @@ impl Entry {
             return Err(str::from_utf8(status_code)?.into());
         }
         
+        // keep-alive
+        
         let keep_alive = chikuwa::tag_range(&headers, b"Connection: ", b"\r\n")
             .map(|range| &headers[range])
             .filter(|value| value == b"keep-alive")
             .is_some();
         
-        // ----- read response body -----
+        // body
         
-        Self::fill_body(&mut handle, &headers, &mut body, keep_alive)?;
+        Self::fill_body(&mut reader, &headers, &mut body, keep_alive)?;
         
         Ok((body, keep_alive))
     }
@@ -175,14 +179,14 @@ impl Entry {
         Err("Connection to remote host failed".into())
     }
     
-    fn fill_headers(handle: &mut ReadHandle, headers: &mut Vec<u8>, body: &mut Vec<u8>) -> Result<(), Box<dyn Error>> {
+    fn fill_headers(reader: &mut Take<&mut Connection>, headers: &mut Vec<u8>, body: &mut Vec<u8>) -> Result<(), Box<dyn Error>> {
         // read until body is found
         
         let mut buffer = vec![0; CONNECTION_BUFFER_SIZE];
         
         loop {
             
-            let bytes = handle.read(&mut buffer)?;
+            let bytes = reader.read(&mut buffer)?;
             
             if bytes == 0 {
                 return Err("Connection interrupted".into());
@@ -201,7 +205,7 @@ impl Entry {
         Ok(())
     }
     
-    fn fill_body(handle: &mut ReadHandle, headers: &[u8], body: &mut Vec<u8>, keep_alive: bool) -> Result<(), Box<dyn Error>> {
+    fn fill_body(reader: &mut Take<&mut Connection>, headers: &[u8], body: &mut Vec<u8>, keep_alive: bool) -> Result<(), Box<dyn Error>> {
         if keep_alive {
             
             // Connection: keep-alive
@@ -221,7 +225,7 @@ impl Entry {
                 
                 while body.len() < content_length {
                     
-                    let bytes = handle.read(&mut buffer)?;
+                    let bytes = reader.read(&mut buffer)?;
                     
                     if bytes == 0 {
                         return Err("Connection interrupted".into());
@@ -241,7 +245,7 @@ impl Entry {
             // read until EOF
             
             let mut buffer = Vec::new();
-            handle.read_to_end(&mut buffer)?;
+            reader.read_to_end(&mut buffer)?;
             body.append(&mut buffer);
             
         }
@@ -276,30 +280,6 @@ impl Read for Connection {
             Connection::Http(stream) => stream.read(buf),
             Connection::Https(tls) => tls.read(buf),
         }
-    }
-    
-}
-
-impl<'c> ReadHandle<'c> {
-    
-    pub fn new(connection: &'c mut Connection) -> Self {
-        Self {
-            inner: connection.take(RESPONSE_SIZE_LIMIT),
-        }
-    }
-    
-}
-
-impl Read for ReadHandle<'_> {
-    
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let bytes = self.inner.read(buf)?;
-        
-        if self.inner.limit() == 0 {
-            return Err(io::Error::new(ErrorKind::Other, "Maximum response size reached"));
-        }
-        
-        Ok(bytes)
     }
     
 }
