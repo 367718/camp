@@ -1,7 +1,4 @@
-use std::{
-    ops::Range,
-    str,
-};
+use std::str;
 
 use crate::IsCandidate;
 
@@ -42,7 +39,7 @@ impl<'f, 'c, T: IsCandidate> Iterator for DownloadsEntries<'f, 'c, T> {
     type Item = DownloadsEntry<'f>;
     
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(item) = get_tag_range(self.feed, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
+        while let Some(item) = chikuwa::tag_range(self.feed, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
             
             let result = build_entry(&self.feed[item.start..item.end], self.candidates);
             self.feed = &self.feed[item.end.saturating_add(ITEM_CLOSE_TAG.len())..];
@@ -59,7 +56,7 @@ impl<'f, 'c, T: IsCandidate> Iterator for DownloadsEntries<'f, 'c, T> {
 }
 
 fn build_entry<'f, T: IsCandidate>(item: &'f [u8], candidates: &[T]) -> Option<DownloadsEntry<'f>> {
-    let title = get_tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG)
+    let title = chikuwa::tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG)
         .and_then(|field| str::from_utf8(&item[field]).ok())
         .map(str::trim)?;
     
@@ -69,7 +66,7 @@ fn build_entry<'f, T: IsCandidate>(item: &'f [u8], candidates: &[T]) -> Option<D
     let episode = crate::extractor::get(&candidate.clean(title))
         .filter(|&episode| candidate.can_download(episode))?;
     
-    let link = get_tag_range(item, LINK_OPEN_TAG, LINK_CLOSE_TAG)
+    let link = chikuwa::tag_range(item, LINK_OPEN_TAG, LINK_CLOSE_TAG)
         .and_then(|field| str::from_utf8(&item[field]).ok())
         .map(str::trim)?;
     
@@ -81,18 +78,6 @@ fn build_entry<'f, T: IsCandidate>(item: &'f [u8], candidates: &[T]) -> Option<D
         episode,
         id,
     })
-}
-
-fn get_tag_range(content: &[u8], open: &[u8], close: &[u8]) -> Option<Range<usize>> {
-    let start = content.windows(open.len())
-        .position(|window| window == open)
-        .and_then(|index| index.checked_add(open.len()))?;
-    
-    let end = content[start..].windows(close.len())
-        .position(|window| window == close)
-        .and_then(|index| index.checked_add(start))?;
-    
-    Some(start..end)
 }
 
 #[cfg(test)]

@@ -105,38 +105,35 @@ impl Entry {
         
         // ----- sections -----
         
-        let mut head: Vec<u8> = Vec::new();
-        let mut body: Vec<u8> = Vec::new();
+        let mut headers = Vec::new();
+        let mut body = Vec::new();
         
         // ----- build handle -----
         
         let mut handle = ReadHandle::new(&mut self.connection);
         
-        // ----- read response head -----
+        // ----- read response headers -----
         
-        Self::fill_head(&mut handle, &mut head, &mut body)?;
+        Self::fill_headers(&mut handle, &mut headers, &mut body)?;
         
         // ----- check status code and keep-alive -----
         
-        let mut lines = head.split(|&value| value == b'\r');
-        
-        let status_code = lines.next()
-            .and_then(|line| line.split(|&value| value == b' ').nth(1))
+        let status_code = headers.split(|&curr| curr == b' ')
+            .nth(1)
             .ok_or("Bad response status code")?;
         
         if status_code != b"200" {
             return Err(str::from_utf8(status_code)?.into());
         }
         
-        let keep_alive = lines.filter(|line| line.len() > 12)
-            .map(|line| line.split_at(12))
-            .find(|(header, _)| header.eq_ignore_ascii_case(b"\nConnection:"))
-            .and_then(|(_, value)| str::from_utf8(value).ok())
-            .map_or(false, |value| value.trim().eq_ignore_ascii_case("keep-alive"));
+        let keep_alive = chikuwa::tag_range(&headers, b"Connection: ", b"\r\n")
+            .map(|range| &headers[range])
+            .filter(|value| value == b"keep-alive")
+            .is_some();
         
         // ----- read response body -----
         
-        Self::fill_body(&mut handle, &head, &mut body, keep_alive)?;
+        Self::fill_body(&mut handle, &headers, &mut body, keep_alive)?;
         
         Ok((body, keep_alive))
     }
@@ -178,19 +175,24 @@ impl Entry {
         Err("Connection to remote host failed".into())
     }
     
-    fn fill_head(handle: &mut ReadHandle, head: &mut Vec<u8>, body: &mut Vec<u8>) -> Result<(), Box<dyn Error>> {
+    fn fill_headers(handle: &mut ReadHandle, headers: &mut Vec<u8>, body: &mut Vec<u8>) -> Result<(), Box<dyn Error>> {
         // read until body is found
+        
+        let mut buffer = vec![0; CONNECTION_BUFFER_SIZE];
         
         loop {
             
-            let mut buffer = vec![0; CONNECTION_BUFFER_SIZE.min(handle.limit())];
             let bytes = handle.read(&mut buffer)?;
-            buffer.truncate(bytes);
-            head.append(&mut buffer);
+            
+            if bytes == 0 {
+                return Err("Connection interrupted".into());
+            }
+            
+            headers.extend_from_slice(&buffer[..bytes]);
             
             // separate body
-            if let Some(index) = head.windows(4).position(|curr| curr == b"\r\n\r\n") {
-                body.append(&mut head.split_off(index + 4));
+            if let Some(index) = headers.windows(4).position(|curr| curr == b"\r\n\r\n") {
+                body.append(&mut headers.split_off(index + 4));
                 break;
             }
             
@@ -199,35 +201,39 @@ impl Entry {
         Ok(())
     }
     
-    fn fill_body(handle: &mut ReadHandle, head: &[u8], body: &mut Vec<u8>, keep_alive: bool) -> Result<(), Box<dyn Error>> {
+    fn fill_body(handle: &mut ReadHandle, headers: &[u8], body: &mut Vec<u8>, keep_alive: bool) -> Result<(), Box<dyn Error>> {
         if keep_alive {
             
             // Connection: keep-alive
-            // read until the amount of bytes specified in head is received
+            // read until the amount of bytes specified in header is received
             
-            let length = head.split(|&value| value == b'\r')
-                .filter(|line| line.len() > 16)
-                .map(|line| line.split_at(16))
-                .find(|(header, _)| header.eq_ignore_ascii_case(b"\nContent-Length:"))
-                .and_then(|(_, value)| str::from_utf8(value).ok()?.trim().parse::<usize>().ok())
+            let content_length = chikuwa::tag_range(headers, b"Content-Length: ", b"\r\n")
+                .map(|range| &headers[range])
+                .and_then(|value| str::from_utf8(value).ok())
+                .and_then(|value| value.parse::<usize>().ok())
                 .ok_or("Could not determine body length")?;
             
-            if length > body.len() {
+            if content_length > 0 {
                 
-                let rest = (handle.limit()).min(length - body.len());
+                let mut buffer = [0; CONNECTION_BUFFER_SIZE];
                 
-                body.reserve_exact(rest);
+                body.reserve(content_length);
                 
-                for _ in 0..(rest + CONNECTION_BUFFER_SIZE - 1) / CONNECTION_BUFFER_SIZE {
+                while body.len() < content_length {
                     
-                    let mut buffer = vec![0; CONNECTION_BUFFER_SIZE.min((handle.limit()).min(length - body.len()))];
-                    handle.read_exact(&mut buffer)?;
-                    body.append(&mut buffer);
+                    let bytes = handle.read(&mut buffer)?;
+                    
+                    if bytes == 0 {
+                        return Err("Connection interrupted".into());
+                    }
+                    
+                    body.extend_from_slice(&buffer[..bytes]);
                     
                 }
                 
             }
             
+            body.truncate(content_length);
         
         } else {
             
@@ -241,17 +247,6 @@ impl Entry {
         }
         
         Ok(())
-    }
-    
-}
-
-impl Read for Connection {
-    
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        match self {
-            Connection::Http(stream) => stream.read(buf),
-            Connection::Https(tls) => tls.read(buf),
-        }
     }
     
 }
@@ -274,23 +269,23 @@ impl Write for Connection {
     
 }
 
+impl Read for Connection {
+    
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match self {
+            Connection::Http(stream) => stream.read(buf),
+            Connection::Https(tls) => tls.read(buf),
+        }
+    }
+    
+}
+
 impl<'c> ReadHandle<'c> {
-    
-    // ---------- constructors ----------
-    
     
     pub fn new(connection: &'c mut Connection) -> Self {
         Self {
             inner: connection.take(RESPONSE_SIZE_LIMIT),
         }
-    }
-    
-    
-    // ---------- accessors ----------
-    
-    
-    pub fn limit(&self) -> usize {
-        usize::try_from(self.inner.limit()).unwrap()
     }
     
 }
@@ -300,7 +295,7 @@ impl Read for ReadHandle<'_> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let bytes = self.inner.read(buf)?;
         
-        if self.limit() == 0 {
+        if self.inner.limit() == 0 {
             return Err(io::Error::new(ErrorKind::Other, "Maximum response size reached"));
         }
         

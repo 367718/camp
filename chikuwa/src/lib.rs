@@ -1,12 +1,13 @@
 mod ephemeral_path;
 mod win_string;
-mod concat_str;
 mod register_app;
 mod execute_app;
 mod current_date;
 mod percent_encode;
 mod natural_cmp;
 mod case_insensitive_contains;
+mod tag_range;
+mod concat_str;
 
 pub use ephemeral_path::EphemeralPath;
 pub use win_string::WinString;
@@ -16,3 +17,4 @@ pub use current_date::current_date;
 pub use percent_encode::percent_encode;
 pub use natural_cmp::natural_cmp;
 pub use case_insensitive_contains::case_insensitive_contains;
+pub use tag_range::tag_range;
