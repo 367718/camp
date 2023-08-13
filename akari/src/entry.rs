@@ -118,7 +118,7 @@ impl Entry {
     fn fill_headers(reader: &mut Take<&mut Connection>, headers: &mut Vec<u8>, body: &mut Vec<u8>) -> Result<(), Box<dyn Error>> {
         // read until body is found
         
-        let mut buffer = vec![0; CONNECTION_BUFFER_SIZE];
+        let mut buffer = [0; CONNECTION_BUFFER_SIZE];
         
         loop {
             
