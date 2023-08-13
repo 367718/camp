@@ -1,4 +1,4 @@
-pub fn case_insensitive_contains(haystack: &str, needles: &[&str]) -> bool {
+pub fn insensitive_contains(haystack: &str, needles: &[&str]) -> bool {
     needles.iter().all(|needle| contains(haystack, needle))
 }
 

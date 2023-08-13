@@ -317,7 +317,7 @@ impl CandidatesCurrent {
 impl nadeshiko::IsCandidate for CandidatesEntry {
     
     fn is_relevant(&self, current: &str) -> bool {
-        chikuwa::case_insensitive_contains(
+        chikuwa::insensitive_contains(
             current,
             &[&self.title, &self.group, &self.quality],
         )

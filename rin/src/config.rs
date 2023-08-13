@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     fs::{ self, File },
-    io::Write,
+    io::{ Write, BufWriter },
     path::Path,
     str,
     time::Duration,
@@ -86,13 +86,13 @@ impl Config {
                 .with_suffix(".tmp")
                 .build();
             
-            let mut tmp_file = File::create(&tmp_path)?;
+            let mut writer = BufWriter::new(File::create(&tmp_path)?);
             
-            self.window.serialize(&mut tmp_file)?;
-            self.media.serialize(&mut tmp_file)?;
-            self.paths.serialize(&mut tmp_file)?;
+            self.window.serialize(&mut writer)?;
+            self.media.serialize(&mut writer)?;
+            self.paths.serialize(&mut writer)?;
             
-            tmp_file.flush()?;
+            writer.flush()?;
             
             // attempt to perform the update atomically
             fs::rename(&tmp_path, path)?;
@@ -115,27 +115,22 @@ impl Config {
     // ---------- helpers ----------
     
     
-    pub(crate) fn get_value<'a>(data: &'a [u8], key: &[u8]) -> Result<&'a str, Box<dyn Error>> {
-        if let Some(line) = data.split(|&value| value == b'\n').find(|line| line.starts_with(key)) {
-            if let [b' ', b'=', b' ', value @ ..] = &line[key.len()..] {
-                
-                let value = value.strip_suffix(&[b'\r'])
-                    .unwrap_or(value);
-                
+    pub(crate) fn get<'a>(data: &'a [u8], key: &[u8]) -> Result<&'a str, Box<dyn Error>> {
+        if let Some(range) = chikuwa::tag_range(data, key, b"\r\n") {
+            if let [b' ', b'=', b' ', value @ ..] = &data[range] {
                 return Ok(str::from_utf8(value)?);
-                
             }
         }
         
-        let base = "Missing or invalid field: ";
-        let field = str::from_utf8(key)?;
-        
-        let mut message = String::with_capacity(base.len() + field.len());
-        
-        message.push_str(base);
-        message.push_str(field);
-        
-        Err(message.into())
+        Err(chikuwa::concat_str!("Missing or invalid field: ", str::from_utf8(key)?).into())
+    }
+    
+    pub(crate) fn set(writer: &mut impl Write, key: &[u8], value: &[u8]) -> Result<(), Box<dyn Error>> {
+        writer.write_all(key)?;
+        writer.write_all(b" = ")?;
+        writer.write_all(value)?;
+        writer.write_all(b"\r\n")?;
+        Ok(())
     }
     
 }
@@ -350,84 +345,7 @@ mod tests {
         use super::*;
         
         #[test]
-        fn valid_lf() {
-            // setup
-            
-            let tmp_path = chikuwa::EphemeralPath::builder().build();
-            
-            let mut data = Vec::new();
-            
-            writeln!(data, "window.maximized = true").unwrap();
-            writeln!(data, "window.width = 750").unwrap();
-            writeln!(data, "window.height = 900").unwrap();
-            writeln!(data, "window.x = 175").unwrap();
-            writeln!(data, "window.y = 125").unwrap();
-            
-            writeln!(data, "media.player = vlc").unwrap();
-            writeln!(data, "media.iconify = true").unwrap();
-            writeln!(data, "media.flag = user.test.flag").unwrap();
-            writeln!(data, "media.timeout = 5").unwrap();
-            writeln!(data, "media.autoselect = true").unwrap();
-            writeln!(data, "media.lookup = https://placeholder.com/search?q=%s\n").unwrap();
-            writeln!(data, "media.bind = 192.168.0.1:7777").unwrap();
-            
-            writeln!(data, "paths.files = /placeholder/files").unwrap();
-            writeln!(data, "paths.downloads = /placeholder/downloads").unwrap();
-            writeln!(data, "paths.pipe = //./pipe/placeholder").unwrap();
-            writeln!(data, "paths.database = /placeholder/database").unwrap();
-            
-            fs::write(&tmp_path, &data).unwrap();
-            
-            // operation
-            
-            let output = Config::load(&tmp_path);
-            
-            // control
-            
-            assert!(output.is_ok());
-            
-            let config = output.unwrap();
-            
-            assert_eq!(config.window_maximized(), true);
-            assert_eq!(config.window_width(), 750);
-            assert_eq!(config.window_height(), 900);
-            assert_eq!(config.window_x(), 175);
-            assert_eq!(config.window_y(), 125);
-            
-            assert_eq!(config.media_player(), "vlc");
-            assert_eq!(config.media_iconify(), true);
-            assert_eq!(config.media_flag(), "user.test.flag");
-            assert_eq!(config.media_timeout(), Duration::from_secs(5));
-            assert_eq!(config.media_autoselect(), true);
-            assert_eq!(config.media_lookup(), "https://placeholder.com/search?q=%s");
-            
-            assert_eq!(config.paths_files(), Path::new("/placeholder/files"));
-            assert_eq!(config.paths_downloads(), Path::new("/placeholder/downloads"));
-            assert_eq!(config.paths_pipe(), Path::new("//./pipe/placeholder"));
-            assert_eq!(config.paths_database(), Path::new("/placeholder/database"));
-            
-            assert_ne!(config.window_maximized(), Window::DEFAULT_MAXIMIZED);
-            assert_ne!(config.window_width(), Window::DEFAULT_WIDTH);
-            assert_ne!(config.window_height(), Window::DEFAULT_HEIGHT);
-            assert_ne!(config.window_x(), Window::DEFAULT_X);
-            assert_ne!(config.window_y(), Window::DEFAULT_Y);
-            
-            assert_ne!(config.media_player(), Media::DEFAULT_PLAYER);
-            assert_ne!(config.media_iconify(), Media::DEFAULT_ICONIFY);
-            assert_ne!(config.media_flag(), Media::DEFAULT_FLAG);
-            assert_ne!(config.media_timeout(), Media::DEFAULT_TIMEOUT);
-            assert_ne!(config.media_autoselect(), Media::DEFAULT_AUTOSELECT);
-            assert_ne!(config.media_lookup(), Media::DEFAULT_LOOKUP);
-            assert_ne!(config.media_bind(), Media::DEFAULT_BIND);
-            
-            assert_ne!(config.paths_files(), Path::new(Paths::DEFAULT_FILES));
-            assert_ne!(config.paths_downloads(), Path::new(Paths::DEFAULT_DOWNLOADS));
-            assert_ne!(config.paths_pipe(), Path::new(Paths::DEFAULT_PIPE));
-            assert_ne!(config.paths_database(), Path::new(Paths::DEFAULT_DATABASE));
-        }
-        
-        #[test]
-        fn valid_crlf() {
+        fn valid() {
             // setup
             
             let tmp_path = chikuwa::EphemeralPath::builder().build();
@@ -445,7 +363,7 @@ mod tests {
             writeln!(data, "media.flag = user.test.flag\r").unwrap();
             writeln!(data, "media.timeout = 5\r").unwrap();
             writeln!(data, "media.autoselect = true\r").unwrap();
-            writeln!(data, "media.lookup = https://placeholder.com/search?q=%s\n\r").unwrap();
+            writeln!(data, "media.lookup = https://placeholder.com/search?q=%s\r").unwrap();
             writeln!(data, "media.bind = 192.168.0.1:7777\r").unwrap();
             
             writeln!(data, "paths.files = /placeholder/files\r").unwrap();
@@ -504,31 +422,69 @@ mod tests {
         }
         
         #[test]
-        fn invalid() {
+        fn invalid_linebreak() {
             // setup
             
             let tmp_path = chikuwa::EphemeralPath::builder().build();
             
             let mut data = Vec::new();
             
-            writeln!(data, "window.maximized = false").unwrap();
-            writeln!(data, "window.width = 0").unwrap();
-            writeln!(data, "window.height = 0").unwrap();
-            writeln!(data, "window.x = -1").unwrap();
-            writeln!(data, "window.y = -1").unwrap();
+            writeln!(data, "window.maximized = true").unwrap();
+            writeln!(data, "window.width = 750").unwrap();
+            writeln!(data, "window.height = 900").unwrap();
+            writeln!(data, "window.x = 175").unwrap();
+            writeln!(data, "window.y = 125").unwrap();
             
-            writeln!(data, "media.player = ").unwrap();
-            writeln!(data, "media.iconify = false").unwrap();
-            writeln!(data, "media.flag = ").unwrap();
-            writeln!(data, "media.timeout = 0").unwrap();
-            writeln!(data, "media.autoselect = false").unwrap();
-            writeln!(data, "media.lookup = ").unwrap();
-            writeln!(data, "media.bind = ").unwrap();
+            writeln!(data, "media.player = vlc").unwrap();
+            writeln!(data, "media.iconify = true").unwrap();
+            writeln!(data, "media.flag = user.test.flag").unwrap();
+            writeln!(data, "media.timeout = 5").unwrap();
+            writeln!(data, "media.autoselect = true").unwrap();
+            writeln!(data, "media.lookup = https://placeholder.com/search?q=%s").unwrap();
+            writeln!(data, "media.bind = 192.168.0.1:7777").unwrap();
             
-            writeln!(data, "paths.files = ").unwrap();
-            writeln!(data, "paths.downloads = ").unwrap();
-            writeln!(data, "paths.pipe = ").unwrap();
-            writeln!(data, "paths.database = ").unwrap();
+            writeln!(data, "paths.files = /placeholder/files").unwrap();
+            writeln!(data, "paths.downloads = /placeholder/downloads").unwrap();
+            writeln!(data, "paths.pipe = //./pipe/placeholder").unwrap();
+            writeln!(data, "paths.database = /placeholder/database").unwrap();
+            
+            fs::write(&tmp_path, &data).unwrap();
+            
+            // operation
+            
+            let output = Config::load(&tmp_path);
+            
+            // control
+            
+            assert!(output.is_err());
+        }
+        
+        #[test]
+        fn invalid_value() {
+            // setup
+            
+            let tmp_path = chikuwa::EphemeralPath::builder().build();
+            
+            let mut data = Vec::new();
+            
+            writeln!(data, "window.maximized = false\r").unwrap();
+            writeln!(data, "window.width = 0\r").unwrap();
+            writeln!(data, "window.height = 0\r").unwrap();
+            writeln!(data, "window.x = -1\r").unwrap();
+            writeln!(data, "window.y = -1\r").unwrap();
+            
+            writeln!(data, "media.player = \r").unwrap();
+            writeln!(data, "media.iconify = false\r").unwrap();
+            writeln!(data, "media.flag = \r").unwrap();
+            writeln!(data, "media.timeout = 0\r").unwrap();
+            writeln!(data, "media.autoselect = false\r").unwrap();
+            writeln!(data, "media.lookup = \r").unwrap();
+            writeln!(data, "media.bind = \r").unwrap();
+            
+            writeln!(data, "paths.files = \r").unwrap();
+            writeln!(data, "paths.downloads = \r").unwrap();
+            writeln!(data, "paths.pipe = \r").unwrap();
+            writeln!(data, "paths.database = \r").unwrap();
             
             fs::write(&tmp_path, &data).unwrap();
             

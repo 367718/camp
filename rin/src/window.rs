@@ -44,11 +44,11 @@ impl Window {
     }
     
     pub fn serialize(&self, writer: &mut impl Write) -> Result<(), Box<dyn Error>> {
-        writeln!(writer, "window.maximized = {}", self.maximized)?;
-        writeln!(writer, "window.width = {}", self.width)?;
-        writeln!(writer, "window.height = {}", self.height)?;
-        writeln!(writer, "window.x = {}", self.x)?;
-        writeln!(writer, "window.y = {}", self.y)?;
+        Config::set(writer, b"window.maximized", self.maximized.to_string().as_bytes())?;
+        Config::set(writer, b"window.width", self.width.to_string().as_bytes())?;
+        Config::set(writer, b"window.height", self.height.to_string().as_bytes())?;
+        Config::set(writer, b"window.x", self.x.to_string().as_bytes())?;
+        Config::set(writer, b"window.y", self.y.to_string().as_bytes())?;
         
         Ok(())
     }
@@ -56,18 +56,12 @@ impl Window {
     pub fn deserialize(content: &[u8]) -> Result<(Self, bool), Box<dyn Error>> {
         let mut corrected = false;
         
-        let maximized = Config::get_value(content, b"window.maximized")?;
-        let width = Config::get_value(content, b"window.width")?;
-        let height = Config::get_value(content, b"window.height")?;
-        let x = Config::get_value(content, b"window.x")?;
-        let y = Config::get_value(content, b"window.y")?;
-        
         let mut window = Window {
-            maximized: maximized == "true",
-            width: width.parse().unwrap_or(-1),
-            height: height.parse().unwrap_or(-1),
-            x: x.parse().unwrap_or(-1),
-            y: y.parse().unwrap_or(-1),
+            maximized: Config::get(content, b"window.maximized")? == "true",
+            width: Config::get(content, b"window.width")?.parse().unwrap_or(-1),
+            height: Config::get(content, b"window.height")?.parse().unwrap_or(-1),
+            x: Config::get(content, b"window.x")?.parse().unwrap_or(-1),
+            y: Config::get(content, b"window.y")?.parse().unwrap_or(-1),
         };
         
         // width

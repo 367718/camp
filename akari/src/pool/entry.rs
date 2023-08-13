@@ -78,10 +78,10 @@ impl Entry {
         
         // keep-alive
         
-        let keep_alive = chikuwa::tag_range(&headers, b"Connection: ", b"\r\n")
-            .map(|range| &headers[range])
-            .filter(|value| value == b"keep-alive")
-            .is_some();
+        let field = b"\r\nConnection: keep-alive\r\n";
+        
+        let keep_alive = headers.windows(field.len())
+            .any(|window| window.eq_ignore_ascii_case(field));
         
         // body
         

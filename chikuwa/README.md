@@ -13,6 +13,6 @@ Available functionality:
 * **current_date**: Current date as string in YYYYMMDD format.
 * **percent_encode**: Replace certain characters of a string with a safe representation for inclusion in a URL.
 * **natural_cmp**: String comparison that takes numerical values into consideration.
-* **case_insensitive_contains**: Whether supplied elemets are substrings (case-insensitive).
+* **insensitive_contains**: Whether supplied elemets are substrings (case-insensitive).
 * **tag_range**: Position of elements between two delimiters (case-insensitive).
 * **concat_str**: Macro for efficient string concatenation.

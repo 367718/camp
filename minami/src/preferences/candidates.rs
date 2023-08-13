@@ -589,16 +589,18 @@ pub fn candidates_edit(state: &mut State, sender: &Sender<Message>) {
                     
                     gtk::ResponseType::Other(1) => {
                         
-                        if let Some(id) = candidates_series_select(state, sender, &state.ui.widgets().dialogs.preferences.candidates.title_entry.text()) {                    
+                        if let Some(id) = candidates_series_select(state, sender, &state.ui.widgets().dialogs.preferences.candidates.title_entry.text()) {
+                            
                             if let Some(retrieved) = state.database.series_get(id) {
                                 state.ui.widgets().dialogs.preferences.candidates.series_entry.set_text(retrieved.title());
                                 series = id;
                                 continue;
                             }
+                            
+                            state.ui.widgets().dialogs.preferences.candidates.series_entry.set_text("");
+                            series = SeriesId::from(0);
+                            
                         }
-                        
-                        state.ui.widgets().dialogs.preferences.candidates.series_entry.set_text("");
-                        series = SeriesId::from(0);
                         
                     },
                     

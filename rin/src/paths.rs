@@ -40,10 +40,10 @@ impl Paths {
     }
     
     pub fn serialize(&self, writer: &mut impl Write) -> Result<(), Box<dyn Error>> {
-        writeln!(writer, "paths.files = {}", self.files.to_string_lossy())?;
-        writeln!(writer, "paths.downloads = {}", self.downloads.to_string_lossy())?;
-        writeln!(writer, "paths.pipe = {}", self.pipe.to_string_lossy())?;
-        writeln!(writer, "paths.database = {}", self.database.to_string_lossy())?;
+        Config::set(writer, b"paths.files", self.files.to_string_lossy().as_bytes())?;
+        Config::set(writer, b"paths.downloads", self.downloads.to_string_lossy().as_bytes())?;
+        Config::set(writer, b"paths.pipe", self.pipe.to_string_lossy().as_bytes())?;
+        Config::set(writer, b"paths.database", self.database.to_string_lossy().as_bytes())?;
         
         Ok(())
     }
@@ -51,16 +51,11 @@ impl Paths {
     pub fn deserialize(content: &[u8]) -> Result<(Self, bool), Box<dyn Error>> {
         let mut corrected = false;
         
-        let files = Config::get_value(content, b"paths.files")?;
-        let downloads = Config::get_value(content, b"paths.downloads")?;
-        let pipe = Config::get_value(content, b"paths.pipe")?;
-        let database = Config::get_value(content, b"paths.database")?;
-        
         let mut paths = Paths {
-            files: PathBuf::from(files).into_boxed_path(),
-            downloads: PathBuf::from(downloads).into_boxed_path(),
-            pipe: PathBuf::from(pipe).into_boxed_path(),
-            database: PathBuf::from(database).into_boxed_path(),
+            files: PathBuf::from(Config::get(content, b"paths.files")?).into_boxed_path(),
+            downloads: PathBuf::from(Config::get(content, b"paths.downloads")?).into_boxed_path(),
+            pipe: PathBuf::from(Config::get(content, b"paths.pipe")?).into_boxed_path(),
+            database: PathBuf::from(Config::get(content, b"paths.database")?).into_boxed_path(),
         };
         
         // files

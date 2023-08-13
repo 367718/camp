@@ -5,7 +5,7 @@ mod execute_app;
 mod current_date;
 mod percent_encode;
 mod natural_cmp;
-mod case_insensitive_contains;
+mod insensitive_contains;
 mod tag_range;
 mod concat_str;
 
@@ -16,5 +16,5 @@ pub use execute_app::execute_app;
 pub use current_date::current_date;
 pub use percent_encode::percent_encode;
 pub use natural_cmp::natural_cmp;
-pub use case_insensitive_contains::case_insensitive_contains;
+pub use insensitive_contains::insensitive_contains;
 pub use tag_range::tag_range;

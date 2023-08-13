@@ -68,13 +68,13 @@ impl Media {
     }
     
     pub fn serialize(&self, writer: &mut impl Write) -> Result<(), Box<dyn Error>> {
-        writeln!(writer, "media.player = {}", self.player)?;
-        writeln!(writer, "media.iconify = {}", self.iconify)?;
-        writeln!(writer, "media.flag = {}", self.flag.as_ref())?;
-        writeln!(writer, "media.timeout = {}", self.timeout.as_secs())?;
-        writeln!(writer, "media.autoselect = {}", self.autoselect)?;
-        writeln!(writer, "media.lookup = {}", self.lookup)?;
-        writeln!(writer, "media.bind = {}", self.bind)?;
+        Config::set(writer, b"media.player", self.player.as_bytes())?;
+        Config::set(writer, b"media.iconify", self.iconify.to_string().as_bytes())?;
+        Config::set(writer, b"media.flag", self.flag.as_bytes())?;
+        Config::set(writer, b"media.timeout", self.timeout.as_secs().to_string().as_bytes())?;
+        Config::set(writer, b"media.autoselect", self.autoselect.to_string().as_bytes())?;
+        Config::set(writer, b"media.lookup", self.lookup.as_bytes())?;
+        Config::set(writer, b"media.bind", self.bind.as_bytes())?;
         
         Ok(())
     }
@@ -82,22 +82,14 @@ impl Media {
     pub fn deserialize(content: &[u8]) -> Result<(Self, bool), Box<dyn Error>> {
         let mut corrected = false;
         
-        let player = Config::get_value(content, b"media.player")?;
-        let iconify = Config::get_value(content, b"media.iconify")?;
-        let flag = Config::get_value(content, b"media.flag")?;
-        let timeout = Config::get_value(content, b"media.timeout")?;
-        let autoselect = Config::get_value(content, b"media.autoselect")?;
-        let lookup = Config::get_value(content, b"media.lookup")?;
-        let bind = Config::get_value(content, b"media.bind")?;
-        
         let mut media = Media {
-            player: player.to_owned().into_boxed_str(),
-            iconify: iconify == "true",
-            flag: flag.to_owned().into_boxed_str(),
-            timeout: Duration::from_secs(timeout.parse().unwrap_or(0)),
-            autoselect: autoselect == "true",
-            lookup: lookup.to_owned().into_boxed_str(),
-            bind: bind.to_owned().into_boxed_str(),
+            player: Config::get(content, b"media.player")?.to_owned().into_boxed_str(),
+            iconify: Config::get(content, b"media.iconify")? == "true",
+            flag: Config::get(content, b"media.flag")?.to_owned().into_boxed_str(),
+            timeout: Duration::from_secs(Config::get(content, b"media.timeout")?.parse().unwrap_or(0)),
+            autoselect: Config::get(content, b"media.autoselect")? == "true",
+            lookup: Config::get(content, b"media.lookup")?.to_owned().into_boxed_str(),
+            bind: Config::get(content, b"media.bind")?.to_owned().into_boxed_str(),
         };
         
         // player

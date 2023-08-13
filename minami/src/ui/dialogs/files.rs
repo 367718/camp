@@ -401,7 +401,7 @@ impl MoveToFolder {
                 .split_whitespace()
                 .collect::<Vec<&str>>();
             
-                chikuwa::case_insensitive_contains(&name, &needles)
+                chikuwa::insensitive_contains(&name, &needles)
             
         });
         

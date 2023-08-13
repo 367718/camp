@@ -928,7 +928,7 @@ fn search_compute(state: &mut State) {
                         let file_stem = files_store.value(store_iter, 3).get::<glib::GString>().unwrap();
                         
                         // skip element if neither its container nor its file_stem seem relevant
-                        if ! chikuwa::case_insensitive_contains(&container, &needles) && ! chikuwa::case_insensitive_contains(&file_stem, &needles) {
+                        if ! chikuwa::insensitive_contains(&container, &needles) && ! chikuwa::insensitive_contains(&file_stem, &needles) {
                             return false;
                         }
                         
@@ -944,7 +944,7 @@ fn search_compute(state: &mut State) {
                         let file_stem = files_store.value(store_iter, 3).get::<glib::GString>().unwrap();
                         
                         // skip element if its file_stem does not seem relevant
-                        if ! chikuwa::case_insensitive_contains(&file_stem, &needles) {
+                        if ! chikuwa::insensitive_contains(&file_stem, &needles) {
                             return false;
                         }
                         
@@ -984,7 +984,7 @@ fn search_compute(state: &mut State) {
         watchlist_store.foreach(|_, _, store_iter| {
             let title = watchlist_store.value(store_iter, 3).get::<glib::GString>().unwrap();
             
-            if chikuwa::case_insensitive_contains(&title, &needles) {
+            if chikuwa::insensitive_contains(&title, &needles) {
                 let status = watchlist_store.value(store_iter, 2).get::<i64>().unwrap();
                 let section = WatchlistSection::try_from(status).unwrap();
                 
