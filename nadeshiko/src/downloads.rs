@@ -39,13 +39,15 @@ impl<'f, 'c, T: IsCandidate> Iterator for DownloadsEntries<'f, 'c, T> {
     type Item = DownloadsEntry<'f>;
     
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(item) = chikuwa::tag_range(self.feed, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
+        while let Some(range) = chikuwa::tag_range(self.feed, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
             
-            let result = build_entry(&self.feed[item.start..item.end], self.candidates);
-            self.feed = &self.feed[item.end.saturating_add(ITEM_CLOSE_TAG.len())..];
+            let (item, rest) = self.feed.split_at(range.end);
             
-            if result.is_some() {
-                return result;
+            let entry = build_entry(item, self.candidates);
+            self.feed = rest;
+            
+            if entry.is_some() {
+                return entry;
             }
             
         }
@@ -57,8 +59,7 @@ impl<'f, 'c, T: IsCandidate> Iterator for DownloadsEntries<'f, 'c, T> {
 
 fn build_entry<'f, T: IsCandidate>(item: &'f [u8], candidates: &[T]) -> Option<DownloadsEntry<'f>> {
     let title = chikuwa::tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG)
-        .and_then(|field| str::from_utf8(&item[field]).ok())
-        .map(str::trim)?;
+        .and_then(|field| str::from_utf8(&item[field]).ok())?;
     
     let candidate = candidates.iter()
         .find(|candidate| candidate.is_relevant(title))?;
@@ -67,8 +68,7 @@ fn build_entry<'f, T: IsCandidate>(item: &'f [u8], candidates: &[T]) -> Option<D
         .filter(|&episode| candidate.can_download(episode))?;
     
     let link = chikuwa::tag_range(item, LINK_OPEN_TAG, LINK_CLOSE_TAG)
-        .and_then(|field| str::from_utf8(&item[field]).ok())
-        .map(str::trim)?;
+        .and_then(|field| str::from_utf8(&item[field]).ok())?;
     
     let id = candidate.id();
     
