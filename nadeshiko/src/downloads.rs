@@ -43,8 +43,8 @@ impl<'f, 'c, T: IsCandidate> Iterator for DownloadsEntries<'f, 'c, T> {
             
             let (item, rest) = self.feed.split_at(range.end);
             
-            let entry = build_entry(item, self.candidates);
-            self.feed = rest;
+            let entry = build_entry(&item[range.start..], self.candidates);
+            self.feed = &rest[ITEM_CLOSE_TAG.len()..];
             
             if entry.is_some() {
                 return entry;
