@@ -41,10 +41,8 @@ impl<'f, 'c, T: IsCandidate> Iterator for DownloadsEntries<'f, 'c, T> {
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(range) = chikuwa::tag_range(self.feed, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
             
-            let (item, rest) = self.feed.split_at(range.end);
-            
-            let entry = build_entry(&item[range.start..], self.candidates);
-            self.feed = &rest[ITEM_CLOSE_TAG.len()..];
+            let entry = build_entry(&self.feed[range.start..range.end], self.candidates);
+            self.feed = &self.feed[range.end..][ITEM_CLOSE_TAG.len()..];
             
             if entry.is_some() {
                 return entry;
