@@ -77,11 +77,11 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
                         sender_cloned.send(Message::Watchlist(WatchlistActions::CopyTitles)).unwrap();
                     },
                     
-                    _ => return Inhibit(false),
+                    _ => return glib::Propagation::Proceed,
                     
                 }
                 
-                Inhibit(true)
+                glib::Propagation::Stop
             }
         });
         

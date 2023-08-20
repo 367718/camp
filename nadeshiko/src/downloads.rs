@@ -1,19 +1,19 @@
 use std::str;
 
-use crate::IsCandidate;
+use chiaki::CandidatesEntry;
 
-pub struct DownloadsEntries<'f, 'c, T> {
+pub struct DownloadsEntries<'f, 'c> {
     feed: &'f [u8],
-    candidates: &'c [T],
+    candidates: &'c [&'c CandidatesEntry],
 }
 
 #[derive(PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
-pub struct DownloadsEntry<'f> {
+pub struct DownloadsEntry<'f, 'c> {
     pub title: &'f str,
     pub link: &'f str,
     pub episode: i64,
-    pub id: i64,
+    pub candidate: &'c CandidatesEntry,
 }
 
 const ITEM_OPEN_TAG: &[u8] = b"<item>";
@@ -23,9 +23,9 @@ const TITLE_CLOSE_TAG: &[u8] = b"</title>";
 const LINK_OPEN_TAG: &[u8] = b"<link>";
 const LINK_CLOSE_TAG: &[u8] = b"</link>";
 
-impl<'f, 'c, T: IsCandidate> DownloadsEntries<'f, 'c, T> {
+impl<'f, 'c> DownloadsEntries<'f, 'c> {
     
-    pub fn get(feed: &'f [u8], candidates: &'c [T]) -> Self {
+    pub fn get(feed: &'f [u8], candidates: &'c [&'c CandidatesEntry]) -> Self {
         Self {
             feed,
             candidates,
@@ -34,9 +34,9 @@ impl<'f, 'c, T: IsCandidate> DownloadsEntries<'f, 'c, T> {
     
 }
 
-impl<'f, 'c, T: IsCandidate> Iterator for DownloadsEntries<'f, 'c, T> {
+impl<'f, 'c> Iterator for DownloadsEntries<'f, 'c> {
     
-    type Item = DownloadsEntry<'f>;
+    type Item = DownloadsEntry<'f, 'c>;
     
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(range) = chikuwa::tag_range(self.feed, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
@@ -55,26 +55,24 @@ impl<'f, 'c, T: IsCandidate> Iterator for DownloadsEntries<'f, 'c, T> {
     
 }
 
-fn build_entry<'f, T: IsCandidate>(item: &'f [u8], candidates: &[T]) -> Option<DownloadsEntry<'f>> {
+fn build_entry<'f, 'c>(item: &'f [u8], candidates: &'c [&'c CandidatesEntry]) -> Option<DownloadsEntry<'f, 'c>> {
     let title = chikuwa::tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG)
         .and_then(|field| str::from_utf8(&item[field]).ok())?;
     
     let candidate = candidates.iter()
-        .find(|candidate| candidate.is_relevant(title))?;
+        .find(|candidate| chikuwa::insensitive_contains(title, &candidate.pieces()))?;
     
-    let episode = crate::extractor::get(&candidate.clean(title))
-        .filter(|&episode| candidate.can_download(episode))?;
+    let episode = crate::extractor::get(title, &candidate.pieces())
+        .filter(|episode| ! candidate.downloaded().contains(episode))?;
     
     let link = chikuwa::tag_range(item, LINK_OPEN_TAG, LINK_CLOSE_TAG)
         .and_then(|field| str::from_utf8(&item[field]).ok())?;
-    
-    let id = candidate.id();
     
     Some(DownloadsEntry {
         title,
         link,
         episode,
-        id,
+        candidate,
     })
 }
 
@@ -82,37 +80,6 @@ fn build_entry<'f, T: IsCandidate>(item: &'f [u8], candidates: &[T]) -> Option<D
 mod tests {
     
     use super::*;
-    
-    use std::io::Write;
-    
-    struct CandidatesEntry {
-        title: String,
-        id: i64,
-    }
-    
-    impl IsCandidate for CandidatesEntry {
-        
-        fn is_relevant(&self, current: &str) -> bool {
-            current.contains(&self.title)
-        }
-        
-        fn clean(&self, current: &str) -> String {
-            current.replace(&self.title, "")
-        }
-        
-        fn can_download(&self, _episode: i64) -> bool {
-            true
-        }
-        
-        fn can_update(&self, _episode: i64) -> bool {
-            true
-        }
-        
-        fn id(&self) -> i64 {
-            self.id
-        }
-        
-    }
     
     #[cfg(test)]
     mod get {
@@ -126,18 +93,9 @@ mod tests {
             let feed = generate_feed();
             
             let candidates = [
-                CandidatesEntry {
-                    title: String::from("Fictional"),
-                    id: 15,
-                },
-                CandidatesEntry {
-                    title: String::from("Not defined"),
-                    id: 2,
-                },
-                CandidatesEntry {
-                    title: String::from("Test"),
-                    id: 10,
-                },
+                &CandidatesEntry::new().with_title(String::from("Fictional")),
+                &CandidatesEntry::new().with_title(String::from("Not defined")),
+                &CandidatesEntry::new().with_title(String::from("Test")),
             ];
             
             // operation
@@ -153,25 +111,25 @@ mod tests {
                     title: "[Imaginary] Fictional - 10 [480p]",
                     link: "http://example.com/invalid",
                     episode: 10,
-                    id: 15,
+                    candidate: &CandidatesEntry::new().with_title(String::from("Fictional")),
                 },
                 DownloadsEntry {
                     title: "test/[Placeholder] Test - 10 [1080p]",
                     link: "http://example.com/releases/564683.torrent",
                     episode: 10,
-                    id: 10,
+                    candidate: &CandidatesEntry::new().with_title(String::from("Test")),
                 },
                 DownloadsEntry {
                     title: "[Placeholder] Test - 11 [1080p]",
                     link: "http://example.com/releases/8723034.torrent",
                     episode: 11,
-                    id: 10,
+                    candidate: &CandidatesEntry::new().with_title(String::from("Test")),
                 },
                 DownloadsEntry {
                     title: "[Placeholder] Test - 12 [1080p]",
                     link: "http://example.com/releases/7821023.torrent",
                     episode: 12,
-                    id: 10,
+                    candidate: &CandidatesEntry::new().with_title(String::from("Test")),
                 },
             ]));
         }
@@ -183,10 +141,7 @@ mod tests {
             let feed = generate_feed();
             
             let candidates = [
-                CandidatesEntry {
-                    title: String::from("Not defined"),
-                    id: 2,
-                },
+                &CandidatesEntry::new().with_title(String::from("Not defined")),
             ];
             
             // operation
@@ -206,7 +161,7 @@ mod tests {
             
             let feed = Vec::new();
             
-            let candidates: Vec<CandidatesEntry> = Vec::new();
+            let candidates = Vec::new();
             
             // operation
             
@@ -226,18 +181,9 @@ mod tests {
             let feed = Vec::new();
             
             let candidates = [
-                CandidatesEntry {
-                    title: String::from("Fictional"),
-                    id: 15,
-                },
-                CandidatesEntry {
-                    title: String::from("Not defined"),
-                    id: 2,
-                },
-                CandidatesEntry {
-                    title: String::from("Test"),
-                    id: 10,
-                },
+                &CandidatesEntry::new().with_title(String::from("Fictional")),
+                &CandidatesEntry::new().with_title(String::from("Not defined")),
+                &CandidatesEntry::new().with_title(String::from("Test")),
             ];
             
             // operation
@@ -257,7 +203,7 @@ mod tests {
             
             let feed = generate_feed();
             
-            let candidates: Vec<CandidatesEntry> = Vec::new();
+            let candidates = Vec::new();
             
             // operation
             
@@ -273,49 +219,49 @@ mod tests {
         fn generate_feed() -> Vec<u8> {
             let mut feed = Vec::new();
             
-            write!(feed, "<rss>").unwrap();
-            write!(feed, "<channel>").unwrap();
+            feed.extend_from_slice(b"<rss>");
+            feed.extend_from_slice(b"<channel>");
             
-            write!(feed, "<item>").unwrap();
-            write!(feed, "<title>[Imaginary] Fictional - 10 [480p]</title>").unwrap();
-            write!(feed, "<link>http://example.com/invalid</link>").unwrap();
-            write!(feed, "</item>").unwrap();
+            feed.extend_from_slice(b"<item>");
+            feed.extend_from_slice(b"<title>[Imaginary] Fictional - 10 [480p]</title>");
+            feed.extend_from_slice(b"<link>http://example.com/invalid</link>");
+            feed.extend_from_slice(b"</item>");
             
-            write!(feed, "<item>").unwrap();
-            write!(feed, "</item>").unwrap();
+            feed.extend_from_slice(b"<item>");
+            feed.extend_from_slice(b"</item>");
             
-            write!(feed, "<item>").unwrap();
-            write!(feed, "<title>[Invalid] Undefined - 2 [720p]</title>").unwrap();
-            write!(feed, "<link>http://example.com/undefined</link>").unwrap();
-            write!(feed, "</item>").unwrap();
+            feed.extend_from_slice(b"<item>");
+            feed.extend_from_slice(b"<title>[Invalid] Undefined - 2 [720p]</title>");
+            feed.extend_from_slice(b"<link>http://example.com/undefined</link>");
+            feed.extend_from_slice(b"</item>");
             
-            write!(feed, "<item>").unwrap();
-            write!(feed, "<item>").unwrap();
-            write!(feed, "<item>").unwrap();
-            write!(feed, "<title>test/[Placeholder] Test - 10 [1080p]</title>").unwrap();
-            write!(feed, "<link>http://example.com/releases/564683.torrent</link>").unwrap();
-            write!(feed, "</item>").unwrap();
+            feed.extend_from_slice(b"<item>");
+            feed.extend_from_slice(b"<item>");
+            feed.extend_from_slice(b"<item>");
+            feed.extend_from_slice(b"<title>test/[Placeholder] Test - 10 [1080p]</title>");
+            feed.extend_from_slice(b"<link>http://example.com/releases/564683.torrent</link>");
+            feed.extend_from_slice(b"</item>");
             
-            write!(feed, "<item>").unwrap();
-            write!(feed, "<title>[Placeholder] Test - 11 [1080p]</title>").unwrap();
-            write!(feed, "<link>http://example.com/releases/8723034.torrent</link>").unwrap();
-            write!(feed, "</item>").unwrap();
+            feed.extend_from_slice(b"<item>");
+            feed.extend_from_slice(b"<title>[Placeholder] Test - 11 [1080p]</title>");
+            feed.extend_from_slice(b"<link>http://example.com/releases/8723034.torrent</link>");
+            feed.extend_from_slice(b"</item>");
             
-            write!(feed, "<item>").unwrap();
-            write!(feed, "<title>[Placeholder] Test - 12 [1080p]</title>").unwrap();
-            write!(feed, "<link>http://example.com/releases/7821023.torrent</link>").unwrap();
-            write!(feed, "</item>").unwrap();
+            feed.extend_from_slice(b"<item>");
+            feed.extend_from_slice(b"<title>[Placeholder] Test - 12 [1080p]</title>");
+            feed.extend_from_slice(b"<link>http://example.com/releases/7821023.torrent</link>");
+            feed.extend_from_slice(b"</item>");
             
-            write!(feed, "<item>").unwrap();
-            write!(feed, "<title>title</title>").unwrap();
-            write!(feed, "</item>").unwrap();
+            feed.extend_from_slice(b"<item>");
+            feed.extend_from_slice(b"<title>title</title>");
+            feed.extend_from_slice(b"</item>");
             
-            write!(feed, "<item>").unwrap();
-            write!(feed, "<link>link</link>").unwrap();
-            write!(feed, "</item>").unwrap();
+            feed.extend_from_slice(b"<item>");
+            feed.extend_from_slice(b"<link>link</link>");
+            feed.extend_from_slice(b"</item>");
             
-            write!(feed, "</channel>").unwrap();
-            write!(feed, "</rss>").unwrap();
+            feed.extend_from_slice(b"</channel>");
+            feed.extend_from_slice(b"</rss>");
             
             feed
         }

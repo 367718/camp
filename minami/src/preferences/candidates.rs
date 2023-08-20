@@ -6,7 +6,7 @@ use std::{
 use gtk::{
     gdk,
     gio,
-    glib::Sender,
+    glib::{ self, Sender },
     prelude::*,
 };
 
@@ -130,7 +130,7 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
                 gdk::keys::constants::Delete => sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesDelete)).unwrap(),
                 _ => (),
             }
-            Inhibit(false)
+            glib::Propagation::Proceed
         }
     });
     
@@ -154,9 +154,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
             match eventkey.keyval() {
                 gdk::keys::constants::Tab => sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedFocusTreeview)).unwrap(),
                 gdk::keys::constants::ISO_Left_Tab => sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap(),
-                _ => return Inhibit(false),
+                _ => return glib::Propagation::Proceed,
             }
-            Inhibit(true)
+            glib::Propagation::Stop
         }
     });
     
@@ -174,7 +174,7 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
                 gdk::keys::constants::Delete => sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedDelete)).unwrap(),
                 _ => (),
             }
-            Inhibit(false)
+            glib::Propagation::Proceed
         }
     });
     
@@ -186,9 +186,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
             match eventkey.keyval() {
                 gdk::keys::constants::Tab => sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesFocusFirstButton)).unwrap(),
                 gdk::keys::constants::ISO_Left_Tab => sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesFocusTreeview)).unwrap(),
-                _ => return Inhibit(false),
+                _ => return glib::Propagation::Proceed,
             }
-            Inhibit(true)
+            glib::Propagation::Stop
         }
     });
     
@@ -202,9 +202,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         button.connect_key_press_event({
             move |_, eventkey| {
                 if eventkey.keyval() == gdk::keys::constants::Up {
-                    return Inhibit(true);
+                    return glib::Propagation::Stop;
                 }
-                Inhibit(false)
+                glib::Propagation::Proceed
             }
         });
         
@@ -220,14 +220,14 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
                 
                 if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
                     sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedFocusTreeview)).unwrap();
-                    return Inhibit(true);
+                    return glib::Propagation::Stop;
                 }
                 
                 if eventkey.keyval() == gdk::keys::constants::Left {
-                    return Inhibit(true);
+                    return glib::Propagation::Stop;
                 }
                 
-                Inhibit(false)
+                glib::Propagation::Proceed
                 
             }
         });
@@ -244,9 +244,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
                 match eventkey.keyval() {
                     gdk::keys::constants::Tab => sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedFocusFirstButton)).unwrap(),
                     gdk::keys::constants::Right => sender_cloned.send(Message::Preferences(PreferencesActions::DownloadedFocusFirstButton)).unwrap(),
-                    _ => return Inhibit(false),
+                    _ => return glib::Propagation::Proceed,
                 }
-                Inhibit(true)
+                glib::Propagation::Stop
             }
         });
         
@@ -260,9 +260,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         button.connect_key_press_event({
             move |_, eventkey| {
                 if eventkey.keyval() == gdk::keys::constants::Up {
-                    return Inhibit(true);
+                    return glib::Propagation::Stop;
                 }
-                Inhibit(false)
+                glib::Propagation::Proceed
             }
         });
         
@@ -278,9 +278,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
                 match eventkey.keyval() {
                     gdk::keys::constants::ISO_Left_Tab => sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesFocusLastButton)).unwrap(),
                     gdk::keys::constants::Left => sender_cloned.send(Message::Preferences(PreferencesActions::CandidatesFocusLastButton)).unwrap(),
-                    _ => return Inhibit(false),
+                    _ => return glib::Propagation::Proceed,
                 }
-                Inhibit(true)
+                glib::Propagation::Stop
             }
         });
         

@@ -39,10 +39,10 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
                     
                     key if (key == gdk::keys::constants::L || key == gdk::keys::constants::l) && eventkey.state().contains(gdk::ModifierType::CONTROL_MASK) => {
                         sender_cloned.send(Message::Watchlist(WatchlistActions::Lookup)).unwrap();
-                        Inhibit(true)
+                        glib::Propagation::Stop
                     },
                     
-                    _ => Inhibit(false),
+                    _ => glib::Propagation::Proceed,
                     
                 }
             }

@@ -74,10 +74,17 @@ impl Candidates {
         
         sort.set_sort_func(gtk::SortColumn::Index(0), move |model, first_iter, second_iter| {
             
-            let first_title = model.value(first_iter, 1).get::<glib::GString>().unwrap();
-            let second_title = model.value(second_iter, 1).get::<glib::GString>().unwrap();
+            let first_title = model.value(first_iter, 1)
+                .get::<&glib::GStr>()
+                .map(|title| title.to_lowercase())
+                .unwrap();
             
-            chikuwa::natural_cmp(&first_title, &second_title)
+            let second_title = model.value(second_iter, 1)
+                .get::<&glib::GStr>()
+                .map(|title| title.to_lowercase())
+                .unwrap();
+            
+            first_title.to_lowercase().cmp(&second_title.to_lowercase())
             
         });
         

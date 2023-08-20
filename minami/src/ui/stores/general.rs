@@ -55,10 +55,17 @@ impl Search {
             else if ! first_file && second_file { Ordering::Greater }
             else {
                 
-                let first_name = model.value(first_iter, 1).get::<glib::GString>().unwrap();
-                let second_name = model.value(second_iter, 1).get::<glib::GString>().unwrap();
+                let first_name = model.value(first_iter, 1)
+                    .get::<&glib::GStr>()
+                    .map(|name| name.to_lowercase())
+                    .unwrap();
                 
-                chikuwa::natural_cmp(&first_name, &second_name)
+                let second_name = model.value(second_iter, 1)
+                    .get::<&glib::GStr>()
+                    .map(|name| name.to_lowercase())
+                    .unwrap();
+                
+                first_name.to_lowercase().cmp(&second_name.to_lowercase())
                 
             }
             

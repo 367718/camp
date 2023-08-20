@@ -3,7 +3,7 @@ use std::time::Duration;
 use gtk::{
     gdk,
     gio,
-    glib::Sender,
+    glib::{ self, Sender },
     prelude::*,
 };
 
@@ -76,9 +76,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         entry.connect_key_press_event({
             move |_, eventkey| {
                 match eventkey.keyval() {
-                    gdk::keys::constants::Up => Inhibit(true),
-                    gdk::keys::constants::Down => Inhibit(true),
-                    _ => Inhibit(false),
+                    gdk::keys::constants::Up => glib::Propagation::Stop,
+                    gdk::keys::constants::Down => glib::Propagation::Stop,
+                    _ => glib::Propagation::Proceed,
                 }
             }
         });
@@ -91,9 +91,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         move |_, eventkey| {
             if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
                 sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
-                return Inhibit(true);
+                return glib::Propagation::Stop;
             }
-            Inhibit(false)
+            glib::Propagation::Proceed
         }
     });
     
@@ -112,10 +112,10 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         switch.connect_key_press_event({
             move |_, eventkey| {
                 match eventkey.keyval() {
-                    gdk::keys::constants::Up => Inhibit(true),
-                    gdk::keys::constants::Down => Inhibit(true),
-                    gdk::keys::constants::Left => Inhibit(true),
-                    _ => Inhibit(false),
+                    gdk::keys::constants::Up => glib::Propagation::Stop,
+                    gdk::keys::constants::Down => glib::Propagation::Stop,
+                    gdk::keys::constants::Left => glib::Propagation::Stop,
+                    _ => glib::Propagation::Proceed,
                 }
             }
         });
@@ -130,9 +130,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         button.connect_key_press_event({
             move |_, eventkey| {
                 if eventkey.keyval() == gdk::keys::constants::Up {
-                    return Inhibit(true);
+                    return glib::Propagation::Stop;
                 }
-                Inhibit(false)
+                glib::Propagation::Proceed
             }
         });
         
@@ -144,9 +144,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         button.connect_key_press_event({
             move |_, eventkey| {
                 if eventkey.keyval() == gdk::keys::constants::Left {
-                    return Inhibit(true);
+                    return glib::Propagation::Stop;
                 }
-                Inhibit(false)
+                glib::Propagation::Proceed
             }
         });
         
@@ -160,9 +160,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
             move |_, eventkey| {
                 if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
                     sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
-                    return Inhibit(true);
+                    return glib::Propagation::Stop;
                 }
-                Inhibit(false)
+                glib::Propagation::Proceed
             }
         });
         

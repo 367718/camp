@@ -109,11 +109,11 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
                         sender_cloned.send(Message::Files(FilesActions::Delete)).unwrap();
                     },
                     
-                    _ => return Inhibit(false),
+                    _ => return glib::Propagation::Proceed,
                     
                 }
                 
-                Inhibit(true)
+                glib::Propagation::Stop
             }
         });
         
@@ -130,7 +130,7 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
                 if event.event_type() == gdk::EventType::ButtonRelease && event.button().unwrap() == 2 {
                     sender_cloned.send(Message::Files(FilesActions::MarkAsWatched)).unwrap();
                 }
-                Inhibit(false)
+                glib::Propagation::Proceed
             }
         });
         

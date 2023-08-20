@@ -17,10 +17,10 @@ use gtk::{
 use crate::{
     State, Message,
     PreferencesActions, FilesActions,
-    FeedsId, FeedsEntry, SeriesId,
+    FeedsId, FeedsEntry,
     CandidatesEntry, CandidatesCurrent,
-    FilesEntry, FilesMark,
-    DownloadsEntries, DownloadsEntry, UpdatesEntries,
+    FilesMark,
+    DownloadsEntries, DownloadsEntry, UpdatesEntries, UpdatesEntry,
     RemoteControlServer,
     HttpClient,
 };
@@ -88,10 +88,10 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
                     
                     key if (key == gdk::keys::constants::L || key == gdk::keys::constants::l) && eventkey.state().contains(gdk::ModifierType::CONTROL_MASK) => {
                         sender_cloned.send(Message::Files(FilesActions::Lookup)).unwrap();
-                        Inhibit(true)
+                        glib::Propagation::Stop
                     },
                     
-                    _ => Inhibit(false),
+                    _ => glib::Propagation::Proceed,
                     
                 }
             }
@@ -162,7 +162,7 @@ pub fn remote(state: &mut State) {
     
     // ---------- channel ----------
     
-    let (job_sender, job_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+    let (job_sender, job_receiver) = glib::MainContext::channel(glib::Priority::DEFAULT);
     
     // ---------- server ----------
     
@@ -181,7 +181,7 @@ pub fn remote(state: &mut State) {
             // this can end up printing a message to the buffer after the dialog has been closed
             job_receiver.attach(None, move |error| {
                 progress_buffer.insert(&mut progress_buffer.end_iter(), &chikuwa::concat_str!("ERROR: ", &error.to_string()));
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             });
             
         },
@@ -267,7 +267,7 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
     
     // ---------- channel ----------
     
-    let (job_sender, job_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+    let (job_sender, job_receiver) = glib::MainContext::channel(glib::Priority::DEFAULT);
     
     // ---------- thread ----------
     
@@ -292,13 +292,13 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
                         let mut found_releases = false;
                         
                         let mut downloads: Vec<DownloadsEntry> = DownloadsEntries::get(&content, &candidates).collect();
-                        downloads.sort_unstable_by(|a, b| chikuwa::natural_cmp(a.title, b.title));
+                        downloads.sort_unstable_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
                         
                         result.reserve(downloads.len());
                         
                         for download in downloads {
                             
-                            let current = (SeriesId::from(download.id), download.episode);
+                            let current = (download.candidate.series(), download.episode);
                             
                             if ! result.contains(&current) {
                                 
@@ -346,7 +346,7 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
                 None => job_dialog.set_response_sensitive(gtk::ResponseType::Close, true),
             }
             
-            glib::Continue(true)
+            glib::ControlFlow::Continue
         });
         
         // ---------- dialog ----------
@@ -372,48 +372,16 @@ pub fn download(state: &mut State, sender: &Sender<Message>) {
 }
 
 pub fn update(state: &mut State, sender: &Sender<Message>) {
-    
-    fn get_name(entry: &FilesEntry) -> Option<&str> {
-        match entry.container().as_ref() {
-            
-            // include container in file stem
-            Some(container) => {
-                
-                let mut ancestors = entry.path().ancestors();
-                
-                let skip = Path::new(&container)
-                    .components()
-                    .count()
-                    .checked_add(1)?;
-                
-                let prefix = ancestors.nth(skip)?;
-                
-                let extension = entry.path().extension()?.to_str()?;
-                
-                entry.path().strip_prefix(prefix).ok()?
-                    .to_str()
-                    .and_then(|name| name.strip_suffix(extension))
-                    .and_then(|name| name.strip_suffix('.'))
-                
-            },
-            
-            None => entry.name().to_str(),
-            
-        }
-    }
-    
     // ---------- parameters ----------
     
     let candidates = state.database.candidates_iter()
         .map(|(_, entry)| entry)
         .collect::<Vec<&CandidatesEntry>>();
     
-    let mut files = state.files.iter()
+    let files = state.files.iter()
         .filter(|entry| entry.mark() == FilesMark::Watched)
-        .filter_map(|entry| Some((get_name(entry)?, entry.path())))
+        .filter_map(|entry| Some((entry.name().to_str()?, entry.path())))
         .collect::<Vec<(&str, &Path)>>();
-    
-    files.sort_unstable_by(|a, b| chikuwa::natural_cmp(a.0, b.0));
     
     // ---------- dialog ----------
     
@@ -425,21 +393,19 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
     
     // ---------- updates and progress ----------
     
-    let mut result = Vec::with_capacity(25);
+    let mut updates: Vec<UpdatesEntry> = UpdatesEntries::get(&files, &candidates).collect();
+    updates.sort_unstable_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
     
-    for update in UpdatesEntries::get(&files, &candidates) {
+    let mut result = Vec::with_capacity(updates.len());
+    
+    for update in updates {
         
-        let id = SeriesId::from(update.id);
+        let episode = update.episode.saturating_sub(update.candidate.offset());
         
-        if let Some((_, candidate)) = state.database.candidates_iter().find(|(_, current)| current.series() == id) {
-            
-            let episode = update.episode.saturating_sub(candidate.offset());
-            
-            if episode > 0 {
-                progress_buffer.insert(&mut progress_buffer.end_iter(), &chikuwa::concat_str!(update.name, "\n"));
-                result.push((id, episode, update.path.to_owned()));
-            }
-            
+        if episode > 0 {
+            progress_buffer.insert(&mut progress_buffer.end_iter(), &chikuwa::concat_str!(update.name, "\n"));
+            let id = update.candidate.series();
+            result.push((id, episode, update.path.to_owned()));
         }
         
     }
@@ -458,6 +424,5 @@ pub fn update(state: &mut State, sender: &Sender<Message>) {
     
     // ---------- cleanup ----------
     
-    state.ui.widgets().dialogs.files.job.progress_textview.buffer().unwrap().set_text("");
-    
+    state.ui.widgets().dialogs.files.job.progress_textview.buffer().unwrap().set_text("");    
 }

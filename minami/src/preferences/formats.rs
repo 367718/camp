@@ -1,7 +1,7 @@
 use gtk::{
     gdk,
     gio,
-    glib::Sender,
+    glib::{ self, Sender },
     prelude::*,
 };
 
@@ -97,7 +97,7 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
                 gdk::keys::constants::Delete => sender_cloned.send(Message::Preferences(PreferencesActions::FormatsDelete)).unwrap(),
                 _ => (),
             }
-            Inhibit(false)
+            glib::Propagation::Proceed
         }
     });
     
@@ -113,9 +113,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         move |_, eventkey| {
             if eventkey.keyval() == gdk::keys::constants::ISO_Left_Tab {
                 sender_cloned.send(Message::General(GeneralActions::SearchFocus)).unwrap();
-                return Inhibit(true);
+                return glib::Propagation::Stop;
             }
-            Inhibit(false)
+            glib::Propagation::Proceed
         }
     });
     
@@ -127,9 +127,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         button.connect_key_press_event({
             move |_, eventkey| {
                 if eventkey.keyval() == gdk::keys::constants::Up {
-                    return Inhibit(true);
+                    return glib::Propagation::Stop;
                 }
-                Inhibit(false)
+                glib::Propagation::Proceed
             }
         });
         
@@ -141,9 +141,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         button.connect_key_press_event({
             move |_, eventkey| {
                 if eventkey.keyval() == gdk::keys::constants::Left {
-                    return Inhibit(true);
+                    return glib::Propagation::Stop;
                 }
-                Inhibit(false)
+                glib::Propagation::Proceed
             }
         });
         

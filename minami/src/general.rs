@@ -195,9 +195,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
             match eventkey.keyval() {
                 gdk::keys::constants::Tab => sender_cloned.send(Message::General(GeneralActions::SectionFocusStart)).unwrap(),
                 gdk::keys::constants::ISO_Left_Tab => sender_cloned.send(Message::General(GeneralActions::SectionFocusEnd)).unwrap(),
-                _ => return Inhibit(false),
+                _ => return glib::Propagation::Proceed,
             }
-            Inhibit(true)
+            glib::Propagation::Stop
         }
     });
     
@@ -205,9 +205,9 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
     search_entry.connect_key_press_event({
         move |_, eventkey| {
             if eventkey.keyval() == gdk::keys::constants::Down {
-                return Inhibit(true);
+                return glib::Propagation::Stop;
             }
-            Inhibit(false)
+            glib::Propagation::Proceed
         }
     });
     
@@ -218,7 +218,7 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
             if let Some(string_iter) = model.string_from_iter(iter).map(|iter| iter.to_string()) {
                 sender_cloned.send(Message::General(GeneralActions::SearchSelect(string_iter))).unwrap();
             }
-            Inhibit(true)
+            glib::Propagation::Stop
         }
     });
     
@@ -252,7 +252,7 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
         let sender_cloned = sender.clone();
         move |_, _| {
             sender_cloned.send(Message::General(GeneralActions::SaveAndQuit)).unwrap();
-            Inhibit(true)
+            glib::Propagation::Stop
         }
     });
 }

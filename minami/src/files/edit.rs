@@ -69,11 +69,11 @@ fn bind(app: &gtk::Application, state: &State, sender: &Sender<Message>) {
                         sender_cloned.send(Message::Files(FilesActions::CopyNames)).unwrap();
                     },
                     
-                    _ => return Inhibit(false),
+                    _ => return glib::Propagation::Proceed,
                     
                 }
                 
-                Inhibit(true)
+                glib::Propagation::Stop
             }
         });
         
@@ -103,22 +103,7 @@ fn selected_name(state: &State) -> Option<String> {
     
     let treeiter = treemodel.iter(treepaths.first()?)?;
     
-    let name = match treemodel.iter_parent(&treeiter) {
-        
-        Some(parent_iter) => {
-            
-            let container = treemodel.value(&parent_iter, 3).get::<glib::GString>().unwrap();
-            let file_stem = treemodel.value(&treeiter, 3).get::<glib::GString>().unwrap();
-            
-            chikuwa::concat_str!(&container, MAIN_SEPARATOR_STR, &file_stem)
-            
-        },
-        
-        None => treemodel.value(&treeiter, 3).get::<String>().unwrap()
-        
-    };
-    
-    Some(name)
+    Some(treemodel.value(&treeiter, 3).get::<String>().unwrap())
 }
 
 pub fn copy_names(state: &State) {

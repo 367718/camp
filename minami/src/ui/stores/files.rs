@@ -102,17 +102,31 @@ impl Entries {
     fn set_sort_func(sort: &gtk::TreeModelSort) {
         sort.set_sort_func(gtk::SortColumn::Index(0), |model, first_iter, second_iter| {
             
-            let first_path = model.value(first_iter, 0).get::<glib::GString>().unwrap();
-            let second_path = model.value(second_iter, 0).get::<glib::GString>().unwrap();
+            let first_path_is_empty = model.value(first_iter, 0)
+                .get::<&glib::GStr>()
+                .map(|path| path.is_empty())
+                .unwrap();
             
-            if first_path.is_empty() && ! second_path.is_empty() { Ordering::Greater }
-            else if ! first_path.is_empty() && second_path.is_empty() { Ordering::Less }
+            let second_path_is_empty = model.value(second_iter, 0)
+                .get::<&glib::GStr>()
+                .map(|path| path.is_empty())
+                .unwrap();
+            
+            if first_path_is_empty && ! second_path_is_empty { Ordering::Greater }
+            else if ! first_path_is_empty && second_path_is_empty { Ordering::Less }
             else {
                 
-                let first_file_stem = model.value(first_iter, 3).get::<glib::GString>().unwrap();
-                let second_file_stem = model.value(second_iter, 3).get::<glib::GString>().unwrap();
+                let first_file_stem = model.value(first_iter, 3)
+                    .get::<&glib::GStr>()
+                    .map(|file_stem| file_stem.to_lowercase())
+                    .unwrap();
                 
-                chikuwa::natural_cmp(&first_file_stem, &second_file_stem)
+                let second_file_stem = model.value(second_iter, 3)
+                    .get::<&glib::GStr>()
+                    .map(|file_stem| file_stem.to_lowercase())
+                    .unwrap();
+                
+                first_file_stem.to_lowercase().cmp(&second_file_stem.to_lowercase())
                 
             }
             
@@ -140,10 +154,17 @@ impl MoveToFolder {
         
         sort.set_sort_func(gtk::SortColumn::Index(0), |model, first_iter, second_iter| {
             
-            let first_name = model.value(first_iter, 0).get::<glib::GString>().unwrap();
-            let second_name = model.value(second_iter, 0).get::<glib::GString>().unwrap();
+            let first_name = model.value(first_iter, 0)
+                .get::<&glib::GStr>()
+                .map(|name| name.to_lowercase())
+                .unwrap();
             
-            chikuwa::natural_cmp(&first_name, &second_name)
+            let second_name = model.value(second_iter, 0)
+                .get::<&glib::GStr>()
+                .map(|name| name.to_lowercase())
+                .unwrap();
+            
+            first_name.to_lowercase().cmp(&second_name.to_lowercase())
             
         });
         

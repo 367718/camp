@@ -1,24 +1,24 @@
 use std::path::Path;
 
-use crate::IsCandidate;
+use chiaki::CandidatesEntry;
 
-pub struct UpdatesEntries<'f, 'c, T> {
+pub struct UpdatesEntries<'f, 'c> {
     files: &'f [(&'f str, &'f Path)],
-    candidates: &'c [T],
+    candidates: &'c [&'c CandidatesEntry],
 }
 
 #[derive(PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
-pub struct UpdatesEntry<'f> {
+pub struct UpdatesEntry<'f, 'c> {
     pub name: &'f str,
     pub path: &'f Path,
     pub episode: i64,
-    pub id: i64,
+    pub candidate: &'c CandidatesEntry,
 }
 
-impl<'f, 'c, T: IsCandidate> UpdatesEntries<'f, 'c, T> {
+impl<'f, 'c> UpdatesEntries<'f, 'c> {
     
-    pub fn get(files: &'f [(&'f str, &'f Path)], candidates: &'c [T]) -> Self {
+    pub fn get(files: &'f [(&'f str, &'f Path)], candidates: &'c [&'c CandidatesEntry]) -> Self {
         Self {
             files,
             candidates,
@@ -27,18 +27,18 @@ impl<'f, 'c, T: IsCandidate> UpdatesEntries<'f, 'c, T> {
     
 }
 
-impl<'f, 'c, T: IsCandidate> Iterator for UpdatesEntries<'f, 'c, T> {
+impl<'f, 'c> Iterator for UpdatesEntries<'f, 'c> {
     
-    type Item = UpdatesEntry<'f>;
+    type Item = UpdatesEntry<'f, 'c>;
     
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(((name, path), rest)) = self.files.split_first() {
             
-            let result = build_entry(name, path, self.candidates);
+            let entry = build_entry(name, path, self.candidates);
             self.files = rest;
             
-            if result.is_some() {
-                return result;
+            if entry.is_some() {
+                return entry;
             }
             
         }
@@ -48,20 +48,17 @@ impl<'f, 'c, T: IsCandidate> Iterator for UpdatesEntries<'f, 'c, T> {
     
 }
 
-fn build_entry<'f, T: IsCandidate>(name: &'f str, path: &'f Path, candidates: &[T]) -> Option<UpdatesEntry<'f>> {
+fn build_entry<'f, 'c>(name: &'f str, path: &'f Path, candidates: &'c [&'c CandidatesEntry]) -> Option<UpdatesEntry<'f, 'c>> {
     let candidate = candidates.iter()
-        .find(|candidate| candidate.is_relevant(name))?;
+        .find(|candidate| chikuwa::insensitive_contains(name, &candidate.pieces()))?;
     
-    let episode = crate::extractor::get(&candidate.clean(name))
-        .filter(|&episode| candidate.can_update(episode))?;
-    
-    let id = candidate.id();
+    let episode = crate::extractor::get(name, &candidate.pieces())?;
     
     Some(UpdatesEntry {
         name,
         path,
         episode,
-        id,
+        candidate,
     })
 }
 
@@ -69,35 +66,6 @@ fn build_entry<'f, T: IsCandidate>(name: &'f str, path: &'f Path, candidates: &[
 mod tests {
     
     use super::*;
-    
-    struct CandidatesEntry {
-        title: String,
-        id: i64,
-    }
-    
-    impl IsCandidate for CandidatesEntry {
-        
-        fn is_relevant(&self, current: &str) -> bool {
-            current.contains(&self.title)
-        }
-        
-        fn clean(&self, current: &str) -> String {
-            current.replace(&self.title, "")
-        }
-        
-        fn can_download(&self, _episode: i64) -> bool {
-            true
-        }
-        
-        fn can_update(&self, _episode: i64) -> bool {
-            true
-        }
-        
-        fn id(&self) -> i64 {
-            self.id
-        }
-        
-    }
     
     #[cfg(test)]
     mod get {
@@ -111,18 +79,9 @@ mod tests {
             let files = generate_files();
             
             let candidates = [
-                CandidatesEntry {
-                    title: String::from("Fictional"),
-                    id: 15,
-                },
-                CandidatesEntry {
-                    title: String::from("Not defined"),
-                    id: 2,
-                },
-                CandidatesEntry {
-                    title: String::from("Test"),
-                    id: 10,
-                },
+                &CandidatesEntry::new().with_title(String::from("Fictional")),
+                &CandidatesEntry::new().with_title(String::from("Not defined")),
+                &CandidatesEntry::new().with_title(String::from("Test")),
             ];
             
             // operation
@@ -138,19 +97,19 @@ mod tests {
                     name: "[Imaginary] Fictional - 9 [480p]",
                     path: Path::new("fake/path/[Imaginary] Fictional - 9 [480p].mp4"),
                     episode: 9,
-                    id: 15,
+                    candidate: &CandidatesEntry::new().with_title(String::from("Fictional")),
                 },
                 UpdatesEntry {
                     name: "[Imaginary] Fictional - 10 [480p]",
                     path: Path::new("fake/path/[Imaginary] Fictional - 10 [480p].mp4"),
                     episode: 10,
-                    id: 15,
+                    candidate: &CandidatesEntry::new().with_title(String::from("Fictional")),
                 },
                 UpdatesEntry {
                     name: "[Placeholder] Test - 12 [1080p]",
                     path: Path::new("fake/path/[Placeholder] Test - 12 [1080p].mkv"),
                     episode: 12,
-                    id: 10,
+                    candidate: &CandidatesEntry::new().with_title(String::from("Test")),
                 },
             ]));
         }
@@ -162,10 +121,7 @@ mod tests {
             let files = generate_files();
             
             let candidates = [
-                CandidatesEntry {
-                    title: String::from("Not defined"),
-                    id: 2,
-                },
+                &CandidatesEntry::new().with_title(String::from("Not defined")),
             ];
             
             // operation
@@ -185,7 +141,7 @@ mod tests {
             
             let files = Vec::new();
             
-            let candidates: Vec<CandidatesEntry> = Vec::new();
+            let candidates = Vec::new();
             
             // operation
             
@@ -205,10 +161,9 @@ mod tests {
             let files = Vec::new();
             
             let candidates = [
-                CandidatesEntry {
-                    title: String::from("Not defined"),
-                    id: 2,
-                },
+                &CandidatesEntry::new().with_title(String::from("Fictional")),
+                &CandidatesEntry::new().with_title(String::from("Not defined")),
+                &CandidatesEntry::new().with_title(String::from("Test")),
             ];
             
             // operation
@@ -228,7 +183,7 @@ mod tests {
             
             let files = generate_files();
             
-            let candidates: Vec<CandidatesEntry> = Vec::new();
+            let candidates = Vec::new();
             
             // operation
             

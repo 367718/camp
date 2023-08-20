@@ -102,6 +102,10 @@ impl CandidatesEntry {
         &self.downloaded
     }
     
+    pub fn pieces(&self) -> [&str; 3] {
+        [&self.title, &self.group, &self.quality]
+    }
+    
     
     // ---------- mutators ----------
     
@@ -309,63 +313,6 @@ impl CandidatesCurrent {
             Self::No,
             Self::Yes,
         ].iter().copied()
-    }
-    
-}
-
-#[cfg(feature = "nadeshiko")]
-impl nadeshiko::IsCandidate for CandidatesEntry {
-    
-    fn is_relevant(&self, current: &str) -> bool {
-        chikuwa::insensitive_contains(
-            current,
-            &[&self.title, &self.group, &self.quality],
-        )
-    }
-    
-    fn clean(&self, current: &str) -> String {
-        let current = current.to_ascii_lowercase();
-        
-        current.replacen(&self.title.to_ascii_lowercase(), "", 1)
-            .replacen(&self.group.to_ascii_lowercase(), "", 1)
-            .replacen(&self.quality.to_ascii_lowercase(), "", 1)
-    }
-    
-    fn can_download(&self, episode: i64) -> bool {
-        ! self.downloaded.contains(&episode)
-    }
-    
-    fn can_update(&self, _episode: i64) -> bool {
-        true
-    }
-    
-    fn id(&self) -> i64 {
-        self.series.to_int()
-    }
-    
-}
-
-#[cfg(feature = "nadeshiko")]
-impl nadeshiko::IsCandidate for &'_ CandidatesEntry {
-    
-    fn is_relevant(&self, current: &str) -> bool {
-        (**self).is_relevant(current)
-    }
-    
-    fn clean(&self, current: &str) -> String {
-        (**self).clean(current)
-    }
-    
-    fn can_download(&self, episode: i64) -> bool {
-        (**self).can_download(episode)
-    }
-    
-    fn can_update(&self, episode: i64) -> bool {
-        (**self).can_update(episode)
-    }
-    
-    fn id(&self) -> i64 {
-        (**self).id()
     }
     
 }

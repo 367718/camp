@@ -20,7 +20,7 @@ use gtk::{
 };
 
 use rin::{ Params, Args, Config };
-use ena::{ Files, FilesEntry, FilesMark, FilesWatcherEvent };
+use ena::{ Files, FilesMark, FilesWatcherEvent };
 use chiaki::{
     Database,
     FeedsId, FeedsEntry,
@@ -29,7 +29,7 @@ use chiaki::{
     SeriesId, SeriesEntry, SeriesStatus, SeriesGood,
     CandidatesId, CandidatesEntry, CandidatesCurrent,
 };
-use nadeshiko::{ DownloadsEntries, DownloadsEntry, UpdatesEntries };
+use nadeshiko::{ DownloadsEntries, DownloadsEntry, UpdatesEntries, UpdatesEntry };
 use aoi::RemoteControlServer;
 use akari::HttpClient;
 
@@ -142,7 +142,7 @@ fn init_app(app: &gtk::Application) {
     
     // ---------- channel ----------
     
-    let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+    let (sender, receiver) = glib::MainContext::channel(glib::Priority::DEFAULT);
     
     // ---------- modules ----------
     
@@ -169,7 +169,7 @@ fn init_app(app: &gtk::Application) {
             Watchlist(action) => watchlist::handle_action(&mut state, &sender, action),
         }
         
-        glib::Continue(true)
+        glib::ControlFlow::Continue
     });
 }
 
