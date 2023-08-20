@@ -60,7 +60,7 @@ fn build_entry<'f, 'c>(item: &'f [u8], candidates: &'c [&'c CandidatesEntry]) ->
         .and_then(|field| str::from_utf8(&item[field]).ok())?;
     
     let candidate = candidates.iter()
-        .find(|candidate| chikuwa::insensitive_contains(title, &candidate.pieces()))?;
+        .find(|candidate| candidate.pieces().iter().all(|piece| title.contains(piece)))?;
     
     let episode = crate::extractor::get(title, &candidate.pieces())
         .filter(|episode| ! candidate.downloaded().contains(episode))?;

@@ -50,7 +50,7 @@ impl<'f, 'c> Iterator for UpdatesEntries<'f, 'c> {
 
 fn build_entry<'f, 'c>(name: &'f str, path: &'f Path, candidates: &'c [&'c CandidatesEntry]) -> Option<UpdatesEntry<'f, 'c>> {
     let candidate = candidates.iter()
-        .find(|candidate| chikuwa::insensitive_contains(name, &candidate.pieces()))?;
+        .find(|candidate| candidate.pieces().iter().all(|piece| name.contains(piece)))?;
     
     let episode = crate::extractor::get(name, &candidate.pieces())?;
     

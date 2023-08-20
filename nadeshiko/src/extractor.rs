@@ -240,6 +240,21 @@ mod tests {
             assert_eq!(output, Some(86));
         }
         
+        #[test]
+        fn different_case_pieces() {
+            // setup
+            
+            let value = "[Imaginary] Fictional 86 - 10 [720p]";
+            
+            // operation
+            
+            let output = get(value, &["Imaginary", "fictional 86", "720p"]);
+            
+            // control
+            
+            assert_eq!(output, Some(86));
+        }
+        
     }
     
 }
