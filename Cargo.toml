@@ -1,0 +1,26 @@
+[workspace]
+resolver = "2"
+members = [
+  "minami",
+  "rin",
+  "ena",  
+  "chikuwa",
+]
+
+[workspace.package]
+version = "2.0.0"
+rust-version = "1.72.0"
+edition = "2021"
+license = "0BSD"
+
+[profile.release]
+lto = true
+panic = "abort"
+codegen-units = 1
+opt-level = 3
+incremental = false
+overflow-checks = true
+debug = false
+debug-assertions = false
+rpath = false
+strip = true

@@ -1,0 +1,23 @@
+/* -------------------- body -------------------- */
+
+
+body {
+  height: 100vh;
+  margin: 0rem;
+  display: flex;
+}
+
+
+/* -------------------- iframes -------------------- */
+
+
+iframe {
+  flex: 1;
+  border: none;
+}
+
+@media screen and (width < 1920px) {
+  iframe:nth-of-type(2) {
+    display: none;
+  }
+}
