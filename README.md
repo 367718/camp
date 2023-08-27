@@ -6,4 +6,6 @@
 
 ## Libraries
 
+* **rin**: Configuration files.
 * **ena**: Files operations.
+* **chikuwa**: Collection of small utilities.
