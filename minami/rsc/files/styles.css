@@ -8,23 +8,30 @@
   --alternate-color: #668093;
   --list-color: #2B2A33;
   
-  --border-normal: 0.1rem solid transparent;
-  --border-hover: 0.1rem dotted var(--main-color);
-  --border-focus: 0.1rem solid rgb(255, 255, 255);
-  
-  --transition-duration: 0.2s;
-  
-  --general-spacing: 0.25rem;
-  --toolbar-padding: 0.25rem;;
-  --list-padding: 0.25rem;;
-  --entry-padding: 0.25rem;
-  
   --new-color: rgba(255, 255, 255, 1);
   --new-text-decoration: none;
   --watched-color: rgba(255, 255, 255, 0.5);
   --watched-text-decoration: none;
   --updated-color: rgba(255, 255, 255, 0.5);
   --updated-text-decoration: line-through;
+  
+  --entry-container-color: rgba(255, 255, 255, 0.5);
+  --entry-position-color: rgba(255, 255, 255, 0.5);
+  
+  --general-spacing: 0.25rem;
+  --toolbar-spacing: 0.25rem;
+  --sections-spacing: 0.5rem;
+  --filters-spacing: 0.5rem;
+  --list-spacing: 0.125rem 0rem;
+  --entry-outer-spacing: 0.125rem 0.25rem;
+  --entry-inner-spacing: 0.5rem 2rem 0.5rem 0.5rem;
+  
+  --border-normal: 0.1rem solid transparent;
+  --border-focus: 0.1rem solid rgb(255, 255, 255);
+  --border-radius: 0.2rem;
+  
+  --entry-position-inset: 0.65rem 0.65rem auto auto;
+  --transition-duration: 0.2s;
   
 }
 
@@ -48,25 +55,25 @@ body {
   display: flex;
   justify-content: space-between;
   gap: var(--general-spacing);
-  padding: var(--toolbar-padding);
-}
-
-.toolbar div {
-  display: flex;
-  gap: var(--general-spacing);
+  padding: var(--toolbar-spacing);
 }
 
 
 /* -------------------- sections -------------------- */
 
 
+.sections {
+  display: flex;
+  gap: var(--general-spacing);
+}
+
 .sections a {
   color: white;
   text-decoration: none;
   transition: background-color var(--transition-duration) ease;
-  padding: 0.5rem;
+  padding: var(--sections-spacing);
   background-color: var(--list-color);
-  border-radius: 0.2rem;
+  border-radius: var(--border-radius);
 }
 
 .sections a:hover {
@@ -77,10 +84,17 @@ body {
 /* -------------------- filters -------------------- */
 
 
+.filters {
+  display: flex;
+  gap: var(--general-spacing);
+}
+
 .filters div {
-  padding: 0.5rem;
+  display: flex;
+  gap: var(--filters-spacing);
+  padding: var(--filters-spacing);
   background-color: var(--list-color);
-  border-radius: 0.2rem;
+  border-radius: var(--border-radius);
 }
 
 .filters label {
@@ -118,7 +132,7 @@ body {
 .list {
   background-color: var(--list-color);  
   overflow-y: scroll;
-  padding: var(--list-padding);
+  padding: var(--list-spacing);
   height: 100%;
 }
 
@@ -129,23 +143,23 @@ body {
 .list a {
   position: relative;
   display: none;
-  padding: var(--entry-padding);
-  padding-right: 2rem;
-  border: var(--border-normal);
-  transition: background-color var(--transition-duration) ease;
+  padding: var(--entry-outer-spacing);
   user-select: none;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
 }
 
 .list a:hover {
   cursor: pointer;
+}
+
+.list a:hover div {
   background-color: var(--main-color);
 }
 
 .list a:focus {
   outline: none;
+}
+
+.list a:focus div {
   border: var(--border-focus);
 }
 
@@ -164,22 +178,33 @@ body {
   text-decoration: var(--updated-text-decoration);
 }
 
-.list a[data-position] {
-  background-color: var(--accent-color);
-}
-
-.list a[data-position]:hover {
-  background-color: var(--alternate-color);
-}
-
 .list a[data-position]::after {
   content: attr(data-position);
   position: absolute;
-  right: var(--entry-padding);
-  opacity: 0.5;
+  right: 0.65rem;
+  top: 0.65rem;
+  color: var(--entry-position-color);
 }
 
-.list a span {
+.list a[data-position] div {
+  background-color: var(--accent-color);
+}
+
+.list a[data-position]:hover div {
+  background-color: var(--alternate-color);
+}
+
+.list a div {
+  padding: var(--entry-inner-spacing);
+  border-radius: var(--border-radius);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background-color var(--transition-duration) ease;
+  border: var(--border-normal);
+}
+
+.list a div span {
   display: none;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--entry-container-color);
 }

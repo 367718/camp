@@ -180,6 +180,8 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 response.send(file.mark(flag).as_class().as_bytes())?;
                 response.send(b"'>")?;
                 
+                response.send(b"<div>")?;
+                
                 if let Some(container) = file.container(root) {
                     response.send(b"<span>")?;
                     response.send(container.as_bytes())?;
@@ -188,6 +190,9 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 }
                 
                 response.send(file.name().as_bytes())?;
+                
+                response.send(b"</div>")?;
+                
                 response.send(b"</a>")?;
                 
             }
