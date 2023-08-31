@@ -125,40 +125,20 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 
                 response.send(b"<div class='filters'>")?;
                 
-                // ---------- containers ----------
+                response.send(b"<label>")?;
+                response.send(b"<input type='checkbox' value='show-containers' checked='checked'>")?;
+                response.send(b"containers")?;
+                response.send(b"</label>")?;
                 
-                {
-                    
-                    response.send(b"<div>")?;
-                    
-                    response.send(b"<label>")?;
-                    response.send(b"<input type='checkbox' value='show-containers' checked='checked'>")?;
-                    response.send(b"containers")?;
-                    response.send(b"</label>")?;
-                    
-                    response.send(b"</div>")?;
-                    
-                }
+                response.send(b"<label>")?;
+                response.send(b"<input type='checkbox' value='show-new' checked='checked'>")?;
+                response.send(b"new")?;
+                response.send(b"</label>")?;
                 
-                // ---------- marks ----------
-                
-                {
-                    
-                    response.send(b"<div>")?;
-                    
-                    response.send(b"<label>")?;
-                    response.send(b"<input type='checkbox' value='show-new' checked='checked'>")?;
-                    response.send(b"new")?;
-                    response.send(b"</label>")?;
-                    
-                    response.send(b"<label>")?;
-                    response.send(b"<input type='checkbox' value='show-watched'>")?;
-                    response.send(b"watched")?;
-                    response.send(b"</label>")?;
-                    
-                    response.send(b"</div>")?;
-                    
-                }
+                response.send(b"<label>")?;
+                response.send(b"<input type='checkbox' value='show-watched'>")?;
+                response.send(b"watched")?;
+                response.send(b"</label>")?;
                 
                 response.send(b"</div>")?;
                 
