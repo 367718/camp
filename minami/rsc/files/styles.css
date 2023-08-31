@@ -1,5 +1,6 @@
 /* -------------------- params -------------------- */
 
+
 :root {
   
   --primary-color: #2B2A33;
@@ -19,20 +20,15 @@
   --entry-updated-color: rgba(255, 255, 255, 0.5);
   --entry-updated-text-decoration: line-through;
   
-  --general-spacing: 0.25rem;
-  --toolbar-inner-spacing: 0.25rem;
-  --toolbar-outer-spacing: 0.25rem 0.25rem 0rem 0.25rem;
-  --sections-spacing: 0.5rem;
-  --filters-spacing: 0.5rem;
+  --panel-spacing: 0.75rem;
   --list-spacing: 0.125rem 0rem;
-  --entry-outer-spacing: 0.125rem 0.25rem;
+  --entry-outer-spacing: 0.125rem 0rem;
   --entry-inner-spacing: 0.5rem 2rem 0.5rem 0.5rem;
   
   --border-normal: 0.1rem solid transparent;
   --border-focus: 0.1rem solid rgb(255, 255, 255);
   --border-radius: 0.2rem;
   
-  --entry-position-inset: 0.65rem 0.65rem auto auto;
   --transition-duration: 0.15s;
   
 }
@@ -50,75 +46,48 @@ body {
 }
 
 
-/* -------------------- toolbar -------------------- */
+/* -------------------- panel -------------------- */
 
 
-.toolbar {
+.panel {
   display: flex;
   justify-content: space-between;
-  gap: var(--general-spacing);
-  padding: var(--toolbar-inner-spacing);
-  margin: var(--toolbar-outer-spacing);
+  padding: var(--panel-spacing);
   border-radius: var(--border-radius);
   background-color: var(--secondary-color);
 }
 
-
-/* -------------------- sections -------------------- */
-
-
-.sections {
+.panel > div {
   display: flex;
-  gap: var(--general-spacing);
+  gap: var(--panel-spacing);
 }
 
-.sections a {
+.panel a {
+  cursor: pointer;
   color: white;
   text-decoration: none;
   transition: color var(--transition-duration) ease;
-  padding: var(--sections-spacing);
 }
 
-.sections a:hover {
+.panel a:hover {
   color: var(--accent-color);
 }
 
-
-/* -------------------- filters -------------------- */
-
-
-.filters {
-  display: flex;
-  gap: var(--filters-spacing);
-  padding: var(--filters-spacing);
-}
-
-.filters label {
+.panel label {
   display: flex;
   gap: 0.25rem;
   color: white;
+  accent-color: var(--accent-color);
   transition: color var(--transition-duration) ease;
 }
 
-.filters label:hover {
+.panel label:hover {
   cursor: pointer;
   color: var(--accent-color);
 }
 
-.filters input {
-  accent-color: var(--accent-color);
-}
-
-.filters input:hover {
+.panel input:hover {
   cursor: pointer;
-}
-
-.list.show-new a.new, .list.show-watched a.watched, .list.show-watched a.updated {
-  display: block;
-}
-
-.list.show-containers a span {
-  display: inline;
 }
 
 
@@ -127,8 +96,21 @@ body {
 
 .list {
   overflow-y: scroll;
+  scrollbar-width: none;
   padding: var(--list-spacing);
   height: 100%;
+}
+
+.list::-webkit-scrollbar {
+  display: none;
+}
+
+.list.show-containers a span {
+  display: inline;
+}
+
+.list.show-new a.new, .list.show-watched a.watched, .list.show-watched a.updated {
+  display: block;
 }
 
 

@@ -57,7 +57,7 @@ const ExpandTarget = {
 
 
 const LIST = () => document.querySelector(".list");
-const FILTERS = () => Array.from(document.querySelector(".filters").querySelectorAll("input"));
+const FILTERS = () => Array.from(document.querySelectorAll(".panel input"));
 
 const POSITION_ATTRIBUTE = "data-position";
 

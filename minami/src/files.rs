@@ -98,17 +98,17 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
         
         response.send(b"<body>")?;
         
-        // ---------- toolbar ----------
+        // ---------- panel ----------
         
         {
             
-            response.send(b"<div class='toolbar'>")?;
+            response.send(b"<div class='panel'>")?;
             
             // ---------- sections ----------
             
             {
                 
-                response.send(b"<div class='sections'>")?;
+                response.send(b"<div>")?;
                 
                 response.send(b"<a href='/files/'>files</a>")?;
                 response.send(b"<a href='/watchlist/'>watchlist</a>")?;
@@ -123,7 +123,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div class='filters'>")?;
+                response.send(b"<div>")?;
                 
                 response.send(b"<label>")?;
                 response.send(b"<input type='checkbox' value='show-containers' checked='checked'>")?;
@@ -182,6 +182,45 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
         }
         
         response.send(b"</body>")?;
+        
+        // ---------- panel ----------
+        
+        {
+            
+            response.send(b"<div class='panel'>")?;
+            
+            // ---------- actions ----------
+            
+            {
+                
+                response.send(b"<div>")?;
+                
+                response.send(b"<a>play</a>")?;
+                response.send(b"<a>mark</a>")?;
+                response.send(b"<a>rename</a>")?;
+                response.send(b"<a>move</a>")?;
+                response.send(b"<a>delete</a>")?;
+                response.send(b"<a>lookup</a>")?;
+                
+                response.send(b"</div>")?;
+                
+            }
+            
+            // ---------- tools ----------
+            
+            {
+                
+                response.send(b"<div>")?;
+                
+                response.send(b"<a>download new releases</a>")?;
+                
+                response.send(b"</div>")?;
+                
+            }
+            
+            response.send(b"</div>")?;
+            
+        }
         
     }
     

@@ -4,7 +4,11 @@
 body {
   height: 100vh;
   margin: 0rem;
+  padding: 0.25rem;
+  box-sizing: border-box;
   display: flex;
+  gap: 0.25rem;
+  background-color: #2B2A33;
 }
 
 
@@ -16,7 +20,7 @@ iframe {
   border: none;
 }
 
-@media screen and (width < 1920px) {
+@media screen and (width < 1600px) {
   iframe:nth-of-type(2) {
     display: none;
   }
