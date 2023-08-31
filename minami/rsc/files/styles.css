@@ -2,11 +2,11 @@
 
 :root {
   
-  --primary-color: #42414D;
-  --secondary-color: #2B2A33;
+  --primary-color: #2B2A33;
+  --secondary-color: #42414D;
   --accent-color: #5D7588;
   
-  --entry-hover-color: var(--primary-color);
+  --entry-hover-color: var(--secondary-color);
   --entry-selected-color: var(--accent-color);
   --entry-selected-hover-color: #668093;
   --entry-container-color: rgba(255, 255, 255, 0.5);
@@ -20,7 +20,8 @@
   --entry-updated-text-decoration: line-through;
   
   --general-spacing: 0.25rem;
-  --toolbar-spacing: 0.25rem;
+  --toolbar-inner-spacing: 0.25rem;
+  --toolbar-outer-spacing: 0.25rem 0.25rem 0rem 0.25rem;
   --sections-spacing: 0.5rem;
   --filters-spacing: 0.5rem;
   --list-spacing: 0.125rem 0rem;
@@ -32,7 +33,7 @@
   --border-radius: 0.2rem;
   
   --entry-position-inset: 0.65rem 0.65rem auto auto;
-  --transition-duration: 0.2s;
+  --transition-duration: 0.15s;
   
 }
 
@@ -56,8 +57,8 @@ body {
   display: flex;
   justify-content: space-between;
   gap: var(--general-spacing);
-  padding: var(--toolbar-spacing);
-  margin: var(--toolbar-spacing);
+  padding: var(--toolbar-inner-spacing);
+  margin: var(--toolbar-outer-spacing);
   border-radius: var(--border-radius);
   background-color: var(--secondary-color);
 }
@@ -128,7 +129,6 @@ body {
   overflow-y: scroll;
   padding: var(--list-spacing);
   height: 100%;
-  background-color: var(--secondary-color);
 }
 
 
