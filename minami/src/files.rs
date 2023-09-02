@@ -110,9 +110,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 
                 response.send(b"<div>")?;
                 
-                response.send(b"<a href='/files/'>files</a>")?;
                 response.send(b"<a href='/watchlist/'>watchlist</a>")?;
-                response.send(b"<a href='/tools/'>tools</a>")?;
                 response.send(b"<a href='/preferences/'>preferences</a>")?;
                 
                 response.send(b"</div>")?;
@@ -195,8 +193,8 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 
                 response.send(b"<div>")?;
                 
-                response.send(b"<a>play</a>")?;
-                response.send(b"<a>mark</a>")?;
+                response.send(b"<a onclick='play();'>play</a>")?;
+                response.send(b"<a onclick='mark();'>mark</a>")?;
                 response.send(b"<a>rename</a>")?;
                 response.send(b"<a>move</a>")?;
                 response.send(b"<a>delete</a>")?;
@@ -212,7 +210,10 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 
                 response.send(b"<div>")?;
                 
-                response.send(b"<a>download new releases</a>")?;
+                response.send(b"<a>download</a>")?;
+                response.send(b"<a>update</a>")?;
+                response.send(b"<a>control</a>")?;
+                response.send(b"<a>clean</a>")?;
                 
                 response.send(b"</div>")?;
                 

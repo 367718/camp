@@ -7,29 +7,30 @@
   --secondary-color: #42414D;
   --accent-color: #5D7588;
   
-  --entry-hover-color: var(--secondary-color);
-  --entry-selected-color: var(--accent-color);
-  --entry-selected-hover-color: #668093;
-  --entry-container-color: rgba(255, 255, 255, 0.5);
-  --entry-position-color: rgba(255, 255, 255, 0.5);
-  
-  --entry-new-color: rgba(255, 255, 255, 1);
-  --entry-new-text-decoration: none;
-  --entry-watched-color: rgba(255, 255, 255, 0.5);
-  --entry-watched-text-decoration: none;
-  --entry-updated-color: rgba(255, 255, 255, 0.5);
-  --entry-updated-text-decoration: line-through;
-  
   --panel-spacing: 0.75rem;
   --list-spacing: 0.125rem 0rem;
   --entry-outer-spacing: 0.125rem 0rem;
   --entry-inner-spacing: 0.5rem 2rem 0.5rem 0.5rem;
   
-  --border-normal: 0.1rem solid transparent;
-  --border-focus: 0.1rem solid rgb(255, 255, 255);
+  --panel-elements-color: rgb(255 255 255 / 1);
   --border-radius: 0.2rem;
-  
   --transition-duration: 0.15s;
+  
+  --entry-hovered-color: var(--secondary-color);
+  --entry-selected-color: var(--accent-color);
+  --entry-selected-hovered-color: #668093;
+  --entry-container-color: rgb(255 255 255 / 0.5);
+  --entry-position-color: rgb(255 255 255 / 0.5);
+  
+  --entry-border-unfocused: 0.1rem solid transparent;
+  --entry-border-focused: 0.1rem solid rgb(255 255 255 / 1);
+  
+  --entry-new-color: rgb(255 255 255 / 1);
+  --entry-new-text-decoration: none;
+  --entry-watched-color: rgb(255 255 255 / 0.5);
+  --entry-watched-text-decoration: none;
+  --entry-updated-color: rgb(255 255 255 / 0.5);
+  --entry-updated-text-decoration: line-through;
   
 }
 
@@ -42,7 +43,13 @@ body {
   margin: 0rem;
   background-color: var(--primary-color);
   display: flex;
-  flex-direction: column;  
+  flex-direction: column;
+  opacity: 0.5;
+  transition: opacity var(--transition-duration) ease;
+}
+
+body:hover {
+  opacity: 1;
 }
 
 
@@ -63,22 +70,22 @@ body {
 }
 
 .panel a {
-  cursor: pointer;
-  color: white;
-  text-decoration: none;
+  color: var(--panel-elements-color);
   transition: color var(--transition-duration) ease;
+  text-decoration: none;
 }
 
 .panel a:hover {
+  cursor: pointer;
   color: var(--accent-color);
 }
 
 .panel label {
+  color: var(--panel-elements-color);
+  transition: color var(--transition-duration) ease;
+  accent-color: var(--accent-color);
   display: flex;
   gap: 0.25rem;
-  color: white;
-  accent-color: var(--accent-color);
-  transition: color var(--transition-duration) ease;
 }
 
 .panel label:hover {
@@ -129,7 +136,7 @@ body {
 }
 
 .list a:hover div {
-  background-color: var(--entry-hover-color);
+  background-color: var(--entry-hovered-color);
 }
 
 .list a:focus {
@@ -137,7 +144,7 @@ body {
 }
 
 .list a:focus div {
-  border: var(--border-focus);
+  border: var(--entry-border-focused);
 }
 
 .list a.new {
@@ -168,7 +175,7 @@ body {
 }
 
 .list a[data-position]:hover div {
-  background-color: var(--entry-selected-hover-color);
+  background-color: var(--entry-selected-hovered-color);
 }
 
 .list a div {
@@ -178,7 +185,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   transition: background-color var(--transition-duration) ease;
-  border: var(--border-normal);
+  border: var(--entry-border-unfocused);
 }
 
 .list a div span {
