@@ -14,7 +14,8 @@
   
   --panel-elements-color: rgb(255 255 255 / 1);
   --border-radius: 0.2rem;
-  --transition-duration: 0.15s;
+  --transition-general-duration: 0.15s;
+  --transition-body-duration: 0.6s;
   
   --entry-hovered-color: var(--secondary-color);
   --entry-selected-color: var(--accent-color);
@@ -29,8 +30,6 @@
   --entry-new-text-decoration: none;
   --entry-watched-color: rgb(255 255 255 / 0.5);
   --entry-watched-text-decoration: none;
-  --entry-updated-color: rgb(255 255 255 / 0.5);
-  --entry-updated-text-decoration: line-through;
   
 }
 
@@ -45,7 +44,7 @@ body {
   display: flex;
   flex-direction: column;
   opacity: 0.5;
-  transition: opacity var(--transition-duration) ease;
+  transition: opacity var(--transition-body-duration) ease;
 }
 
 body:hover {
@@ -71,7 +70,7 @@ body:hover {
 
 .panel a {
   color: var(--panel-elements-color);
-  transition: color var(--transition-duration) ease;
+  transition: color var(--transition-general-duration) ease;
   text-decoration: none;
 }
 
@@ -82,7 +81,7 @@ body:hover {
 
 .panel label {
   color: var(--panel-elements-color);
-  transition: color var(--transition-duration) ease;
+  transition: color var(--transition-general-duration) ease;
   accent-color: var(--accent-color);
   display: flex;
   gap: 0.25rem;
@@ -116,7 +115,7 @@ body:hover {
   display: inline;
 }
 
-.list.show-new a.new, .list.show-watched a.watched, .list.show-watched a.updated {
+.list.show-new a.new, .list.show-watched a.watched {
   display: block;
 }
 
@@ -157,11 +156,6 @@ body:hover {
   text-decoration: var(--entry-watched-text-decoration);
 }
 
-.list a.updated {
-  color: var(--entry-updated-color);
-  text-decoration: var(--entry-updated-text-decoration);
-}
-
 .list a[data-position]::after {
   content: attr(data-position);
   position: absolute;
@@ -184,7 +178,7 @@ body:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  transition: background-color var(--transition-duration) ease;
+  transition: background-color var(--transition-general-duration) ease;
   border: var(--entry-border-unfocused);
 }
 

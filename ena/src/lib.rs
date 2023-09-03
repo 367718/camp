@@ -7,7 +7,6 @@ use std::{
 };
 
 pub use entry::FilesEntry;
-pub use marker::FilesMark;
 
 pub struct Files {
     entries: Vec<FilesEntryKind>,

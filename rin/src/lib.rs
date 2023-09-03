@@ -15,12 +15,11 @@ impl Config {
     
     
     pub fn load() -> Result<Self, Box<dyn Error>> {
-        let path = env::args_os().skip_while(|arg| arg != "--config")
-            .nth(1).ok_or("Missing config path argument")?;
+        let path = env::current_exe()?.with_extension("rn");
         
-        let content = fs::read(path)?;
-        
-        Ok(Self { content })
+        fs::read(&path)
+            .map(|content| Self { content })
+            .map_err(|_| chikuwa::concat_str!("Load of configuration file located at '", &path.to_string_lossy(), "' failed").into())
     }
     
     

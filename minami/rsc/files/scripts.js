@@ -99,7 +99,7 @@ function entryIsVisible(entry) {
 
 document.addEventListener("DOMContentLoaded", () => {
     
-    FILTERS().forEach(entry => entry.addEventListener("click", () => filter(entry.value), false));
+    FILTERS().forEach(entry => entry.addEventListener("click", () => filter_entries(entry.value), false));
     
     Object.defineProperty(window, "ENTRIES", {
         value: Array.from(LIST().children),
@@ -107,7 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
         writable: false
     });
     
-    ENTRIES.forEach(entry => entry.addEventListener("click", () => select(entry, SelectAction.Toggle), false));
+    ENTRIES.forEach(entry => entry.addEventListener("click", () => select_entry(entry, SelectAction.Toggle), false));
     
 });
 
@@ -118,51 +118,51 @@ document.addEventListener("keydown", (event) => {
     // activate
         
     if (SELECT_ACTIVATE_HOTKEY(event)) {
-        select(event.target, SelectAction.Activate);
+        select_entry(event.target, SelectAction.Activate);
         return event.preventDefault();
     }
     
     // deactivate
     
     if (SELECT_DEACTIVATE_HOTKEY(event)) {
-        select(event.target, SelectAction.Deactivate);
+        select_entry(event.target, SelectAction.Deactivate);
         return event.preventDefault();
     }
     
     // clear
     
     if (SELECT_CLEAR_HOTKEY(event)) {
-        select(null, SelectAction.Clear);
+        select_entry(null, SelectAction.Clear);
         return event.preventDefault();
     }
     
-    // ---------- focus ----------
+    // ---------- focus entry ----------
     
     // up
     
     if (FOCUS_UP_HOTKEY(event)) {
-        focus(FocusDistance.Normal, FocusDirection.Up);
+        focus_entry(FocusDistance.Normal, FocusDirection.Up);
         return event.preventDefault();
     }
     
     // down
     
     if (FOCUS_DOWN_HOTKEY(event)) {
-        focus(FocusDistance.Normal, FocusDirection.Down);
+        focus_entry(FocusDistance.Normal, FocusDirection.Down);
         return event.preventDefault();
     }
     
     // jump up
     
     if (FOCUS_JUMP_UP_HOTKEY(event)) {
-        focus(FocusDistance.Extended, FocusDirection.Up);
+        focus_entry(FocusDistance.Extended, FocusDirection.Up);
         return event.preventDefault();
     }
     
     // jump down
     
     if (FOCUS_JUMP_DOWN_HOTKEY(event)) {
-        focus(FocusDistance.Extended, FocusDirection.Down);
+        focus_entry(FocusDistance.Extended, FocusDirection.Down);
         return event.preventDefault();
     }
     
@@ -193,14 +193,14 @@ document.addEventListener("keydown", (event) => {
 // -------------------- functionality --------------------
 
 
-function filter(criteria) {
+function filter_entries(criteria) {
     LIST().classList.toggle(criteria);
     
     ENTRIES.filter(entry => entryIsSelected(entry) && ! entryIsVisible(entry))
         .forEach(entry => entry.click());
 }
 
-function select(target, action) {
+function select_entry(target, action) {
     const selected = ENTRIES.filter(entry => entryIsSelected(entry));
     
     // deselect every entry
@@ -247,7 +247,7 @@ function select(target, action) {
     target.focus();
 }
 
-function focus(distance, direction) {
+function focus_entry(distance, direction) {
     const current = ENTRIES.find(entry => entry == document.activeElement);
     
     if (current) {

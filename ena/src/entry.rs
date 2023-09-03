@@ -5,8 +5,6 @@ use std::{
     path::{ Path, PathBuf },
 };
 
-use crate::FilesMark;
-
 #[derive(PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct FilesEntry {
@@ -45,16 +43,16 @@ impl FilesEntry {
             .map(OsStr::to_string_lossy)
     }
     
-    pub fn mark(&self, flag: &str) -> FilesMark {
-        crate::marker::get(&self.path, flag)
+    pub fn is_marked(&self, flag: &str) -> bool {
+        crate::marker::is_marked(&self.path, flag)
     }
     
     
     // ---------- mutators ----------
     
     
-    pub fn set_mark(&mut self, flag: &str, mark: FilesMark) -> Result<(), Box<dyn Error>> {
-        crate::marker::set(&self.path, flag, mark)?;
+    pub fn mark(&mut self, flag: &str, value: bool) -> Result<(), Box<dyn Error>> {
+        crate::marker::mark(&self.path, flag, value)?;
         Ok(())
     }
     

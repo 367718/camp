@@ -4,7 +4,7 @@ Configuration files.
 
 ## Behavior
 
-The filepath is expected to be supplied via the "--config" command-line argument.
+A file with the same name as the application but with extension "rn" is expected to be found in the same directory as the executable.
 
 Keys and values are separated by " = " (e.g. "path = \example\").
 

@@ -154,9 +154,11 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             for file in files {
                 
-                response.send(b"<a tabindex='0' class='")?;
-                response.send(file.mark(flag).as_class().as_bytes())?;
-                response.send(b"'>")?;
+                if file.is_marked(flag) {
+                    response.send(b"<a tabindex='0' class='watched'>")?;
+                } else {
+                    response.send(b"<a tabindex='0' class='new'>")?;
+                }
                 
                 response.send(b"<div>")?;
                 
@@ -211,9 +213,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 response.send(b"<div>")?;
                 
                 response.send(b"<a>download</a>")?;
-                response.send(b"<a>update</a>")?;
                 response.send(b"<a>control</a>")?;
-                response.send(b"<a>clean</a>")?;
                 
                 response.send(b"</div>")?;
                 
@@ -282,15 +282,7 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- operation --------------------
     
     for mut file in files {
-        
-        let mark = match file.mark(flag) {
-            ena::FilesMark::None => ena::FilesMark::Watched,
-            ena::FilesMark::Watched => ena::FilesMark::None,
-            ena::FilesMark::Updated => continue,
-        };
-        
-        file.set_mark(flag, mark)?;
-        
+        file.mark(flag, ! file.is_marked(flag))?;
     }
     
     // -------------------- response --------------------
