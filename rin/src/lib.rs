@@ -19,7 +19,7 @@ impl Config {
         
         fs::read(&path)
             .map(|content| Self { content })
-            .map_err(|_| chikuwa::concat_str!("Load of configuration file located at '", &path.to_string_lossy(), "' failed").into())
+            .map_err(|_| chikuwa::concat_str!("Load of configuration file failed: '", &path.to_string_lossy()).into())
     }
     
     

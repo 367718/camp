@@ -2,6 +2,7 @@ use std::{
     borrow::Cow,
     error::Error,
     ffi::OsStr,
+    fs,
     path::{ Path, PathBuf },
 };
 
@@ -53,6 +54,22 @@ impl FilesEntry {
     
     pub fn mark(&mut self, flag: &str, value: bool) -> Result<(), Box<dyn Error>> {
         crate::marker::mark(&self.path, flag, value)?;
+        Ok(())
+    }
+    
+    pub fn move_to_folder(&mut self, root: &Path, folder: &str) -> Result<(), Box<dyn Error>> {
+        let destination = Path::new(root)
+            .join(Path::new(folder).file_name().ok_or("Invalid folder name")?)
+            .join(self.path.file_name().ok_or("Invalid file name")?);
+        
+        if Path::exists(&destination) {
+            return Err(chikuwa::concat_str!("Destination already exists: '", &destination.to_string_lossy()).into())
+        }
+        
+        fs::rename(&self.path, &destination)?;
+        
+        self.path = destination;
+        
         Ok(())
     }
     

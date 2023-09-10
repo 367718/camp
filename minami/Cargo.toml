@@ -10,4 +10,5 @@ license.workspace = true
 [dependencies]
 rin = { path = "../rin" }
 ena = { path = "../ena" }
+chiaki = { path = "../chiaki" }
 chikuwa = { path = "../chikuwa" }

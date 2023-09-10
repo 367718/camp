@@ -3,17 +3,28 @@
 version = 3
 
 [[package]]
+name = "chiaki"
+version = "2.0.0"
+dependencies = [
+ "chikuwa",
+]
+
+[[package]]
 name = "chikuwa"
 version = "2.0.0"
 
 [[package]]
 name = "ena"
 version = "2.0.0"
+dependencies = [
+ "chikuwa",
+]
 
 [[package]]
 name = "minami"
 version = "2.0.0"
 dependencies = [
+ "chiaki",
  "chikuwa",
  "ena",
  "rin",

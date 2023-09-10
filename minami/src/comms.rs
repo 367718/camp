@@ -104,7 +104,7 @@ impl Request {
                 headers.extend_from_slice(&buffer[..bytes]);
                 
                 if let Some(index) = headers.windows(4).position(|curr| curr == b"\r\n\r\n") {
-                    body.append(&mut headers.split_off(index + 4));
+                    body.append(&mut headers.split_off(index.checked_add(4)?));
                     break;
                 }
                 
@@ -161,7 +161,19 @@ impl Request {
         (method, path)
     }
     
-    pub fn values<'p, 'k: 'p>(&'p self, key: &'k [u8]) -> impl Iterator<Item = &'p str> {
+    pub fn value<'p, 'k: 'p>(&'p self, field: &'k [u8]) -> Option<&'p str> {
+        let range = chikuwa::tag_range(&self.headers, b"Content-Type: multipart/form-data; boundary=", b"\r\n");
+        
+        let mut payload = Payload {
+            boundary: range.map_or(&[], |range| &self.headers[range]),
+            content: &self.body,
+        };
+        
+        payload.find(move |(key, _)| key == &field)
+            .and_then(|(_, value)| str::from_utf8(value).ok())
+    }
+    
+    pub fn values<'p, 'k: 'p>(&'p self, field: &'k [u8]) -> impl Iterator<Item = &'p str> {
         let range = chikuwa::tag_range(&self.headers, b"Content-Type: multipart/form-data; boundary=", b"\r\n");
         
         let payload = Payload {
@@ -169,8 +181,8 @@ impl Request {
             content: &self.body,
         };
         
-        payload.filter(move |(field, _)| field == &key)
-            .filter_map(|(_, path)| str::from_utf8(path).ok())
+        payload.filter(move |(key, _)| key == &field)
+            .filter_map(|(_, value)| str::from_utf8(value).ok())
     }
     
     pub fn start_response(&mut self, status: Status, content: ContentType) -> Result<Response, Box<dyn Error>> {
@@ -224,7 +236,7 @@ impl<'h, 'b> Iterator for Payload<'h, 'b> {
         let range = chikuwa::tag_range(current, b"Content-Disposition: form-data; name=\"", b"\"\r\n")?;
         
         let key = &current[range.start..range.end];
-        current = &current[range.end + 3..];
+        current = &current[range.end..][3..];
         
         // empty line
         

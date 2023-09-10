@@ -3,6 +3,7 @@
 
 const PLAY_URL = "/files/play";
 const MARK_URL = "/files/mark";
+const MOVE_URL = "/files/move";
 
 
 // -------------------- hotkeys --------------------
@@ -57,7 +58,7 @@ const ExpandTarget = {
 
 
 const LIST = () => document.querySelector(".list");
-const FILTERS = () => Array.from(document.querySelectorAll(".panel input"));
+const TOGGLES = () => Array.from(document.querySelectorAll(".panel input[type='checkbox']"));
 
 const POSITION_ATTRIBUTE = "data-position";
 
@@ -99,7 +100,87 @@ function entryIsVisible(entry) {
 
 document.addEventListener("DOMContentLoaded", () => {
     
-    FILTERS().forEach(entry => entry.addEventListener("click", () => filter_entries(entry.value), false));
+    LIST().addEventListener("keydown", (event) => {
+        
+        // ---------- select entry ----------
+        
+        // activate
+            
+        if (SELECT_ACTIVATE_HOTKEY(event)) {
+            select_entry(event.target, SelectAction.Activate);
+            return event.preventDefault();
+        }
+        
+        // deactivate
+        
+        if (SELECT_DEACTIVATE_HOTKEY(event)) {
+            select_entry(event.target, SelectAction.Deactivate);
+            return event.preventDefault();
+        }
+        
+        // clear
+        
+        if (SELECT_CLEAR_HOTKEY(event)) {
+            select_entry(null, SelectAction.Clear);
+            return event.preventDefault();
+        }
+        
+        // ---------- focus entry ----------
+        
+        // up
+        
+        if (FOCUS_UP_HOTKEY(event)) {
+            focus_entry(FocusDistance.Normal, FocusDirection.Up);
+            return event.preventDefault();
+        }
+        
+        // down
+        
+        if (FOCUS_DOWN_HOTKEY(event)) {
+            focus_entry(FocusDistance.Normal, FocusDirection.Down);
+            return event.preventDefault();
+        }
+        
+        // jump up
+        
+        if (FOCUS_JUMP_UP_HOTKEY(event)) {
+            focus_entry(FocusDistance.Extended, FocusDirection.Up);
+            return event.preventDefault();
+        }
+        
+        // jump down
+        
+        if (FOCUS_JUMP_DOWN_HOTKEY(event)) {
+            focus_entry(FocusDistance.Extended, FocusDirection.Down);
+            return event.preventDefault();
+        }
+        
+        // ---------- play selected files ----------
+        
+        if (PLAY_HOTKEY(event)) {
+            play();
+            return event.preventDefault();
+        }
+        
+        // ---------- mark selected files ----------
+        
+        if (MARK_HOTKEY(event)) {
+            mark();
+            return event.preventDefault();
+        }
+        
+        // ---------- copy names to clipboard ----------
+        
+        if (COPY_HOTKEY(event)) {
+            copy();
+            return event.preventDefault();
+        }
+        
+    });
+    
+    document.querySelector(".filter").addEventListener("input", () => filter(), false);
+    
+    TOGGLES().forEach(entry => entry.addEventListener("click", () => toggle_entries(entry.value), false));
     
     Object.defineProperty(window, "ENTRIES", {
         value: Array.from(LIST().children),
@@ -111,89 +192,33 @@ document.addEventListener("DOMContentLoaded", () => {
     
 });
 
-document.addEventListener("keydown", (event) => {
-    
-    // ---------- select entry ----------
-    
-    // activate
-        
-    if (SELECT_ACTIVATE_HOTKEY(event)) {
-        select_entry(event.target, SelectAction.Activate);
-        return event.preventDefault();
-    }
-    
-    // deactivate
-    
-    if (SELECT_DEACTIVATE_HOTKEY(event)) {
-        select_entry(event.target, SelectAction.Deactivate);
-        return event.preventDefault();
-    }
-    
-    // clear
-    
-    if (SELECT_CLEAR_HOTKEY(event)) {
-        select_entry(null, SelectAction.Clear);
-        return event.preventDefault();
-    }
-    
-    // ---------- focus entry ----------
-    
-    // up
-    
-    if (FOCUS_UP_HOTKEY(event)) {
-        focus_entry(FocusDistance.Normal, FocusDirection.Up);
-        return event.preventDefault();
-    }
-    
-    // down
-    
-    if (FOCUS_DOWN_HOTKEY(event)) {
-        focus_entry(FocusDistance.Normal, FocusDirection.Down);
-        return event.preventDefault();
-    }
-    
-    // jump up
-    
-    if (FOCUS_JUMP_UP_HOTKEY(event)) {
-        focus_entry(FocusDistance.Extended, FocusDirection.Up);
-        return event.preventDefault();
-    }
-    
-    // jump down
-    
-    if (FOCUS_JUMP_DOWN_HOTKEY(event)) {
-        focus_entry(FocusDistance.Extended, FocusDirection.Down);
-        return event.preventDefault();
-    }
-    
-    // ---------- play selected files ----------
-    
-    if (PLAY_HOTKEY(event)) {
-        play();
-        return event.preventDefault();
-    }
-    
-    // ---------- mark selected files ----------
-    
-    if (MARK_HOTKEY(event)) {
-        mark();
-        return event.preventDefault();
-    }
-    
-    // ---------- copy names to clipboard ----------
-    
-    if (COPY_HOTKEY(event)) {
-        copy();
-        return event.preventDefault();
-    }
-    
-});
-
 
 // -------------------- functionality --------------------
 
 
-function filter_entries(criteria) {
+function filter() {
+    const input = document.querySelector(".filter");
+    
+    if (input.dataset.timeout !== null) {
+        clearTimeout(input.dataset.timeout);
+    }
+    
+    input.dataset.timeout = setTimeout(() => {
+        
+        const regex = new RegExp(input.value, "i");
+        
+        for (entry of ENTRIES) {
+            if (entryGetPath(entry).match(regex)) {
+                entry.classList.remove("filtered");
+            } else {
+                entry.classList.add("filtered");
+            }
+        }
+        
+    }, 250);
+}
+
+function toggle_entries(criteria) {
     LIST().classList.toggle(criteria);
     
     ENTRIES.filter(entry => entryIsSelected(entry) && ! entryIsVisible(entry))
@@ -298,6 +323,29 @@ function mark() {
     
     if (form_data.has("path")) {
         fetch(MARK_URL, { method: "POST", body: form_data })
+            .then(response => {
+                
+                if (response.status == 200) {
+                    location.reload();
+                } else {
+                    response.text().then(error => window.alert(error));
+                }
+                
+            })
+            .catch(error => window.alert(error));
+    }
+}
+
+function move() {
+    const form_data = new FormData();
+    
+    form_data.append("folder", prompt("Folder name"));
+    
+    ENTRIES.filter(entry => entryIsSelected(entry))
+        .forEach(entry => form_data.append("path", entryGetPath(entry)));
+    
+    if (form_data.has("path")) {
+        fetch(MOVE_URL, { method: "POST", body: form_data })
             .then(response => {
                 
                 if (response.status == 200) {

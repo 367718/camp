@@ -73,8 +73,8 @@ fn root(request: &mut Request) -> Result<(), Box<dyn Error>> {
         
         response.send(b"<body>")?;
         
-        response.send(b"<iframe src='/files/' title='files'></iframe>")?;
-        response.send(b"<iframe src='/files/' title='files'></iframe>")?;
+        response.send(b"<iframe src='/files/'></iframe>")?;
+        response.send(b"<iframe src='/watchlist/'></iframe>")?;
         
         response.send(b"</body>")?;
         

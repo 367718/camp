@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod files;
+mod watchlist;
 mod general;
 mod comms;
 
@@ -10,6 +11,7 @@ use std::{
 };
 
 use files::FilesEndpoint;
+use watchlist::WatchlistEndpoint;
 use general::GeneralEndpoint;
 use comms::{ Request, Status, ContentType };
 
@@ -20,6 +22,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         let resource = request.resource();
         
         if let Some(endpoint) = FilesEndpoint::get(&resource) {
+            endpoint.process(request);
+            continue;
+        }
+        
+        if let Some(endpoint) = WatchlistEndpoint::get(&resource) {
             endpoint.process(request);
             continue;
         }

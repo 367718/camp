@@ -12,7 +12,7 @@
   --panel-elements-min-width: 2.5rem;
   --list-spacing: 0.125rem 0rem;
   --entry-outer-spacing: 0.125rem 0rem;
-  --entry-inner-spacing: 0.5rem 2rem 0.5rem 0.5rem;
+  --entry-inner-spacing: 0.5rem;
   
   --panel-elements-color: rgb(255 255 255 / 1);
   --border-radius: 0.2rem;
@@ -22,16 +22,12 @@
   --entry-hovered-color: var(--secondary-color);
   --entry-selected-color: var(--accent-color);
   --entry-selected-hovered-color: #668093;
-  --entry-container-color: rgb(255 255 255 / 0.5);
-  --entry-position-color: rgb(255 255 255 / 0.5);
   
   --entry-border-unfocused: 0.1rem solid transparent;
   --entry-border-focused: 0.1rem solid rgb(255 255 255 / 1);
   
-  --entry-new-color: rgb(255 255 255 / 1);
-  --entry-new-text-decoration: none;
-  --entry-watched-color: rgb(255 255 255 / 0.5);
-  --entry-watched-text-decoration: none;
+  --entry-unwatched-color: rgb(255 255 255 / 0.5);
+  --entry-watched-color: rgb(255 255 255 / 1);
   
 }
 
@@ -151,11 +147,7 @@ body:hover {
   outline: none;
 }
 
-.list.show-containers a span {
-  display: inline;
-}
-
-.list.show-new a.new, .list.show-watched a.watched {
+.list.show-watched a.watched, .list.show-unwatched a.unwatched {
   display: block;
 }
 
@@ -186,47 +178,29 @@ body:hover {
   border: var(--entry-border-focused);
 }
 
-.list a.new {
-  color: var(--entry-new-color);
-  text-decoration: var(--entry-new-text-decoration);
-}
-
 .list a.watched {
   color: var(--entry-watched-color);
-  text-decoration: var(--entry-watched-text-decoration);
+}
+
+.list a.unwatched {
+  color: var(--entry-unwatched-color);
 }
 
 .list a.filtered {
   display: none !important;
 }
 
-.list a[data-position]::after {
-  content: attr(data-position);
-  position: absolute;
-  right: 0.65rem;
-  top: 0.65rem;
-  color: var(--entry-position-color);
-}
-
-.list a[data-position] div {
-  background-color: var(--entry-selected-color);
-}
-
-.list a[data-position]:hover div {
-  background-color: var(--entry-selected-hovered-color);
-}
-
 .list a div {
   padding: var(--entry-inner-spacing);
   border-radius: var(--border-radius);
+  transition: background-color var(--transition-general-duration) ease;
+  border: var(--entry-border-unfocused);
+  display: flex;
+  justify-content: space-between;
+}
+
+.list a span:first-of-type {
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  transition: background-color var(--transition-general-duration) ease;
-  border: var(--entry-border-unfocused);
-}
-
-.list a div span {
-  display: none;
-  color: var(--entry-container-color);
 }

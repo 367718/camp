@@ -1,6 +1,6 @@
 use std::{
     error::Error,
-    path::{ MAIN_SEPARATOR_STR, PathBuf },
+    path::{ MAIN_SEPARATOR_STR, Path, PathBuf },
     process::Command,
 };
 
@@ -9,6 +9,7 @@ use super::{ Request, Status, ContentType };
 const INDEX_ENDPOINT: &(&[u8], &[u8]) = &(b"GET", b"/files/");
 const PLAY_ENDPOINT: &(&[u8], &[u8]) = &(b"POST", b"/files/play");
 const MARK_ENDPOINT: &(&[u8], &[u8]) = &(b"POST", b"/files/mark");
+const MOVE_ENDPOINT: &(&[u8], &[u8]) = &(b"POST", b"/files/move");
 const SCRIPTS_ENDPOINT: &(&[u8], &[u8]) = &(b"GET", b"/files/scripts.js");
 const STYLES_ENDPOINT: &(&[u8], &[u8]) = &(b"GET", b"/files/styles.css");
 
@@ -19,6 +20,7 @@ pub enum FilesEndpoint {
     Index,
     Play,
     Mark,
+    Move,
     Scripts,
     Styles,
 }
@@ -30,6 +32,7 @@ impl FilesEndpoint {
             INDEX_ENDPOINT => Some(Self::Index),
             PLAY_ENDPOINT => Some(Self::Play),
             MARK_ENDPOINT => Some(Self::Mark),
+            MOVE_ENDPOINT => Some(Self::Move),
             SCRIPTS_ENDPOINT => Some(Self::Scripts),
             STYLES_ENDPOINT => Some(Self::Styles),
             _ => None,
@@ -41,6 +44,7 @@ impl FilesEndpoint {
             Self::Index => index(&mut request),
             Self::Play => play(&mut request),
             Self::Mark => mark(&mut request),
+            Self::Move => move_to_folder(&mut request),
             Self::Scripts => scripts(&mut request),
             Self::Styles => styles(&mut request),
         };
@@ -66,7 +70,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let mut files: Vec<ena::FilesEntry> = ena::Files::new(PathBuf::from(root)).collect();
     
-    files.sort_unstable_by_key(|file| (file.container(root).is_some(), file.path().to_uppercase()));
+    files.sort_unstable_by_key(|entry| (entry.container(root).is_some(), entry.path().to_uppercase()));
     
     // -------------------- response --------------------
     
@@ -117,7 +121,84 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 
             }
             
-            // ---------- filters ----------
+            // ---------- filter ----------
+            
+            {
+                
+                response.send(b"<div>")?;
+                
+                response.send(b"<input class='filter' type='text' placeholder='filter'>")?;
+                
+                response.send(b"</div>")?;
+                
+            }
+            
+            response.send(b"</div>")?;
+            
+        }
+        
+        // ---------- list ----------
+        
+        {
+            
+            response.send(b"<div class='list show-containers show-new'>")?;
+            
+            for entry in files {
+                
+                if entry.is_marked(flag) {
+                    response.send(b"<a tabindex='0' class='watched'>")?;
+                } else {
+                    response.send(b"<a tabindex='0' class='new'>")?;
+                }
+                
+                response.send(b"<div>")?;
+                
+                if let Some(container) = entry.container(root) {
+                    response.send(b"<span>")?;
+                    response.send(container.as_bytes())?;
+                    response.send(MAIN_SEPARATOR_STR.as_bytes())?;
+                    response.send(b"</span>")?;
+                }
+                
+                response.send(entry.name().as_bytes())?;
+                
+                response.send(b"</div>")?;
+                
+                response.send(b"</a>")?;
+                
+            }
+            
+            response.send(b"</div>")?;
+            
+        }
+        
+        response.send(b"</body>")?;
+        
+        // ---------- panel ----------
+        
+        {
+            
+            response.send(b"<div class='panel'>")?;
+            
+            // ---------- actions ----------
+            
+            {
+                
+                response.send(b"<div>")?;
+                
+                response.send(b"<a tabindex='0' onclick='play();'>play</a>")?;
+                response.send(b"<a tabindex='0' onclick='mark();'>mark</a>")?;
+                response.send(b"<a tabindex='0' onclick='move();'>move</a>")?;
+                response.send(b"<a tabindex='0'>delete</a>")?;
+                response.send(b"<a tabindex='0'>lookup</a>")?;
+                response.send(b"<a tabindex='0'>download</a>")?;
+                response.send(b"<a tabindex='0'>control</a>")?;
+                
+                response.send(b"</div>")?;
+                
+            }
+            
+            // ---------- toggles ----------
             
             {
                 
@@ -146,83 +227,6 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
         }
         
-        // ---------- list ----------
-        
-        {
-            
-            response.send(b"<div class='list show-containers show-new'>")?;
-            
-            for file in files {
-                
-                if file.is_marked(flag) {
-                    response.send(b"<a tabindex='0' class='watched'>")?;
-                } else {
-                    response.send(b"<a tabindex='0' class='new'>")?;
-                }
-                
-                response.send(b"<div>")?;
-                
-                if let Some(container) = file.container(root) {
-                    response.send(b"<span>")?;
-                    response.send(container.as_bytes())?;
-                    response.send(MAIN_SEPARATOR_STR.as_bytes())?;
-                    response.send(b"</span>")?;
-                }
-                
-                response.send(file.name().as_bytes())?;
-                
-                response.send(b"</div>")?;
-                
-                response.send(b"</a>")?;
-                
-            }
-            
-            response.send(b"</div>")?;
-            
-        }
-        
-        response.send(b"</body>")?;
-        
-        // ---------- panel ----------
-        
-        {
-            
-            response.send(b"<div class='panel'>")?;
-            
-            // ---------- actions ----------
-            
-            {
-                
-                response.send(b"<div>")?;
-                
-                response.send(b"<a onclick='play();'>play</a>")?;
-                response.send(b"<a onclick='mark();'>mark</a>")?;
-                response.send(b"<a>rename</a>")?;
-                response.send(b"<a>move</a>")?;
-                response.send(b"<a>delete</a>")?;
-                response.send(b"<a>lookup</a>")?;
-                
-                response.send(b"</div>")?;
-                
-            }
-            
-            // ---------- tools ----------
-            
-            {
-                
-                response.send(b"<div>")?;
-                
-                response.send(b"<a>download</a>")?;
-                response.send(b"<a>control</a>")?;
-                
-                response.send(b"</div>")?;
-                
-            }
-            
-            response.send(b"</div>")?;
-            
-        }
-        
     }
     
     response.send(b"</html>")?;
@@ -236,7 +240,7 @@ fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- config --------------------
     
     let config = rin::Config::load()?;
-    let root = PathBuf::from(config.get(b"root")?);
+    let root = Path::new(config.get(b"root")?);
     let command = config.get(b"command")?;
     
     // -------------------- paths --------------------
@@ -265,7 +269,7 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- config --------------------
     
     let config = rin::Config::load()?;
-    let root = PathBuf::from(config.get(b"root")?);
+    let root = Path::new(config.get(b"root")?);
     let flag = config.get(b"flag")?;
     
     // -------------------- files --------------------
@@ -281,8 +285,43 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    for mut file in files {
-        file.mark(flag, ! file.is_marked(flag))?;
+    for mut entry in files {
+        entry.mark(flag, ! entry.is_marked(flag))?;
+    }
+    
+    // -------------------- response --------------------
+    
+    request.start_response(Status::Ok, ContentType::Plain)
+        .and_then(|mut response| response.send(b"OK"))
+    
+}
+
+fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
+    
+    // -------------------- config --------------------
+    
+    let config = rin::Config::load()?;
+    let root = Path::new(config.get(b"root")?);
+    
+    // -------------------- folder --------------------
+    
+    let folder = request.value(b"folder").ok_or("Folder name not provided")?;
+    
+    // -------------------- files --------------------
+    
+    let mut files = request.values(b"path")
+        .map(|path| root.join(path))
+        .filter_map(|path| ena::Files::new(path).next())
+        .peekable();
+    
+    if files.peek().is_none() {
+        return Err("File path not provided".into());
+    }
+    
+    // -------------------- operation --------------------
+    
+    for mut entry in files {
+        entry.move_to_folder(root, folder)?;
     }
     
     // -------------------- response --------------------

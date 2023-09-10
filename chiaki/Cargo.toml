@@ -1,6 +1,6 @@
 [package]
-name = "ena"
-description = "File operations"
+name = "chiaki"
+description = "Database operations"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
