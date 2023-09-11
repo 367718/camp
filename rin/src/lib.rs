@@ -19,11 +19,11 @@ impl Config {
         
         fs::read(&path)
             .map(|content| Self { content })
-            .map_err(|_| chikuwa::concat_str!("Load of configuration file failed: '", &path.to_string_lossy()).into())
+            .map_err(|_| chikuwa::concat_str!("Load of configuration file failed: '", &path.to_string_lossy(), "'").into())
     }
     
     
-    // ---------- helpers ----------
+    // ---------- accessors ----------
     
     
     pub fn get<'c>(&'c self, key: &[u8]) -> Result<&'c str, Box<dyn Error>> {
@@ -33,7 +33,7 @@ impl Config {
             }
         }
         
-        Err(chikuwa::concat_str!("Missing or invalid field: ", str::from_utf8(key)?).into())
+        Err(chikuwa::concat_str!("Missing or invalid field: '", str::from_utf8(key)?, "'").into())
     }
     
 }
