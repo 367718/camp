@@ -127,7 +127,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 
                 response.send(b"<div>")?;
                 
-                response.send(b"<input class='filter' type='text' placeholder='filter'>")?;
+                response.send(b"<input class='filter' placeholder='filter'>")?;
                 
                 response.send(b"</div>")?;
                 
@@ -148,7 +148,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 if entry.is_marked(flag) {
                     response.send(b"<a tabindex='0' class='watched'>")?;
                 } else {
-                    response.send(b"<a tabindex='0' class='new'>")?;
+                    response.send(b"<a tabindex='0'>")?;
                 }
                 
                 response.send(b"<div>")?;

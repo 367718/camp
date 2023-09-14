@@ -337,9 +337,15 @@ function mark() {
 }
 
 function move() {
+    const folder = prompt("Folder name");
+    
+    if (! folder) {
+        return;
+    }
+    
     const form_data = new FormData();
     
-    form_data.append("folder", prompt("Folder name"));
+    form_data.append("folder", folder);
     
     ENTRIES.filter(entry => entryIsSelected(entry))
         .forEach(entry => form_data.append("path", entryGetPath(entry)));

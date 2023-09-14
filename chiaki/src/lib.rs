@@ -19,7 +19,7 @@ pub struct DatabaseEntries<'c> {
 
 pub struct DatabaseEntry<'c> {
     pub tag: &'c str,
-    pub value: usize,
+    pub value: u64,
 }
 
 impl Database {
@@ -27,9 +27,9 @@ impl Database {
     // -------------------- constructors --------------------
     
     
-    pub fn load(list: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn load(name: &str) -> Result<Self, Box<dyn Error>> {
         let path = env::current_exe()?
-            .with_file_name(list)
+            .with_file_name(name)
             .with_extension("ck");
         
         let content = fs::read(&path)
@@ -47,17 +47,15 @@ impl Database {
     }
     
     fn commit<'c>(&self, entries: impl Iterator<Item = DatabaseEntry<'c>>) -> Result<(), Box<dyn Error>> {
-        let parent = self.path.parent().ok_or("Invalid path")?;
-        
         let tmp_path = chikuwa::EphemeralPath::builder()
-            .with_base(parent)
+            .with_base(self.path.parent().ok_or("Invalid path")?)
             .with_suffix(".tmp")
             .build();
         
         let mut writer = BufWriter::new(File::create(&tmp_path)?);
         
         for entry in entries {
-            writer.write_all(&entry.tag.len().to_le_bytes())?;
+            writer.write_all(&u64::try_from(entry.tag.len())?.to_le_bytes())?;
             writer.write_all(entry.tag.as_bytes())?;
             writer.write_all(&entry.value.to_le_bytes())?;
         }
@@ -76,7 +74,7 @@ impl Database {
     // -------------------- mutators --------------------
     
     
-    pub fn add(self, tag: &str, value: usize) -> Result<(), Box<dyn Error>> {
+    pub fn add(self, tag: &str, value: u64) -> Result<(), Box<dyn Error>> {
         let entries: Vec<DatabaseEntry> = self.entries().collect();
         
         if entries.iter().any(|entry| entry.tag.eq_ignore_ascii_case(tag)) {
@@ -88,20 +86,17 @@ impl Database {
         self.commit(modified)
     }
     
-    pub fn edit(self, tag: &str, value: usize) -> Result<(), Box<dyn Error>> {
-        let modified = self.entries().map(|entry| {
-            if entry.tag.eq_ignore_ascii_case(tag) {
-                DatabaseEntry { tag, value }
-            } else {
-                entry
-            }
-        });
+    pub fn edit(self, tag: &str, value: u64) -> Result<(), Box<dyn Error>> {
+        let modified = self.entries()
+            .filter(|entry| ! entry.tag.eq_ignore_ascii_case(tag))
+            .chain(Some(DatabaseEntry { tag, value }));
         
         self.commit(modified)
     }
     
     pub fn remove(self, tag: &str) -> Result<(), Box<dyn Error>> {
-        let modified = self.entries().filter(|entry| ! entry.tag.eq_ignore_ascii_case(tag));
+        let modified = self.entries()
+            .filter(|entry| ! entry.tag.eq_ignore_ascii_case(tag));
         
         self.commit(modified)
     }
@@ -113,14 +108,14 @@ impl <'c>Iterator for DatabaseEntries<'c> {
     type Item = DatabaseEntry<'c>;
     
     fn next(&mut self) -> Option<Self::Item> {
-        let (current, rest) = self.content.get(..mem::size_of::<usize>()).zip(self.content.get(mem::size_of::<usize>()..))?;
-        let size = usize::from_le_bytes(current.try_into().unwrap());
+        let (current, rest) = self.content.get(..mem::size_of::<u64>()).zip(self.content.get(mem::size_of::<u64>()..))?;
+        let size = usize::try_from(u64::from_le_bytes(current.try_into().unwrap())).ok()?;
         
         let (current, rest) = rest.get(..size).zip(rest.get(size..))?;
         let tag = str::from_utf8(current).ok()?;
         
-        let (current, rest) = rest.get(..mem::size_of::<usize>()).zip(rest.get(mem::size_of::<usize>()..))?;
-        let value = usize::from_le_bytes(current.try_into().unwrap());
+        let (current, rest) = rest.get(..mem::size_of::<u64>()).zip(rest.get(mem::size_of::<u64>()..))?;
+        let value = u64::from_le_bytes(current.try_into().unwrap());
         
         self.content = rest;
         

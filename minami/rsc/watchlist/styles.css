@@ -94,7 +94,7 @@ body:hover {
   outline: 0.1rem solid rgb(255 255 255 / 1);
 }
 
-.panel input[type="text"] {
+.panel input:not([type]) {
   width: 100%;
   border-radius: var(--border-radius);
   background-color: var(--primary-color);
@@ -103,7 +103,7 @@ body:hover {
   padding: 0rem 0.5rem;
 }
 
-.panel input[type="text"]:focus {
+.panel input:not([type]):focus {
   outline: 0.1rem solid rgb(255 255 255 / 1);
 }
 
@@ -147,7 +147,7 @@ body:hover {
   outline: none;
 }
 
-.list.show-watched a.watched, .list.show-unwatched a.unwatched {
+.list.show-watched a:not(.unwatched), .list.show-unwatched a.unwatched {
   display: block;
 }
 
@@ -178,7 +178,7 @@ body:hover {
   border: var(--entry-border-focused);
 }
 
-.list a.watched {
+.list a:not(.unwatched) {
   color: var(--entry-watched-color);
 }
 
