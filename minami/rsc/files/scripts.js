@@ -43,16 +43,6 @@ const SelectAction = {
     Clear: Symbol(0),
 }
 
-const ExpandAction = {
-	Open: Symbol(0),
-	Close: Symbol(0),
-}
-
-const ExpandTarget = {
-	Current: Symbol(0),
-	All: Symbol(0),
-}
-
 
 // -------------------- attributes and nodes --------------------
 
@@ -105,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // ---------- select entry ----------
         
         // activate
-            
+        
         if (SELECT_ACTIVATE_HOTKEY(event)) {
             select_entry(event.target, SelectAction.Activate);
             return event.preventDefault();

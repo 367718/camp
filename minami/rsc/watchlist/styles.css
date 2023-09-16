@@ -190,6 +190,14 @@ body:hover {
   display: none !important;
 }
 
+.list a[data-selected] div {
+  background-color: var(--entry-selected-color);
+}
+
+.list a[data-selected]:hover div {
+  background-color: var(--entry-selected-hovered-color);
+}
+
 .list a div {
   padding: var(--entry-inner-spacing);
   border-radius: var(--border-radius);
