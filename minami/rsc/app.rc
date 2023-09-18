@@ -1,5 +1,5 @@
 #define RT_MANIFEST 24
-1 RT_MANIFEST "rsc/app.manifest"
+1 RT_MANIFEST "app.manifest"
 
 1 VERSIONINFO
   
@@ -22,4 +22,4 @@ BEGIN
 
 END
 
-IDI_ICON1 ICON "rsc/app.ico"
+IDI_ICON1 ICON "app.ico"

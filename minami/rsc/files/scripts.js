@@ -4,6 +4,7 @@
 const PLAY_URL = "/files/play";
 const MARK_URL = "/files/mark";
 const MOVE_URL = "/files/move";
+const LOOKUP_URL = "/files/lookup";
 
 
 // -------------------- hotkeys --------------------
@@ -27,61 +28,69 @@ const COPY_HOTKEY = (event) => event.code === "KeyC";
 
 
 const FocusDistance = {
-	Normal: 1,
-	Extended: 10,
+    Normal: 1,
+    Extended: 10,
 }
 
 const FocusDirection = {
-	Up: -1,
-	Down: 1,
+    Up: -1,
+    Down: 1,
+}
+
+const SelectMethod = {
+    Single: Symbol(0),
+    Multiple: Symbol(0),
 }
 
 const SelectAction = {
-	Toggle: Symbol(0),
-	Activate: Symbol(0),
+    Toggle: Symbol(0),
+    Activate: Symbol(0),
     Deactivate: Symbol(0),
     Clear: Symbol(0),
 }
 
 
-// -------------------- attributes and nodes --------------------
+// -------------------- classes --------------------
 
 
-const LIST = () => document.querySelector(".list");
-const TOGGLES = () => Array.from(document.querySelectorAll(".panel input[type='checkbox']"));
-
-const POSITION_ATTRIBUTE = "data-position";
-
-// position
-
-function entryGetPosition(entry) {
-    return parseInt(entry.getAttribute(POSITION_ATTRIBUTE)) || 0;
+class List {
+    
+    constructor(node) {
+        this.node = node;
+        this.entries = Array.from(node.children).map(child => new Entry(child));
+        Object.freeze(this);
+    }
+    
+    onkeydown = (fn) => this.node.addEventListener("keydown", fn, false);
+    
+    entry = (ext) => this.entries.find(entry => entry.node.isEqualNode(ext));
+    toggle = (criteria) => this.node.classList.toggle(criteria);
+    
 }
 
-function entrySetPosition(entry, position) {
-    entry.setAttribute(POSITION_ATTRIBUTE, parseInt(position) || 0)
-}
-
-// path
-
-function entryGetPath(entry) {
-    return entry.textContent;
-}
-
-// selection
-
-function entryIsSelected(entry) {
-    return entryGetPosition(entry) > 0;
-}
-
-function entryDeselect(entry) {
-    entry.removeAttribute(POSITION_ATTRIBUTE);
-}
-
-// visibility
-
-function entryIsVisible(entry) {
-    return entry.offsetParent != null;
+class Entry {
+    
+    constructor(node) {
+        this.node = node;
+        Object.freeze(this);
+    }
+    
+    onclick = (fn) => this.node.addEventListener("click", fn, false);
+    
+    focus = () => this.node.focus();
+    
+    filter = () => this.node.classList.add("filtered");
+    unfilter = () => this.node.classList.remove("filtered");
+    
+    select = (position) => this.node.setAttribute("data-position", parseInt(position) || 0);
+    deselect = () => this.node.removeAttribute("data-position");
+    
+    is_selected = () => this.node.hasAttribute("data-position");
+    is_visible = () => this.node.offsetParent != null;
+    
+    position = () => parseInt(this.node.getAttribute("data-position")) || 0;
+    path = () => this.node.textContent;
+    
 }
 
 
@@ -90,28 +99,50 @@ function entryIsVisible(entry) {
 
 document.addEventListener("DOMContentLoaded", () => {
     
-    LIST().addEventListener("keydown", (event) => {
+    Object.defineProperty(window, "LIST", {
+        value: new List(document.querySelector(".list")),
+        configurable: false,
+        writable: false,
+    });
+    
+    document.querySelector(".filter").addEventListener("input", () => filter(), false);
+    
+    for (input of document.querySelectorAll(".panel input[type='checkbox']")) {
+        input.addEventListener("click", (event) => toggle(event.target.value), false);
+    }
+    
+    LIST.entries.forEach(entry => entry.onclick((event) => {
+        
+        if (event.ctrlKey) {
+            select(entry, SelectMethod.Multiple, SelectAction.Activate);
+        } else {
+            select(entry, SelectMethod.Single, SelectAction.Activate);
+        }
+        
+    }));
+    
+    LIST.onkeydown((event) => {
         
         // ---------- select entry ----------
         
         // activate
         
         if (SELECT_ACTIVATE_HOTKEY(event)) {
-            select_entry(event.target, SelectAction.Activate);
+            select(LIST.entry(event.target), SelectMethod.Multiple, SelectAction.Activate);
             return event.preventDefault();
         }
         
         // deactivate
         
         if (SELECT_DEACTIVATE_HOTKEY(event)) {
-            select_entry(event.target, SelectAction.Deactivate);
+            select(LIST.entry(event.target), SelectMethod.Multiple, SelectAction.Deactivate);
             return event.preventDefault();
         }
         
         // clear
         
         if (SELECT_CLEAR_HOTKEY(event)) {
-            select_entry(null, SelectAction.Clear);
+            select(null, SelectMethod.Multiple, SelectAction.Clear);
             return event.preventDefault();
         }
         
@@ -120,28 +151,28 @@ document.addEventListener("DOMContentLoaded", () => {
         // up
         
         if (FOCUS_UP_HOTKEY(event)) {
-            focus_entry(FocusDistance.Normal, FocusDirection.Up);
+            focus(FocusDistance.Normal, FocusDirection.Up);
             return event.preventDefault();
         }
         
         // down
         
         if (FOCUS_DOWN_HOTKEY(event)) {
-            focus_entry(FocusDistance.Normal, FocusDirection.Down);
+            focus(FocusDistance.Normal, FocusDirection.Down);
             return event.preventDefault();
         }
         
         // jump up
         
         if (FOCUS_JUMP_UP_HOTKEY(event)) {
-            focus_entry(FocusDistance.Extended, FocusDirection.Up);
+            focus(FocusDistance.Extended, FocusDirection.Up);
             return event.preventDefault();
         }
         
         // jump down
         
         if (FOCUS_JUMP_DOWN_HOTKEY(event)) {
-            focus_entry(FocusDistance.Extended, FocusDirection.Down);
+            focus(FocusDistance.Extended, FocusDirection.Down);
             return event.preventDefault();
         }
         
@@ -168,18 +199,6 @@ document.addEventListener("DOMContentLoaded", () => {
         
     });
     
-    document.querySelector(".filter").addEventListener("input", () => filter(), false);
-    
-    TOGGLES().forEach(entry => entry.addEventListener("click", () => toggle_entries(entry.value), false));
-    
-    Object.defineProperty(window, "ENTRIES", {
-        value: Array.from(LIST().children),
-        configurable: false,
-        writable: false
-    });
-    
-    ENTRIES.forEach(entry => entry.addEventListener("click", () => select_entry(entry, SelectAction.Toggle), false));
-    
 });
 
 
@@ -197,77 +216,94 @@ function filter() {
         
         const regex = new RegExp(input.value, "i");
         
-        for (entry of ENTRIES) {
-            if (entryGetPath(entry).match(regex)) {
-                entry.classList.remove("filtered");
+        for (entry of LIST.entries) {
+            
+            if (regex.exec(entry.path())) {
+                entry.unfilter();
             } else {
-                entry.classList.add("filtered");
+                entry.filter();
+                select(entry, SelectMethod.Keyboard, SelectAction.Deactivate);
             }
+            
         }
         
     }, 250);
 }
 
-function toggle_entries(criteria) {
-    LIST().classList.toggle(criteria);
+function toggle(criteria) {
+    LIST.toggle(criteria);
     
-    ENTRIES.filter(entry => entryIsSelected(entry) && ! entryIsVisible(entry))
-        .forEach(entry => entry.click());
+    if (entry = LIST.entries.find(entry => entry.is_selected() && ! entry.is_visible())) {
+        entry.click();
+    }
 }
 
-function select_entry(target, action) {
-    const selected = ENTRIES.filter(entry => entryIsSelected(entry));
-    
-    // deselect every entry
-    
-    if (action == SelectAction.Clear) {
-        selected.forEach(entry => entryDeselect(entry));
-        return;
-    }
-    
-    // bail if state needs no change
-    
-    if ((action == SelectAction.Activate && entryIsSelected(target)) || (action == SelectAction.Deactivate && ! entryIsSelected(target))) {
-        return;
-    }
-    
-    // if entry was unselected, re-calculate every higher position
-    // if entry was selected, calculate next position
-    
-    if (entryIsSelected(target)) {
+function select(target, method, action) {
+    if (method == SelectMethod.Single) {
         
-        const changed = entryGetPosition(target);
+        // disallow multiple selection by deselecting everything first
+        LIST.entries.filter(entry => entry.is_selected())
+            .forEach(entry => entry.deselect());
         
-        for (entry of selected) {
-            const current = entryGetPosition(entry);
-            if (current > changed) {
-                entrySetPosition(entry, current - 1);
-            }
-        }
-        
-        entryDeselect(target);
+        target.select(1);
         
     } else {
         
-        let position = 0;
+        // deselect every entry
         
-        for (entry of selected) {
-            position = Math.max(position, entryGetPosition(entry));
+        if (action == SelectAction.Clear) {
+            LIST.entries.filter(entry => entry.is_selected())
+                .forEach(entry => entry.deselect());
+            return;
         }
         
-        entrySetPosition(target, position + 1);
+        // bail if state needs no change
+        
+        if ((action == SelectAction.Activate && target.is_selected()) || (action == SelectAction.Deactivate && ! target.is_selected())) {
+            return;
+        }
+        
+        // if entry was unselected, re-calculate every higher position
+        // if entry was selected, calculate next position
+        
+        const selected = LIST.entries.filter(entry => entry.is_selected());
+        
+        if (target.is_selected()) {
+            
+            const changed = target.position();
+            
+            for (entry of selected) {
+                const current = entry.position();
+                if (current > changed) {
+                    entry.select(current - 1);
+                }
+            }
+            
+            target.deselect();
+            
+        } else {
+            
+            let position = 0;
+            
+            for (entry of selected) {
+                position = Math.max(position, entry.position());
+            }
+            
+            target.select(position + 1);
+            
+        }
         
     }
     
     target.focus();
 }
 
-function focus_entry(distance, direction) {
-    const current = ENTRIES.find(entry => entry == document.activeElement);
+function focus(distance, direction) {
+    const current = LIST.entry(document.activeElement);
     
     if (current) {
         
-        const visible = ENTRIES.filter(entry => entryIsVisible(entry));
+        const visible = LIST.entries.filter(entry => entry.is_visible());
         
         const change = visible.indexOf(current) + distance * direction;
         const index = Math.min(Math.max(change, 0), visible.length - 1);
@@ -276,7 +312,7 @@ function focus_entry(distance, direction) {
         
     } else {
         
-        const first = ENTRIES.find(entry => entryIsVisible(entry));
+        const first = LIST.entries.find(entry => entry.is_visible());
         
         if (first) {
             first.focus();
@@ -288,42 +324,46 @@ function focus_entry(distance, direction) {
 function play() {
     const form_data = new FormData();
     
-    ENTRIES.filter(entry => entryIsSelected(entry))
-        .sort((first, second) => entryGetPosition(first) - entryGetPosition(second))
-        .forEach(entry => form_data.append("path", entryGetPath(entry)));
+    LIST.entries.filter(entry => entry.is_selected())
+        .sort((first, second) => first.position() - second.position())
+        .forEach(entry => form_data.append("path", entry.path()));
     
-    if (form_data.has("path")) {
-        fetch(PLAY_URL, { method: "POST", body: form_data })
-            .then(response => {
-                
-                if (response.status != 200) {
-                    response.text().then(error => window.alert(error));
-                }
-                
-            })
-            .catch(error => window.alert(error));
+    if (! form_data.has("path")) {
+        return;
     }
+    
+    fetch(PLAY_URL, { method: "POST", body: form_data })
+        .then(response => {
+            
+            if (response.status != 200) {
+                response.text().then(error => window.alert(error));
+            }
+            
+        })
+        .catch(error => window.alert(error));
 }
 
 function mark() {
     const form_data = new FormData();
     
-    ENTRIES.filter(entry => entryIsSelected(entry))
-        .forEach(entry => form_data.append("path", entryGetPath(entry)));
+    LIST.entries.filter(entry => entry.is_selected())
+        .forEach(entry => form_data.append("path", entry.path()));
     
-    if (form_data.has("path")) {
-        fetch(MARK_URL, { method: "POST", body: form_data })
-            .then(response => {
-                
-                if (response.status == 200) {
-                    location.reload();
-                } else {
-                    response.text().then(error => window.alert(error));
-                }
-                
-            })
-            .catch(error => window.alert(error));
+    if (! form_data.has("path")) {
+        return;
     }
+    
+    fetch(MARK_URL, { method: "POST", body: form_data })
+        .then(response => {
+            
+            if (response.status == 200) {
+                location.reload();
+            } else {
+                response.text().then(error => window.alert(error));
+            }
+            
+        })
+        .catch(error => window.alert(error));
 }
 
 function move() {
@@ -337,22 +377,46 @@ function move() {
     
     form_data.append("folder", folder);
     
-    ENTRIES.filter(entry => entryIsSelected(entry))
-        .forEach(entry => form_data.append("path", entryGetPath(entry)));
+    LIST.entries.filter(entry => entry.is_selected())
+        .forEach(entry => form_data.append("path", entry.path()));
     
-    if (form_data.has("path")) {
-        fetch(MOVE_URL, { method: "POST", body: form_data })
-            .then(response => {
-                
-                if (response.status == 200) {
-                    location.reload();
-                } else {
-                    response.text().then(error => window.alert(error));
-                }
-                
-            })
-            .catch(error => window.alert(error));
+    if (! form_data.has("path")) {
+        return;
     }
+    
+    fetch(MOVE_URL, { method: "POST", body: form_data })
+        .then(response => {
+            
+            if (response.status == 200) {
+                location.reload();
+            } else {
+                response.text().then(error => window.alert(error));
+            }
+            
+        })
+        .catch(error => window.alert(error));
+}
+
+function lookup() {
+    const entry = LIST.entries.find(entry => entry.position() == 1);
+    
+    if (! entry) {
+        return;
+    }
+    
+    const form_data = new FormData();
+    
+    form_data.append("path", entry.path());
+    
+    fetch(LOOKUP_URL, { method: "POST", body: form_data })
+        .then(response => {
+            
+            if (response.status != 200) {
+                response.text().then(error => window.alert(error));
+            }
+            
+        })
+        .catch(error => window.alert(error));
 }
 
 function copy() {
@@ -361,9 +425,9 @@ function copy() {
         return;
     }
     
-    const text = ENTRIES.filter(entry => entryIsSelected(entry))
-        .sort((first, second) => entryGetPosition(first) - entryGetPosition(second))
-        .map(entry => entryGetPath(entry))
+    const text = LIST.entries.filter(entry => entry.is_selected())
+        .sort((first, second) => first.position() - second.position())
+        .map(entry => entry.path())
         .join("\n");
     
     navigator.clipboard.writeText(text);

@@ -6,6 +6,7 @@ const INDEX_ENDPOINT: &(&[u8], &[u8]) = &(b"GET", b"/watchlist/");
 const ADD_ENDPOINT: &(&[u8], &[u8]) = &(b"POST", b"/watchlist/add");
 const EDIT_ENDPOINT: &(&[u8], &[u8]) = &(b"POST", b"/watchlist/edit");
 const REMOVE_ENDPOINT: &(&[u8], &[u8]) = &(b"POST", b"/watchlist/remove");
+const LOOKUP_ENDPOINT: &(&[u8], &[u8]) = &(b"POST", b"/watchlist/lookup");
 const SCRIPTS_ENDPOINT: &(&[u8], &[u8]) = &(b"GET", b"/watchlist/scripts.js");
 const STYLES_ENDPOINT: &(&[u8], &[u8]) = &(b"GET", b"/watchlist/styles.css");
 
@@ -17,6 +18,7 @@ pub enum WatchlistEndpoint {
     Add,
     Edit,
     Remove,
+    Lookup,
     Scripts,
     Styles,
 }
@@ -29,6 +31,7 @@ impl WatchlistEndpoint {
             ADD_ENDPOINT => Some(Self::Add),
             EDIT_ENDPOINT => Some(Self::Edit),
             REMOVE_ENDPOINT => Some(Self::Remove),
+            LOOKUP_ENDPOINT => Some(Self::Lookup),
             SCRIPTS_ENDPOINT => Some(Self::Scripts),
             STYLES_ENDPOINT => Some(Self::Styles),
             _ => None,
@@ -41,6 +44,7 @@ impl WatchlistEndpoint {
             Self::Add => add(&mut request),
             Self::Edit => edit(&mut request),
             Self::Remove => remove(&mut request),
+            Self::Lookup => lookup(&mut request),
             Self::Scripts => scripts(&mut request),
             Self::Styles => styles(&mut request),
         };
@@ -107,7 +111,8 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 response.send(b"<div>")?;
                 
                 response.send(b"<a href='/files/'>files</a>")?;
-                response.send(b"<a href='/preferences/'>preferences</a>")?;
+                response.send(b"<a href='/rules/'>rules</a>")?;
+                response.send(b"<a href='/feeds/'>feeds</a>")?;
                 
                 response.send(b"</div>")?;
                 
@@ -180,7 +185,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 response.send(b"<a tabindex='0' onclick='add();'>add</a>")?;
                 response.send(b"<a tabindex='0' onclick='edit();'>edit</a>")?;
                 response.send(b"<a tabindex='0' onclick='remove();'>remove</a>")?;
-                response.send(b"<a tabindex='0'>lookup</a>")?;
+                response.send(b"<a tabindex='0' onclick='lookup();'>lookup</a>")?;
                 response.send(b"<a tabindex='0'>backup</a>")?;
                 
                 response.send(b"</div>")?;
@@ -278,6 +283,28 @@ fn remove(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- operation --------------------
     
     database.remove(title)?;
+    
+    // -------------------- response --------------------
+    
+    request.start_response(Status::Ok, ContentType::Plain)
+        .and_then(|mut response| response.send(b"OK"))
+    
+}
+
+fn lookup(request: &mut Request) -> Result<(), Box<dyn Error>> {
+    
+    // -------------------- config --------------------
+    
+    let config = rin::Config::load()?;
+    let lookup = config.get(b"lookup")?;
+    
+    // -------------------- title --------------------
+    
+    let title = request.value(b"title").ok_or("Series title not provided")?;
+    
+    // -------------------- operation --------------------
+    
+    chikuwa::execute_app(&lookup.replace("%s", &chikuwa::percent_encode(title)))?;
     
     // -------------------- response --------------------
     

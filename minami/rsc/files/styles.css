@@ -5,7 +5,7 @@
   
   --primary-color: #2B2A33;
   --secondary-color: #42414D;
-  --accent-color: #5D7588;
+  --accent-color: #AE9960;
   
   --panel-spacing: 0.25rem;
   --panel-elements-spacing: 0.5rem;
@@ -21,7 +21,7 @@
   
   --entry-hovered-color: var(--secondary-color);
   --entry-selected-color: var(--accent-color);
-  --entry-selected-hovered-color: #668093;
+  --entry-selected-hovered-color: #D1B777;
   --entry-container-color: rgb(255 255 255 / 0.5);
   --entry-position-color: rgb(255 255 255 / 0.5);
   

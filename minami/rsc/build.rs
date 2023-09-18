@@ -1,27 +1,35 @@
 use std::{
     env,
+    path::Path,
     process::Command,
 };
 
 fn main() {
     
-    let out_dir = env::var("OUT_DIR").unwrap();
+    // -------------------- prevent rerun --------------------
     
-    Command::new("windres")
-        .arg("rsc/app.rc")
-        .arg(format!("{}/program.o", out_dir))
+    println!("cargo:rerun-if-changed=build.rs");
+    
+    // -------------------- resource file --------------------
+    
+    let root = env::var("CARGO_MANIFEST_DIR").unwrap();
+    let out = env::var("OUT_DIR").unwrap();
+    
+    let rc = Path::new(&root).join("rsc").join("app.rc");
+    let res = Path::new(&out).join("app.res");
+    
+    let result = Command::new("rc")
+        .arg(format!("/fo{}", res.display()))
+        .arg(rc.as_os_str())
         .status()
         .unwrap();
     
-    Command::new("gcc-ar")
-        .arg("crus")
-        .arg("libprogram.a")
-        .arg("program.o")
-        .current_dir(&out_dir)
-        .status()
-        .unwrap();
+    assert!(result.success(), "Resource file conversion failed");
     
-    println!("cargo:rustc-link-search=native={}", out_dir);
-    println!("cargo:rustc-link-lib=static:+whole-archive=program");
+    println!("cargo:rustc-link-arg={}", res.display());
+    
+    // -------------------- winapi --------------------
+    
+    println!("cargo:rustc-link-lib=shell32");
     
 }

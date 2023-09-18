@@ -4,6 +4,7 @@
 const ADD_URL = "/watchlist/add";
 const EDIT_URL = "/watchlist/edit";
 const REMOVE_URL = "/watchlist/remove";
+const LOOKUP_URL = "/watchlist/lookup";
 
 
 // -------------------- hotkeys --------------------
@@ -28,18 +29,18 @@ const COPY_HOTKEY = (event) => event.code === "KeyC";
 
 
 const FocusDistance = {
-	Normal: 1,
-	Extended: 10,
+    Normal: 1,
+    Extended: 10,
 }
 
 const FocusDirection = {
-	Up: -1,
-	Down: 1,
+    Up: -1,
+    Down: 1,
 }
 
 const SelectAction = {
-	Toggle: Symbol(0),
-	Activate: Symbol(0),
+    Toggle: Symbol(0),
+    Activate: Symbol(0),
     Deactivate: Symbol(0),
     Clear: Symbol(0),
 }
@@ -72,13 +73,13 @@ class Entry {
     
     onclick = (fn) => this.node.addEventListener("click", fn, false);
     
+    focus = () => this.node.focus();
+    
     filter = () => this.node.classList.add("filtered");
     unfilter = () => this.node.classList.remove("filtered");
     
     select = () => this.node.dataset.selected = "";
-    deselect = () => delete(this.node.dataset.selected);
-    
-    focus = () => this.node.focus();
+    deselect = () => this.node.removeAttribute("data-selected");
     
     is_selected = () => this.node.hasAttribute("data-selected");
     is_visible = () => this.node.offsetParent != null;
@@ -231,12 +232,11 @@ function toggle(criteria) {
 }
 
 function select(target, action) {
-    const selected = LIST.entries.filter(entry => entry.is_selected());
-    
     // deselect every entry
     
     if (action == SelectAction.Clear) {
-        selected.forEach(entry => entry.deselect());
+        LIST.entries.filter(entry => entry.is_selected())
+            .forEach(entry => entry.deselect());
         return;
     }
     
@@ -358,6 +358,28 @@ function remove() {
             if (response.status == 200) {
                 location.reload();
             } else {
+                response.text().then(error => window.alert(error));
+            }
+            
+        })
+        .catch(error => window.alert(error));
+}
+
+function lookup() {
+    const entry = LIST.entries.find(entry => entry.is_selected());
+    
+    if (! entry) {
+        return;
+    }
+    
+    const form_data = new FormData();
+    
+    form_data.append("title", entry.title());
+    
+    fetch(LOOKUP_URL, { method: "POST", body: form_data })
+        .then(response => {
+            
+            if (response.status != 200) {
                 response.text().then(error => window.alert(error));
             }
             

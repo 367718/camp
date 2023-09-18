@@ -57,10 +57,8 @@ impl FilesEntry {
         Ok(())
     }
     
-    pub fn move_to_folder(&mut self, root: &Path, folder: &str) -> Result<(), Box<dyn Error>> {
-        let destination = Path::new(root)
-            .join(Path::new(folder).file_name().ok_or("Invalid folder name")?)
-            .join(self.path.file_name().ok_or("Invalid file name")?);
+    pub fn move_to_folder(&mut self, folder: &OsStr) -> Result<(), Box<dyn Error>> {
+        let destination = Path::new(folder).join(self.path.file_name().ok_or("Invalid file name")?);
         
         if Path::exists(&destination) {
             return Err(chikuwa::concat_str!("Destination already exists: '", &destination.to_string_lossy()).into())

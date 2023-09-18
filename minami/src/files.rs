@@ -10,6 +10,7 @@ const INDEX_ENDPOINT: &(&[u8], &[u8]) = &(b"GET", b"/files/");
 const PLAY_ENDPOINT: &(&[u8], &[u8]) = &(b"POST", b"/files/play");
 const MARK_ENDPOINT: &(&[u8], &[u8]) = &(b"POST", b"/files/mark");
 const MOVE_ENDPOINT: &(&[u8], &[u8]) = &(b"POST", b"/files/move");
+const LOOKUP_ENDPOINT: &(&[u8], &[u8]) = &(b"POST", b"/files/lookup");
 const SCRIPTS_ENDPOINT: &(&[u8], &[u8]) = &(b"GET", b"/files/scripts.js");
 const STYLES_ENDPOINT: &(&[u8], &[u8]) = &(b"GET", b"/files/styles.css");
 
@@ -21,6 +22,7 @@ pub enum FilesEndpoint {
     Play,
     Mark,
     Move,
+    Lookup,
     Scripts,
     Styles,
 }
@@ -33,6 +35,7 @@ impl FilesEndpoint {
             PLAY_ENDPOINT => Some(Self::Play),
             MARK_ENDPOINT => Some(Self::Mark),
             MOVE_ENDPOINT => Some(Self::Move),
+            LOOKUP_ENDPOINT => Some(Self::Lookup),
             SCRIPTS_ENDPOINT => Some(Self::Scripts),
             STYLES_ENDPOINT => Some(Self::Styles),
             _ => None,
@@ -45,6 +48,7 @@ impl FilesEndpoint {
             Self::Play => play(&mut request),
             Self::Mark => mark(&mut request),
             Self::Move => move_to_folder(&mut request),
+            Self::Lookup => lookup(&mut request),
             Self::Scripts => scripts(&mut request),
             Self::Styles => styles(&mut request),
         };
@@ -115,7 +119,8 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 response.send(b"<div>")?;
                 
                 response.send(b"<a href='/watchlist/'>watchlist</a>")?;
-                response.send(b"<a href='/preferences/'>preferences</a>")?;
+                response.send(b"<a href='/rules/'>rules</a>")?;
+                response.send(b"<a href='/feeds/'>feeds</a>")?;
                 
                 response.send(b"</div>")?;
                 
@@ -190,7 +195,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 response.send(b"<a tabindex='0' onclick='mark();'>mark</a>")?;
                 response.send(b"<a tabindex='0' onclick='move();'>move</a>")?;
                 response.send(b"<a tabindex='0'>delete</a>")?;
-                response.send(b"<a tabindex='0'>lookup</a>")?;
+                response.send(b"<a tabindex='0' onclick='lookup();'>lookup</a>")?;
                 response.send(b"<a tabindex='0'>download</a>")?;
                 response.send(b"<a tabindex='0'>control</a>")?;
                 
@@ -240,13 +245,14 @@ fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- config --------------------
     
     let config = rin::Config::load()?;
-    let root = Path::new(config.get(b"root")?);
+    let root = Path::new(config.get(b"root")?).canonicalize().map_err(|_| "Invalid root directory")?;
     let command = config.get(b"command")?;
     
     // -------------------- paths --------------------
     
     let mut paths = request.values(b"path")
-        .map(|path| root.join(path))
+        .filter_map(|path| root.join(path).canonicalize().ok())
+        .filter(|path| path.starts_with(&root))
         .peekable();
     
     if paths.peek().is_none() {
@@ -269,13 +275,14 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- config --------------------
     
     let config = rin::Config::load()?;
-    let root = Path::new(config.get(b"root")?);
+    let root = Path::new(config.get(b"root")?).canonicalize().map_err(|_| "Invalid root directory")?;
     let flag = config.get(b"flag")?;
     
     // -------------------- files --------------------
     
     let mut files = request.values(b"path")
-        .map(|path| root.join(path))
+        .filter_map(|path| root.join(path).canonicalize().ok())
+        .filter(|path| path.starts_with(&root))
         .filter_map(|path| ena::Files::new(path).next())
         .peekable();
     
@@ -301,16 +308,18 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- config --------------------
     
     let config = rin::Config::load()?;
-    let root = Path::new(config.get(b"root")?);
+    let root = Path::new(config.get(b"root")?).canonicalize().map_err(|_| "Invalid root directory")?;
     
     // -------------------- folder --------------------
     
-    let folder = request.value(b"folder").ok_or("Folder name not provided")?;
+    let folder = Path::new(request.value(b"folder").ok_or("Folder name not provided")?)
+        .file_name().ok_or("Invalid folder name")?;
     
     // -------------------- files --------------------
     
     let mut files = request.values(b"path")
-        .map(|path| root.join(path))
+        .filter_map(|path| root.join(path).canonicalize().ok())
+        .filter(|path| path.starts_with(&root))
         .filter_map(|path| ena::Files::new(path).next())
         .peekable();
     
@@ -321,8 +330,30 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- operation --------------------
     
     for mut entry in files {
-        entry.move_to_folder(root, folder)?;
+        entry.move_to_folder(folder)?;
     }
+    
+    // -------------------- response --------------------
+    
+    request.start_response(Status::Ok, ContentType::Plain)
+        .and_then(|mut response| response.send(b"OK"))
+    
+}
+
+fn lookup(request: &mut Request) -> Result<(), Box<dyn Error>> {
+    
+    // -------------------- config --------------------
+    
+    let config = rin::Config::load()?;
+    let lookup = config.get(b"lookup")?;
+    
+    // -------------------- path --------------------
+    
+    let path = request.value(b"path").ok_or("File path not provided")?;
+    
+    // -------------------- operation --------------------
+    
+    chikuwa::execute_app(&lookup.replace("%s", &chikuwa::percent_encode(path)))?;
     
     // -------------------- response --------------------
     
