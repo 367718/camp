@@ -1,6 +1,7 @@
 use std::{
     error::Error,
-    path::{ MAIN_SEPARATOR_STR, Path, PathBuf },
+    ffi::OsStr,
+    path::{ MAIN_SEPARATOR_STR, Path },
     process::Command,
 };
 
@@ -67,12 +68,12 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- config --------------------
     
     let config = rin::Config::load()?;
-    let root = config.get(b"root")?;
-    let flag = config.get(b"flag")?;
+    let root = Path::new(config.get(b"root")?);
+    let flag = OsStr::new(config.get(b"flag")?);
     
     // -------------------- files --------------------
     
-    let mut files: Vec<ena::FilesEntry> = ena::Files::new(PathBuf::from(root)).collect();
+    let mut files: Vec<ena::FilesEntry> = ena::Files::new(root.to_path_buf()).collect();
     
     files.sort_unstable_by_key(|entry| (entry.container(root).is_some(), entry.path().to_uppercase()));
     
@@ -276,7 +277,7 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let config = rin::Config::load()?;
     let root = Path::new(config.get(b"root")?).canonicalize().map_err(|_| "Invalid root directory")?;
-    let flag = config.get(b"flag")?;
+    let flag = OsStr::new(config.get(b"flag")?);
     
     // -------------------- files --------------------
     
@@ -330,7 +331,7 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- operation --------------------
     
     for mut entry in files {
-        entry.move_to_folder(folder)?;
+        entry.move_to_folder(&root, folder)?;
     }
     
     // -------------------- response --------------------

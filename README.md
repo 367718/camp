@@ -8,4 +8,5 @@
 
 * **rin**: Configuration files.
 * **ena**: Files operations.
+* **chiaki**: Database operations.
 * **chikuwa**: Collection of small utilities.

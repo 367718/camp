@@ -12,7 +12,7 @@
   --panel-elements-min-width: 2.5rem;
   --list-spacing: 0.125rem 0rem;
   --entry-outer-spacing: 0.125rem 0rem;
-  --entry-inner-spacing: 0.5rem;
+  --entry-inner-spacing: 0.5rem 2rem 0.5rem 0.5rem;
   
   --panel-elements-color: rgb(255 255 255 / 1);
   --border-radius: 0.2rem;
@@ -22,6 +22,7 @@
   --entry-hovered-color: var(--secondary-color);
   --entry-selected-color: var(--accent-color);
   --entry-selected-hovered-color: #D1B777;
+  --entry-progress-color: rgb(255 255 255 / 0.5);
   
   --entry-border-unfocused: 0.1rem solid transparent;
   --entry-border-focused: 0.1rem solid rgb(255 255 255 / 1);
@@ -190,6 +191,14 @@ body:hover {
   display: none !important;
 }
 
+.list a[data-progress]::after {
+  content: attr(data-progress);
+  position: absolute;
+  right: 0.65rem;
+  top: 0.65rem;
+  color: var(--entry-progress-color);
+}
+
 .list a[data-selected] div {
   background-color: var(--entry-selected-color);
 }
@@ -201,14 +210,9 @@ body:hover {
 .list a div {
   padding: var(--entry-inner-spacing);
   border-radius: var(--border-radius);
-  transition: background-color var(--transition-general-duration) ease;
-  border: var(--entry-border-unfocused);
-  display: flex;
-  justify-content: space-between;
-}
-
-.list a span:first-of-type {
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+  transition: background-color var(--transition-general-duration) ease;
+  border: var(--entry-border-unfocused);
 }

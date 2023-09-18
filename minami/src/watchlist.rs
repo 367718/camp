@@ -142,22 +142,18 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             for entry in series {
                 
+                response.send(b"<a tabindex='0'")?;
+                
                 if entry.value == 0 {
-                    response.send(b"<a tabindex='0' class='unwatched'>")?;
-                } else {
-                    response.send(b"<a tabindex='0'>")?;
+                    response.send(b" class='unwatched'")?;
                 }
                 
-                response.send(b"<div>")?;
-                
-                response.send(b"<span>")?;
-                response.send(entry.tag.as_bytes())?;
-                response.send(b"</span>")?;
-                
-                response.send(b"<span>")?;
+                response.send(b" data-progress='")?;
                 response.send(entry.value.to_string().as_bytes())?;
-                response.send(b"</span>")?;
+                response.send(b"'>")?;
                 
+                response.send(b"<div>")?;
+                response.send(entry.tag.as_bytes())?;
                 response.send(b"</div>")?;
                 
                 response.send(b"</a>")?;

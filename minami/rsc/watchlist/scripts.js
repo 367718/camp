@@ -78,14 +78,14 @@ class Entry {
     filter = () => this.node.classList.add("filtered");
     unfilter = () => this.node.classList.remove("filtered");
     
-    select = () => this.node.dataset.selected = "";
+    select = () => this.node.setAttribute("data-selected", "");
     deselect = () => this.node.removeAttribute("data-selected");
     
     is_selected = () => this.node.hasAttribute("data-selected");
     is_visible = () => this.node.offsetParent != null;
     
-    title = () => this.node.firstElementChild.firstElementChild.textContent;
-    progress = () => this.node.firstElementChild.lastElementChild.textContent;
+    title = () => this.node.textContent;
+    progress = () => this.node.getAttribute("data-progress");
     
 }
 
