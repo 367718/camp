@@ -2,35 +2,38 @@ use std::error::Error;
 
 use super::{ Request, Status, ContentType };
 
-const ROOT_ENDPOINT: &(&[u8], &[u8]) = &(b"GET", b"/");
-const STYLES_ENDPOINT: &(&[u8], &[u8]) = &(b"GET", b"/general/styles.css");
-const FAVICON_ENDPOINT: &(&[u8], &[u8]) = &(b"GET", b"/general/favicon.ico");
-
 const FAVICON: &[u8] = include_bytes!("../rsc/general/favicon.ico");
 const STYLES: &[u8] = include_bytes!("../rsc/general/styles.css");
+const SCRIPTS: &[u8] = include_bytes!("../rsc/general/scripts.js");
 
 pub enum GeneralEndpoint {
-    Root,
+    Index,
+    Lookup,
     Favicon,
-    Styles,    
+    Styles,
+    Scripts,
 }
 
 impl GeneralEndpoint {
     
-    pub fn get(data: &(&[u8], &[u8])) -> Option<Self> {
-        match data {
-            ROOT_ENDPOINT => Some(Self::Root),
-            FAVICON_ENDPOINT => Some(Self::Favicon),
-            STYLES_ENDPOINT => Some(Self::Styles),            
+    pub fn get(resource: (&[u8], &[u8])) -> Option<Self> {
+        match resource {
+            (b"GET", b"/") => Some(Self::Index),
+            (b"POST", b"/general/lookup") => Some(Self::Lookup),
+            (b"GET", b"/general/favicon.ico") => Some(Self::Favicon),
+            (b"GET", b"/general/styles.css") => Some(Self::Styles),
+            (b"GET", b"/general/scripts.js") => Some(Self::Scripts),
             _ => None,
         }
     }
     
     pub fn process(&self, mut request: Request) {
         let result = match self {
-            Self::Root => root(&mut request),
+            Self::Index => index(&mut request),
+            Self::Lookup => lookup(&mut request),
             Self::Favicon => favicon(&mut request),
             Self::Styles => styles(&mut request),
+            Self::Scripts => scripts(&mut request),
         };
         
         if let Err(error) = result {
@@ -42,7 +45,7 @@ impl GeneralEndpoint {
     
 }
 
-fn root(request: &mut Request) -> Result<(), Box<dyn Error>> {
+fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
@@ -86,6 +89,30 @@ fn root(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
 }
 
+fn lookup(request: &mut Request) -> Result<(), Box<dyn Error>> {
+    
+    // -------------------- config --------------------
+    
+    let config = rin::Config::load()?;
+    let lookup = config.get(b"lookup")?;
+    
+    // -------------------- path --------------------
+    
+    let path = request.param(b"tag")
+        .next()
+        .ok_or("Entry not provided")?;
+    
+    // -------------------- operation --------------------
+    
+    chikuwa::execute_app(&lookup.replace("%s", &chikuwa::percent_encode(path)))?;
+    
+    // -------------------- response --------------------
+    
+    request.start_response(Status::Ok, ContentType::Plain)
+        .and_then(|mut response| response.send(b"OK"))
+    
+}
+
 fn favicon(request: &mut Request) -> Result<(), Box<dyn Error>> {
     request.start_response(Status::Ok, ContentType::Favicon)
         .and_then(|mut response| response.send(FAVICON))
@@ -94,4 +121,9 @@ fn favicon(request: &mut Request) -> Result<(), Box<dyn Error>> {
 fn styles(request: &mut Request) -> Result<(), Box<dyn Error>> {
     request.start_response(Status::Ok, ContentType::Css)
         .and_then(|mut response| response.send(STYLES))
+}
+
+fn scripts(request: &mut Request) -> Result<(), Box<dyn Error>> {
+    request.start_response(Status::Ok, ContentType::Javascript)
+        .and_then(|mut response| response.send(SCRIPTS))
 }

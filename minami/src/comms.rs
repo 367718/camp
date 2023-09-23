@@ -156,24 +156,14 @@ impl Request {
         let mut parts = self.headers.split(|&curr| curr == b' ');
         
         let method = parts.next().unwrap_or(&[]);
-        let path = parts.next().unwrap_or(&[]);
+        let path = parts.next()
+            .and_then(|path| path.split(|&curr| curr == b'?').next())
+            .unwrap_or(&[]);
         
         (method, path)
     }
     
-    pub fn value<'p, 'k: 'p>(&'p self, field: &'k [u8]) -> Option<&'p str> {
-        let range = chikuwa::tag_range(&self.headers, b"Content-Type: multipart/form-data; boundary=", b"\r\n");
-        
-        let mut payload = Payload {
-            boundary: range.map_or(&[], |range| &self.headers[range]),
-            content: &self.body,
-        };
-        
-        payload.find(move |(key, _)| key == &field)
-            .and_then(|(_, value)| str::from_utf8(value).ok())
-    }
-    
-    pub fn values<'p, 'k: 'p>(&'p self, field: &'k [u8]) -> impl Iterator<Item = &'p str> {
+    pub fn param<'p, 'k: 'p>(&'p self, field: &'k [u8]) -> impl Iterator<Item = &'p str> {
         let range = chikuwa::tag_range(&self.headers, b"Content-Type: multipart/form-data; boundary=", b"\r\n");
         
         let payload = Payload {

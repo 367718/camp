@@ -2,21 +2,19 @@ use std::error::Error;
 
 use super::{ Request, Status, ContentType };
 
-pub enum WatchlistEndpoint {
+pub enum FeedsEndpoint {
     Index,
     Add,
-    Edit,
     Remove,
 }
 
-impl WatchlistEndpoint {
+impl FeedsEndpoint {
     
     pub fn get(resource: (&[u8], &[u8])) -> Option<Self> {
         match resource {
-            (b"GET", b"/watchlist/") => Some(Self::Index),
-            (b"POST", b"/watchlist/add") => Some(Self::Add),
-            (b"POST", b"/watchlist/edit") => Some(Self::Edit),
-            (b"POST", b"/watchlist/remove") => Some(Self::Remove),
+            (b"GET", b"/feeds/") => Some(Self::Index),
+            (b"POST", b"/feeds/add") => Some(Self::Add),
+            (b"POST", b"/feeds/remove") => Some(Self::Remove),
             _ => None,
         }
     }
@@ -25,7 +23,6 @@ impl WatchlistEndpoint {
         let result = match self {
             Self::Index => index(&mut request),
             Self::Add => add(&mut request),
-            Self::Edit => edit(&mut request),
             Self::Remove => remove(&mut request),
         };
         
@@ -42,11 +39,11 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- database --------------------
     
-    let database = chiaki::Database::load("series")?;
+    let database = chiaki::Database::load("feeds")?;
     
-    let mut series: Vec<chiaki::DatabaseEntry> = database.entries().collect();
+    let mut feeds: Vec<chiaki::DatabaseEntry> = database.entries().collect();
     
-    series.sort_unstable_by_key(|entry| entry.tag);
+    feeds.sort_unstable_by_key(|entry| entry.tag);
     
     // -------------------- response --------------------
     
@@ -97,9 +94,9 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     response.send(b"<div>")?;
                     
                     response.send(b"<a href='/files/'>files</a>")?;
-                    response.send(b"<span>watchlist</span>")?;
+                    response.send(b"<a href='/watchlist/'>watchlist</a>")?;
                     response.send(b"<a href='/rules/'>rules</a>")?;
-                    response.send(b"<a href='/feeds/'>feeds</a>")?;
+                    response.send(b"<span>feeds</span>")?;
                     
                     response.send(b"</div>")?;
                     
@@ -125,22 +122,12 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div class='list show-value show-primary'>")?;
+                response.send(b"<div class='list'>")?;
                 
-                for entry in series {
+                for entry in feeds {
                     
-                    response.send(b"<a")?;
-                    
-                    if entry.value == 0 {
-                        response.send(b" class='secondary'")?;
-                    }
-                    
-                    response.send(b" data-value='")?;
-                    response.send(entry.value.to_string().as_bytes())?;
-                    response.send(b"'>")?;
-                    
+                    response.send(b"<a>")?;
                     response.send(entry.tag.as_bytes())?;
-                    
                     response.send(b"</a>")?;
                     
                 }
@@ -161,31 +148,8 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     
                     response.send(b"<div>")?;
                     
-                    response.send(b"<a onclick='request({ url: \"/watchlist/add\", prompt: true, refresh: true });'>add</a>")?;
-                    response.send(b"<a onclick='request({ url: \"/watchlist/edit\", prompt: true, refresh: true });'>edit</a>")?;
-                    response.send(b"<a onclick='request({ url: \"/watchlist/remove\", prompt: false, refresh: true });'>remove</a>")?;
-                    response.send(b"<a onclick='request({ url: \"/general/lookup\", prompt: false, refresh: false });'>lookup</a>")?;
-                    response.send(b"<a>backup</a>")?;
-                    
-                    response.send(b"</div>")?;
-                    
-                }
-                
-                // ---------- toggles ----------
-                
-                {
-                    
-                    response.send(b"<div>")?;
-                    
-                    response.send(b"<label>")?;
-                    response.send(b"<input type='checkbox' value='show-primary' checked='checked'>")?;
-                    response.send(b"watched")?;
-                    response.send(b"</label>")?;
-                    
-                    response.send(b"<label>")?;
-                    response.send(b"<input type='checkbox' value='show-secondary'>")?;
-                    response.send(b"unwatched")?;
-                    response.send(b"</label>")?;
+                    response.send(b"<a onclick='request({ url: \"/feeds/add\", prompt: true, refresh: true });'>add</a>")?;
+                    response.send(b"<a onclick='request({ url: \"/feeds/remove\", prompt: false, refresh: true });'>remove</a>")?;
                     
                     response.send(b"</div>")?;
                     
@@ -213,45 +177,17 @@ fn add(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- database --------------------
     
-    let database = chiaki::Database::load("series")?;
+    let database = chiaki::Database::load("feeds")?;
     
-    // -------------------- title --------------------
+    // -------------------- url --------------------
     
-    let title = request.param(b"input")
+    let url = request.param(b"input")
         .next()
-        .ok_or("Series title not provided")?;
+        .ok_or("Feed url not provided")?;
     
     // -------------------- operation --------------------
     
-    database.add(title, 0)?;
-    
-    // -------------------- response --------------------
-    
-    request.start_response(Status::Ok, ContentType::Plain)
-        .and_then(|mut response| response.send(b"OK"))
-    
-}
-
-fn edit(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    
-    // -------------------- database --------------------
-    
-    let database = chiaki::Database::load("series")?;
-    
-    // -------------------- title and progress --------------------
-    
-    let title = request.param(b"tag")
-        .next()
-        .ok_or("Series title not provided")?;
-    
-    let progress = request.param(b"input")
-        .next()
-        .and_then(|progress| progress.parse().ok())
-        .ok_or("Series progress not provided")?;
-    
-    // -------------------- operation --------------------
-    
-    database.edit(title, progress)?;
+    database.add(url, 0)?;
     
     // -------------------- response --------------------
     
@@ -264,17 +200,17 @@ fn remove(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- database --------------------
     
-    let database = chiaki::Database::load("series")?;
+    let database = chiaki::Database::load("feeds")?;
     
-    // -------------------- title --------------------
+    // -------------------- url --------------------
     
-    let title = request.param(b"tag")
+    let url = request.param(b"tag")
         .next()
-        .ok_or("Series title not provided")?;
+        .ok_or("Feed url not provided")?;
     
     // -------------------- operation --------------------
     
-    database.remove(title)?;
+    database.remove(url)?;
     
     // -------------------- response --------------------
     

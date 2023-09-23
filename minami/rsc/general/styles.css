@@ -1,14 +1,53 @@
+/* -------------------- params -------------------- */
+
+
+:root {
+  
+  --primary-color: rgb(43 42 51 / 1);
+  --secondary-color: rgb(66 65 77 / 1);
+  --accent-color: rgb(174 153 96 / 1);
+  
+  --panel-elements-color: rgb(255 255 255 / 1);
+  
+  --entry-primary-color: rgb(255 255 255 / 1);
+  --entry-secondary-color: rgb(255 255 255 / 0.5);
+  --entry-container-color: rgb(255 255 255 / 0.5);
+  
+  --entry-hovered-color: var(--secondary-color);
+  --entry-selected-color: var(--accent-color);
+  --entry-selected-hovered-color: rgb(209 183 119 / 1);
+  
+  --panel-spacing: 0.25rem;
+  --panel-elements-spacing: 0.5rem;
+  --panel-elements-min-width: 2.5rem;
+  --panel-labels-spacing: 0.5rem;
+  --panel-filter-color: rgb(255 255 255 / 1);;
+  --panel-filter-spacing: 0rem 0.5rem;
+  
+  --entry-line-height: 2.25rem;
+  --entry-padding-left: 0.5rem;
+  --entry-padding-right: 2rem;
+  
+  --entry-pseudoelement-color: rgb(255 255 255 / 0.5);
+  --entry-pseudoelement-right: 0.5rem;
+  
+  --section-inactive-opacity: 0.25;
+  --section-current-opacity: 0.25;
+  
+  --transition-general-duration: 0.15s;
+  --transition-body-duration: 0.6s;
+  
+}
+
+
 /* -------------------- body -------------------- */
 
 
 body {
   height: 100vh;
   margin: 0rem;
-  padding: 0.5rem;
-  box-sizing: border-box;
   display: flex;
-  gap: 0.5rem;
-  background-color: #2B2A33;
+  background-color: var(--primary-color);
 }
 
 
@@ -24,4 +63,184 @@ iframe {
   iframe:nth-of-type(2) {
     display: none;
   }
+}
+
+
+/* -------------------- section -------------------- */
+
+
+.section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  opacity: var(--section-inactive-opacity);
+  transition: opacity var(--transition-body-duration) ease;
+}
+
+.section:hover {
+  opacity: 1;
+}
+
+
+/* -------------------- panel -------------------- */
+
+
+.panel {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--panel-spacing);
+  background-color: var(--secondary-color);
+}
+
+.panel > div {
+  display: flex;
+  gap: var(--panel-spacing);
+  flex: 1;
+}
+
+.panel > div:nth-of-type(1) {
+  justify-content: start;
+}
+
+.panel > div:nth-of-type(2) {
+  justify-content: end;
+}
+
+.panel a {
+  color: var(--panel-elements-color);
+  transition: background-color var(--transition-general-duration) ease;
+  text-decoration: none;
+  text-align: center;
+  padding: var(--panel-elements-spacing);
+  min-width: var(--panel-elements-min-width);
+}
+
+.panel a:hover {
+  cursor: pointer;
+  background-color: var(--accent-color);
+}
+
+.panel span {
+  opacity: var(--section-current-opacity);
+  color: var(--panel-elements-color);
+  text-align: center;
+  padding: var(--panel-elements-spacing);
+  min-width: var(--panel-elements-min-width);
+}
+
+.panel input:not([type]) {
+  width: 100%;
+  border: none;
+  background-color: var(--primary-color);
+  color: var(--panel-filter-color);
+  padding: var(--panel-filter-spacing);
+}
+
+.panel label {
+  color: var(--panel-elements-color);
+  transition: background-color var(--transition-general-duration) ease;
+  accent-color: var(--accent-color);
+  display: flex;
+  gap: var(--panel-labels-spacing);
+  padding: var(--panel-elements-spacing);
+  min-width: var(--panel-elements-min-width);
+}
+
+.panel label:hover {
+  cursor: pointer;
+  background-color: var(--accent-color);
+}
+
+.panel input[type="checkbox"] {
+  margin: 0rem;
+}
+
+.panel input[type="checkbox"]:hover {
+  cursor: pointer;
+}
+
+
+/* -------------------- list -------------------- */
+
+
+.list {
+  overflow-y: scroll;
+  scrollbar-width: none;
+  height: 100%;
+}
+
+.list::-webkit-scrollbar {
+  display: none;
+}
+
+.list.show-primary a:not(.secondary), .list.show-secondary a.secondary {
+  display: block;
+}
+
+.list.show-containers a span {
+  display: inline;
+}
+
+.list.show-position a[data-position]::after {
+  content: attr(data-position);
+}
+
+.list.show-value a[data-value]::after {
+  content: attr(data-value);
+}
+
+
+/* -------------------- entries -------------------- */
+
+
+.list a {
+  display: none;
+  position: relative;  
+  user-select: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  line-height: var(--entry-line-height);
+  padding-left: var(--entry-padding-left);
+  padding-right: var(--entry-padding-right);
+  transition: background-color var(--transition-general-duration) ease;
+}
+
+.list a:hover {
+  cursor: pointer;
+}
+
+.list a:hover {
+  background-color: var(--entry-hovered-color);
+}
+
+.list a:not(.secondary) {
+  color: var(--entry-primary-color);
+}
+
+.list a.secondary {
+  color: var(--entry-secondary-color);
+}
+
+.list a.filtered {
+  display: none !important;
+}
+
+.list a::after {
+  position: absolute;
+  right: var(--entry-pseudoelement-right);
+  color: var(--entry-pseudoelement-color);
+}
+
+.list a[data-position] {
+  background-color: var(--entry-selected-color);
+}
+
+.list a[data-position]:hover {
+  background-color: var(--entry-selected-hovered-color);
+}
+
+.list a span {
+  display: none;
+  color: var(--entry-container-color);
 }

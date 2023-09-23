@@ -2,6 +2,8 @@
 
 mod files;
 mod watchlist;
+mod rules;
+mod feeds;
 mod general;
 mod comms;
 
@@ -12,6 +14,8 @@ use std::{
 
 use files::FilesEndpoint;
 use watchlist::WatchlistEndpoint;
+use rules::RulesEndpoint;
+use feeds::FeedsEndpoint;
 use general::GeneralEndpoint;
 use comms::{ Request, Status, ContentType };
 
@@ -21,17 +25,27 @@ fn main() -> Result<(), Box<dyn Error>> {
     for mut request in listener.incoming().filter_map(Request::get) {
         let resource = request.resource();
         
-        if let Some(endpoint) = FilesEndpoint::get(&resource) {
+        if let Some(endpoint) = FilesEndpoint::get(resource) {
             endpoint.process(request);
             continue;
         }
         
-        if let Some(endpoint) = WatchlistEndpoint::get(&resource) {
+        if let Some(endpoint) = WatchlistEndpoint::get(resource) {
             endpoint.process(request);
             continue;
         }
         
-        if let Some(endpoint) = GeneralEndpoint::get(&resource) {
+        if let Some(endpoint) = RulesEndpoint::get(resource) {
+            endpoint.process(request);
+            continue;
+        }
+        
+        if let Some(endpoint) = FeedsEndpoint::get(resource) {
+            endpoint.process(request);
+            continue;
+        }
+        
+        if let Some(endpoint) = GeneralEndpoint::get(resource) {
             endpoint.process(request);
             continue;
         }
