@@ -173,6 +173,10 @@ iframe {
   display: none;
 }
 
+.list:focus {
+  outline: none;
+}
+
 .list.show-primary a:not(.secondary), .list.show-secondary a.secondary {
   display: block;
 }

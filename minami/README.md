@@ -12,6 +12,8 @@ Configuration parameters used:
 * **command**: application used to play files
 * **lookup**: URL with a "%s" component used for the "lookup" function
 
-Database lists used:
+Database files used:
 
 * **series**
+* **rules**
+* **feeds**

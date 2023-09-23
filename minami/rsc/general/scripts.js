@@ -12,11 +12,10 @@ class List {
         Object.freeze(this);
     }
     
-    onkeydown = (fn) => this.node.addEventListener("keydown", fn, false);
-    
     entry = (ext) => this.entries.find(entry => entry.node.isEqualNode(ext));
     toggle = (criteria) => this.node.classList.toggle(criteria);
     
+    focus = () => this.node.focus();
     clear_selection = () => this.entries.forEach(entry => entry.node.removeAttribute("data-position"));
     
     select = (target) => {
@@ -55,7 +54,6 @@ class Entry {
         Object.freeze(this);
     }
     
-    click = () => this.node.click();
     onclick = (fn) => this.node.addEventListener("click", fn, false);
     
     filter = () => this.node.classList.add("filtered");
@@ -81,27 +79,49 @@ document.addEventListener("DOMContentLoaded", () => {
         writable: false,
     });
     
+    // ---------- filter ----------
+    
     document.querySelector(".filter").addEventListener("input", () => filter(), false);
+    
+    // ---------- toggles ----------
     
     for (let input of document.querySelectorAll(".panel input[type='checkbox']")) {
         input.addEventListener("click", (event) => toggle(event.target.value), false);
     }
     
-    for (let button of document.querySelectorAll(".panel button")) {
-        if (hotkey = button.getAttribute("data-hotkey")) {
-            LIST.onkeydown((event) => {
-                
-                if (event.code === hotkey) {
-                    button.click();
-                }
-                
-            });
-        }
-    }
+    // ---------- entries ----------
     
     LIST.entries.forEach(entry => entry.onclick((event) => select(entry, event.ctrlKey)));
     
-    LIST.onkeydown((event) => {
+    // ---------- focus ----------
+    
+    document.addEventListener("mouseover", (event) => {
+        
+        if (event.target.tagName === "INPUT") {
+            return;
+        }
+        
+        LIST.focus();
+        
+    });
+    
+    // ---------- hotkeys ----------
+    
+    document.addEventListener("keydown", (event) => {
+        
+        if (event.target.tagName === "INPUT") {
+            return;
+        }
+        
+        // ---------- buttons ----------
+        
+        const button = Array.from(document.querySelectorAll(".panel a"))
+            .filter(button => button.hasAttribute("data-hotkey"))
+            .find(button => event.code == button.getAttribute("data-hotkey"));
+        
+        if (button) {
+            return button.click();
+        }
         
         // ---------- clear selection ----------
         
