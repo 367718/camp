@@ -35,10 +35,13 @@ class List {
         const changed = target.position();
         
         for (let entry of this.entries.filter(entry => entry.is_selected())) {
+            
             const current = entry.position();
+            
             if (current > changed) {
                 entry.node.setAttribute("data-position", current - 1);
             }
+            
         }
         
         target.node.removeAttribute("data-position");
@@ -97,7 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     document.addEventListener("mouseover", (event) => {
         
-        if (event.target.tagName === "INPUT") {
+        if (document.activeElement && document.activeElement.tagName === "INPUT") {
             return;
         }
         
@@ -154,11 +157,11 @@ function filter() {
     
     input.dataset.timeout = setTimeout(() => {
         
-        const regex = new RegExp(input.value, "i");
+        const criteria = input.value.toUpperCase();
         
         for (let entry of LIST.entries) {
             
-            if (regex.exec(entry.text())) {
+            if (entry.text().toUpperCase().includes(criteria)) {
                 
                 entry.unfilter();
                 
