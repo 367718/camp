@@ -106,11 +106,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 
                 {
                     
-                    response.send(b"<div>")?;
-                    
                     response.send(b"<input class='filter' placeholder='filter'>")?;
-                    
-                    response.send(b"</div>")?;
                     
                 }
                 
@@ -148,8 +144,8 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     
                     response.send(b"<div>")?;
                     
-                    response.send(b"<a onclick='request({ url: \"/feeds/add\", prompt: true, refresh: true });'>add</a>")?;
-                    response.send(b"<a onclick='request({ url: \"/feeds/remove\", prompt: false, refresh: true });'>remove</a>")?;
+                    response.send(b"<a onclick='request({ url: \"/feeds/add\", confirm: false, prompt: true, refresh: true });'>add</a>")?;
+                    response.send(b"<a onclick='request({ url: \"/feeds/remove\", confirm: true, prompt: false, refresh: true });'>remove</a>")?;
                     
                     response.send(b"</div>")?;
                     

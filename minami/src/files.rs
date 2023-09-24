@@ -12,6 +12,7 @@ pub enum FilesEndpoint {
     Play,
     Mark,
     Move,
+    Delete,
 }
 
 impl FilesEndpoint {
@@ -22,6 +23,7 @@ impl FilesEndpoint {
             (b"POST", b"/files/play") => Some(Self::Play),
             (b"POST", b"/files/mark") => Some(Self::Mark),
             (b"POST", b"/files/move") => Some(Self::Move),
+            (b"POST", b"/files/delete") => Some(Self::Delete),
             _ => None,
         }
     }
@@ -32,6 +34,7 @@ impl FilesEndpoint {
             Self::Play => play(&mut request),
             Self::Mark => mark(&mut request),
             Self::Move => move_to_folder(&mut request),
+            Self::Delete => delete(&mut request),
         };
         
         if let Err(error) = result {
@@ -118,11 +121,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 
                 {
                     
-                    response.send(b"<div>")?;
-                    
                     response.send(b"<input class='filter' placeholder='filter'>")?;
-                    
-                    response.send(b"</div>")?;
                     
                 }
                 
@@ -173,11 +172,11 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     
                     response.send(b"<div>")?;
                     
-                    response.send(b"<a data-hotkey='Enter' onclick='request({ url: \"/files/play\", prompt: false, refresh: false });'>play</a>")?;
-                    response.send(b"<a data-hotkey='Delete' onclick='request({ url: \"/files/mark\", prompt: false, refresh: true });'>mark</a>")?;
-                    response.send(b"<a data-hotkey='F3' onclick='request({ url: \"/files/move\", prompt: true, refresh: true });'>move</a>")?;
-                    response.send(b"<a>delete</a>")?;
-                    response.send(b"<a onclick='request({ url: \"/general/lookup\", prompt: false, refresh: false });'>lookup</a>")?;
+                    response.send(b"<a data-hotkey='Enter' onclick='request({ url: \"/files/play\", confirm: false, prompt: false, refresh: false });'>play</a>")?;
+                    response.send(b"<a data-hotkey='Delete' onclick='request({ url: \"/files/mark\", confirm: false, prompt: false, refresh: true });'>mark</a>")?;
+                    response.send(b"<a data-hotkey='F3' onclick='request({ url: \"/files/move\", confirm: false, prompt: true, refresh: true });'>move</a>")?;
+                    response.send(b"<a onclick='request({ url: \"/files/delete\", confirm: true, prompt: false, refresh: true });'>delete</a>")?;
+                    response.send(b"<a onclick='request({ url: \"/general/lookup\", confirm: false, prompt: false, refresh: false });'>lookup</a>")?;
                     response.send(b"<a>download</a>")?;
                     response.send(b"<a>control</a>")?;
                     
@@ -319,6 +318,38 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for mut entry in files {
         entry.move_to_folder(&root, folder)?;
+    }
+    
+    // -------------------- response --------------------
+    
+    request.start_response(Status::Ok, ContentType::Plain)
+        .and_then(|mut response| response.send(b"OK"))
+    
+}
+
+fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
+    
+    // -------------------- config --------------------
+    
+    let config = rin::Config::load()?;
+    let root = Path::new(config.get(b"root")?).canonicalize().map_err(|_| "Invalid root directory")?;
+    
+    // -------------------- files --------------------
+    
+    let mut files = request.param(b"tag")
+        .filter_map(|path| root.join(path).canonicalize().ok())
+        .filter(|path| path.starts_with(&root))
+        .filter_map(|path| ena::Files::new(path).next())
+        .peekable();
+    
+    if files.peek().is_none() {
+        return Err("File path not provided".into());
+    }
+    
+    // -------------------- operation --------------------
+    
+    for mut entry in files {
+        entry.delete()?;
     }
     
     // -------------------- response --------------------

@@ -71,4 +71,9 @@ impl FilesEntry {
         Ok(())
     }
     
+    pub fn delete(&mut self) -> Result<(), Box<dyn Error>> {
+        fs::remove_file(&self.path)?;
+        Ok(())
+    }
+    
 }

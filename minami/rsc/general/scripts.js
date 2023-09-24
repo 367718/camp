@@ -222,12 +222,12 @@ function copy() {
     navigator.clipboard.writeText(text);
 }
 
-function request({ url = "", prompt = false, refresh = false } = {}) {
-    const form_data = new FormData();
+function request({ url = "", confirm = false, prompt = false, refresh = false } = {}) {
+    if (confirm && ! window.confirm("Are you sure you want to proceed with the requested action?")) {
+        return;
+    }
     
-    LIST.entries.filter(entry => entry.is_selected())
-        .sort((first, second) => first.position() - second.position())
-        .forEach(entry => form_data.append("tag", entry.text()));
+    const form_data = new FormData();
     
     if (prompt) {
         const input = window.prompt("The requested action requires a value");
@@ -238,6 +238,10 @@ function request({ url = "", prompt = false, refresh = false } = {}) {
         
         form_data.append("input", input);
     }
+    
+    LIST.entries.filter(entry => entry.is_selected())
+        .sort((first, second) => first.position() - second.position())
+        .forEach(entry => form_data.append("tag", entry.text()));
     
     fetch(url, { method: "POST", body: form_data })
         .then(response => {

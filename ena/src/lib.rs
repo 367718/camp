@@ -9,32 +9,17 @@ use std::{
 pub use entry::FilesEntry;
 
 pub struct Files {
-    entries: Vec<FilesEntryKind>,
+    entries: Vec<PathBuf>,
 }
 
-enum FilesEntryKind {
-    File(PathBuf),
-    Directory(PathBuf),
-}
-
-const ENTRIES_INITIAL_CAPACITY: usize = 50;
+const ENTRIES_INITIAL_CAPACITY: usize = 250;
 
 impl Files {
     
     pub fn new(initial: PathBuf) -> Self {
         let mut entries = Vec::with_capacity(ENTRIES_INITIAL_CAPACITY);
         
-        // do not follow symlinks when asking for metadata
-        if let Ok(file_type) = fs::symlink_metadata(&initial).map(|metadata| metadata.file_type()) {
-            
-            // file, dir and symlink tests are mutually exclusive
-            if file_type.is_dir() {
-                entries.push(FilesEntryKind::Directory(initial));
-            } else if file_type.is_file() {
-                entries.push(FilesEntryKind::File(initial));
-            }
-            
-        }
+        entries.push(initial);
         
         Self {
             entries,
@@ -49,34 +34,28 @@ impl Iterator for Files {
     
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(current) = self.entries.pop() {
-            match current {
+            
+            // file, dir and symlink tests are mutually exclusive
+            let Ok(file_type) = fs::symlink_metadata(&current).map(|metadata| metadata.file_type()) else {
+                continue;
+            };
+            
+            if file_type.is_file() {
+                return Some(FilesEntry::new(current));
+            }
+            
+            if file_type.is_dir() {
                 
-                FilesEntryKind::File(path) => return Some(FilesEntry::new(path)),
+                let Ok(directory) = current.read_dir() else {
+                    continue;
+                };
                 
-                FilesEntryKind::Directory(path) => {
-                    
-                    let Ok(directory) = path.read_dir() else {
-                        continue;
-                    };
-                    
-                    for entry in directory.flatten() {
-                        
-                        let Ok(file_type) = entry.file_type() else {
-                            continue;
-                        };
-                        
-                        // file, dir and symlink tests are mutually exclusive
-                        if file_type.is_file() {
-                            self.entries.push(FilesEntryKind::File(entry.path()));
-                        } else if file_type.is_dir() {
-                            self.entries.push(FilesEntryKind::Directory(entry.path()));
-                        }
-                        
-                    }
-                    
-                },
+                for entry in directory.flatten() {
+                    self.entries.push(entry.path());
+                }
                 
             }
+            
         }
         
         None
