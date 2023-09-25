@@ -35,10 +35,11 @@ impl Iterator for Files {
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(current) = self.entries.pop() {
             
-            // file, dir and symlink tests are mutually exclusive
             let Ok(file_type) = fs::symlink_metadata(&current).map(|metadata| metadata.file_type()) else {
                 continue;
             };
+            
+            // file, dir and symlink tests are mutually exclusive
             
             if file_type.is_file() {
                 return Some(FilesEntry::new(current));

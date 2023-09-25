@@ -5,6 +5,7 @@ use super::{ Request, Status, ContentType };
 pub enum RulesEndpoint {
     Index,
     Add,
+    Edit,
     Remove,
 }
 
@@ -14,6 +15,7 @@ impl RulesEndpoint {
         match resource {
             (b"GET", b"/rules/") => Some(Self::Index),
             (b"POST", b"/rules/add") => Some(Self::Add),
+            (b"POST", b"/rules/edit") => Some(Self::Edit),
             (b"POST", b"/rules/remove") => Some(Self::Remove),
             _ => None,
         }
@@ -23,6 +25,7 @@ impl RulesEndpoint {
         let result = match self {
             Self::Index => index(&mut request),
             Self::Add => add(&mut request),
+            Self::Edit => edit(&mut request),
             Self::Remove => remove(&mut request),
         };
         
@@ -149,6 +152,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     response.send(b"<div>")?;
                     
                     response.send(b"<a onclick='request({ url: \"/rules/add\", confirm: false, prompt: true, refresh: true });'>add</a>")?;
+                    response.send(b"<a onclick='request({ url: \"/rules/edit\", confirm: false, prompt: true, refresh: true });'>edit</a>")?;
                     response.send(b"<a onclick='request({ url: \"/rules/remove\", confirm: true, prompt: false, refresh: true });'>remove</a>")?;
                     
                     response.send(b"</div>")?;
@@ -188,6 +192,34 @@ fn add(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- operation --------------------
     
     database.add(matcher, 0)?;
+    
+    // -------------------- response --------------------
+    
+    request.start_response(Status::Ok, ContentType::Plain)
+        .and_then(|mut response| response.send(b"OK"))
+    
+}
+
+fn edit(request: &mut Request) -> Result<(), Box<dyn Error>> {
+    
+    // -------------------- database --------------------
+    
+    let database = chiaki::Database::load("rules")?;
+    
+    // -------------------- title and progress --------------------
+    
+    let matcher = request.param(b"tag")
+        .next()
+        .ok_or("Rule matcher not provided")?;
+    
+    let progress = request.param(b"input")
+        .next()
+        .and_then(|progress| progress.parse().ok())
+        .ok_or("Rule progress not provided")?;
+    
+    // -------------------- operation --------------------
+    
+    database.edit(matcher, progress)?;
     
     // -------------------- response --------------------
     

@@ -97,18 +97,6 @@ iframe {
   gap: var(--panel-spacing);
 }
 
-.panel > * {
-  flex: 1;
-}
-
-.panel > *:nth-child(1) {
-  justify-content: start;
-}
-
-.panel > *:nth-child(2) {
-  justify-content: end;
-}
-
 .panel a {
   color: var(--panel-elements-color);
   transition: background-color var(--transition-general-duration) ease;
@@ -132,7 +120,7 @@ iframe {
 }
 
 .panel input:not([type]) {
-  width: 100%;
+  width: 50%;
   border: none;
   background-color: var(--primary-color);
   color: var(--panel-filter-color);

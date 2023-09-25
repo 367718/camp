@@ -223,11 +223,17 @@ function copy() {
 }
 
 function request({ url = "", confirm = false, prompt = false, refresh = false } = {}) {
+    // -------------------- confirm --------------------
+    
     if (confirm && ! window.confirm("Are you sure you want to proceed with the requested action?")) {
         return;
     }
     
+    // -------------------- form --------------------
+    
     const form_data = new FormData();
+    
+    // -------------------- prompt --------------------
     
     if (prompt) {
         const input = window.prompt("The requested action requires a value");
@@ -239,9 +245,13 @@ function request({ url = "", confirm = false, prompt = false, refresh = false } 
         form_data.append("input", input);
     }
     
+    // -------------------- tags --------------------
+    
     LIST.entries.filter(entry => entry.is_selected())
         .sort((first, second) => first.position() - second.position())
         .forEach(entry => form_data.append("tag", entry.text()));
+    
+    // -------------------- request --------------------
     
     fetch(url, { method: "POST", body: form_data })
         .then(response => {
@@ -251,7 +261,7 @@ function request({ url = "", confirm = false, prompt = false, refresh = false } 
                     window.location.reload();
                 }
             } else {
-                response.text().then(error => window.alert(error));
+                response.text().then(message => window.alert(message));
             }
             
         })
