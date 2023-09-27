@@ -133,10 +133,17 @@ document.addEventListener("DOMContentLoaded", () => {
             return event.preventDefault();
         }
         
-        // ---------- copy names to clipboard ----------
+        // ---------- copy text to clipboard ----------
         
         if (event.ctrlKey && event.code === "KeyC") {
             copy();
+            return event.preventDefault();
+        }
+        
+        // ---------- partially copy text to clipboard ----------
+        
+        if (event.ctrlKey && event.code === "KeyX") {
+            partial();
             return event.preventDefault();
         }
         
@@ -218,6 +225,58 @@ function copy() {
         .sort((first, second) => first.position() - second.position())
         .map(entry => entry.text())
         .join("\n");
+    
+    navigator.clipboard.writeText(text);
+}
+
+function partial() {
+    if (! navigator.clipboard) {
+        window.alert("Access to the clipboard is only available in secure contexts or localhost")
+        return;
+    }
+    
+    const selected = LIST.entries.filter(entry => entry.is_selected())
+        .find(entry => entry.position() === 1);
+    
+    if (! selected) {
+        return;
+    }
+    
+    let text = selected.text();
+    
+    // strip container
+    
+    const container = new RegExp(/^.+\\/);
+    
+    text = text.replace(container, "");
+    
+    // strip format
+    
+    const file_format = new RegExp(/\.[^.]+$/);
+    
+    text = text.replace(file_format, "");
+    
+    // strip leading square brackets and parens
+    
+    const leading = new RegExp(/^\[[^\]]*\]\s*|^\([^\)]*\)\s*/);
+    
+    while (leading.test(text)) {
+        text = text.replace(leading, "");
+    }
+    
+    // strip trailing square brackets and parens
+    
+    const trailing = new RegExp(/\s*\[[^\]]*\]$|\s*\([^\)]*\)$/);
+    
+    while (trailing.test(text)) {
+        text = text.replace(trailing, "");
+    }
+    
+    // strip episode number
+    
+    const episode_number = new RegExp(/\s*-\s*\d+$/);
+    
+    text = text.replace(episode_number, "");
     
     navigator.clipboard.writeText(text);
 }
