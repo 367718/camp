@@ -75,18 +75,21 @@ impl Database {
     
     
     pub fn add(self, tag: &str, value: u64) -> Result<(), Box<dyn Error>> {
-        let entries: Vec<DatabaseEntry> = self.entries().collect();
-        
-        if entries.iter().any(|entry| entry.tag.eq_ignore_ascii_case(tag)) {
+        if self.entries().any(|entry| entry.tag.eq_ignore_ascii_case(tag)) {
             return Err("Tag in use".into());
         }
         
-        let modified = entries.into_iter().chain(Some(DatabaseEntry { tag, value }));
+        let modified = self.entries()
+            .chain(Some(DatabaseEntry { tag, value }));
         
         self.commit(modified)
     }
     
     pub fn edit(self, tag: &str, value: u64) -> Result<(), Box<dyn Error>> {
+        if ! self.entries().any(|entry| entry.tag.eq_ignore_ascii_case(tag)) {
+            return Err("Tag not found".into());
+        }
+        
         let modified = self.entries()
             .filter(|entry| ! entry.tag.eq_ignore_ascii_case(tag))
             .chain(Some(DatabaseEntry { tag, value }));
@@ -95,6 +98,10 @@ impl Database {
     }
     
     pub fn remove(self, tag: &str) -> Result<(), Box<dyn Error>> {
+        if ! self.entries().any(|entry| entry.tag.eq_ignore_ascii_case(tag)) {
+            return Err("Tag not found".into());
+        }
+        
         let modified = self.entries()
             .filter(|entry| ! entry.tag.eq_ignore_ascii_case(tag));
         

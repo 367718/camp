@@ -297,9 +297,9 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let config = rin::Config::load()?;
     let root = Path::new(config.get(b"root")?).canonicalize().map_err(|_| "Invalid root directory")?;
     
-    // -------------------- folder --------------------
+    // -------------------- name --------------------
     
-    let folder = Path::new(request.param(b"input").next().ok_or("Folder name not provided")?)
+    let name = Path::new(request.param(b"input").next().ok_or("Folder name not provided")?)
         .file_name().ok_or("Invalid folder name")?;
     
     // -------------------- files --------------------
@@ -316,8 +316,8 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    for mut entry in files {
-        entry.move_to_folder(&root, folder)?;
+    for entry in files {
+        entry.move_to_folder(&root, name)?;
     }
     
     // -------------------- response --------------------
@@ -348,7 +348,7 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    for mut entry in files {
+    for entry in files {
         entry.delete()?;
     }
     

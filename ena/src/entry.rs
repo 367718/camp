@@ -56,9 +56,14 @@ impl FilesEntry {
         Ok(())
     }
     
-    pub fn move_to_folder(&mut self, root: &Path, folder: &OsStr) -> Result<(), Box<dyn Error>> {
-        let destination = root.join(folder)
-            .join(self.path.file_name().ok_or("Invalid file name")?);
+    pub fn move_to_folder(self, root: &Path, name: &OsStr) -> Result<(), Box<dyn Error>> {
+        let folder = root.join(name);
+        
+        if ! Path::exists(&folder) {
+            fs::create_dir(&folder)?;
+        }
+        
+        let destination = folder.join(self.path.file_name().ok_or("Invalid file name")?);
         
         if Path::exists(&destination) {
             return Err(chikuwa::concat_str!("Destination already exists: '", &destination.to_string_lossy(), "'").into())
@@ -66,13 +71,11 @@ impl FilesEntry {
         
         fs::rename(&self.path, &destination)?;
         
-        self.path = destination;
-        
         Ok(())
     }
     
-    pub fn delete(&mut self) -> Result<(), Box<dyn Error>> {
-        fs::remove_file(&self.path)?;
+    pub fn delete(self) -> Result<(), Box<dyn Error>> {
+        fs::remove_file(self.path)?;
         Ok(())
     }
     
