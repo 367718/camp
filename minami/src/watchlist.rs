@@ -42,11 +42,11 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- database --------------------
     
-    let database = chiaki::Database::load("series")?;
+    let database = chiaki::Database::load("watchlist")?;
     
-    let mut series: Vec<chiaki::DatabaseEntry> = database.entries().collect();
+    let mut watchlist: Vec<chiaki::DatabaseEntry> = database.entries().collect();
     
-    series.sort_unstable_by_key(|entry| entry.tag);
+    watchlist.sort_unstable_by_key(|entry| entry.tag.to_ascii_uppercase());
     
     // -------------------- response --------------------
     
@@ -123,7 +123,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 
                 response.send(b"<div class='list show-value show-primary'>")?;
                 
-                for entry in series {
+                for entry in watchlist {
                     
                     response.send(b"<a")?;
                     
@@ -208,13 +208,13 @@ fn add(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- database --------------------
     
-    let database = chiaki::Database::load("series")?;
+    let database = chiaki::Database::load("watchlist")?;
     
     // -------------------- title --------------------
     
     let title = request.param(b"input")
         .next()
-        .ok_or("Series title not provided")?;
+        .ok_or("Title not provided")?;
     
     // -------------------- operation --------------------
     
@@ -231,18 +231,18 @@ fn edit(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- database --------------------
     
-    let database = chiaki::Database::load("series")?;
+    let database = chiaki::Database::load("watchlist")?;
     
     // -------------------- title and progress --------------------
     
     let title = request.param(b"tag")
         .next()
-        .ok_or("Series title not provided")?;
+        .ok_or("Title not provided")?;
     
     let progress = request.param(b"input")
         .next()
         .and_then(|progress| progress.parse().ok())
-        .ok_or("Series progress not provided")?;
+        .ok_or("Progress not provided")?;
     
     // -------------------- operation --------------------
     
@@ -259,13 +259,13 @@ fn remove(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- database --------------------
     
-    let database = chiaki::Database::load("series")?;
+    let database = chiaki::Database::load("watchlist")?;
     
     // -------------------- title --------------------
     
     let title = request.param(b"tag")
         .next()
-        .ok_or("Series title not provided")?;
+        .ok_or("Title not provided")?;
     
     // -------------------- operation --------------------
     

@@ -46,7 +46,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let mut rules: Vec<chiaki::DatabaseEntry> = database.entries().collect();
     
-    rules.sort_unstable_by_key(|entry| entry.tag);
+    rules.sort_unstable_by_key(|entry| entry.tag.to_ascii_uppercase());
     
     // -------------------- response --------------------
     
@@ -183,11 +183,11 @@ fn add(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let database = chiaki::Database::load("rules")?;
     
-    // -------------------- url --------------------
+    // -------------------- matcher --------------------
     
     let matcher = request.param(b"input")
         .next()
-        .ok_or("Rule matcher not provided")?;
+        .ok_or("Matcher not provided")?;
     
     // -------------------- operation --------------------
     
@@ -206,16 +206,16 @@ fn edit(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let database = chiaki::Database::load("rules")?;
     
-    // -------------------- title and progress --------------------
+    // -------------------- matcher and progress --------------------
     
     let matcher = request.param(b"tag")
         .next()
-        .ok_or("Rule matcher not provided")?;
+        .ok_or("Matcher not provided")?;
     
     let progress = request.param(b"input")
         .next()
         .and_then(|progress| progress.parse().ok())
-        .ok_or("Rule progress not provided")?;
+        .ok_or("Progress not provided")?;
     
     // -------------------- operation --------------------
     
@@ -234,11 +234,11 @@ fn remove(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let database = chiaki::Database::load("rules")?;
     
-    // -------------------- url --------------------
+    // -------------------- matcher --------------------
     
     let matcher = request.param(b"tag")
         .next()
-        .ok_or("Rule matcher not provided")?;
+        .ok_or("Matcher not provided")?;
     
     // -------------------- operation --------------------
     

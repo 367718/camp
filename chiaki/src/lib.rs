@@ -115,13 +115,15 @@ impl <'c>Iterator for DatabaseEntries<'c> {
     type Item = DatabaseEntry<'c>;
     
     fn next(&mut self) -> Option<Self::Item> {
-        let (current, rest) = self.content.get(..mem::size_of::<u64>()).zip(self.content.get(mem::size_of::<u64>()..))?;
+        let mem_size = mem::size_of::<u64>();
+        
+        let (current, rest) = self.content.get(..mem_size).zip(self.content.get(mem_size..))?;
         let size = usize::try_from(u64::from_le_bytes(current.try_into().unwrap())).ok()?;
         
         let (current, rest) = rest.get(..size).zip(rest.get(size..))?;
         let tag = str::from_utf8(current).ok()?;
         
-        let (current, rest) = rest.get(..mem::size_of::<u64>()).zip(rest.get(mem::size_of::<u64>()..))?;
+        let (current, rest) = rest.get(..mem_size).zip(rest.get(mem_size..))?;
         let value = u64::from_le_bytes(current.try_into().unwrap());
         
         self.content = rest;

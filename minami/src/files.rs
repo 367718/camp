@@ -58,7 +58,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let mut files: Vec<ena::FilesEntry> = ena::Files::new(root.to_path_buf()).collect();
     
-    files.sort_unstable_by_key(|entry| (entry.container(root).is_some(), entry.path().to_uppercase()));
+    files.sort_unstable_by_key(|entry| (entry.container(root).is_some(), entry.path().to_ascii_uppercase()));
     
     // -------------------- response --------------------
     
@@ -178,7 +178,6 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     response.send(b"<a onclick='request({ url: \"/files/delete\", confirm: true, prompt: false, refresh: true });'>delete</a>")?;
                     response.send(b"<a onclick='request({ url: \"/general/lookup\", confirm: false, prompt: false, refresh: false });'>lookup</a>")?;
                     response.send(b"<a>download</a>")?;
-                    response.send(b"<a>control</a>")?;
                     
                     response.send(b"</div>")?;
                     
@@ -243,7 +242,7 @@ fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if paths.peek().is_none() {
-        return Err("File path not provided".into());
+        return Err("File not provided".into());
     }
     
     // -------------------- operation --------------------
@@ -274,7 +273,7 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if files.peek().is_none() {
-        return Err("File path not provided".into());
+        return Err("File not provided".into());
     }
     
     // -------------------- operation --------------------
@@ -299,8 +298,8 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- name --------------------
     
-    let name = Path::new(request.param(b"input").next().ok_or("Folder name not provided")?)
-        .file_name().ok_or("Invalid folder name")?;
+    let name = Path::new(request.param(b"input").next().ok_or("Name not provided")?)
+        .file_name().ok_or("Invalid name")?;
     
     // -------------------- files --------------------
     
@@ -311,7 +310,7 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if files.peek().is_none() {
-        return Err("File path not provided".into());
+        return Err("File not provided".into());
     }
     
     // -------------------- operation --------------------
@@ -343,7 +342,7 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if files.peek().is_none() {
-        return Err("File path not provided".into());
+        return Err("File not provided".into());
     }
     
     // -------------------- operation --------------------

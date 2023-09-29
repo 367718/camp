@@ -46,6 +46,6 @@ pub fn execute_app(path: &str) -> Result<(), Box<dyn Error>> {
         }
         
     }
-        
+    
     Ok(())
 }

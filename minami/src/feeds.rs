@@ -43,7 +43,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let mut feeds: Vec<chiaki::DatabaseEntry> = database.entries().collect();
     
-    feeds.sort_unstable_by_key(|entry| entry.tag);
+    feeds.sort_unstable_by_key(|entry| entry.tag.to_ascii_uppercase());
     
     // -------------------- response --------------------
     
@@ -179,7 +179,7 @@ fn add(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let url = request.param(b"input")
         .next()
-        .ok_or("Feed url not provided")?;
+        .ok_or("Url not provided")?;
     
     // -------------------- operation --------------------
     
@@ -202,7 +202,7 @@ fn remove(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let url = request.param(b"tag")
         .next()
-        .ok_or("Feed url not provided")?;
+        .ok_or("Url not provided")?;
     
     // -------------------- operation --------------------
     
