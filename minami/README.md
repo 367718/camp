@@ -9,7 +9,7 @@ Configuration parameters used:
 * **bind**: listening address for the main interface
 * **root**: path to files directory
 * **flag**: tag used to mark files as watched
-* **command**: application used to play files
+* **player**: application used to play files
 * **lookup**: URL with a "%s" component used for the "lookup" function
 
 Database files used:

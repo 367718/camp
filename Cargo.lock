@@ -3,6 +3,14 @@
 version = 3
 
 [[package]]
+name = "aoi"
+version = "2.0.0"
+dependencies = [
+ "chikuwa",
+ "rin",
+]
+
+[[package]]
 name = "chiaki"
 version = "2.0.0"
 dependencies = [

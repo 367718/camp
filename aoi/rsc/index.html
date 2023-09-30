@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  
+  <head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Remote control</title>
+    <link rel="icon" href="data:,">
+    
+    <style>
+      
+      body {
+        display: flex;
+        justify-content: center;
+        margin: 25px;
+      }
+      
+      div {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 50px;
+        width: 850px;
+      }
+      
+      div button {
+        font-size: 50px;
+        font-family: "Courier New", monospace;
+        height: 130px;
+        cursor: pointer;
+        border: 5px solid lightgray;
+        border-radius: 10px;
+      }
+      
+      /* play / pause */
+      
+      div button:nth-of-type(1) {
+        grid-column-start: 1;
+        grid-column-end: 3;
+        color: red;
+      }
+      
+      /* minuschapter / pluschapter */
+      /* minusplaylist / plusplaylist */
+      
+      div button:nth-of-type(n+2) {
+        color: blue;
+      }
+      
+      /* minus5 / plus5 */
+      /* minus75 / plus75 */
+      
+      div button:nth-of-type(n+6) {
+        color: green;
+      }
+      
+      /* fullscreen / subtitles */
+      /* title / time */
+      
+      div button:nth-of-type(n+10) {
+        color: darkgoldenrod;
+      }
+      
+    </style>
+    
+    <script>
+      
+      function send_command(command) {
+        
+        fetch(command)
+          .then(response => {
+            if (response.status != 200) {
+              response.text().then(message => document.body.innerHTML = message);
+            }
+          })
+          .catch(message => document.body.innerHTML = message);
+        
+      }
+      
+    </script>
+    
+  </head>
+  
+  <body>
+    
+    <div>
+      
+      <button onmousedown="send_command('/play')">Play / Pause</button>
+      <button onmousedown="send_command('/minuschapter')">- chapter</button>
+      <button onmousedown="send_command('/pluschapter')">+ chapter</button>
+      <button onmousedown="send_command('/minusplaylist')">- playlist</button>
+      <button onmousedown="send_command('/plusplaylist')">+ playlist</button>
+      <button onmousedown="send_command('/minus5')">- 5 secs</button>
+      <button onmousedown="send_command('/plus5')">+ 5 secs</button>
+      <button onmousedown="send_command('/minus75')">- 75 secs</button>
+      <button onmousedown="send_command('/plus75')">+ 75 secs</button>
+      <button onmousedown="send_command('/fullscreen')">Fullscreen</button>
+      <button onmousedown="send_command('/subtitles')">Subtitles</button>
+      <button onmousedown="send_command('/title')">Show title</button>
+      <button onmousedown="send_command('/time')">Show time</button>
+      
+    </div>
+    
+  </body>
+  
+</html>

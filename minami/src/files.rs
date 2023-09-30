@@ -177,7 +177,6 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     response.send(b"<a data-hotkey='F3' onclick='request({ url: \"/files/move\", confirm: false, prompt: true, refresh: true });'>move</a>")?;
                     response.send(b"<a onclick='request({ url: \"/files/delete\", confirm: true, prompt: false, refresh: true });'>delete</a>")?;
                     response.send(b"<a onclick='request({ url: \"/general/lookup\", confirm: false, prompt: false, refresh: false });'>lookup</a>")?;
-                    response.send(b"<a>download</a>")?;
                     
                     response.send(b"</div>")?;
                     
@@ -196,7 +195,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     
                     response.send(b"<label>")?;
                     response.send(b"<input type='checkbox' value='show-primary' checked='checked'>")?;
-                    response.send(b"new")?;
+                    response.send(b"unwatched")?;
                     response.send(b"</label>")?;
                     
                     response.send(b"<label>")?;
@@ -232,7 +231,7 @@ fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let config = rin::Config::load()?;
     let root = Path::new(config.get(b"root")?).canonicalize().map_err(|_| "Invalid root directory")?;
-    let command = config.get(b"command")?;
+    let player = config.get(b"player")?;
     
     // -------------------- paths --------------------
     
@@ -247,7 +246,7 @@ fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    Command::new(command).args(paths).spawn()?;
+    Command::new(player).args(paths).spawn()?;
     
     // -------------------- response --------------------
     

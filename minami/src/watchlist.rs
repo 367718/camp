@@ -157,9 +157,9 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     
                     response.send(b"<div>")?;
                     
-                    response.send(b"<a onclick='request({ url: \"/watchlist/add\", confirm: false, prompt: true, refresh: true });'>add</a>")?;
-                    response.send(b"<a onclick='request({ url: \"/watchlist/edit\", confirm: false, prompt: true, refresh: true });'>edit</a>")?;
-                    response.send(b"<a onclick='request({ url: \"/watchlist/remove\", confirm: true, prompt: false, refresh: true });'>remove</a>")?;
+                    response.send(b"<a data-hotkey='Insert' onclick='request({ url: \"/watchlist/add\", confirm: false, prompt: true, refresh: true });'>add</a>")?;
+                    response.send(b"<a data-hotkey='F2' onclick='request({ url: \"/watchlist/edit\", confirm: false, prompt: true, refresh: true });'>edit</a>")?;
+                    response.send(b"<a data-hotkey='Delete' onclick='request({ url: \"/watchlist/remove\", confirm: true, prompt: false, refresh: true });'>remove</a>")?;
                     response.send(b"<a onclick='request({ url: \"/general/lookup\", confirm: false, prompt: false, refresh: false });'>lookup</a>")?;
                     
                     response.send(b"</div>")?;

@@ -3,6 +3,7 @@
 ## Binaries
 
 * **minami**: Manage video files and watchlists.
+* **aoi**: Remote control of the mpv player.
 
 ## Libraries
 

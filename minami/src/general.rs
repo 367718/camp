@@ -2,9 +2,9 @@ use std::error::Error;
 
 use super::{ Request, Status, ContentType };
 
-const FAVICON: &[u8] = include_bytes!("../rsc/general/favicon.ico");
-const STYLES: &[u8] = include_bytes!("../rsc/general/styles.css");
-const SCRIPTS: &[u8] = include_bytes!("../rsc/general/scripts.js");
+const FAVICON: &[u8] = include_bytes!("../rsc/favicon.ico");
+const STYLES: &[u8] = include_bytes!("../rsc/styles.css");
+const SCRIPTS: &[u8] = include_bytes!("../rsc/scripts.js");
 
 pub enum GeneralEndpoint {
     Index,
