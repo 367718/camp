@@ -1,6 +1,6 @@
 [package]
-name = "rin"
-description = "Configuration files manager"
+name = "akari"
+description = "Non-compliant HTTP(S) 1.1 client"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
@@ -8,3 +8,8 @@ license.workspace = true
 
 [dependencies]
 chikuwa = { path = "../chikuwa" }
+
+schannel = "0.1.22"
+
+[dev-dependencies]
+mockito = "1.1.0"

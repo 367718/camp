@@ -104,7 +104,7 @@ fn lookup(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    chikuwa::execute_app(&lookup.replace("%s", &chikuwa::percent_encode(path)))?;
+    chikuwa::open_resource(&lookup.replace("%s", &chikuwa::percent_encode(path)))?;
     
     // -------------------- response --------------------
     

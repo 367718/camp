@@ -4,9 +4,9 @@ use super::{ Request, Status, ContentType };
 
 pub enum WatchlistEndpoint {
     Index,
-    Add,
-    Edit,
-    Remove,
+    Insert,
+    Update,
+    Delete,
 }
 
 impl WatchlistEndpoint {
@@ -14,9 +14,9 @@ impl WatchlistEndpoint {
     pub fn get(resource: (&[u8], &[u8])) -> Option<Self> {
         match resource {
             (b"GET", b"/watchlist/") => Some(Self::Index),
-            (b"POST", b"/watchlist/add") => Some(Self::Add),
-            (b"POST", b"/watchlist/edit") => Some(Self::Edit),
-            (b"POST", b"/watchlist/remove") => Some(Self::Remove),
+            (b"POST", b"/watchlist/insert") => Some(Self::Insert),
+            (b"POST", b"/watchlist/update") => Some(Self::Update),
+            (b"POST", b"/watchlist/delete") => Some(Self::Delete),
             _ => None,
         }
     }
@@ -24,9 +24,9 @@ impl WatchlistEndpoint {
     pub fn process(&self, mut request: Request) {
         let result = match self {
             Self::Index => index(&mut request),
-            Self::Add => add(&mut request),
-            Self::Edit => edit(&mut request),
-            Self::Remove => remove(&mut request),
+            Self::Insert => insert(&mut request),
+            Self::Update => update(&mut request),
+            Self::Delete => delete(&mut request),
         };
         
         if let Err(error) = result {
@@ -40,11 +40,11 @@ impl WatchlistEndpoint {
 
 fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
-    // -------------------- database --------------------
+    // -------------------- list --------------------
     
-    let database = chiaki::Database::load("watchlist")?;
+    let list = chiaki::List::load("watchlist")?;
     
-    let mut watchlist: Vec<chiaki::DatabaseEntry> = database.entries().collect();
+    let mut watchlist: Vec<chiaki::ListEntry> = list.entries().collect();
     
     watchlist.sort_unstable_by_key(|entry| entry.tag.to_ascii_uppercase());
     
@@ -97,7 +97,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     response.send(b"<div>")?;
                     
                     response.send(b"<a href='/files/'>files</a>")?;
-                    response.send(b"<span>watchlist</span>")?;
+                    response.send(b"<a href='/watchlist/'>watchlist</a>")?;
                     response.send(b"<a href='/rules/'>rules</a>")?;
                     response.send(b"<a href='/feeds/'>feeds</a>")?;
                     
@@ -157,9 +157,9 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     
                     response.send(b"<div>")?;
                     
-                    response.send(b"<a data-hotkey='Insert' onclick='request({ url: \"/watchlist/add\", confirm: false, prompt: true, refresh: true });'>add</a>")?;
-                    response.send(b"<a data-hotkey='F2' onclick='request({ url: \"/watchlist/edit\", confirm: false, prompt: true, refresh: true });'>edit</a>")?;
-                    response.send(b"<a data-hotkey='Delete' onclick='request({ url: \"/watchlist/remove\", confirm: true, prompt: false, refresh: true });'>remove</a>")?;
+                    response.send(b"<a data-hotkey='Insert' onclick='request({ url: \"/watchlist/insert\", confirm: false, prompt: true, refresh: true });'>insert</a>")?;
+                    response.send(b"<a data-hotkey='F2' onclick='request({ url: \"/watchlist/update\", confirm: false, prompt: true, refresh: true });'>update</a>")?;
+                    response.send(b"<a data-hotkey='Delete' onclick='request({ url: \"/watchlist/delete\", confirm: true, prompt: false, refresh: true });'>delete</a>")?;
                     response.send(b"<a onclick='request({ url: \"/general/lookup\", confirm: false, prompt: false, refresh: false });'>lookup</a>")?;
                     
                     response.send(b"</div>")?;
@@ -204,11 +204,11 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
 }
 
-fn add(request: &mut Request) -> Result<(), Box<dyn Error>> {
+fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
-    // -------------------- database --------------------
+    // -------------------- list --------------------
     
-    let database = chiaki::Database::load("watchlist")?;
+    let mut list = chiaki::List::load("watchlist")?;
     
     // -------------------- title --------------------
     
@@ -218,7 +218,7 @@ fn add(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    database.add(title, 0)?;
+    list.insert(title, 0)?;
     
     // -------------------- response --------------------
     
@@ -227,11 +227,11 @@ fn add(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
 }
 
-fn edit(request: &mut Request) -> Result<(), Box<dyn Error>> {
+fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
-    // -------------------- database --------------------
+    // -------------------- list --------------------
     
-    let database = chiaki::Database::load("watchlist")?;
+    let mut list = chiaki::List::load("watchlist")?;
     
     // -------------------- title and progress --------------------
     
@@ -246,7 +246,7 @@ fn edit(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    database.edit(title, progress)?;
+    list.update(title, progress)?;
     
     // -------------------- response --------------------
     
@@ -255,11 +255,11 @@ fn edit(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
 }
 
-fn remove(request: &mut Request) -> Result<(), Box<dyn Error>> {
+fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
-    // -------------------- database --------------------
+    // -------------------- list --------------------
     
-    let database = chiaki::Database::load("watchlist")?;
+    let mut list = chiaki::List::load("watchlist")?;
     
     // -------------------- title --------------------
     
@@ -269,7 +269,7 @@ fn remove(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    database.remove(title)?;
+    list.delete(title)?;
     
     // -------------------- response --------------------
     

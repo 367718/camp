@@ -4,8 +4,8 @@ use super::{ Request, Status, ContentType };
 
 pub enum FeedsEndpoint {
     Index,
-    Add,
-    Remove,
+    Insert,
+    Delete,
 }
 
 impl FeedsEndpoint {
@@ -13,8 +13,8 @@ impl FeedsEndpoint {
     pub fn get(resource: (&[u8], &[u8])) -> Option<Self> {
         match resource {
             (b"GET", b"/feeds/") => Some(Self::Index),
-            (b"POST", b"/feeds/add") => Some(Self::Add),
-            (b"POST", b"/feeds/remove") => Some(Self::Remove),
+            (b"POST", b"/feeds/insert") => Some(Self::Insert),
+            (b"POST", b"/feeds/delete") => Some(Self::Delete),
             _ => None,
         }
     }
@@ -22,8 +22,8 @@ impl FeedsEndpoint {
     pub fn process(&self, mut request: Request) {
         let result = match self {
             Self::Index => index(&mut request),
-            Self::Add => add(&mut request),
-            Self::Remove => remove(&mut request),
+            Self::Insert => insert(&mut request),
+            Self::Delete => delete(&mut request),
         };
         
         if let Err(error) = result {
@@ -37,11 +37,11 @@ impl FeedsEndpoint {
 
 fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
-    // -------------------- database --------------------
+    // -------------------- list --------------------
     
-    let database = chiaki::Database::load("feeds")?;
+    let list = chiaki::List::load("feeds")?;
     
-    let mut feeds: Vec<chiaki::DatabaseEntry> = database.entries().collect();
+    let mut feeds: Vec<chiaki::ListEntry> = list.entries().collect();
     
     feeds.sort_unstable_by_key(|entry| entry.tag.to_ascii_uppercase());
     
@@ -96,7 +96,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     response.send(b"<a href='/files/'>files</a>")?;
                     response.send(b"<a href='/watchlist/'>watchlist</a>")?;
                     response.send(b"<a href='/rules/'>rules</a>")?;
-                    response.send(b"<span>feeds</span>")?;
+                    response.send(b"<a href='/feeds/'>feeds</a>")?;
                     
                     response.send(b"</div>")?;
                     
@@ -118,7 +118,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div class='list'>")?;
+                response.send(b"<div class='list show-primary'>")?;
                 
                 for entry in feeds {
                     
@@ -144,8 +144,8 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     
                     response.send(b"<div>")?;
                     
-                    response.send(b"<a data-hotkey='Insert' onclick='request({ url: \"/feeds/add\", confirm: false, prompt: true, refresh: true });'>add</a>")?;
-                    response.send(b"<a data-hotkey='Delete' onclick='request({ url: \"/feeds/remove\", confirm: true, prompt: false, refresh: true });'>remove</a>")?;
+                    response.send(b"<a data-hotkey='Insert' onclick='request({ url: \"/feeds/insert\", confirm: false, prompt: true, refresh: true });'>insert</a>")?;
+                    response.send(b"<a data-hotkey='Delete' onclick='request({ url: \"/feeds/delete\", confirm: true, prompt: false, refresh: true });'>delete</a>")?;
                     
                     response.send(b"</div>")?;
                     
@@ -169,11 +169,11 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
 }
 
-fn add(request: &mut Request) -> Result<(), Box<dyn Error>> {
+fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
-    // -------------------- database --------------------
+    // -------------------- list --------------------
     
-    let database = chiaki::Database::load("feeds")?;
+    let mut list = chiaki::List::load("feeds")?;
     
     // -------------------- url --------------------
     
@@ -183,7 +183,7 @@ fn add(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    database.add(url, 0)?;
+    list.insert(url, 0)?;
     
     // -------------------- response --------------------
     
@@ -192,11 +192,11 @@ fn add(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
 }
 
-fn remove(request: &mut Request) -> Result<(), Box<dyn Error>> {
+fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
-    // -------------------- database --------------------
+    // -------------------- list --------------------
     
-    let database = chiaki::Database::load("feeds")?;
+    let mut list = chiaki::List::load("feeds")?;
     
     // -------------------- url --------------------
     
@@ -206,7 +206,7 @@ fn remove(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    database.remove(url)?;
+    list.delete(url)?;
     
     // -------------------- response --------------------
     

@@ -1,10 +1,15 @@
 # aoi
 
-Remote control of the mpv player.
+mpv player remote controller.
 
 ## Behavior
 
 The frontend is an HTTP interface, while the backend is a named pipe.
+
+Configuration parameters used:
+
+* **name**: path to the named pipe used by mpv.
+* **bind**: listening address for the web interface.
 
 ## Issues and limitations
 

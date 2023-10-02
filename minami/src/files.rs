@@ -108,7 +108,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     
                     response.send(b"<div>")?;
                     
-                    response.send(b"<span>files</span>")?;
+                    response.send(b"<a href='/files/'>files</a>")?;
                     response.send(b"<a href='/watchlist/'>watchlist</a>")?;
                     response.send(b"<a href='/rules/'>rules</a>")?;
                     response.send(b"<a href='/feeds/'>feeds</a>")?;

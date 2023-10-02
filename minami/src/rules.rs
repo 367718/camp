@@ -4,9 +4,9 @@ use super::{ Request, Status, ContentType };
 
 pub enum RulesEndpoint {
     Index,
-    Add,
-    Edit,
-    Remove,
+    Insert,
+    Update,
+    Delete,
 }
 
 impl RulesEndpoint {
@@ -14,9 +14,9 @@ impl RulesEndpoint {
     pub fn get(resource: (&[u8], &[u8])) -> Option<Self> {
         match resource {
             (b"GET", b"/rules/") => Some(Self::Index),
-            (b"POST", b"/rules/add") => Some(Self::Add),
-            (b"POST", b"/rules/edit") => Some(Self::Edit),
-            (b"POST", b"/rules/remove") => Some(Self::Remove),
+            (b"POST", b"/rules/insert") => Some(Self::Insert),
+            (b"POST", b"/rules/update") => Some(Self::Update),
+            (b"POST", b"/rules/delete") => Some(Self::Delete),
             _ => None,
         }
     }
@@ -24,9 +24,9 @@ impl RulesEndpoint {
     pub fn process(&self, mut request: Request) {
         let result = match self {
             Self::Index => index(&mut request),
-            Self::Add => add(&mut request),
-            Self::Edit => edit(&mut request),
-            Self::Remove => remove(&mut request),
+            Self::Insert => insert(&mut request),
+            Self::Update => update(&mut request),
+            Self::Delete => delete(&mut request),
         };
         
         if let Err(error) = result {
@@ -40,11 +40,11 @@ impl RulesEndpoint {
 
 fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
-    // -------------------- database --------------------
+    // -------------------- list --------------------
     
-    let database = chiaki::Database::load("rules")?;
+    let list = chiaki::List::load("rules")?;
     
-    let mut rules: Vec<chiaki::DatabaseEntry> = database.entries().collect();
+    let mut rules: Vec<chiaki::ListEntry> = list.entries().collect();
     
     rules.sort_unstable_by_key(|entry| entry.tag.to_ascii_uppercase());
     
@@ -98,7 +98,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     
                     response.send(b"<a href='/files/'>files</a>")?;
                     response.send(b"<a href='/watchlist/'>watchlist</a>")?;
-                    response.send(b"<span>rules</span>")?;
+                    response.send(b"<a href='/rules/'>rules</a>")?;
                     response.send(b"<a href='/feeds/'>feeds</a>")?;
                     
                     response.send(b"</div>")?;
@@ -121,7 +121,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div class='list show-value'>")?;
+                response.send(b"<div class='list show-value show-primary'>")?;
                 
                 for entry in rules {
                     
@@ -151,9 +151,9 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     
                     response.send(b"<div>")?;
                     
-                    response.send(b"<a data-hotkey='Insert' onclick='request({ url: \"/rules/add\", confirm: false, prompt: true, refresh: true });'>add</a>")?;
-                    response.send(b"<a data-hotkey='F2' onclick='request({ url: \"/rules/edit\", confirm: false, prompt: true, refresh: true });'>edit</a>")?;
-                    response.send(b"<a data-hotkey='Delete' onclick='request({ url: \"/rules/remove\", confirm: true, prompt: false, refresh: true });'>remove</a>")?;
+                    response.send(b"<a data-hotkey='Insert' onclick='request({ url: \"/rules/insert\", confirm: false, prompt: true, refresh: true });'>insert</a>")?;
+                    response.send(b"<a data-hotkey='F2' onclick='request({ url: \"/rules/update\", confirm: false, prompt: true, refresh: true });'>update</a>")?;
+                    response.send(b"<a data-hotkey='Delete' onclick='request({ url: \"/rules/delete\", confirm: true, prompt: false, refresh: true });'>delete</a>")?;
                     
                     response.send(b"</div>")?;
                     
@@ -177,11 +177,11 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
 }
 
-fn add(request: &mut Request) -> Result<(), Box<dyn Error>> {
+fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
-    // -------------------- database --------------------
+    // -------------------- list --------------------
     
-    let database = chiaki::Database::load("rules")?;
+    let mut list = chiaki::List::load("rules")?;
     
     // -------------------- matcher --------------------
     
@@ -191,7 +191,7 @@ fn add(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    database.add(matcher, 0)?;
+    list.insert(matcher, 0)?;
     
     // -------------------- response --------------------
     
@@ -200,11 +200,11 @@ fn add(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
 }
 
-fn edit(request: &mut Request) -> Result<(), Box<dyn Error>> {
+fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
-    // -------------------- database --------------------
+    // -------------------- list --------------------
     
-    let database = chiaki::Database::load("rules")?;
+    let mut list = chiaki::List::load("rules")?;
     
     // -------------------- matcher and progress --------------------
     
@@ -219,7 +219,7 @@ fn edit(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    database.edit(matcher, progress)?;
+    list.update(matcher, progress)?;
     
     // -------------------- response --------------------
     
@@ -228,11 +228,11 @@ fn edit(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
 }
 
-fn remove(request: &mut Request) -> Result<(), Box<dyn Error>> {
+fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
-    // -------------------- database --------------------
+    // -------------------- list --------------------
     
-    let database = chiaki::Database::load("rules")?;
+    let mut list = chiaki::List::load("rules")?;
     
     // -------------------- matcher --------------------
     
@@ -242,7 +242,7 @@ fn remove(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    database.remove(matcher)?;
+    list.delete(matcher)?;
     
     // -------------------- response --------------------
     

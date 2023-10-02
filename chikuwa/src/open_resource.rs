@@ -29,13 +29,13 @@ mod ffi {
     
 }
 
-pub fn execute_app(path: &str) -> Result<(), Box<dyn Error>> {
+pub fn open_resource(resource: &str) -> Result<(), Box<dyn Error>> {
     unsafe {
         
         let result = ffi::ShellExecuteW(
             ptr::null_mut(),
-            WinString::from("open").as_ptr(),
-            WinString::from(path).as_ptr(),
+            ptr::null(),
+            WinString::from(resource).as_ptr(),
             ptr::null(),
             ptr::null(),
             ffi::SW_NORMAL,

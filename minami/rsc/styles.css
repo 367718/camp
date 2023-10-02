@@ -32,7 +32,6 @@
   --entry-pseudoelement-right: 0.5rem;
   
   --section-inactive-opacity: 0.25;
-  --section-current-opacity: 0.25;
   
   --transition-general-duration: 0.15s;
   --transition-body-duration: 0.6s;
@@ -109,14 +108,6 @@ iframe {
 .panel a:hover {
   cursor: pointer;
   background-color: var(--accent-color);
-}
-
-.panel span {
-  opacity: var(--section-current-opacity);
-  color: var(--panel-elements-color);
-  text-align: center;
-  padding: var(--panel-elements-spacing);
-  min-width: var(--panel-elements-min-width);
 }
 
 .panel input:not([type]) {

@@ -1,5 +1,5 @@
 # chiaki
 
-Database operations.
+Lists manager.
 
 ## Behavior

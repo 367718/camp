@@ -1,6 +1,6 @@
 [package]
 name = "minami"
-description = "Manage files and watchlists"
+description = "Files and lists manager"
 build = "rsc/build.rs"
 version.workspace = true
 rust-version.workspace = true

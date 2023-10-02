@@ -38,7 +38,7 @@ struct Payload<'h, 'b> {
 }
 
 pub struct Response {
-    stream: BufWriter<TcpStream>,
+    writer: BufWriter<TcpStream>,
 }
 
 impl Status {
@@ -103,8 +103,10 @@ impl Request {
                 
                 headers.extend_from_slice(&buffer[..bytes]);
                 
-                if let Some(index) = headers.windows(4).position(|curr| curr == b"\r\n\r\n") {
-                    body.append(&mut headers.split_off(index.checked_add(4)?));
+                if let Some(position) = headers.windows(4).position(|curr| curr == b"\r\n\r\n") {
+                    let index = position.checked_add(4)?;
+                    body.append(&mut headers.split_off(index));
+                    headers.truncate(index);
                     break;
                 }
                 
@@ -176,32 +178,7 @@ impl Request {
     }
     
     pub fn start_response(&mut self, status: Status, content: ContentType) -> Result<Response, Box<dyn Error>> {
-        let stream = self.stream.take()
-            .ok_or("Response already sent")?;
-        
-        stream.set_write_timeout(STREAM_TIMEOUT)?;
-        
-        let mut response = Response {
-            stream: BufWriter::new(stream),
-        };
-        
-        response.stream.write_all(b"HTTP/1.1 ")?;
-        response.stream.write_all(status.as_bytes())?;
-        response.stream.write_all(b"\r\n")?;
-        
-        response.stream.write_all(b"Content-Type: ")?;
-        response.stream.write_all(content.as_bytes())?;
-        response.stream.write_all(b"\r\n")?;
-        
-        response.stream.write_all(b"Cache-Control: ")?;
-        response.stream.write_all(content.cache_policy())?;
-        response.stream.write_all(b"\r\n")?;
-        
-        response.stream.write_all(b"Transfer-Encoding: chunked\r\n")?;
-        response.stream.write_all(b"Connection: close\r\n")?;
-        response.stream.write_all(b"\r\n")?;
-        
-        Ok(response)
+        Response::new(self.stream.take().ok_or("Response already sent")?, status, content)
     }
     
 }
@@ -245,10 +222,34 @@ impl<'h, 'b> Iterator for Payload<'h, 'b> {
 
 impl Response {
     
+    fn new(stream: TcpStream, status: Status, content: ContentType) -> Result<Response, Box<dyn Error>> {
+        stream.set_write_timeout(STREAM_TIMEOUT)?;
+        
+        let mut writer = BufWriter::new(stream);
+        
+        writer.write_all(b"HTTP/1.1 ")?;
+        writer.write_all(status.as_bytes())?;
+        writer.write_all(b"\r\n")?;
+        
+        writer.write_all(b"Content-Type: ")?;
+        writer.write_all(content.as_bytes())?;
+        writer.write_all(b"\r\n")?;
+        
+        writer.write_all(b"Cache-Control: ")?;
+        writer.write_all(content.cache_policy())?;
+        writer.write_all(b"\r\n")?;
+        
+        writer.write_all(b"Transfer-Encoding: chunked\r\n")?;
+        writer.write_all(b"Connection: close\r\n")?;
+        writer.write_all(b"\r\n")?;
+        
+        Ok(Self { writer })
+    }
+    
     pub fn send(&mut self, content: &[u8]) -> Result<(), Box<dyn Error>> {
-        self.stream.write_all(format!("{:x}\r\n", content.len()).as_bytes())?;
-        self.stream.write_all(content)?;
-        self.stream.write_all(b"\r\n")?;
+        self.writer.write_all(format!("{:x}\r\n", content.len()).as_bytes())?;
+        self.writer.write_all(content)?;
+        self.writer.write_all(b"\r\n")?;
         Ok(())
     }
     
@@ -257,8 +258,8 @@ impl Response {
 impl Drop for Response {
     
     fn drop(&mut self) {
-        self.stream.write_all(b"0\r\n").ok();
-        self.stream.write_all(b"\r\n").ok();
+        self.writer.write_all(b"0\r\n").ok();
+        self.writer.write_all(b"\r\n").ok();
     }
     
 }

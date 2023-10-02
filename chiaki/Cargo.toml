@@ -1,6 +1,6 @@
 [package]
 name = "chiaki"
-description = "Database operations"
+description = "Lists manager"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true

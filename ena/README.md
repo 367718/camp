@@ -1,5 +1,5 @@
 # ena
 
-Files operations.
+Files manager.
 
 ## Behavior

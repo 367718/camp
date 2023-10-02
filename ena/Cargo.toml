@@ -1,6 +1,6 @@
 [package]
 name = "ena"
-description = "File operations"
+description = "Files manager"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true

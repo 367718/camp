@@ -1,6 +1,6 @@
 [package]
 name = "aoi"
-description = "Remote control of the mpv player"
+description = "mpv player remote controller"
 build = "rsc/build.rs"
 version.workspace = true
 rust-version.workspace = true

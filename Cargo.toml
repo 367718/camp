@@ -2,10 +2,12 @@
 resolver = "2"
 members = [
   "minami",
+  "nadeshiko",
   "aoi",
   "rin",
   "ena",
   "chiaki",
+  "akari",
   "chikuwa",
 ]
 

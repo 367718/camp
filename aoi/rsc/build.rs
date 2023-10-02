@@ -28,4 +28,9 @@ fn main() {
     
     println!("cargo:rustc-link-arg={}", res.display());
     
+    // -------------------- windows api --------------------
+    
+    // WaitNamedPipeW
+    println!("cargo:rustc-link-lib=kernel32");
+    
 }
