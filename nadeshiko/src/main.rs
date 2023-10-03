@@ -79,7 +79,7 @@ fn process() -> Result<(), Box<dyn Error>> {
             
             Ok(source) => for release in Releases::from((source.as_slice(), &rules)) {
                 
-                if found.iter().any(|(matcher, episode)| matcher.eq_ignore_ascii_case(release.matcher) && *episode >= release.episode) {
+                if found.iter().any(|&(matcher, episode)| matcher == release.matcher && episode >= release.episode) {
                     continue;
                 }
                 

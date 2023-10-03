@@ -28,9 +28,4 @@ fn main() {
     
     println!("cargo:rustc-link-arg={}", res.display());
     
-    // -------------------- windows api --------------------
-    
-    // ShellExecuteW
-    println!("cargo:rustc-link-lib=shell32");
-    
 }

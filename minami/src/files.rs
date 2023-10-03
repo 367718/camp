@@ -176,7 +176,6 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     response.send(b"<a data-hotkey='Delete' onclick='request({ url: \"/files/mark\", confirm: false, prompt: false, refresh: true });'>mark</a>")?;
                     response.send(b"<a data-hotkey='F3' onclick='request({ url: \"/files/move\", confirm: false, prompt: true, refresh: true });'>move</a>")?;
                     response.send(b"<a onclick='request({ url: \"/files/delete\", confirm: true, prompt: false, refresh: true });'>delete</a>")?;
-                    response.send(b"<a onclick='request({ url: \"/general/lookup\", confirm: false, prompt: false, refresh: false });'>lookup</a>")?;
                     
                     response.send(b"</div>")?;
                     

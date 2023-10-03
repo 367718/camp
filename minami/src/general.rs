@@ -8,7 +8,6 @@ const SCRIPTS: &[u8] = include_bytes!("../rsc/scripts.js");
 
 pub enum GeneralEndpoint {
     Index,
-    Lookup,
     Favicon,
     Styles,
     Scripts,
@@ -19,7 +18,6 @@ impl GeneralEndpoint {
     pub fn get(resource: (&[u8], &[u8])) -> Option<Self> {
         match resource {
             (b"GET", b"/") => Some(Self::Index),
-            (b"POST", b"/general/lookup") => Some(Self::Lookup),
             (b"GET", b"/general/favicon.ico") => Some(Self::Favicon),
             (b"GET", b"/general/styles.css") => Some(Self::Styles),
             (b"GET", b"/general/scripts.js") => Some(Self::Scripts),
@@ -30,7 +28,6 @@ impl GeneralEndpoint {
     pub fn process(&self, mut request: Request) {
         let result = match self {
             Self::Index => index(&mut request),
-            Self::Lookup => lookup(&mut request),
             Self::Favicon => favicon(&mut request),
             Self::Styles => styles(&mut request),
             Self::Scripts => scripts(&mut request),
@@ -86,30 +83,6 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     response.send(b"</html>")?;
     
     Ok(())
-    
-}
-
-fn lookup(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    
-    // -------------------- config --------------------
-    
-    let config = rin::Config::load()?;
-    let lookup = config.get(b"lookup")?;
-    
-    // -------------------- path --------------------
-    
-    let path = request.param(b"tag")
-        .next()
-        .ok_or("Entry not provided")?;
-    
-    // -------------------- operation --------------------
-    
-    chikuwa::open_resource(&lookup.replace("%s", &chikuwa::percent_encode(path)))?;
-    
-    // -------------------- response --------------------
-    
-    request.start_response(Status::Ok, ContentType::Plain)
-        .and_then(|mut response| response.send(b"OK"))
     
 }
 
