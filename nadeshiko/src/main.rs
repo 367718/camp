@@ -69,7 +69,7 @@ fn process() -> Result<(), Box<dyn Error>> {
     let mut client = akari::Client::new(Duration::from_secs(15));
     let mut found: Vec<(&str, u64)> = Vec::with_capacity(20);
     
-    for feed in feeds.entries() {
+    for feed in feeds.iter() {
         
         println!();
         println!("{}", feed.tag);
@@ -173,7 +173,7 @@ fn build_entry<'c, 'r>(item: &'c [u8], rules: &'r chiaki::List) -> Option<Releas
     let title = chikuwa::tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG)
         .and_then(|field| str::from_utf8(&item[field]).ok())?;
     
-    let rule = rules.entries().find(|rule| title.contains(rule.tag))?;
+    let rule = rules.iter().find(|rule| title.contains(rule.tag))?;
     
     let episode = extract_episode(title, rule.tag)
         .filter(|&episode| rule.value < episode)?;

@@ -156,25 +156,29 @@ impl Connection {
         let mut headers = Vec::new();
         let mut body = Vec::new();
         
-        let mut buffer = [0; CONNECTION_BUFFER_SIZE];
+        // ---------- headers ----------
         
-        // read until body is found
-        
-        loop {
+        {
             
-            let bytes = reader.read(&mut buffer)
-                .ok()
-                .filter(|&bytes| bytes > 0)
-                .ok_or("Connection interrupted")?;
+            let mut buffer = [0; CONNECTION_BUFFER_SIZE];
             
-            headers.extend_from_slice(&buffer[..bytes]);
-            
-            // separate body
-            if let Some(position) = headers.windows(4).position(|curr| curr == b"\r\n\r\n") {
-                let index = position.checked_add(4).ok_or("Response size exceeds acceptable values")?;
-                body.append(&mut headers.split_off(index));
-                headers.truncate(index);
-                break;
+            loop {
+                
+                let bytes = reader.read(&mut buffer)
+                    .ok()
+                    .filter(|&bytes| bytes > 0)
+                    .ok_or("Connection interrupted")?;
+                
+                headers.extend_from_slice(&buffer[..bytes]);
+                
+                // separate body
+                if let Some(position) = headers.windows(4).position(|curr| curr == b"\r\n\r\n") {
+                    let index = position.checked_add(4).ok_or("Response size exceeds acceptable values")?;
+                    body.append(&mut headers.split_off(index));
+                    headers.truncate(index);
+                    break;
+                }
+                
             }
             
         }
@@ -203,92 +207,103 @@ impl Connection {
             .filter(|value| value == b"chunked")
             .is_some();
         
-        if chunked {
+        // ---------- body ----------
+        
+        {
             
-            // read until empty chunk is found
-            
-            loop {
+            if chunked {
                 
-                if let Some(position) = body.windows(7).position(|curr| curr == b"\r\n0\r\n\r\n") {
-                    let index = position.checked_add(7).ok_or("Response size exceeds acceptable values")?;
-                    body.truncate(index);
-                    break;
-                }
+                let mut buffer = [0; CONNECTION_BUFFER_SIZE];
                 
-                let bytes = reader.read(&mut buffer)
-                    .ok()
-                    .filter(|&bytes| bytes > 0)
-                    .ok_or("Connection interrupted")?;
+                // read until empty chunk is found
                 
-                body.extend_from_slice(&buffer[..bytes]);
-                
-            }
-            
-            // decode body
-            
-            let mut decoded = Vec::with_capacity(body.len());
-            let mut remaining = body.as_slice();
-            
-            loop {
-                
-                let chunk_length_position = remaining
-                    .windows(2)
-                    .position(|curr| curr == b"\r\n")
-                    .ok_or("Invalid chunk size")?;
-                
-                let chunk_length = str::from_utf8(&remaining[..chunk_length_position]).ok()
-                    .and_then(|characters| usize::from_str_radix(characters, 16).ok())
-                    .ok_or("Invalid chunk size")?;
-                
-                if chunk_length == 0 {
-                    break;
-                }
-                
-                // skip chunk length and carriage return
-                remaining = &remaining[chunk_length_position + 2..];
-                
-                decoded.extend_from_slice(remaining.get(..chunk_length).ok_or("Invalid response")?);
-                
-                // skip carriage return
-                remaining = &remaining[chunk_length + 2..];
-                
-            }
-            
-            Ok((decoded, keep_alive))
-            
-        } else {
-            
-            // read until the amount of bytes specified in header is received
-            
-            let content_length = chikuwa::tag_range(&headers, b"\r\nContent-Length: ", b"\r\n")
-                .map(|range| &headers[range])
-                .and_then(|value| str::from_utf8(value).ok())
-                .and_then(|value| value.parse::<usize>().ok())
-                .ok_or("Could not determine content length")?;
-            
-            if body.len() < content_length {
-                
-                body.reserve(content_length);
-                
-                while body.len() < content_length {
+                loop {
                     
-                    let bytes = reader.read(&mut buffer)?;
-                    
-                    if bytes == 0 {
-                        return Err("Connection interrupted".into());
+                    if let Some(position) = body.windows(7).position(|curr| curr == b"\r\n0\r\n\r\n") {
+                        let index = position.checked_add(7).ok_or("Response size exceeds acceptable values")?;
+                        body.truncate(index);
+                        break;
                     }
+                    
+                    let bytes = reader.read(&mut buffer)
+                        .ok()
+                        .filter(|&bytes| bytes > 0)
+                        .ok_or("Connection interrupted")?;
                     
                     body.extend_from_slice(&buffer[..bytes]);
                     
                 }
                 
+                // decode body
+                
+                let mut decoded = Vec::with_capacity(body.len());
+                let mut remaining = body.as_slice();
+                
+                loop {
+                    
+                    let chunk_length_position = remaining
+                        .windows(2)
+                        .position(|curr| curr == b"\r\n")
+                        .ok_or("Invalid chunk size")?;
+                    
+                    let chunk_length = str::from_utf8(&remaining[..chunk_length_position]).ok()
+                        .and_then(|characters| usize::from_str_radix(characters, 16).ok())
+                        .ok_or("Invalid chunk size")?;
+                    
+                    if chunk_length == 0 {
+                        break;
+                    }
+                    
+                    // skip chunk length and carriage return
+                    remaining = &remaining[chunk_length_position + 2..];
+                    
+                    decoded.extend_from_slice(remaining.get(..chunk_length).ok_or("Invalid response")?);
+                    
+                    // skip carriage return
+                    remaining = &remaining[chunk_length + 2..];
+                    
+                }
+                
+                Ok((decoded, keep_alive))
+                
+            } else {
+                
+                let mut buffer = [0; CONNECTION_BUFFER_SIZE];
+                
+                // read until the amount of bytes specified in header is received
+                
+                let content_length = chikuwa::tag_range(&headers, b"\r\nContent-Length: ", b"\r\n")
+                    .map(|range| &headers[range])
+                    .and_then(|value| str::from_utf8(value).ok())
+                    .and_then(|value| value.parse::<usize>().ok())
+                    .ok_or("Could not determine content length")?;
+                
+                if body.len() < content_length {
+                    
+                    body.reserve(content_length);
+                    
+                    while body.len() < content_length {
+                        
+                        let bytes = reader.read(&mut buffer)?;
+                        
+                        if bytes == 0 {
+                            return Err("Connection interrupted".into());
+                        }
+                        
+                        body.extend_from_slice(&buffer[..bytes]);
+                        
+                    }
+                    
+                }
+                
+                body.truncate(content_length);
+                
+                Ok((body, keep_alive))
+                
             }
             
-            body.truncate(content_length);
-            
-            Ok((body, keep_alive))
-            
         }
+        
     }
     
 }

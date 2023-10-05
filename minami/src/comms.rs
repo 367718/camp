@@ -90,7 +90,7 @@ impl Request {
         let mut headers = Vec::new();
         let mut body = Vec::new();
         
-        // headers
+        // ---------- headers ----------
         
         {
             
@@ -98,11 +98,13 @@ impl Request {
             
             loop {
                 
-                let bytes = reader.read(&mut buffer).ok()
+                let bytes = reader.read(&mut buffer)
+                    .ok()
                     .filter(|&bytes| bytes > 0)?;
                 
                 headers.extend_from_slice(&buffer[..bytes]);
                 
+                // separate body
                 if let Some(position) = headers.windows(4).position(|curr| curr == b"\r\n\r\n") {
                     let index = position.checked_add(4)?;
                     body.append(&mut headers.split_off(index));
@@ -114,7 +116,7 @@ impl Request {
             
         }
         
-        // body
+        // ---------- body ----------
         
         {
             
@@ -124,7 +126,7 @@ impl Request {
                 .and_then(|value| value.parse::<usize>().ok())
                 .unwrap_or(0);
             
-            if content_length > 0 {
+            if body.len() < content_length {
                 
                 body.reserve(content_length);
                 

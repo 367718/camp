@@ -44,7 +44,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let list = chiaki::List::load("rules")?;
     
-    let mut rules: Vec<chiaki::ListEntry> = list.entries().collect();
+    let mut rules: Vec<chiaki::ListEntry> = list.iter().collect();
     
     rules.sort_unstable_by_key(|entry| entry.tag.to_ascii_uppercase());
     

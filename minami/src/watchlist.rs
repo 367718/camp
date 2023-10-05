@@ -44,7 +44,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let list = chiaki::List::load("watchlist")?;
     
-    let mut watchlist: Vec<chiaki::ListEntry> = list.entries().collect();
+    let mut watchlist: Vec<chiaki::ListEntry> = list.iter().collect();
     
     watchlist.sort_unstable_by_key(|entry| entry.tag.to_ascii_uppercase());
     
