@@ -6,6 +6,7 @@ use std::{
     error::Error,
     ffi::{ OsStr, OsString },
     fs,
+    mem,
     path::{ Path, PathBuf },
 };
 
@@ -380,7 +381,7 @@ impl Files {
         
         // ---------- add new entries ----------
         
-        queue.append(&mut entries.drain(..).collect());
+        queue.append(&mut mem::take(&mut entries));
         
         // entries -> indexes
         self.queue = queue.iter()

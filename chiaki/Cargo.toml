@@ -9,5 +9,5 @@ license.workspace = true
 [dependencies]
 chikuwa = { path = "../chikuwa" }
 
-sqlite = "0.31.0"
+sqlite = "0.31.1"
 paste = "1.0.14"

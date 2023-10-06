@@ -16,4 +16,4 @@ aoi = { path = "../aoi" }
 akari = { path = "../akari" }
 chikuwa = { path = "../chikuwa" }
 
-gtk = { version = "0.18.0", features = ["v3_24_30"] }
+gtk = { version = "0.18.1", features = ["v3_24_30"] }

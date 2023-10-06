@@ -110,7 +110,7 @@ impl EphemeralPathBuilder {
     
     pub fn build(self) -> EphemeralPath {
         let mut inner = self.base.unwrap_or_else(env::temp_dir);
-        let suffix = self.suffix.unwrap_or_else(OsString::new);
+        let suffix = self.suffix.unwrap_or_default();
         
         let start = env!("CARGO_PKG_NAME");
         let middle = RandomState::new()

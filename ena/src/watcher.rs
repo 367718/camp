@@ -148,7 +148,7 @@ impl FilesWatcher {
                         directory_handle.as_raw_handle(),
                         buffer.as_mut_ptr().cast::<c_void>(),
                         EVENT_BUFFER_SIZE,
-                        true as c_int,
+                        c_int::from(true),
                         ffi::FILE_NOTIFY_CHANGE_FILE_NAME | ffi::FILE_NOTIFY_CHANGE_DIR_NAME,
                         &mut bytes,
                         ptr::null_mut(),

@@ -33,7 +33,7 @@ pub fn register_app(name: &str) -> Result<(), Box<dyn Error>> {
         
         let _ = ffi::CreateMutexW(
             ptr::null(),
-            false as c_int,
+            c_int::from(false),
             WinString::from(name).as_ptr(),
         );
         
