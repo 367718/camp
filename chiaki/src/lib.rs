@@ -62,16 +62,16 @@ impl List {
     pub fn insert(&mut self, tag: &str, value: u64) -> Result<(), Box<dyn Error>> {
         let bytes = tag.as_bytes();
         
-        if self.entries().any(|(tag, _)| tag.eq_ignore_ascii_case(bytes)) {
+        if self.entries().any(|(current, _)| current.eq_ignore_ascii_case(bytes)) {
             return Err("Tag in use".into());
         }
         
-        let modified = self.iter()
-            .chain(Some(ListEntry { tag, value }));
+        self.content = Self::serialize(
+            self.content.len() + mem::size_of::<u64>() * 2 + bytes.len(),
+            self.entries()
+                .chain(Some((bytes, value.to_le_bytes().as_slice()))),
+        );
         
-        let adjustment = mem::size_of::<u64>() * 2 + tag.len();
-        
-        self.content = Self::serialize(self.content.len() + adjustment, modified);
         self.modified = true;
         
         Ok(())
@@ -80,15 +80,17 @@ impl List {
     pub fn update(&mut self, tag: &str, value: u64) -> Result<(), Box<dyn Error>> {
         let bytes = tag.as_bytes();
         
-        if ! self.entries().any(|(tag, _)| tag.eq_ignore_ascii_case(bytes)) {
+        if ! self.entries().any(|(current, _)| current.eq_ignore_ascii_case(bytes)) {
             return Err("Tag not found".into());
         }
         
-        let modified = self.iter()
-            .filter(|entry| ! entry.tag.eq_ignore_ascii_case(tag))
-            .chain(Some(ListEntry { tag, value }));
+        self.content = Self::serialize(
+            self.content.len(),
+            self.entries()
+                .filter(|(current, _)| ! current.eq_ignore_ascii_case(bytes))
+                .chain(Some((bytes, value.to_le_bytes().as_slice()))),
+        );
         
-        self.content = Self::serialize(self.content.len(), modified);
         self.modified = true;
         
         Ok(())
@@ -97,16 +99,16 @@ impl List {
     pub fn delete(&mut self, tag: &str) -> Result<(), Box<dyn Error>> {
         let bytes = tag.as_bytes();
         
-        if ! self.entries().any(|(tag, _)| tag.eq_ignore_ascii_case(bytes)) {
+        if ! self.entries().any(|(current, _)| current.eq_ignore_ascii_case(bytes)) {
             return Err("Tag not found".into());
         }
         
-        let modified = self.iter()
-            .filter(|entry| ! entry.tag.eq_ignore_ascii_case(tag));
+        self.content = Self::serialize(
+            self.content.len() - mem::size_of::<u64>() * 2 + bytes.len(),
+            self.entries()
+                .filter(|(current, _)| ! current.eq_ignore_ascii_case(bytes)),
+        );
         
-        let adjustment = mem::size_of::<u64>() * 2 + tag.len();
-        
-        self.content = Self::serialize(self.content.len() - adjustment, modified);
         self.modified = true;
         
         Ok(())
@@ -116,13 +118,13 @@ impl List {
     // -------------------- helpers --------------------
     
     
-    fn serialize<'c>(capacity: usize, entries: impl Iterator<Item = ListEntry<'c>>) -> Vec<u8> {
+    fn serialize<'c>(capacity: usize, entries: impl Iterator<Item = (&'c [u8], &'c [u8])>) -> Vec<u8> {
         let mut content = Vec::with_capacity(capacity);
         
-        for entry in entries {
-            content.extend_from_slice(&u64::try_from(entry.tag.len()).unwrap().to_le_bytes());
-            content.extend_from_slice(entry.tag.as_bytes());
-            content.extend_from_slice(&entry.value.to_le_bytes());
+        for (tag, value) in entries {
+            content.extend_from_slice(&u64::try_from(tag.len()).unwrap().to_le_bytes());
+            content.extend_from_slice(tag);
+            content.extend_from_slice(value);
         }
         
         content
