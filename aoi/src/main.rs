@@ -52,8 +52,8 @@ fn process() -> Result<(), Box<dyn Error>> {
     println!("Loading configuration file...");
     
     let config = rin::Config::load()?;
+    let address = config.get(b"address")?;
     let name = config.get(b"name")?;
-    let bind = config.get(b"bind")?;
     
     println!();
     println!("Connecting to named pipe...");
@@ -78,13 +78,13 @@ fn process() -> Result<(), Box<dyn Error>> {
     println!();
     println!("Binding listener...");
     
-    let listener = TcpListener::bind(bind)?;
+    let listener = TcpListener::bind(address)?;
     
     println!();
     println!("Success!");
     
     println!();
-    println!("Listening on {}", bind);
+    println!("Listening on {}", address);
     
     listen(&listener, pipe)
 }

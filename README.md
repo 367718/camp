@@ -11,5 +11,5 @@
 * **rin**: configuration files manager.
 * **ena**: files manager.
 * **chiaki**: lists manager.
-* **akari**: non-compliant HTTP(S) 1.1 client.
+* **akari**: HTTP(S) 1.1 client.
 * **chikuwa**: collection of small utilities.

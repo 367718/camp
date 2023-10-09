@@ -1,6 +1,7 @@
 [package]
 name = "akari"
-description = "Non-compliant HTTP(S) 1.1 client"
+description = "HTTP(S) 1.1 client"
+build = "rsc/build.rs"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
@@ -8,8 +9,3 @@ license.workspace = true
 
 [dependencies]
 chikuwa = { path = "../chikuwa" }
-
-schannel = "0.1.22"
-
-[dev-dependencies]
-mockito = "1.1.0"
