@@ -1,6 +1,5 @@
 use std::{
     io,
-    os::raw::*,
     ptr,
 };
 
@@ -11,9 +10,6 @@ pub struct Request {
 }
 
 impl Request {
-    
-    // -------------------- constructors --------------------
-    
     
     pub fn new(connection: &Connection, path: &str, secure: bool) -> io::Result<Self> {
         let handle = unsafe {
@@ -43,93 +39,6 @@ impl Request {
         };
         
         Ok(Self { handle })
-    }
-    
-    
-    // -------------------- mutators --------------------
-    
-    
-    pub fn send(&mut self) -> io::Result<()> {
-        unsafe {
-            
-            let result = ffi::WinHttpSendRequest(
-                self.handle,
-                ffi::WINHTTP_NO_ADDITIONAL_HEADERS,
-                0,
-                ffi::WINHTTP_NO_REQUEST_DATA,
-                0,
-                0,
-                0,
-            );
-            
-            if result == 0 {
-                return Err(io::Error::last_os_error());
-            }
-            
-        }
-        
-        Ok(())
-    }
-    
-    pub fn receive(&mut self) -> io::Result<Vec<u8>> {
-        unsafe {
-            
-            let result = ffi::WinHttpReceiveResponse(
-                self.handle,
-                ptr::null_mut(),
-            );
-            
-            if result == 0 {
-                return Err(io::Error::last_os_error());
-            }
-            
-        }
-        
-        let mut response = Vec::new();
-        let mut message_size = 0;
-        
-        loop {
-            
-            unsafe {
-                
-                let result = ffi::WinHttpQueryDataAvailable(
-                    self.handle,
-                    &mut message_size,
-                );
-                
-                if result == 0 {
-                    return Err(io::Error::last_os_error());
-                }
-                
-            }
-            
-            if message_size == 0 {
-                break;
-            }
-            
-            let mut current: Vec<u8> = vec![0; message_size as usize];
-            let mut bytes = 0;
-            
-            unsafe {
-                
-                let result = ffi::WinHttpReadData(
-                    self.handle,
-                    current.as_mut_ptr().cast::<c_void>(),
-                    message_size,
-                    &mut bytes,
-                );
-                
-                if result == 0 {
-                    return Err(io::Error::last_os_error());
-                }
-                
-            }
-            
-            response.extend_from_slice(&current[..bytes as usize]);
-            
-        }
-        
-        Ok(response)
     }
     
 }

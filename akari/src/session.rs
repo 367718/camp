@@ -16,9 +16,6 @@ pub struct Session {
 
 impl Session {
     
-    // -------------------- constructors --------------------
-    
-    
     pub fn new() -> io::Result<Self> {
         let handle = unsafe {
             
@@ -38,18 +35,10 @@ impl Session {
             
         };
         
-        Ok(Self { handle })
-    }
-    
-    
-    // -------------------- mutators --------------------
-    
-    
-    pub fn set_timeouts(&mut self) -> io::Result<()> {
         unsafe {
             
             let result = ffi::WinHttpSetTimeouts(
-                self.handle,
+                handle,
                 DNS_RESOLUTION_TIMEOUT,
                 CONNECTION_TIMEOUT,
                 SEND_TIMEOUT,
@@ -57,12 +46,14 @@ impl Session {
             );
             
             if result == 0 {
-                return Err(io::Error::last_os_error());
+                let error = Err(io::Error::last_os_error());
+                ffi::WinHttpCloseHandle(handle);
+                return error;
             }
             
         }
         
-        Ok(())
+        Ok(Self { handle })
     }
     
 }
