@@ -23,6 +23,13 @@ extern "system" {
         n_receive_timeout: c_int,
     ) -> c_int; // BOOL
     
+    pub fn WinHttpSetOption(
+        h_internet: HINTERNET,
+        dw_option: c_ulong, // DWORD
+        lp_buffer: *mut c_void, // LPVOID
+        dw_buffer_length: c_ulong, // DWORD
+    ) -> c_int; // BOOL
+    
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpconnect
     pub fn WinHttpConnect(
         h_session: HINTERNET,
@@ -59,6 +66,16 @@ extern "system" {
         lp_reserved: *mut c_void, // LPVOID
     ) -> c_int; // BOOL
     
+    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpqueryheaders
+    pub fn WinHttpQueryHeaders(
+        h_request: HINTERNET,
+        dw_info_level: c_ulong, // DWORD
+        pwsz_name: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
+        lp_buffer: *mut c_void, // LPVOID
+        lpdw_buffer_length: *mut c_ulong, // LPDWORD -> DWORD
+        lpdw_index: *mut c_ulong, // LPDWORD -> DWORD
+    ) -> c_int; // BOOL
+    
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreaddata
     pub fn WinHttpReadData(
         h_request: HINTERNET,
@@ -81,9 +98,17 @@ pub const WINHTTP_ACCESS_TYPE_DEFAULT_PROXY: c_ulong = 0; // DWORD
 pub const WINHTTP_NO_PROXY_NAME: *const c_ushort = ptr::null(); // LPCWSTR -> WCHAR -> wchar_t
 pub const WINHTTP_NO_PROXY_BYPASS: *const c_ushort = ptr::null(); // LPCWSTR -> WCHAR -> wchar_t
 
+pub const WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL: c_ulong = 133; // DWORD
+pub const WINHTTP_PROTOCOL_FLAG_HTTP2: c_ulong = 1; // DWORD
+
 pub const WINHTTP_NO_REFERER: *const c_ushort = ptr::null(); // // LPCWSTR -> WCHAR -> wchar_t
 pub const WINHTTP_DEFAULT_ACCEPT_TYPES: *mut *const c_ushort = ptr::null_mut(); // // LPCWSTR -> WCHAR -> wchar_t
 pub const WINHTTP_FLAG_SECURE: c_ulong = 0x0080_0000; // DWORD
 
 pub const WINHTTP_NO_ADDITIONAL_HEADERS: *const c_ushort = ptr::null(); // // LPCWSTR -> WCHAR -> wchar_t
 pub const WINHTTP_NO_REQUEST_DATA: *mut c_void = ptr::null_mut(); // LPVOID
+
+pub const WINHTTP_QUERY_CONTENT_LENGTH: c_ulong = 5; // DWORD
+pub const WINHTTP_QUERY_FLAG_NUMBER: c_ulong = 0x2000_0000; // DWORD
+pub const WINHTTP_HEADER_NAME_BY_INDEX: *const c_ushort = ptr::null(); // // LPCWSTR -> WCHAR -> wchar_t
+pub const WINHTTP_NO_HEADER_INDEX: *mut c_ulong = ptr::null_mut(); // // LPCWSTR -> WCHAR -> wchar_t

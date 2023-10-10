@@ -1,6 +1,8 @@
 use std::{
     io,
+    mem,
     os::raw::*,
+    ptr,
 };
 
 use super::ffi;
@@ -17,6 +19,8 @@ pub struct Session {
 impl Session {
     
     pub fn new() -> io::Result<Self> {
+        // handle
+        
         let handle = unsafe {
             
             let result = ffi::WinHttpOpen(
@@ -35,6 +39,8 @@ impl Session {
             
         };
         
+        // timeouts
+        
         unsafe {
             
             let result = ffi::WinHttpSetTimeouts(
@@ -43,6 +49,30 @@ impl Session {
                 CONNECTION_TIMEOUT,
                 SEND_TIMEOUT,
                 RECEIVE_TIMEOUT,
+            );
+            
+            if result == 0 {
+                let error = Err(io::Error::last_os_error());
+                ffi::WinHttpCloseHandle(handle);
+                return error;
+            }
+            
+        }
+        
+        // http version
+        
+        unsafe {
+            
+            let mut version = ffi::WINHTTP_PROTOCOL_FLAG_HTTP2;
+            
+            #[allow(clippy::cast_possible_truncation)]
+            let bytes = mem::size_of::<c_ulong>() as c_ulong;
+            
+            let result = ffi::WinHttpSetOption(
+                handle,
+                ffi::WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
+                ptr::addr_of_mut!(version).cast::<c_void>(),
+                bytes,
             );
             
             if result == 0 {

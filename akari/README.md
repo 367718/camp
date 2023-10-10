@@ -1,6 +1,6 @@
 # akari
 
-HTTP(S) 1.1 client.
+HTTP/2 client.
 
 ## Issues and limitations
 
