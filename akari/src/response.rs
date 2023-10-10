@@ -6,6 +6,8 @@ use std::{
 
 use super::{ ffi, Request };
 
+const CONNECTION_BUFFER_SIZE: c_ulong = 8 * 1024;
+
 pub struct Response {
     request: Request,
 }
@@ -55,40 +57,25 @@ impl Response {
     
     
     pub fn payload(self) -> io::Result<Vec<u8>> {
-        let mut response = Vec::new();
+        let mut payload = Vec::new();
+        let mut buffer = [0; CONNECTION_BUFFER_SIZE as usize];
         
         loop {
             
-            let mut message_size = 0;
-            
-            unsafe {
-                
-                let result = ffi::WinHttpQueryDataAvailable(
-                    self.request.handle,
-                    &mut message_size,
-                );
-                
-                if result == 0 {
-                    return Err(io::Error::last_os_error());
-                }
-                
-            }
-            
-            if message_size == 0 {
-                break;
-            }
-            
-            let mut current: Vec<u8> = vec![0; message_size as usize];
             let mut amount_read = 0;
             
             unsafe {
                 
                 let result = ffi::WinHttpReadData(
                     self.request.handle,
-                    current.as_mut_ptr().cast::<c_void>(),
-                    message_size,
+                    buffer.as_mut_ptr().cast::<c_void>(),
+                    CONNECTION_BUFFER_SIZE,
                     &mut amount_read,
                 );
+                
+                if amount_read == 0 {
+                    break;
+                }
                 
                 if result == 0 {
                     return Err(io::Error::last_os_error());
@@ -96,11 +83,11 @@ impl Response {
                 
             }
             
-            response.extend_from_slice(&current[..amount_read as usize]);
+            payload.extend_from_slice(&buffer[..amount_read as usize]);
             
         }
         
-        Ok(response)
+        Ok(payload)
     }
     
 }

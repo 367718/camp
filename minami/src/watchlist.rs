@@ -121,7 +121,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div class='list show-value show-primary'>")?;
+                response.send(b"<div class='list show-value show-primary show-secondary'>")?;
                 
                 for entry in watchlist {
                     
@@ -177,7 +177,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     response.send(b"</label>")?;
                     
                     response.send(b"<label>")?;
-                    response.send(b"<input type='checkbox' value='show-secondary'>")?;
+                    response.send(b"<input type='checkbox' value='show-secondary' checked='checked'>")?;
                     response.send(b"unwatched")?;
                     response.send(b"</label>")?;
                     

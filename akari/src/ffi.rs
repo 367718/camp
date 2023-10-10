@@ -59,12 +59,6 @@ extern "system" {
         lp_reserved: *mut c_void, // LPVOID
     ) -> c_int; // BOOL
     
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpquerydataavailable
-    pub fn WinHttpQueryDataAvailable(
-        h_request: HINTERNET,
-        lpdw_mumber_of_bytes_available: *mut c_ulong, // LPDWORD -> DWORD
-    ) -> c_int; // BOOL
-    
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreaddata
     pub fn WinHttpReadData(
         h_request: HINTERNET,
