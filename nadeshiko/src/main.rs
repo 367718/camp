@@ -65,6 +65,7 @@ fn process() -> Result<(), Box<dyn Error>> {
     println!();
     println!("Success!");
     
+    let mut client = akari::Client::new()?;
     let mut found: Vec<(&str, u64)> = Vec::with_capacity(20);
     
     for feed in feeds.iter() {
@@ -73,7 +74,7 @@ fn process() -> Result<(), Box<dyn Error>> {
         println!("{}", feed.tag);
         println!("--------------------");
         
-        match akari::get(feed.tag) {
+        match client.get(feed.tag) {
             
             Ok(source) => for release in Releases::from((source.as_slice(), &rules)) {
                 
@@ -83,7 +84,7 @@ fn process() -> Result<(), Box<dyn Error>> {
                 
                 println!("{}", release.title);
                 
-                match download_torrent(release.title, release.link, folder) {
+                match download_torrent(&mut client, release.title, release.link, folder) {
                     Ok(()) => found.push((release.matcher, release.episode)),
                     Err(error) => println!("ERROR: {}", error),
                 }
@@ -109,7 +110,7 @@ fn process() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn download_torrent(title: &str, link: &str, folder: &str) -> Result<(), Box<dyn Error>> {
+fn download_torrent(client: &mut akari::Client, title: &str, link: &str, folder: &str) -> Result<(), Box<dyn Error>> {
     let filename = Path::new(title).file_name().ok_or("Invalid file name")?;
     let mut destination = Path::new(folder).join(filename);
     
@@ -128,9 +129,7 @@ fn download_torrent(title: &str, link: &str, folder: &str) -> Result<(), Box<dyn
         return Err(chikuwa::concat_str!("File already exists: ", &destination.to_string_lossy()).into());
     }
     
-    let content = akari::get(link)?;
-    
-    fs::write(destination, content)?;
+    fs::write(destination, client.get(link)?)?;
     
     Ok(())
 }
