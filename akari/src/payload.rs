@@ -1,5 +1,5 @@
 use std::{
-    io,
+    io::{ self, Read },
     mem,
     os::raw::*,
     ptr,
@@ -7,18 +7,18 @@ use std::{
 
 use super::{ ffi, Connection };
 
-const CONNECTION_BUFFER_SIZE: c_ulong = 8 * 1024;
-
-pub struct Request {
-    pub handle: ffi::HINTERNET,
+pub struct Payload {
+    handle: ffi::HINTERNET,
 }
 
-impl Request {
+impl Payload {
     
     // -------------------- constructors --------------------
     
     
     pub fn new(connection: &Connection, path: &str, secure: bool) -> io::Result<Self> {
+        // ---------- handle ----------
+        
         let handle = unsafe {
             
             let flags = if secure {
@@ -45,18 +45,12 @@ impl Request {
             
         };
         
-        Ok(Self { handle })
-    }
-    
-    
-    // -------------------- mutators --------------------
-    
-    
-    pub fn response(self) -> io::Result<Vec<u8>> {
+        // ---------- send ----------
+        
         unsafe {
             
             let result = ffi::WinHttpSendRequest(
-                self.handle,
+                handle,
                 ffi::WINHTTP_NO_ADDITIONAL_HEADERS,
                 0,
                 ffi::WINHTTP_NO_REQUEST_DATA,
@@ -66,29 +60,39 @@ impl Request {
             );
             
             if result == 0 {
+                ffi::WinHttpCloseHandle(handle);
                 return Err(io::Error::last_os_error());
             }
             
         }
+        
+        // ---------- receive ----------
         
         unsafe {
             
             let result = ffi::WinHttpReceiveResponse(
-                self.handle,
+                handle,
                 ptr::null_mut(),
             );
             
             if result == 0 {
+                ffi::WinHttpCloseHandle(handle);
                 return Err(io::Error::last_os_error());
             }
             
         }
         
-        let mut payload = Vec::new();
+        Ok(Self { handle })
+    }
+    
+    
+    // -------------------- constructors --------------------
+    
+    
+    pub fn content_length(&self) -> usize {
+        let mut result: c_ulong = 0;
         
         unsafe {
-            
-            let mut content_length: c_ulong = 0;
             
             #[allow(clippy::cast_possible_truncation)]
             let mut bytes = mem::size_of::<c_ulong>() as c_ulong;
@@ -97,49 +101,47 @@ impl Request {
                 self.handle,
                 ffi::WINHTTP_QUERY_CONTENT_LENGTH | ffi::WINHTTP_QUERY_FLAG_NUMBER,
                 ffi::WINHTTP_HEADER_NAME_BY_INDEX,
-                ptr::addr_of_mut!(content_length).cast::<c_void>(),
+                ptr::addr_of_mut!(result).cast::<c_void>(),
                 ptr::addr_of_mut!(bytes),
                 ffi::WINHTTP_NO_HEADER_INDEX,
             );
             
-            payload.reserve_exact(content_length as usize);
-            
         }
         
-        let mut buffer = [0; CONNECTION_BUFFER_SIZE as usize];
-        let mut amount_read: c_ulong = 0;
-        
-        loop {
-            
-            unsafe {
-                
-                let result = ffi::WinHttpReadData(
-                    self.handle,
-                    buffer.as_mut_ptr().cast::<c_void>(),
-                    CONNECTION_BUFFER_SIZE,
-                    &mut amount_read,
-                );
-                
-                if result == 0 {
-                    return Err(io::Error::last_os_error());
-                }
-                
-                if amount_read == 0 {
-                    break;
-                }
-                
-            }
-            
-            payload.extend_from_slice(&buffer[..amount_read as usize]);
-            
-        }
-        
-        Ok(payload)
+        result as usize
     }
     
 }
 
-impl Drop for Request {
+impl Read for Payload {
+    
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let mut amount_read: c_ulong = 0;
+        
+        #[allow(clippy::cast_possible_truncation)]
+        let bytes = buf.len() as c_ulong;
+        
+        unsafe {
+            
+            let result = ffi::WinHttpReadData(
+                self.handle,
+                buf.as_mut_ptr().cast::<c_void>(),
+                bytes,
+                &mut amount_read,
+            );
+            
+            if result == 0 {
+                return Err(io::Error::last_os_error());
+            }
+            
+        }
+        
+        Ok(amount_read as usize)
+    }
+    
+}
+
+impl Drop for Payload {
     
     fn drop(&mut self) {
         unsafe {

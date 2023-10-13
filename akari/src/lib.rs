@@ -1,16 +1,22 @@
 mod ffi;
 mod session;
 mod connection;
-mod request;
+mod payload;
 
-use std::io;
+use std::{
+    collections::{ hash_map, HashMap },
+    io,
+};
 
 use session::Session;
 use connection::Connection;
-use request::Request;
+use payload::Payload;
+
+const POOL_INITIAL_CAPACITY: usize = 10;
 
 pub struct Client {
     session: Session,
+    pool: HashMap<(String, u16), Connection>
 }
 
 impl Client {
@@ -21,6 +27,7 @@ impl Client {
     pub fn new() -> io::Result<Self> {
         Ok(Self {
             session: Session::new()?,
+            pool: HashMap::with_capacity(POOL_INITIAL_CAPACITY),
         })
     }
     
@@ -28,13 +35,15 @@ impl Client {
     // -------------------- mutators --------------------
     
     
-    pub fn get(&mut self, url: &str) -> io::Result<Vec<u8>> {
+    pub fn get(&mut self, url: &str) -> io::Result<Payload> {
         let (host, port, path, secure) = Self::extract_params(url)?;
         
-        let connection = Connection::new(&self.session, host, port)?;
-        let request = Request::new(&connection, path, secure)?;
+        let connection = match self.pool.entry((host.to_string(), port)) {
+            hash_map::Entry::Occupied(entry) => entry.into_mut(),
+            hash_map::Entry::Vacant(entry) => entry.insert(Connection::new(&self.session, host, port)?),
+        };
         
-        request.response()
+        Payload::new(connection, path, secure)
     }
     
     

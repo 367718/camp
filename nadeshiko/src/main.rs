@@ -2,7 +2,7 @@ use std::{
     error::Error,
     ffi::OsString,
     fs,
-    io::{ self, stdout, Write },
+    io::{ self, stdout, Read, Write, BufWriter, },
     path::Path,
     str,
 };
@@ -76,17 +76,29 @@ fn process() -> Result<(), Box<dyn Error>> {
         
         match client.get(feed.tag) {
             
-            Ok(source) => for release in Releases::from((source.as_slice(), &rules)) {
+            Ok(mut payload) => {
                 
-                if found.iter().any(|&(matcher, episode)| matcher == release.matcher && episode >= release.episode) {
-                    continue;
-                }
+                let mut content = Vec::with_capacity(payload.content_length());
                 
-                println!("{}", release.title);
-                
-                match download_torrent(&mut client, release.title, release.link, folder) {
-                    Ok(()) => found.push((release.matcher, release.episode)),
+                match payload.read_to_end(&mut content) {
+                    
+                    Ok(_) => for release in Releases::new(&content, &rules) {
+                        
+                        if found.iter().any(|&(matcher, episode)| matcher == release.matcher && episode >= release.episode) {
+                            continue;
+                        }
+                        
+                        println!("{}", release.title);
+                        
+                        match download_torrent(&mut client, release.title, release.link, folder) {
+                            Ok(()) => found.push((release.matcher, release.episode)),
+                            Err(error) => println!("ERROR: {}", error),
+                        }
+                        
+                    },
+                    
                     Err(error) => println!("ERROR: {}", error),
+                    
                 }
                 
             },
@@ -125,21 +137,25 @@ fn download_torrent(client: &mut akari::Client, title: &str, link: &str, folder:
         destination.set_extension("torrent");
     }
     
-    if destination.exists() {
-        return Err(chikuwa::concat_str!("File already exists: ", &destination.to_string_lossy()).into());
-    }
+    let file = fs::OpenOptions::new().write(true)
+        .create_new(true)
+        .open(destination)?;
     
-    fs::write(destination, client.get(link)?)?;
+    let mut writer = BufWriter::new(file);
+    
+    io::copy(&mut client.get(link)?, &mut writer)?;
+    
+    writer.flush()?;
     
     Ok(())
 }
 
-impl<'c, 'r> From<(&'c [u8], &'r chiaki::List)> for Releases<'c, 'r> {
+impl<'c, 'r> Releases<'c, 'r> {
     
-    fn from(data: (&'c [u8], &'r chiaki::List)) -> Self {
+    fn new(content: &'c [u8], rules: &'r chiaki::List) -> Self {
         Self {
-            content: data.0,
-            rules: data.1,
+            content,
+            rules,
         }
     }
     

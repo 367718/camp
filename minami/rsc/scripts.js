@@ -9,16 +9,56 @@ class List {
     constructor(node) {
         this.node = node;
         this.entries = Array.from(node.children).map(child => new Entry(child));
+        
+        this.entries.forEach(entry => entry.node.onclick = (event) => {
+            
+            if (event.ctrlKey) {
+                if (entry.is_selected()) {
+                    this.#deselect(entry);
+                } else {
+                    this.#select(entry);
+                }
+            } else {
+                this.entries.forEach(entry => entry.node.removeAttribute("data-position"))
+                this.#select(entry);
+            }
+            
+        });
+        
         Object.freeze(this);
     }
     
-    entry = (ext) => this.entries.find(entry => entry.node.isEqualNode(ext));
-    toggle = (criteria) => this.node.classList.toggle(criteria);
-    
     focus = () => this.node.focus();
-    clear_selection = () => this.entries.forEach(entry => entry.node.removeAttribute("data-position"));
     
-    select = (target) => {
+    toggle = (criteria) => {
+        
+        this.node.classList.toggle(criteria);
+        
+        this.entries.filter(entry => ! entry.is_visible())
+            .forEach(entry => this.#deselect(entry));
+        
+    };
+    
+    filter = (criteria) => {
+        
+        for (let entry of this.entries) {
+            
+            if (entry.text().toUpperCase().includes(criteria)) {
+                entry.node.classList.remove("filtered");
+            } else {
+                entry.node.classList.add("filtered");
+                this.#deselect(entry);
+            }
+            
+        }
+        
+    };
+    
+    #select = (target) => {
+        
+        if (target.is_selected()) {
+            return;
+        }
         
         let position = 0;
         
@@ -30,18 +70,19 @@ class List {
         
     };
     
-    deselect = (target) => {
+    #deselect = (target) => {
+        
+        if (! target.is_selected()) {
+            return;
+        }
         
         const changed = target.position();
         
         for (let entry of this.entries.filter(entry => entry.is_selected())) {
-            
             const current = entry.position();
-            
             if (current > changed) {
                 entry.node.setAttribute("data-position", current - 1);
             }
-            
         }
         
         target.node.removeAttribute("data-position");
@@ -54,24 +95,67 @@ class Entry {
     
     constructor(node) {
         this.node = node;
+        
         Object.freeze(this);
     }
     
-    onclick = (fn) => this.node.addEventListener("click", fn, false);
-    
-    filter = () => this.node.classList.add("filtered");
-    unfilter = () => this.node.classList.remove("filtered");
-    
     is_selected = () => this.node.hasAttribute("data-position");
+    
     is_visible = () => this.node.offsetParent != null;
     
-    text = () => this.node.textContent;
     position = () => parseInt(this.node.getAttribute("data-position")) || 0;
+    
+    text = (clean) => {
+        
+        let text = this.node.textContent;
+        
+        if (clean) {
+            
+            // strip container
+            text = text.replace(/^.+\\/, "");
+            
+            // strip format
+            text = text.replace(/\.[^.]+$/, "");
+            
+            // strip leading square brackets and parens
+            
+            {
+                
+                let previous = 0;
+                
+                do {
+                    previous = text.length;
+                    text = text.replace(/^\[[^\]]*\]\s*|^\([^\)]*\)\s*/, "");
+                } while (text.length != previous);
+                
+            }
+            
+            // strip trailing square brackets and parens
+            
+            {
+                
+                let previous = 0;
+                
+                do {
+                    previous = text.length;
+                    text = text.replace(/\s*\[[^\]]*\]$|\s*\([^\)]*\)$/, "");
+                } while (text.length != previous);
+                
+            }
+            
+            // strip episode number
+            text = text.replace(/\s*-\s*\d+$/, "");
+            
+        }
+        
+        return text;
+        
+    };
     
 }
 
 
-// -------------------- events --------------------
+// -------------------- init --------------------
 
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -82,19 +166,17 @@ document.addEventListener("DOMContentLoaded", () => {
         writable: false,
     });
     
-    // ---------- filter ----------
+    // ---------- filters ----------
     
-    document.querySelector(".filter").addEventListener("input", () => filter(), false);
+    for (let input of document.querySelectorAll(".panel .filter")) {
+        input.addEventListener("input", () => filter(input), false);
+    }
     
     // ---------- toggles ----------
     
     for (let input of document.querySelectorAll(".panel input[type='checkbox']")) {
-        input.addEventListener("click", (event) => toggle(event.target.value), false);
+        input.addEventListener("click", (event) => LIST.toggle(event.target.value), false);
     }
-    
-    // ---------- entries ----------
-    
-    LIST.entries.forEach(entry => entry.onclick((event) => select(entry, event.ctrlKey)));
     
     // ---------- focus ----------
     
@@ -126,24 +208,10 @@ document.addEventListener("DOMContentLoaded", () => {
             return button.click();
         }
         
-        // ---------- clear selection ----------
-        
-        if (event.code === "Escape") {
-            clear();
-            return event.preventDefault();
-        }
-        
         // ---------- copy text to clipboard ----------
         
-        if (event.ctrlKey && event.code === "KeyC") {
-            copy();
-            return event.preventDefault();
-        }
-        
-        // ---------- partially copy text to clipboard ----------
-        
-        if (event.ctrlKey && event.code === "KeyX") {
-            partial();
+        if (event.ctrlKey && (event.code === "KeyC" || event.code === "KeyX")) {
+            copy(event.code === "KeyX");
             return event.preventDefault();
         }
         
@@ -152,70 +220,18 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-// -------------------- functionality --------------------
+// -------------------- free functions --------------------
 
 
-function filter() {
-    const input = document.querySelector(".filter");
-    
+function filter(input) {
     if (input.dataset.timeout !== null) {
         clearTimeout(input.dataset.timeout);
     }
     
-    input.dataset.timeout = setTimeout(() => {
-        
-        const criteria = input.value.toUpperCase();
-        
-        for (let entry of LIST.entries) {
-            
-            if (entry.text().toUpperCase().includes(criteria)) {
-                
-                entry.unfilter();
-                
-            } else {
-                
-                entry.filter();
-                
-                if (entry.is_selected()) {
-                    LIST.deselect(entry);
-                }
-                
-            }
-            
-        }
-        
-    }, 250);
+    input.dataset.timeout = setTimeout(() => LIST.filter(input.value.toUpperCase()), 250);
 }
 
-function toggle(criteria) {
-    LIST.toggle(criteria);
-    
-    LIST.entries.filter(entry => entry.is_selected() && ! entry.is_visible())
-        .forEach(entry => LIST.deselect(entry));
-}
-
-function select(target, multiple) {
-    if (multiple) {
-        
-        if (target.is_selected()) {
-            LIST.deselect(target);
-        } else {
-            LIST.select(target);
-        }
-        
-    } else {
-        
-        LIST.clear_selection();
-        LIST.select(target);
-        
-    }
-}
-
-function clear() {
-    LIST.clear_selection();
-}
-
-function copy() {
+function copy(clean) {
     if (! navigator.clipboard) {
         window.alert("Access to the clipboard is only available in secure contexts or localhost")
         return;
@@ -223,60 +239,8 @@ function copy() {
     
     const text = LIST.entries.filter(entry => entry.is_selected())
         .sort((first, second) => first.position() - second.position())
-        .map(entry => entry.text())
+        .map(entry => entry.text(clean))
         .join("\n");
-    
-    navigator.clipboard.writeText(text);
-}
-
-function partial() {
-    if (! navigator.clipboard) {
-        window.alert("Access to the clipboard is only available in secure contexts or localhost")
-        return;
-    }
-    
-    const selected = LIST.entries.filter(entry => entry.is_selected())
-        .find(entry => entry.position() === 1);
-    
-    if (! selected) {
-        return;
-    }
-    
-    let text = selected.text();
-    
-    // strip container
-    
-    const container = new RegExp(/^.+\\/);
-    
-    text = text.replace(container, "");
-    
-    // strip format
-    
-    const file_format = new RegExp(/\.[^.]+$/);
-    
-    text = text.replace(file_format, "");
-    
-    // strip leading square brackets and parens
-    
-    const leading = new RegExp(/^\[[^\]]*\]\s*|^\([^\)]*\)\s*/);
-    
-    while (leading.test(text)) {
-        text = text.replace(leading, "");
-    }
-    
-    // strip trailing square brackets and parens
-    
-    const trailing = new RegExp(/\s*\[[^\]]*\]$|\s*\([^\)]*\)$/);
-    
-    while (trailing.test(text)) {
-        text = text.replace(trailing, "");
-    }
-    
-    // strip episode number
-    
-    const episode_number = new RegExp(/\s*-\s*\d+$/);
-    
-    text = text.replace(episode_number, "");
     
     navigator.clipboard.writeText(text);
 }
