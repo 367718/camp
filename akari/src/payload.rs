@@ -86,13 +86,13 @@ impl Payload {
     }
     
     
-    // -------------------- constructors --------------------
+    // -------------------- accessors --------------------
     
     
     pub fn content_length(&self) -> usize {
-        let mut result: c_ulong = 0;
-        
         unsafe {
+            
+            let mut content_length: c_ulong = 0;
             
             #[allow(clippy::cast_possible_truncation)]
             let mut bytes = mem::size_of::<c_ulong>() as c_ulong;
@@ -101,14 +101,14 @@ impl Payload {
                 self.handle,
                 ffi::WINHTTP_QUERY_CONTENT_LENGTH | ffi::WINHTTP_QUERY_FLAG_NUMBER,
                 ffi::WINHTTP_HEADER_NAME_BY_INDEX,
-                ptr::addr_of_mut!(result).cast::<c_void>(),
+                ptr::addr_of_mut!(content_length).cast::<c_void>(),
                 ptr::addr_of_mut!(bytes),
                 ffi::WINHTTP_NO_HEADER_INDEX,
             );
             
+            content_length as usize
+            
         }
-        
-        result as usize
     }
     
 }
@@ -116,12 +116,12 @@ impl Payload {
 impl Read for Payload {
     
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let mut amount_read: c_ulong = 0;
-        
-        #[allow(clippy::cast_possible_truncation)]
-        let bytes = buf.len() as c_ulong;
-        
-        unsafe {
+        let amount_read = unsafe {
+            
+            let mut amount_read: c_ulong = 0;
+            
+            #[allow(clippy::cast_possible_truncation)]
+            let bytes = buf.len() as c_ulong;
             
             let result = ffi::WinHttpReadData(
                 self.handle,
@@ -134,9 +134,11 @@ impl Read for Payload {
                 return Err(io::Error::last_os_error());
             }
             
-        }
+            amount_read as usize
+            
+        };
         
-        Ok(amount_read as usize)
+        Ok(amount_read)
     }
     
 }
