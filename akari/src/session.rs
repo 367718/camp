@@ -7,10 +7,10 @@ use std::{
 
 use super::ffi;
 
-const DNS_RESOLUTION_TIMEOUT: c_int = 15_000;
-const CONNECTION_TIMEOUT: c_int = 15_000;
-const SEND_TIMEOUT: c_int = 15_000;
-const RECEIVE_TIMEOUT: c_int = 15_000;
+const DNS_RESOLUTION_TIMEOUT_AS_MILLIS: c_int = 15_000;
+const CONNECTION_TIMEOUT_AS_MILLIS: c_int = 15_000;
+const SEND_TIMEOUT_AS_MILLIS: c_int = 15_000;
+const RECEIVE_TIMEOUT_AS_MILLIS: c_int = 15_000;
 
 pub struct Session {
     pub handle: ffi::HINTERNET,
@@ -45,10 +45,10 @@ impl Session {
             
             let result = ffi::WinHttpSetTimeouts(
                 handle,
-                DNS_RESOLUTION_TIMEOUT,
-                CONNECTION_TIMEOUT,
-                SEND_TIMEOUT,
-                RECEIVE_TIMEOUT,
+                DNS_RESOLUTION_TIMEOUT_AS_MILLIS,
+                CONNECTION_TIMEOUT_AS_MILLIS,
+                SEND_TIMEOUT_AS_MILLIS,
+                RECEIVE_TIMEOUT_AS_MILLIS,
             );
             
             if result == 0 {

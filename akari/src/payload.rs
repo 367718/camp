@@ -27,7 +27,7 @@ impl Payload {
                 0
             };
             
-            let result = ffi::WinHttpOpenRequest(
+            let handle = ffi::WinHttpOpenRequest(
                 connection.handle,
                 chikuwa::WinString::from("GET").as_ptr(),
                 chikuwa::WinString::from(path).as_ptr(),
@@ -37,11 +37,11 @@ impl Payload {
                 flags,
             );
             
-            if result.is_null() {
+            if handle.is_null() {
                 return Err(io::Error::last_os_error());
             }
             
-            result
+            handle
             
         };
         
@@ -116,7 +116,7 @@ impl Payload {
 impl Read for Payload {
     
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let amount_read = unsafe {
+        unsafe {
             
             let mut amount_read: c_ulong = 0;
             
@@ -134,11 +134,9 @@ impl Read for Payload {
                 return Err(io::Error::last_os_error());
             }
             
-            amount_read as usize
+            Ok(amount_read as usize)
             
-        };
-        
-        Ok(amount_read)
+        }
     }
     
 }
