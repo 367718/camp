@@ -252,7 +252,7 @@ function request({ url = "", confirm = false, prompt = false, refresh = false } 
         return;
     }
     
-    // -------------------- form --------------------
+    // -------------------- form data --------------------
     
     const form_data = new FormData();
     
@@ -279,12 +279,13 @@ function request({ url = "", confirm = false, prompt = false, refresh = false } 
     fetch(url, { method: "POST", body: form_data })
         .then(response => {
             
-            if (response.status == 200) {
-                if (refresh) {
-                    window.location.reload();
-                }
-            } else {
-                response.text().then(message => window.alert(message));
+            if (response.status != 200) {
+                response.text().then(error => window.alert(error));
+                return;
+            }
+            
+            if (refresh) {
+                window.location.reload();
             }
             
         })

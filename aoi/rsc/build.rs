@@ -10,6 +10,10 @@ fn main() {
     
     println!("cargo:rerun-if-changed=build.rs");
     
+    // -------------------- windows api --------------------
+    
+    println!("cargo:rustc-link-lib=kernel32");
+    
     // -------------------- resource file --------------------
     
     let root = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -27,10 +31,5 @@ fn main() {
     assert!(result.success(), "Resource file conversion failed");
     
     println!("cargo:rustc-link-arg={}", res.display());
-    
-    // -------------------- windows api --------------------
-    
-    // WaitNamedPipeW
-    println!("cargo:rustc-link-lib=kernel32");
     
 }

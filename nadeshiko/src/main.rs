@@ -29,6 +29,8 @@ const TITLE_CLOSE_TAG: &[u8] = b"</title>";
 const LINK_OPEN_TAG: &[u8] = b"<link>";
 const LINK_CLOSE_TAG: &[u8] = b"</link>";
 
+const TORRENT_FILE_WRITER_BUFFER_SIZE: usize = 64 * 1024;
+
 fn main() {
     println!("{} v{}", APP_NAME, APP_VERSION);
     println!("--------------------");
@@ -141,7 +143,7 @@ fn download_torrent(client: &mut akari::Client, title: &str, link: &str, folder:
         .create_new(true)
         .open(destination)?;
     
-    let mut writer = BufWriter::new(file);
+    let mut writer = BufWriter::with_capacity(TORRENT_FILE_WRITER_BUFFER_SIZE, file);
     
     io::copy(&mut client.get(link)?, &mut writer)?;
     
