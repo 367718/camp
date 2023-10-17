@@ -7,7 +7,8 @@ use std::io;
 
 use session::Session;
 use connection::Connection;
-use payload::Payload;
+
+pub use payload::Payload;
 
 pub struct Client {
     session: Session,

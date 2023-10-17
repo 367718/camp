@@ -12,7 +12,7 @@ struct Releases<'c, 'r> {
     rules: &'r chiaki::List,
 }
 
-struct Release<'c, 'r> {
+struct ReleasesEntry<'c, 'r> {
     matcher: &'r str,
     episode: u64,
     title: &'c str,
@@ -54,17 +54,14 @@ fn process() -> Result<(), Box<dyn Error>> {
     let config = rin::Config::load()?;
     let folder = config.get(b"folder")?;
     
-    println!();
     println!("Loading feeds...");
     
     let feeds = chiaki::List::load("feeds")?;
     
-    println!();
     println!("Loading rules...");
     
     let rules = chiaki::List::load("rules")?;
     
-    println!();
     println!("Success!");
     
     let mut client = akari::Client::new()?;
@@ -165,7 +162,7 @@ impl<'c, 'r> Releases<'c, 'r> {
 
 impl<'c, 'r> Iterator for Releases<'c, 'r> {
     
-    type Item = Release<'c, 'r>;
+    type Item = ReleasesEntry<'c, 'r>;
     
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(range) = chikuwa::tag_range(self.content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
@@ -184,7 +181,7 @@ impl<'c, 'r> Iterator for Releases<'c, 'r> {
     
 }
 
-fn build_entry<'c, 'r>(item: &'c [u8], rules: &'r chiaki::List) -> Option<Release<'c, 'r>> {
+fn build_entry<'c, 'r>(item: &'c [u8], rules: &'r chiaki::List) -> Option<ReleasesEntry<'c, 'r>> {
     let title = chikuwa::tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG)
         .and_then(|field| str::from_utf8(&item[field]).ok())?;
     
@@ -196,7 +193,7 @@ fn build_entry<'c, 'r>(item: &'c [u8], rules: &'r chiaki::List) -> Option<Releas
     let link = chikuwa::tag_range(item, LINK_OPEN_TAG, LINK_CLOSE_TAG)
         .and_then(|field| str::from_utf8(&item[field]).ok())?;
     
-    Some(Release {
+    Some(ReleasesEntry {
         matcher: rule.tag,
         episode,
         title,
