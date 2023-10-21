@@ -3,6 +3,7 @@ use std::{
     ffi::OsStr,
     path::{ MAIN_SEPARATOR_STR, Path },
     process::Command,
+    str,
 };
 
 use super::{ Request, Status, ContentType };
@@ -235,6 +236,7 @@ fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- paths --------------------
     
     let mut paths = request.param(b"tag")
+        .filter_map(|path| str::from_utf8(path).ok())
         .filter_map(|path| root.join(path).canonicalize().ok())
         .filter(|path| path.starts_with(&root))
         .peekable();
@@ -265,6 +267,7 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- files --------------------
     
     let mut files = request.param(b"tag")
+        .filter_map(|path| str::from_utf8(path).ok())
         .filter_map(|path| root.join(path).canonicalize().ok())
         .filter(|path| path.starts_with(&root))
         .filter_map(|path| ena::Files::new(path).next())
@@ -296,12 +299,16 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- name --------------------
     
-    let name = Path::new(request.param(b"input").next().ok_or("Name not provided")?)
-        .file_name().ok_or("Invalid name")?;
+    let name = request.param(b"input")
+        .next()
+        .and_then(|path| str::from_utf8(path).ok())
+        .and_then(|path| Path::new(path).file_name())
+        .ok_or("Invalid name")?;
     
     // -------------------- files --------------------
     
     let mut files = request.param(b"tag")
+        .filter_map(|path| str::from_utf8(path).ok())
         .filter_map(|path| root.join(path).canonicalize().ok())
         .filter(|path| path.starts_with(&root))
         .filter_map(|path| ena::Files::new(path).next())
@@ -334,6 +341,7 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- files --------------------
     
     let mut files = request.param(b"tag")
+        .filter_map(|path| str::from_utf8(path).ok())
         .filter_map(|path| root.join(path).canonicalize().ok())
         .filter(|path| path.starts_with(&root))
         .filter_map(|path| ena::Files::new(path).next())

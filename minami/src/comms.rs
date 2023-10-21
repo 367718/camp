@@ -46,8 +46,8 @@ impl Status {
     pub fn as_bytes(self) -> &'static [u8] {
         match self {
             Self::Ok => b"200 OK",
-            Self::NotFound => b"404 Not Found",
             Self::Error => b"500 Internal Server Error",
+            Self::NotFound => b"404 Not Found",
         }
     }
     
@@ -167,7 +167,7 @@ impl Request {
         (method, path)
     }
     
-    pub fn param<'p, 'k: 'p>(&'p self, field: &'k [u8]) -> impl Iterator<Item = &'p str> {
+    pub fn param<'p, 'k: 'p>(&'p self, field: &'k [u8]) -> impl Iterator<Item = &'p [u8]> {
         let range = chikuwa::tag_range(&self.headers, b"Content-Type: multipart/form-data; boundary=", b"\r\n");
         
         let payload = Payload {
@@ -175,8 +175,7 @@ impl Request {
             content: &self.body,
         };
         
-        payload.filter(move |(key, _)| key == &field)
-            .filter_map(|(_, value)| str::from_utf8(value).ok())
+        payload.filter(move |(key, _)| key == &field).map(|(_, value)| value)
     }
     
     pub fn start_response(&mut self, status: Status, content: ContentType) -> Result<Response, Box<dyn Error>> {

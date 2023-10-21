@@ -123,7 +123,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 for entry in feeds {
                     
                     response.send(b"<a>")?;
-                    response.send(entry.tag.as_bytes())?;
+                    response.send(entry.tag)?;
                     response.send(b"</a>")?;
                     
                 }

@@ -13,7 +13,7 @@ struct Releases<'c, 'r> {
 }
 
 struct ReleasesEntry<'c, 'r> {
-    matcher: &'r str,
+    matcher: &'r [u8],
     episode: u64,
     title: &'c str,
     link: &'c str,
@@ -65,38 +65,39 @@ fn process() -> Result<(), Box<dyn Error>> {
     println!("Success!");
     
     let mut client = akari::Client::new()?;
-    let mut found: Vec<(&str, u64)> = Vec::with_capacity(20);
+    let mut found: Vec<(&[u8], u64)> = Vec::with_capacity(20);
     
-    for feed in feeds.iter() {
+    for url in feeds.iter().filter_map(|feed| str::from_utf8(feed.tag).ok()) {
         
         println!();
-        println!("{}", feed.tag);
+        println!("{}", url);
         println!("--------------------");
         
-        match client.get(feed.tag) {
+        match client.get(url) {
             
             Ok(mut payload) => {
                 
                 let mut content = Vec::with_capacity(payload.content_length());
                 
-                match payload.read_to_end(&mut content) {
+                if let Err(error) = payload.read_to_end(&mut content) {
+                    println!("ERROR: {}", error);
+                    continue;
+                }
+                
+                for release in Releases::new(&content, &rules) {
                     
-                    Ok(_) => for release in Releases::new(&content, &rules) {
-                        
-                        if found.iter().any(|&(matcher, episode)| matcher == release.matcher && episode >= release.episode) {
-                            continue;
-                        }
-                        
-                        println!("{}", release.title);
-                        
-                        match download_torrent(&mut client, release.title, release.link, folder) {
-                            Ok(()) => found.push((release.matcher, release.episode)),
-                            Err(error) => println!("ERROR: {}", error),
-                        }
-                        
-                    },
+                    if found.iter().any(|&(matcher, episode)| matcher == release.matcher && episode >= release.episode) {
+                        continue;
+                    }
                     
-                    Err(error) => println!("ERROR: {}", error),
+                    println!("{}", release.title);
+                    
+                    if let Err(error) = download_torrent(&mut client, release.title, release.link, folder) {
+                        println!("ERROR: {}", error);
+                        continue;
+                    }
+                    
+                    found.push((release.matcher, release.episode));
                     
                 }
                 
@@ -183,27 +184,26 @@ impl<'c, 'r> Iterator for Releases<'c, 'r> {
 
 fn build_entry<'c, 'r>(item: &'c [u8], rules: &'r chiaki::List) -> Option<ReleasesEntry<'c, 'r>> {
     let title = chikuwa::tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG)
-        .and_then(|field| str::from_utf8(&item[field]).ok())?;
+        .map(|field| &item[field])?;
     
-    let rule = rules.iter().find(|rule| title.contains(rule.tag))?;
+    let rule = rules.iter().find(|rule| title.starts_with(rule.tag))?;
     
-    let episode = extract_episode(title, rule.tag)
+    let episode = extract_episode(&title[rule.tag.len()..])
         .filter(|&episode| rule.value < episode)?;
     
     let link = chikuwa::tag_range(item, LINK_OPEN_TAG, LINK_CLOSE_TAG)
-        .and_then(|field| str::from_utf8(&item[field]).ok())?;
+        .map(|field| &item[field])?;
     
     Some(ReleasesEntry {
         matcher: rule.tag,
         episode,
-        title,
-        link,
+        title: str::from_utf8(title).ok()?,
+        link: str::from_utf8(link).ok()?,
     })
 }
 
-fn extract_episode(title: &str, tag: &str) -> Option<u64> {
-    let clean = title.replace(tag, "");
-    let mut chars = clean.chars();
+fn extract_episode(title: &[u8]) -> Option<u64> {
+    let mut chars = title.iter().copied().map(char::from);
     let mut result = chars.find_map(|current| current.to_digit(10)).map(u64::from)?;
     
     while let Some(current) = chars.next() {

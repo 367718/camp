@@ -1,4 +1,7 @@
-use std::error::Error;
+use std::{
+    error::Error,
+    str,
+};
 
 use super::{ Request, Status, ContentType };
 
@@ -135,7 +138,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     response.send(entry.value.to_string().as_bytes())?;
                     response.send(b"'>")?;
                     
-                    response.send(entry.tag.as_bytes())?;
+                    response.send(entry.tag)?;
                     
                     response.send(b"</a>")?;
                     
@@ -240,6 +243,7 @@ fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let progress = request.param(b"input")
         .next()
+        .and_then(|progress| str::from_utf8(progress).ok())
         .and_then(|progress| progress.parse().ok())
         .ok_or("Progress not provided")?;
     
