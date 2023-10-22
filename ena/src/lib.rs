@@ -3,7 +3,7 @@ mod marker;
 
 use std::{
     fs,
-    path::PathBuf,
+    path::{ PathBuf, Component },
 };
 
 pub use entry::FilesEntry;
@@ -35,6 +35,12 @@ impl Iterator for Files {
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(current) = self.entries.pop() {
             
+            // prevent directory traversal attacks
+            
+            if current.components().any(|component| component == Component::ParentDir) {
+                continue;
+            }
+            
             let Ok(file_type) = fs::symlink_metadata(&current).map(|metadata| metadata.file_type()) else {
                 continue;
             };
@@ -42,7 +48,9 @@ impl Iterator for Files {
             // file, dir and symlink tests are mutually exclusive
             
             if file_type.is_file() {
-                return Some(FilesEntry::new(current));
+                if let Some(path) = current.to_str().map(ToString::to_string) {
+                    return Some(FilesEntry::new(path));
+                }
             }
             
             if file_type.is_dir() {

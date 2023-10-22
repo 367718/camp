@@ -154,16 +154,18 @@ impl <'c>Iterator for ListEntries<'c> {
     fn next(&mut self) -> Option<Self::Item> {
         let mem_size = mem::size_of::<u64>();
         
-        let size = usize::try_from(u64::from_le_bytes(self.content.get(..mem_size)?.try_into().unwrap())).ok()?;
-        let rest = &self.content[mem_size..];
+        let working = self.content;
         
-        let tag = rest.get(..size)?;
-        let rest = &rest[size..];
+        let size = usize::try_from(u64::from_le_bytes(working.get(..mem_size)?.try_into().unwrap())).ok()?;
+        let working = &working[mem_size..];
         
-        let value = u64::from_le_bytes(rest.get(..mem_size)?.try_into().unwrap());
-        let rest = &rest[mem_size..];
+        let tag = working.get(..size)?;
+        let working = &working[size..];
         
-        self.content = rest;
+        let value = u64::from_le_bytes(working.get(..mem_size)?.try_into().unwrap());
+        let working = &working[mem_size..];
+        
+        self.content = working;
         
         Some(ListEntry {
             tag,

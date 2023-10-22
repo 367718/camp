@@ -135,7 +135,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                     }
                     
                     response.send(b" data-value='")?;
-                    response.send(entry.value.to_string().as_bytes())?;
+                    response.send(format!("{}", entry.value).as_bytes())?;
                     response.send(b"'>")?;
                     
                     response.send(entry.tag)?;

@@ -1,23 +1,21 @@
 use std::{
-    ffi::{ OsStr, OsString },
+    ffi::OsString,
     fs,
     io,
-    path::Path,
 };
 
-pub fn is_marked(path: &Path, flag: &OsStr) -> bool {
+pub fn is_marked(path: &str, flag: &str) -> bool {
     fs::read(build_query(path, flag)).map_or(false, |mark| mark != [0])
 }
 
-pub fn mark(path: &Path, flag: &OsStr, value: bool) -> io::Result<()> {
+pub fn mark(path: &str, flag: &str, value: bool) -> io::Result<()> {
     fs::write(build_query(path, flag), [u8::from(value)])
 }
 
-fn build_query(path: &Path, flag: &OsStr) -> OsString {
-    let os_str = path.as_os_str();
-    let mut query = OsString::with_capacity(os_str.len() + 1 + flag.len());
+fn build_query(path: &str, flag: &str) -> OsString {
+    let mut query = OsString::with_capacity(path.len() + 1 + flag.len());
     
-    query.push(os_str);
+    query.push(path);
     query.push(":");
     query.push(flag);
     

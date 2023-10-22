@@ -1,7 +1,6 @@
 use std::{
     error::Error,
-    ffi::OsStr,
-    path::{ MAIN_SEPARATOR_STR, Path },
+    path::{ MAIN_SEPARATOR_STR, Path, PathBuf, Component },
     process::Command,
     str,
 };
@@ -52,12 +51,12 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- config --------------------
     
     let config = rin::Config::load()?;
-    let root = Path::new(config.get(b"root")?);
-    let flag = OsStr::new(config.get(b"flag")?);
+    let root = config.get(b"root")?;
+    let flag = config.get(b"flag")?;
     
     // -------------------- files --------------------
     
-    let mut files: Vec<ena::FilesEntry> = ena::Files::new(root.to_path_buf()).collect();
+    let mut files: Vec<ena::FilesEntry> = ena::Files::new(PathBuf::from(root)).collect();
     
     files.sort_unstable_by_key(|entry| (entry.container(root).is_some(), entry.path().to_ascii_uppercase()));
     
@@ -230,15 +229,15 @@ fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- config --------------------
     
     let config = rin::Config::load()?;
-    let root = Path::new(config.get(b"root")?).canonicalize().map_err(|_| "Invalid root directory")?;
+    let root = config.get(b"root")?;
     let player = config.get(b"player")?;
     
     // -------------------- paths --------------------
     
     let mut paths = request.param(b"tag")
         .filter_map(|path| str::from_utf8(path).ok())
-        .filter_map(|path| root.join(path).canonicalize().ok())
-        .filter(|path| path.starts_with(&root))
+        .map(|path| Path::new(root).join(path))
+        .filter(|path| ! path.components().any(|component| component == Component::ParentDir))
         .peekable();
     
     if paths.peek().is_none() {
@@ -261,15 +260,14 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- config --------------------
     
     let config = rin::Config::load()?;
-    let root = Path::new(config.get(b"root")?).canonicalize().map_err(|_| "Invalid root directory")?;
-    let flag = OsStr::new(config.get(b"flag")?);
+    let root = config.get(b"root")?;
+    let flag = config.get(b"flag")?;
     
     // -------------------- files --------------------
     
     let mut files = request.param(b"tag")
         .filter_map(|path| str::from_utf8(path).ok())
-        .filter_map(|path| root.join(path).canonicalize().ok())
-        .filter(|path| path.starts_with(&root))
+        .map(|path| Path::new(root).join(path))
         .filter_map(|path| ena::Files::new(path).next())
         .peekable();
     
@@ -280,7 +278,7 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- operation --------------------
     
     for mut entry in files {
-        entry.mark(flag, ! entry.is_marked(flag))?;
+        entry.mark(flag)?;
     }
     
     // -------------------- response --------------------
@@ -295,22 +293,13 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- config --------------------
     
     let config = rin::Config::load()?;
-    let root = Path::new(config.get(b"root")?).canonicalize().map_err(|_| "Invalid root directory")?;
-    
-    // -------------------- name --------------------
-    
-    let name = request.param(b"input")
-        .next()
-        .and_then(|path| str::from_utf8(path).ok())
-        .and_then(|path| Path::new(path).file_name())
-        .ok_or("Invalid name")?;
+    let root = config.get(b"root")?;
     
     // -------------------- files --------------------
     
     let mut files = request.param(b"tag")
         .filter_map(|path| str::from_utf8(path).ok())
-        .filter_map(|path| root.join(path).canonicalize().ok())
-        .filter(|path| path.starts_with(&root))
+        .map(|path| Path::new(root).join(path))
         .filter_map(|path| ena::Files::new(path).next())
         .peekable();
     
@@ -318,10 +307,17 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
         return Err("File not provided".into());
     }
     
+    // -------------------- name --------------------
+    
+    let name = request.param(b"input")
+        .next()
+        .and_then(|path| str::from_utf8(path).ok())
+        .ok_or("Invalid name")?;
+    
     // -------------------- operation --------------------
     
     for entry in files {
-        entry.move_to_folder(&root, name)?;
+        entry.move_to_folder(root, name)?;
     }
     
     // -------------------- response --------------------
@@ -336,14 +332,13 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- config --------------------
     
     let config = rin::Config::load()?;
-    let root = Path::new(config.get(b"root")?).canonicalize().map_err(|_| "Invalid root directory")?;
+    let root = config.get(b"root")?;
     
     // -------------------- files --------------------
     
     let mut files = request.param(b"tag")
         .filter_map(|path| str::from_utf8(path).ok())
-        .filter_map(|path| root.join(path).canonicalize().ok())
-        .filter(|path| path.starts_with(&root))
+        .map(|path| Path::new(root).join(path))
         .filter_map(|path| ena::Files::new(path).next())
         .peekable();
     

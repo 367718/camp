@@ -1,15 +1,13 @@
 use std::{
-    borrow::Cow,
     error::Error,
-    ffi::OsStr,
     fs,
-    path::{ Path, PathBuf },
+    path::{ MAIN_SEPARATOR, Path },
 };
 
 #[derive(PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct FilesEntry {
-    path: PathBuf,
+    path: String,
 }
 
 impl FilesEntry {
@@ -17,7 +15,7 @@ impl FilesEntry {
     // ---------- constructors ----------
     
     
-    pub(crate) fn new(path: PathBuf) -> Self {
+    pub(crate) fn new(path: String) -> Self {
         Self { path }
     }
     
@@ -25,25 +23,24 @@ impl FilesEntry {
     // ---------- accessors ----------
     
     
-    pub fn path(&self) -> Cow<'_, str> {
-        self.path.to_string_lossy()
+    pub fn path(&self) -> &str {
+        &self.path
     }
     
-    pub fn name(&self) -> Cow<'_, str> {
-        self.path.file_name()
-            .unwrap_or_else(|| OsStr::new(""))
-            .to_string_lossy()
+    pub fn name(&self) -> &str {
+        match self.path.rsplit_once(MAIN_SEPARATOR) {
+            Some((_, name)) => name,
+            None => &self.path,
+        }
     }
     
-    pub fn container(&self, root: &Path) -> Option<Cow<'_, str>> {
-        self.path.strip_prefix(root)
-            .ok()
-            .and_then(Path::parent)
-            .map(Path::to_string_lossy)
-            .filter(|parent| ! parent.is_empty())
+    pub fn container(&self, root: &str) -> Option<&str> {
+        self.path.strip_prefix(root)?
+            .rsplit_once(MAIN_SEPARATOR)
+            .map(|(container, _)| container)
     }
     
-    pub fn is_marked(&self, flag: &OsStr) -> bool {
+    pub fn is_marked(&self, flag: &str) -> bool {
         crate::marker::is_marked(&self.path, flag)
     }
     
@@ -51,25 +48,28 @@ impl FilesEntry {
     // ---------- mutators ----------
     
     
-    pub fn mark(&mut self, flag: &OsStr, value: bool) -> Result<(), Box<dyn Error>> {
-        crate::marker::mark(&self.path, flag, value)?;
+    pub fn mark(&mut self, flag: &str) -> Result<(), Box<dyn Error>> {
+        crate::marker::mark(&self.path, flag, ! self.is_marked(flag))?;
         Ok(())
     }
     
-    pub fn move_to_folder(self, root: &Path, name: &OsStr) -> Result<(), Box<dyn Error>> {
-        let folder = root.join(name);
+    pub fn move_to_folder(self, root: &str, name: &str) -> Result<(), Box<dyn Error>> {
+        let name = name.rsplit_once(MAIN_SEPARATOR)
+            .map_or(name, |(_, name)| name);
         
-        if ! Path::exists(&folder) {
+        let folder = Path::new(root).join(name);
+        
+        if ! folder.exists() {
             fs::create_dir(&folder)?;
         }
         
-        let destination = folder.join(self.path.file_name().ok_or("Invalid file name")?);
+        let destination = folder.join(self.name());
         
-        if Path::exists(&destination) {
+        if destination.exists() {
             return Err(chikuwa::concat_str!("Destination already exists: '", &destination.to_string_lossy(), "'").into())
         }
         
-        fs::rename(&self.path, &destination)?;
+        fs::rename(self.path, &destination)?;
         
         Ok(())
     }
