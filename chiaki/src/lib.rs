@@ -155,13 +155,15 @@ impl <'c>Iterator for ListEntries<'c> {
         let mem_size = mem::size_of::<u64>();
         
         let size = usize::try_from(u64::from_le_bytes(self.content.get(..mem_size)?.try_into().unwrap())).ok()?;
-        self.content = &self.content[mem_size..];
+        let rest = &self.content[mem_size..];
         
-        let tag = self.content.get(..size)?;
-        self.content = &self.content[size..];
+        let tag = rest.get(..size)?;
+        let rest = &rest[size..];
         
-        let value = u64::from_le_bytes(self.content.get(..mem_size)?.try_into().unwrap());
-        self.content = &self.content[mem_size..];
+        let value = u64::from_le_bytes(rest.get(..mem_size)?.try_into().unwrap());
+        let rest = &rest[mem_size..];
+        
+        self.content = rest;
         
         Some(ListEntry {
             tag,
