@@ -21,8 +21,8 @@ pub enum Status {
 pub enum ContentType {
     Plain,
     Html,
-    Css,
-    Javascript,
+    Styles,
+    Scripts,
     Favicon,
 }
 
@@ -59,8 +59,8 @@ impl ContentType {
         match self {
             Self::Plain => b"text/plain; charset=utf-8",
             Self::Html => b"text/html; charset=utf-8",
-            Self::Css => b"text/css; charset=utf-8",
-            Self::Javascript => b"text/javascript; charset=utf-8",
+            Self::Styles => b"text/css; charset=utf-8",
+            Self::Scripts => b"text/javascript; charset=utf-8",
             Self::Favicon => b"image/x-icon",
         }
     }
@@ -70,8 +70,8 @@ impl ContentType {
         match self {
             Self::Plain => b"no-cache, no-store",
             Self::Html => b"no-cache, no-store",
-            Self::Css => b"max-age=15552000, immutable",
-            Self::Javascript => b"max-age=15552000, immutable",
+            Self::Styles => b"max-age=15552000, immutable",
+            Self::Scripts => b"max-age=15552000, immutable",
             Self::Favicon => b"max-age=15552000, immutable",
         }
     }

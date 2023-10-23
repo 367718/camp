@@ -1,5 +1,6 @@
 use std::{
     error::Error,
+    ffi::OsStr,
     fs,
     path::{ MAIN_SEPARATOR, Path },
 };
@@ -7,7 +8,7 @@ use std::{
 #[derive(PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct FilesEntry {
-    path: String,
+    inner: String,
 }
 
 impl FilesEntry {
@@ -15,8 +16,8 @@ impl FilesEntry {
     // ---------- constructors ----------
     
     
-    pub(crate) fn new(path: String) -> Self {
-        Self { path }
+    pub(crate) fn new(inner: String) -> Self {
+        Self { inner }
     }
     
     
@@ -24,24 +25,22 @@ impl FilesEntry {
     
     
     pub fn path(&self) -> &str {
-        &self.path
+        &self.inner
     }
     
     pub fn name(&self) -> &str {
-        match self.path.rsplit_once(MAIN_SEPARATOR) {
-            Some((_, name)) => name,
-            None => &self.path,
-        }
+        self.inner.rsplit_once(MAIN_SEPARATOR)
+            .map_or(&self.inner, |(_, name)| name)
     }
     
     pub fn container(&self, root: &str) -> Option<&str> {
-        self.path.strip_prefix(root)?
+        self.inner.strip_prefix(root)?
             .rsplit_once(MAIN_SEPARATOR)
             .map(|(container, _)| container)
     }
     
     pub fn is_marked(&self, flag: &str) -> bool {
-        crate::marker::is_marked(&self.path, flag)
+        crate::marker::is_marked(&self.inner, flag)
     }
     
     
@@ -49,7 +48,7 @@ impl FilesEntry {
     
     
     pub fn mark(&mut self, flag: &str) -> Result<(), Box<dyn Error>> {
-        crate::marker::mark(&self.path, flag, ! self.is_marked(flag))?;
+        crate::marker::mark(&self.inner, flag, ! self.is_marked(flag))?;
         Ok(())
     }
     
@@ -69,14 +68,22 @@ impl FilesEntry {
             return Err(chikuwa::concat_str!("Destination already exists: '", &destination.to_string_lossy(), "'").into())
         }
         
-        fs::rename(self.path, &destination)?;
+        fs::rename(self.inner, &destination)?;
         
         Ok(())
     }
     
     pub fn delete(self) -> Result<(), Box<dyn Error>> {
-        fs::remove_file(self.path)?;
+        fs::remove_file(self.inner)?;
         Ok(())
+    }
+    
+}
+
+impl AsRef<OsStr> for FilesEntry {
+    
+    fn as_ref(&self) -> &OsStr {
+        Path::new(&self.inner).as_os_str()
     }
     
 }

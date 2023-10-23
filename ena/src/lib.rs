@@ -19,7 +19,11 @@ impl Files {
     pub fn new(initial: PathBuf) -> Self {
         let mut entries = Vec::with_capacity(ENTRIES_INITIAL_CAPACITY);
         
-        entries.push(initial);
+        // prevent directory traversal attacks
+        
+        if ! initial.components().any(|component| component == Component::ParentDir) {
+            entries.push(initial);
+        }
         
         Self {
             entries,
@@ -34,12 +38,6 @@ impl Iterator for Files {
     
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(current) = self.entries.pop() {
-            
-            // prevent directory traversal attacks
-            
-            if current.components().any(|component| component == Component::ParentDir) {
-                continue;
-            }
             
             let Ok(file_type) = fs::symlink_metadata(&current).map(|metadata| metadata.file_type()) else {
                 continue;

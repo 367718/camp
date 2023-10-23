@@ -92,11 +92,11 @@ fn favicon(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn styles(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    request.start_response(Status::Ok, ContentType::Css)
+    request.start_response(Status::Ok, ContentType::Styles)
         .and_then(|mut response| response.send(STYLES))
 }
 
 fn scripts(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    request.start_response(Status::Ok, ContentType::Javascript)
+    request.start_response(Status::Ok, ContentType::Scripts)
         .and_then(|mut response| response.send(SCRIPTS))
 }

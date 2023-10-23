@@ -1,6 +1,6 @@
 use std::{
     error::Error,
-    path::{ MAIN_SEPARATOR_STR, Path, PathBuf, Component },
+    path::{ MAIN_SEPARATOR_STR, Path, PathBuf },
     process::Command,
     str,
 };
@@ -232,21 +232,21 @@ fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let root = config.get(b"root")?;
     let player = config.get(b"player")?;
     
-    // -------------------- paths --------------------
+    // -------------------- files --------------------
     
-    let mut paths = request.param(b"tag")
+    let mut files = request.param(b"tag")
         .filter_map(|path| str::from_utf8(path).ok())
         .map(|path| Path::new(root).join(path))
-        .filter(|path| ! path.components().any(|component| component == Component::ParentDir))
+        .filter_map(|path| ena::Files::new(path).next())
         .peekable();
     
-    if paths.peek().is_none() {
+    if files.peek().is_none() {
         return Err("File not provided".into());
     }
     
     // -------------------- operation --------------------
     
-    Command::new(player).args(paths).spawn()?;
+    Command::new(player).args(files).spawn()?;
     
     // -------------------- response --------------------
     
