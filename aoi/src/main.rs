@@ -195,7 +195,7 @@ fn send_response(stream: TcpStream, status: &[u8], payload: Option<&[u8]>) -> Re
     
     if let Some(payload) = payload {
         writer.write_all(b"Content-Length: ")?;
-        writer.write_all(payload.len().to_string().as_bytes())?;
+        writer.write_all(format!("{}", payload.len()).as_bytes())?;
         writer.write_all(b"\r\n")?;
         writer.write_all(b"\r\n")?;
         writer.write_all(payload)?;

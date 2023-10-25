@@ -56,9 +56,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- files --------------------
     
-    let mut files: Vec<ena::FilesEntry> = ena::Files::new(PathBuf::from(root)).collect();
-    
-    files.sort_unstable_by_key(|entry| (entry.container(root).is_some(), entry.path().to_ascii_uppercase()));
+    let files = ena::Files::new(PathBuf::from(root));
     
     // -------------------- response --------------------
     
@@ -133,7 +131,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div class='list show-position show-containers show-primary'>")?;
+                response.send(b"<div class='list sorted show-position show-containers show-primary'>")?;
                 
                 for entry in files {
                     

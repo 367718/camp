@@ -8,7 +8,21 @@ class List {
     
     constructor(node) {
         this.node = node;
-        this.entries = Array.from(node.children).map(child => new Entry(child));
+        
+        // children
+        
+        const children = Array.from(node.children);
+        
+        if (this.node.classList.contains("sorted")) {
+            const collator = new Intl.Collator("en", { usage: "sort", sensitivity: "base", numeric: true });
+            children.sort((a, b) => a.children.length - b.children.length || collator.compare(a.textContent, b.textContent));
+        }
+        
+        this.node.append(...children);
+        
+        // entries
+        
+        this.entries = children.map(child => new Entry(child));
         
         this.entries.forEach(entry => entry.node.onclick = (event) => {
             
@@ -39,16 +53,36 @@ class List {
         
     };
     
-    filter = (criteria) => {
+    filter = (value) => {
         
-        for (let entry of this.entries) {
+        const criteria = value.normalize("NFC");
+        const collator = new Intl.Collator("en", { usage: "search", sensitivity: "base" });
+        
+        outer: for (let entry of this.entries) {
             
-            if (entry.text().toUpperCase().includes(criteria)) {
-                entry.node.classList.remove("filtered");
-            } else {
-                entry.node.classList.add("filtered");
-                this.#deselect(entry);
+            const current = entry.text(false).normalize("NFC");
+            
+            for (let start = 0, end = criteria.length; end <= current.length; start++, end++) {
+                if (collator.compare(criteria, current.slice(start, end)) === 0) {
+                    entry.node.classList.remove("filtered");
+                    continue outer;
+                }
             }
+            
+            /*
+            
+            for (let cursor = 0; cursor + criteria.length <= current.length; cursor += 1) {
+                const window = current.slice(cursor, cursor + criteria.length);
+                if (collator.compare(criteria, window) === 0) {
+                    entry.node.classList.remove("filtered");
+                    continue outer;
+                }
+            }
+            
+            */
+            
+            entry.node.classList.add("filtered");
+            this.#deselect(entry);
             
         }
         
@@ -228,7 +262,7 @@ function filter(input) {
         clearTimeout(input.dataset.timeout);
     }
     
-    input.dataset.timeout = setTimeout(() => LIST.filter(input.value.toUpperCase()), 250);
+    input.dataset.timeout = setTimeout(() => LIST.filter(input.value), 250);
 }
 
 function copy(clean) {

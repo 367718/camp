@@ -45,11 +45,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- list --------------------
     
-    let list = chiaki::List::load("rules")?;
-    
-    let mut rules: Vec<chiaki::ListEntry> = list.iter().collect();
-    
-    rules.sort_unstable_by_key(|entry| entry.tag.to_ascii_uppercase());
+    let rules = chiaki::List::load("rules")?;
     
     // -------------------- response --------------------
     
@@ -124,9 +120,9 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div class='list show-value show-primary'>")?;
+                response.send(b"<div class='list sorted show-value show-primary'>")?;
                 
-                for entry in rules {
+                for entry in rules.iter() {
                     
                     response.send(b"<a data-value='")?;
                     response.send(format!("{}", entry.value).as_bytes())?;

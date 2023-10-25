@@ -45,11 +45,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- list --------------------
     
-    let list = chiaki::List::load("watchlist")?;
-    
-    let mut watchlist: Vec<chiaki::ListEntry> = list.iter().collect();
-    
-    watchlist.sort_unstable_by_key(|entry| entry.tag.to_ascii_uppercase());
+    let watchlist = chiaki::List::load("watchlist")?;
     
     // -------------------- response --------------------
     
@@ -124,9 +120,9 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div class='list show-value show-primary show-secondary'>")?;
+                response.send(b"<div class='list sorted show-value show-primary show-secondary'>")?;
                 
-                for entry in watchlist {
+                for entry in watchlist.iter() {
                     
                     response.send(b"<a")?;
                     

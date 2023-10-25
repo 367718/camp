@@ -39,11 +39,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- list --------------------
     
-    let list = chiaki::List::load("feeds")?;
-    
-    let mut feeds: Vec<chiaki::ListEntry> = list.iter().collect();
-    
-    feeds.sort_unstable_by_key(|entry| entry.tag.to_ascii_uppercase());
+    let feeds = chiaki::List::load("feeds")?;
     
     // -------------------- response --------------------
     
@@ -120,7 +116,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 
                 response.send(b"<div class='list show-primary'>")?;
                 
-                for entry in feeds {
+                for entry in feeds.iter() {
                     
                     response.send(b"<a>")?;
                     response.send(entry.tag)?;
