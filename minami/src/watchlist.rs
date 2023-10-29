@@ -3,10 +3,11 @@ use std::{
     str,
 };
 
-use super::{ Request, Status, ContentType };
+use super::{ Request, StatusCode, ContentType, CacheControl };
 
 pub enum WatchlistEndpoint {
     Index,
+    Entries,
     Insert,
     Update,
     Delete,
@@ -17,6 +18,7 @@ impl WatchlistEndpoint {
     pub fn get(resource: (&[u8], &[u8])) -> Option<Self> {
         match resource {
             (b"GET", b"/watchlist/") => Some(Self::Index),
+            (b"GET", b"/watchlist/entries") => Some(Self::Entries),
             (b"POST", b"/watchlist/insert") => Some(Self::Insert),
             (b"POST", b"/watchlist/update") => Some(Self::Update),
             (b"POST", b"/watchlist/delete") => Some(Self::Delete),
@@ -27,13 +29,14 @@ impl WatchlistEndpoint {
     pub fn process(&self, mut request: Request) {
         let result = match self {
             Self::Index => index(&mut request),
+            Self::Entries => entries(&mut request),
             Self::Insert => insert(&mut request),
             Self::Update => update(&mut request),
             Self::Delete => delete(&mut request),
         };
         
         if let Err(error) = result {
-            request.start_response(Status::Error, ContentType::Plain)
+            request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
                 .and_then(|mut response| response.send(error.to_string().as_bytes()))
                 .ok();
         }
@@ -43,13 +46,9 @@ impl WatchlistEndpoint {
 
 fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
-    // -------------------- list --------------------
-    
-    let watchlist = chiaki::List::load("watchlist")?;
-    
     // -------------------- response --------------------
     
-    let mut response = request.start_response(Status::Ok, ContentType::Html)?;
+    let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)?;
     
     response.send(b"<!DOCTYPE html>")?;
     response.send(b"<html lang='en'>")?;
@@ -120,27 +119,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div class='list sorted show-value show-primary show-secondary'>")?;
-                
-                for entry in watchlist.iter() {
-                    
-                    response.send(b"<a")?;
-                    
-                    if entry.value == 0 {
-                        response.send(b" class='secondary'")?;
-                    }
-                    
-                    response.send(b" data-value='")?;
-                    response.send(format!("{}", entry.value).as_bytes())?;
-                    response.send(b"'>")?;
-                    
-                    response.send(entry.tag)?;
-                    
-                    response.send(b"</a>")?;
-                    
-                }
-                
-                response.send(b"</div>")?;
+                response.send(b"<div data-refresh='/watchlist/entries' class='list sorted show-value show-primary show-secondary'></div>")?;
                 
             }
             
@@ -202,6 +181,34 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
 }
 
+fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
+    
+    // -------------------- list --------------------
+    
+    let watchlist = chiaki::List::load("watchlist")?;
+    
+    // -------------------- response --------------------
+    
+    let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
+    
+    for entry in watchlist.iter() {
+        
+        if entry.value == 0 {
+            response.send(format!("<a class='secondary' data-value='{}'>", entry.value).as_bytes())?;
+        } else {
+            response.send(format!("<a data-value='{}'>", entry.value).as_bytes())?;
+        }
+        
+        response.send(entry.tag)?;
+        
+        response.send(b"</a>")?;
+        
+    }
+    
+    Ok(())
+    
+}
+
 fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- list --------------------
@@ -220,7 +227,7 @@ fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(Status::Ok, ContentType::Plain)
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
     
 }
@@ -249,7 +256,7 @@ fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(Status::Ok, ContentType::Plain)
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
     
 }
@@ -272,7 +279,7 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(Status::Ok, ContentType::Plain)
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
     
 }

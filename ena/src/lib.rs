@@ -1,5 +1,5 @@
 mod entry;
-mod marker;
+mod mark;
 
 use std::{
     fs,

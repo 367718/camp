@@ -8,38 +8,11 @@ class List {
     
     constructor(node) {
         this.node = node;
+        this.entries = [];
         
-        // children
+        this.refresh();
         
-        const children = Array.from(node.children);
-        
-        if (this.node.classList.contains("sorted")) {
-            const collator = new Intl.Collator("en", { usage: "sort", sensitivity: "base", numeric: true });
-            children.sort((a, b) => a.children.length - b.children.length || collator.compare(a.textContent, b.textContent));
-        }
-        
-        this.node.append(...children);
-        
-        // entries
-        
-        this.entries = children.map(child => new Entry(child));
-        
-        this.entries.forEach(entry => entry.node.onclick = (event) => {
-            
-            if (event.ctrlKey) {
-                if (entry.is_selected()) {
-                    this.#deselect(entry);
-                } else {
-                    this.#select(entry);
-                }
-            } else {
-                this.entries.forEach(entry => entry.node.removeAttribute("data-position"))
-                this.#select(entry);
-            }
-            
-        });
-        
-        Object.freeze(this);
+        Object.seal(this);
     }
     
     focus = () => this.node.focus();
@@ -49,7 +22,7 @@ class List {
         this.node.classList.toggle(criteria);
         
         this.entries.filter(entry => ! entry.is_visible())
-            .forEach(entry => this.#deselect(entry));
+            .forEach(entry => this.deselect(entry));
         
     };
     
@@ -69,26 +42,14 @@ class List {
                 }
             }
             
-            /*
-            
-            for (let cursor = 0; cursor + criteria.length <= current.length; cursor += 1) {
-                const window = current.slice(cursor, cursor + criteria.length);
-                if (collator.compare(criteria, window) === 0) {
-                    entry.node.classList.remove("filtered");
-                    continue outer;
-                }
-            }
-            
-            */
-            
             entry.node.classList.add("filtered");
-            this.#deselect(entry);
+            this.deselect(entry);
             
         }
         
     };
     
-    #select = (target) => {
+    select = (target) => {
         
         if (target.is_selected()) {
             return;
@@ -104,7 +65,7 @@ class List {
         
     };
     
-    #deselect = (target) => {
+    deselect = (target) => {
         
         if (! target.is_selected()) {
             return;
@@ -123,12 +84,75 @@ class List {
         
     };
     
+    clear = () => this.entries.forEach(entry => entry.node.removeAttribute("data-position"));
+    
+    refresh = () => {
+        
+        fetch(this.node.dataset.refresh)
+            .then(response => response.text().then(text => {
+                
+                if (response.status != 200) {
+                    this.node.replaceChildren();
+                    this.entries = [];
+                    window.alert(text);
+                    return;
+                }
+                
+                // container
+                
+                const container = document.createElement("div");
+                
+                container.innerHTML = text;
+                
+                // children
+                
+                const children = Array.from(container.children);
+                
+                if (this.node.classList.contains("sorted")) {
+                    const collator = new Intl.Collator("en", { usage: "sort", sensitivity: "base", numeric: true });
+                    children.sort((a, b) => a.children.length - b.children.length || collator.compare(a.textContent, b.textContent));
+                }
+                
+                this.node.replaceChildren(...children);
+                
+                // entries
+                
+                this.entries = children.map(child => new Entry(child));
+                
+                // filter
+                
+                const filter = document.querySelector(".panel .filter");
+                
+                if (filter.value != "") {
+                    this.filter(filter.value);
+                }
+                
+            }))
+            .catch(error => window.alert(error));
+        
+    };
+    
 }
 
 class Entry {
     
     constructor(node) {
         this.node = node;
+        
+        this.node.onclick = (event) => {
+            
+            if (event.ctrlKey) {
+                if (this.is_selected()) {
+                    LIST.deselect(this);
+                } else {
+                    LIST.select(this);
+                }
+            } else {
+                LIST.clear();
+                LIST.select(this);
+            }
+            
+        }
         
         Object.freeze(this);
     }
@@ -200,11 +224,10 @@ document.addEventListener("DOMContentLoaded", () => {
         writable: false,
     });
     
-    // ---------- filters ----------
+    // ---------- filter ----------
     
-    for (let input of document.querySelectorAll(".panel .filter")) {
-        input.addEventListener("input", () => filter(input), false);
-    }
+    const filter = document.querySelector(".panel .filter");
+    filter.addEventListener("input", () => filter(filter), false);
     
     // ---------- toggles ----------
     
@@ -258,10 +281,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 function filter(input) {
-    if (input.dataset.timeout !== null) {
-        clearTimeout(input.dataset.timeout);
-    }
-    
+    clearTimeout(input.dataset.timeout);
     input.dataset.timeout = setTimeout(() => LIST.filter(input.value), 250);
 }
 
@@ -319,7 +339,7 @@ function request({ url = "", confirm = false, prompt = false, refresh = false } 
             }
             
             if (refresh) {
-                window.location.reload();
+                LIST.refresh();
             }
             
         })

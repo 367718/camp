@@ -11,7 +11,7 @@ const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;
 const REQUEST_SIZE_LIMIT: u64 = 50 * 1024 * 1024 + 1;
 
 #[derive(Copy, Clone)]
-pub enum Status {
+pub enum StatusCode {
     Ok,
     Error,
     NotFound,
@@ -21,9 +21,15 @@ pub enum Status {
 pub enum ContentType {
     Plain,
     Html,
-    Styles,
-    Scripts,
-    Favicon,
+    Icon,
+    Css,
+    Javascript,
+}
+
+#[derive(Copy, Clone)]
+pub enum CacheControl {
+    Static,
+    Dynamic,
 }
 
 pub struct Request {
@@ -41,7 +47,7 @@ pub struct Response {
     writer: BufWriter<TcpStream>,
 }
 
-impl Status {
+impl StatusCode {
     
     pub fn as_bytes(self) -> &'static [u8] {
         match self {
@@ -56,23 +62,25 @@ impl Status {
 impl ContentType {
     
     pub fn as_bytes(self) -> &'static [u8] {
+        #[allow(clippy::match_same_arms)]
         match self {
             Self::Plain => b"text/plain; charset=utf-8",
             Self::Html => b"text/html; charset=utf-8",
-            Self::Styles => b"text/css; charset=utf-8",
-            Self::Scripts => b"text/javascript; charset=utf-8",
-            Self::Favicon => b"image/x-icon",
+            Self::Icon => b"image/x-icon",
+            Self::Css => b"text/css; charset=utf-8",
+            Self::Javascript => b"text/javascript; charset=utf-8",
         }
     }
     
-    pub fn cache_policy(self) -> &'static [u8] {
+}
+
+impl CacheControl {
+    
+    pub fn as_bytes(self) -> &'static [u8] {
         #[allow(clippy::match_same_arms)]
         match self {
-            Self::Plain => b"no-cache, no-store",
-            Self::Html => b"no-cache, no-store",
-            Self::Styles => b"max-age=15552000, immutable",
-            Self::Scripts => b"max-age=15552000, immutable",
-            Self::Favicon => b"max-age=15552000, immutable",
+            Self::Static => b"max-age=15552000, immutable",
+            Self::Dynamic => b"no-cache, no-store",
         }
     }
     
@@ -178,8 +186,8 @@ impl Request {
         payload.filter(move |(key, _)| key == &field).map(|(_, value)| value)
     }
     
-    pub fn start_response(&mut self, status: Status, content: ContentType) -> Result<Response, Box<dyn Error>> {
-        Response::new(self.stream.take().ok_or("Response already sent")?, status, content)
+    pub fn start_response(&mut self, status: StatusCode, content: ContentType, cache: CacheControl) -> Result<Response, Box<dyn Error>> {
+        Response::new(self.stream.take().ok_or("Response already sent")?, status, content, cache)
     }
     
 }
@@ -223,7 +231,7 @@ impl<'h, 'b> Iterator for Payload<'h, 'b> {
 
 impl Response {
     
-    fn new(stream: TcpStream, status: Status, content: ContentType) -> Result<Response, Box<dyn Error>> {
+    fn new(stream: TcpStream, status: StatusCode, content: ContentType, cache: CacheControl) -> Result<Response, Box<dyn Error>> {
         stream.set_write_timeout(STREAM_TIMEOUT)?;
         
         let mut writer = BufWriter::new(stream);
@@ -237,7 +245,7 @@ impl Response {
         writer.write_all(b"\r\n")?;
         
         writer.write_all(b"Cache-Control: ")?;
-        writer.write_all(content.cache_policy())?;
+        writer.write_all(cache.as_bytes())?;
         writer.write_all(b"\r\n")?;
         
         writer.write_all(b"Transfer-Encoding: chunked\r\n")?;

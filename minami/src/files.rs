@@ -5,10 +5,11 @@ use std::{
     str,
 };
 
-use super::{ Request, Status, ContentType };
+use super::{ Request, StatusCode, ContentType, CacheControl };
 
 pub enum FilesEndpoint {
     Index,
+    Entries,
     Play,
     Mark,
     Move,
@@ -20,6 +21,7 @@ impl FilesEndpoint {
     pub fn get(resource: (&[u8], &[u8])) -> Option<Self> {
         match resource {
             (b"GET", b"/files/") => Some(Self::Index),
+            (b"GET", b"/files/entries") => Some(Self::Entries),
             (b"POST", b"/files/play") => Some(Self::Play),
             (b"POST", b"/files/mark") => Some(Self::Mark),
             (b"POST", b"/files/move") => Some(Self::Move),
@@ -31,6 +33,7 @@ impl FilesEndpoint {
     pub fn process(&self, mut request: Request) {
         let result = match self {
             Self::Index => index(&mut request),
+            Self::Entries => entries(&mut request),
             Self::Play => play(&mut request),
             Self::Mark => mark(&mut request),
             Self::Move => move_to_folder(&mut request),
@@ -38,7 +41,7 @@ impl FilesEndpoint {
         };
         
         if let Err(error) = result {
-            request.start_response(Status::Error, ContentType::Plain)
+            request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
                 .and_then(|mut response| response.send(error.to_string().as_bytes()))
                 .ok();
         }
@@ -48,19 +51,9 @@ impl FilesEndpoint {
 
 fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
-    // -------------------- config --------------------
-    
-    let config = rin::Config::load()?;
-    let root = config.get(b"root")?;
-    let flag = config.get(b"flag")?;
-    
-    // -------------------- files --------------------
-    
-    let files = ena::Files::new(PathBuf::from(root));
-    
     // -------------------- response --------------------
     
-    let mut response = request.start_response(Status::Ok, ContentType::Html)?;
+    let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)?;
     
     response.send(b"<!DOCTYPE html>")?;
     response.send(b"<html lang='en'>")?;
@@ -131,30 +124,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div class='list sorted show-position show-containers show-primary'>")?;
-                
-                for entry in files {
-                    
-                    if entry.is_marked(flag) {
-                        response.send(b"<a class='secondary'>")?;
-                    } else {
-                        response.send(b"<a>")?;
-                    }
-                    
-                    if let Some(container) = entry.container(root) {
-                        response.send(b"<span>")?;
-                        response.send(container.as_bytes())?;
-                        response.send(MAIN_SEPARATOR_STR.as_bytes())?;
-                        response.send(b"</span>")?;
-                    }
-                    
-                    response.send(entry.name().as_bytes())?;
-                    
-                    response.send(b"</a>")?;
-                    
-                }
-                
-                response.send(b"</div>")?;
+                response.send(b"<div data-refresh='/files/entries' class='list sorted show-position show-containers show-primary'></div>")?;
                 
             }
             
@@ -222,6 +192,47 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
 }
 
+fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
+    
+    // -------------------- config --------------------
+    
+    let config = rin::Config::load()?;
+    let root = config.get(b"root")?;
+    let flag = config.get(b"flag")?;
+    
+    // -------------------- list --------------------
+    
+    let files = ena::Files::new(PathBuf::from(root));
+    
+    // -------------------- response --------------------
+    
+    let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
+    
+    for entry in files {
+        
+        if entry.is_marked(flag) {
+            response.send(b"<a class='secondary'>")?;
+        } else {
+            response.send(b"<a>")?;
+        }
+        
+        if let Some(container) = entry.container(root) {
+            response.send(b"<span>")?;
+            response.send(container.as_bytes())?;
+            response.send(MAIN_SEPARATOR_STR.as_bytes())?;
+            response.send(b"</span>")?;
+        }
+        
+        response.send(entry.name().as_bytes())?;
+        
+        response.send(b"</a>")?;
+        
+    }
+    
+    Ok(())
+    
+}
+
 fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- config --------------------
@@ -248,7 +259,7 @@ fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(Status::Ok, ContentType::Plain)
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
     
 }
@@ -281,7 +292,7 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(Status::Ok, ContentType::Plain)
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
     
 }
@@ -320,7 +331,7 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(Status::Ok, ContentType::Plain)
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
     
 }
@@ -352,7 +363,7 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(Status::Ok, ContentType::Plain)
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
     
 }

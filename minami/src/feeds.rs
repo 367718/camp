@@ -1,9 +1,10 @@
 use std::error::Error;
 
-use super::{ Request, Status, ContentType };
+use super::{ Request, StatusCode, ContentType, CacheControl };
 
 pub enum FeedsEndpoint {
     Index,
+    Entries,
     Insert,
     Delete,
 }
@@ -13,6 +14,7 @@ impl FeedsEndpoint {
     pub fn get(resource: (&[u8], &[u8])) -> Option<Self> {
         match resource {
             (b"GET", b"/feeds/") => Some(Self::Index),
+            (b"GET", b"/feeds/entries") => Some(Self::Entries),
             (b"POST", b"/feeds/insert") => Some(Self::Insert),
             (b"POST", b"/feeds/delete") => Some(Self::Delete),
             _ => None,
@@ -22,12 +24,13 @@ impl FeedsEndpoint {
     pub fn process(&self, mut request: Request) {
         let result = match self {
             Self::Index => index(&mut request),
+            Self::Entries => entries(&mut request),
             Self::Insert => insert(&mut request),
             Self::Delete => delete(&mut request),
         };
         
         if let Err(error) = result {
-            request.start_response(Status::Error, ContentType::Plain)
+            request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
                 .and_then(|mut response| response.send(error.to_string().as_bytes()))
                 .ok();
         }
@@ -37,13 +40,9 @@ impl FeedsEndpoint {
 
 fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
-    // -------------------- list --------------------
-    
-    let feeds = chiaki::List::load("feeds")?;
-    
     // -------------------- response --------------------
     
-    let mut response = request.start_response(Status::Ok, ContentType::Html)?;
+    let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)?;
     
     response.send(b"<!DOCTYPE html>")?;
     response.send(b"<html lang='en'>")?;
@@ -114,17 +113,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div class='list show-primary'>")?;
-                
-                for entry in feeds.iter() {
-                    
-                    response.send(b"<a>")?;
-                    response.send(entry.tag)?;
-                    response.send(b"</a>")?;
-                    
-                }
-                
-                response.send(b"</div>")?;
+                response.send(b"<div data-refresh='/feeds/entries' class='list show-primary'></div>")?;
                 
             }
             
@@ -165,6 +154,28 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
 }
 
+fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
+    
+    // -------------------- list --------------------
+    
+    let feeds = chiaki::List::load("feeds")?;
+    
+    // -------------------- response --------------------
+    
+    let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
+    
+    for entry in feeds.iter() {
+        
+        response.send(b"<a>")?;
+        response.send(entry.tag)?;
+        response.send(b"</a>")?;
+        
+    }
+    
+    Ok(())
+    
+}
+
 fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- list --------------------
@@ -183,7 +194,7 @@ fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(Status::Ok, ContentType::Plain)
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
     
 }
@@ -206,7 +217,7 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(Status::Ok, ContentType::Plain)
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
     
 }

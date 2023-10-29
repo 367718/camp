@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use super::{ Request, Status, ContentType };
+use super::{ Request, StatusCode, ContentType, CacheControl };
 
 const FAVICON: &[u8] = include_bytes!("../rsc/favicon.ico");
 const STYLES: &[u8] = include_bytes!("../rsc/styles.css");
@@ -34,7 +34,7 @@ impl GeneralEndpoint {
         };
         
         if let Err(error) = result {
-            request.start_response(Status::Error, ContentType::Plain)
+            request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
                 .and_then(|mut response| response.send(error.to_string().as_bytes()))
                 .ok();
         }
@@ -46,7 +46,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    let mut response = request.start_response(Status::Ok, ContentType::Html)?;
+    let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)?;
     
     response.send(b"<!DOCTYPE html>")?;
     response.send(b"<html lang='en'>")?;
@@ -87,16 +87,16 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn favicon(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    request.start_response(Status::Ok, ContentType::Favicon)
+    request.start_response(StatusCode::Ok, ContentType::Icon, CacheControl::Static)
         .and_then(|mut response| response.send(FAVICON))
 }
 
 fn styles(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    request.start_response(Status::Ok, ContentType::Styles)
+    request.start_response(StatusCode::Ok, ContentType::Css, CacheControl::Static)
         .and_then(|mut response| response.send(STYLES))
 }
 
 fn scripts(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    request.start_response(Status::Ok, ContentType::Scripts)
+    request.start_response(StatusCode::Ok, ContentType::Javascript, CacheControl::Static)
         .and_then(|mut response| response.send(SCRIPTS))
 }

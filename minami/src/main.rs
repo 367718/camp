@@ -17,7 +17,7 @@ use watchlist::WatchlistEndpoint;
 use rules::RulesEndpoint;
 use feeds::FeedsEndpoint;
 use general::GeneralEndpoint;
-use comms::{ Request, Status, ContentType };
+use comms::{ Request, StatusCode, ContentType, CacheControl };
 
 fn main() -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind(rin::Config::load()?.get(b"address")?)?;
@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             continue;
         }
         
-        request.start_response(Status::NotFound, ContentType::Plain)
+        request.start_response(StatusCode::NotFound, ContentType::Plain, CacheControl::Dynamic)
             .and_then(|mut response| response.send(b"Endpoint not found"))
             .ok();
     }

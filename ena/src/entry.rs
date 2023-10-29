@@ -40,7 +40,7 @@ impl FilesEntry {
     }
     
     pub fn is_marked(&self, flag: &str) -> bool {
-        crate::marker::is_marked(&self.inner, flag)
+        crate::mark::is_marked(&self.inner, flag)
     }
     
     
@@ -48,7 +48,11 @@ impl FilesEntry {
     
     
     pub fn mark(&mut self, flag: &str) -> Result<(), Box<dyn Error>> {
-        crate::marker::mark(&self.inner, flag, ! self.is_marked(flag))?;
+        if self.is_marked(flag) {
+            crate::mark::remove(&self.inner, flag)?;
+        } else {
+            crate::mark::add(&self.inner, flag)?;
+        }
         Ok(())
     }
     
