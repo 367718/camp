@@ -43,12 +43,16 @@ impl Iterator for Files {
                 continue;
             };
             
-            // file, dir and symlink tests are mutually exclusive
-            
             if file_type.is_file() {
-                if let Some(path) = current.to_str().map(ToString::to_string) {
-                    return Some(FilesEntry::new(path));
+                
+                let entry = current.to_str().map(|path| FilesEntry::new(path.to_string()));
+                
+                if entry.is_some() {
+                    return entry;
                 }
+                
+                continue;
+                
             }
             
             if file_type.is_dir() {
