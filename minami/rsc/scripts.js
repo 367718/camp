@@ -227,7 +227,12 @@ document.addEventListener("DOMContentLoaded", () => {
     // ---------- filter ----------
     
     const filter = document.querySelector(".panel .filter");
-    filter.addEventListener("input", () => filter(filter), false);
+    filter.addEventListener("input", () => {
+        
+        clearTimeout(filter.dataset.timeout);
+        filter.dataset.timeout = setTimeout(() => LIST.filter(filter.value), 250);
+        
+    }, false);
     
     // ---------- toggles ----------
     
@@ -279,11 +284,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // -------------------- free functions --------------------
 
-
-function filter(input) {
-    clearTimeout(input.dataset.timeout);
-    input.dataset.timeout = setTimeout(() => LIST.filter(input.value), 250);
-}
 
 function copy(clean) {
     if (! navigator.clipboard) {
