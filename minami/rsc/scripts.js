@@ -6,8 +6,9 @@
 
 class List {
     
-    constructor(node) {
-        this.node = node;
+    constructor() {
+        this.node = document.querySelector(".list");
+        this.filter = new Filter();
         this.entries = [];
         
         this.refresh();
@@ -26,65 +27,109 @@ class List {
         
     };
     
-    filter = (value) => {
+    select = (target, control, shift) => {
         
-        const criteria = value.normalize("NFC");
-        const collator = new Intl.Collator("en", { usage: "search", sensitivity: "base" });
+        // -------------------- simple click --------------------
         
-        outer: for (let entry of this.entries) {
+        // select target and deselect every other entry
+        
+        if (! control && ! shift) {
+            this.entries.forEach(entry => entry.node.removeAttribute("data-position"));
+            target.node.setAttribute("data-position", 1);
+            return;
+        }
+        
+        // -------------------- control click --------------------
+        
+        // deselect target if selected
+        // select target if deselected
+        
+        if (control) {
             
-            const current = entry.text(false).normalize("NFC");
-            
-            for (let start = 0, end = criteria.length; end <= current.length; start++, end++) {
-                if (collator.compare(criteria, current.slice(start, end)) === 0) {
-                    entry.node.classList.remove("filtered");
-                    continue outer;
+            if (target.is_selected()) {
+                
+                const changed = target.position();
+                
+                for (let entry of this.entries.filter(entry => entry.is_selected())) {
+                    const current = entry.position();
+                    if (current > changed) {
+                        entry.node.setAttribute("data-position", current - 1);
+                    }
                 }
+                
+                target.node.removeAttribute("data-position");
+                
+            } else {
+                
+                let position = 0;
+                
+                for (let entry of this.entries.filter(entry => entry.is_selected())) {
+                    position = Math.max(position, entry.position());
+                }
+                
+                target.node.setAttribute("data-position", position + 1);
+                
             }
             
-            entry.node.classList.add("filtered");
-            this.deselect(entry);
+            return;
+            
+        }
+        
+        // -------------------- shift click --------------------
+        
+        // keep last selected and select every entry up to and including target
+        // does nothing if last selected and target are the same entry
+        
+        if (shift) {
+            
+            const start = this.entries.filter(entry => entry.is_selected())
+                .reduce((a, b) => a.position() > b.position() ? a : b);
+            
+            if (! start || start == target) {
+                return;
+            }
+            
+            this.entries.forEach(entry => entry.node.removeAttribute("data-position"));
+            start.node.setAttribute("data-position", 1);
+            
+            let entries = this.entries.filter(entry => entry.is_visible());
+            
+            if (entries.indexOf(start) > entries.indexOf(target)) {
+                entries.reverse();
+            }
+            
+            let position = 2;
+            
+            for (const current of entries.slice(entries.indexOf(start) + 1)) {
+                
+                current.node.setAttribute("data-position", position);
+                position++;
+                
+                if (current == target) {
+                    break;
+                }
+                
+            }
             
         }
         
     };
     
-    select = (target) => {
+    copy = (clean) => {
         
-        if (target.is_selected()) {
+        if (! navigator.clipboard) {
+            window.alert("Access to the clipboard is only available in secure contexts or localhost")
             return;
         }
         
-        let position = 0;
+        const text = this.entries.filter(entry => entry.is_selected())
+            .sort((first, second) => first.position() - second.position())
+            .map(entry => entry.text(clean))
+            .join("\n");
         
-        for (let entry of this.entries.filter(entry => entry.is_selected())) {
-            position = Math.max(position, entry.position());
-        }
-        
-        target.node.setAttribute("data-position", position + 1);
-        
-    };
-    
-    deselect = (target) => {
-        
-        if (! target.is_selected()) {
-            return;
-        }
-        
-        const changed = target.position();
-        
-        for (let entry of this.entries.filter(entry => entry.is_selected())) {
-            const current = entry.position();
-            if (current > changed) {
-                entry.node.setAttribute("data-position", current - 1);
-            }
-        }
-        
-        target.node.removeAttribute("data-position");
+        navigator.clipboard.writeText(text);
         
     };
-    
-    clear = () => this.entries.forEach(entry => entry.node.removeAttribute("data-position"));
     
     refresh = () => {
         
@@ -121,14 +166,54 @@ class List {
                 
                 // filter
                 
-                const filter = document.querySelector(".panel .filter");
-                
-                if (filter.value != "") {
-                    this.filter(filter.value);
-                }
+                this.filter.apply();
                 
             }))
             .catch(error => window.alert(error));
+        
+    };
+    
+}
+
+class Filter {
+    
+    constructor() {
+        this.node = document.querySelector(".panel .filter");
+        
+        this.node.addEventListener("input", () => {
+            
+            clearTimeout(this.node.dataset.timeout);
+            this.node.dataset.timeout = setTimeout(() => apply(), 250);
+            
+        }, false);
+        
+        Object.freeze(this);
+    }
+    
+    apply = () => {
+        
+        if (this.node.value === "") {
+            return;
+        }
+        
+        const criteria = this.node.value.normalize("NFC");
+        const collator = new Intl.Collator("en", { usage: "search", sensitivity: "base" });
+        
+        outer: for (let entry of LIST.entries) {
+            
+            const current = entry.text(false).normalize("NFC");
+            
+            for (let start = 0, end = criteria.length; end <= current.length; start++, end++) {
+                if (collator.compare(criteria, current.slice(start, end)) === 0) {
+                    entry.node.classList.remove("filtered");
+                    continue outer;
+                }
+            }
+            
+            entry.node.classList.add("filtered");
+            LIST.deselect(entry);
+            
+        }
         
     };
     
@@ -139,20 +224,7 @@ class Entry {
     constructor(node) {
         this.node = node;
         
-        this.node.onclick = (event) => {
-            
-            if (event.ctrlKey) {
-                if (this.is_selected()) {
-                    LIST.deselect(this);
-                } else {
-                    LIST.select(this);
-                }
-            } else {
-                LIST.clear();
-                LIST.select(this);
-            }
-            
-        }
+        this.node.onclick = (event) => LIST.select(this, event.ctrlKey, event.shiftKey);
         
         Object.freeze(this);
     }
@@ -219,26 +291,10 @@ class Entry {
 document.addEventListener("DOMContentLoaded", () => {
     
     Object.defineProperty(window, "LIST", {
-        value: new List(document.querySelector(".list")),
+        value: new List(),
         configurable: false,
         writable: false,
     });
-    
-    // ---------- filter ----------
-    
-    const filter = document.querySelector(".panel .filter");
-    filter.addEventListener("input", () => {
-        
-        clearTimeout(filter.dataset.timeout);
-        filter.dataset.timeout = setTimeout(() => LIST.filter(filter.value), 250);
-        
-    }, false);
-    
-    // ---------- toggles ----------
-    
-    for (let input of document.querySelectorAll(".panel input[type='checkbox']")) {
-        input.addEventListener("click", (event) => LIST.toggle(event.target.value), false);
-    }
     
     // ---------- focus ----------
     
@@ -251,6 +307,12 @@ document.addEventListener("DOMContentLoaded", () => {
         LIST.focus();
         
     });
+    
+    // ---------- toggles ----------
+    
+    for (let input of document.querySelectorAll(".panel input[type='checkbox']")) {
+        input.addEventListener("click", (event) => LIST.toggle(event.target.value), false);
+    }
     
     // ---------- hotkeys ----------
     
@@ -273,7 +335,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // ---------- copy text to clipboard ----------
         
         if (event.ctrlKey && (event.code === "KeyC" || event.code === "KeyX")) {
-            copy(event.code === "KeyX");
+            LIST.copy(event.code === "KeyX");
             return event.preventDefault();
         }
         
@@ -282,22 +344,8 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-// -------------------- free functions --------------------
+// -------------------- buttons --------------------
 
-
-function copy(clean) {
-    if (! navigator.clipboard) {
-        window.alert("Access to the clipboard is only available in secure contexts or localhost")
-        return;
-    }
-    
-    const text = LIST.entries.filter(entry => entry.is_selected())
-        .sort((first, second) => first.position() - second.position())
-        .map(entry => entry.text(clean))
-        .join("\n");
-    
-    navigator.clipboard.writeText(text);
-}
 
 function request({ url = "", confirm = false, prompt = false, refresh = false } = {}) {
     // -------------------- confirm --------------------
