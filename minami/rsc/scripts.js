@@ -183,7 +183,7 @@ class Filter {
         this.node.addEventListener("input", () => {
             
             clearTimeout(this.node.dataset.timeout);
-            this.node.dataset.timeout = setTimeout(() => apply(), 250);
+            this.node.dataset.timeout = setTimeout(() => this.apply(), 250);
             
         }, false);
         
@@ -193,6 +193,9 @@ class Filter {
     apply = () => {
         
         if (this.node.value === "") {
+            for (let entry of LIST.entries) {
+                entry.node.classList.remove("filtered");
+            }
             return;
         }
         
@@ -211,7 +214,10 @@ class Filter {
             }
             
             entry.node.classList.add("filtered");
-            LIST.deselect(entry);
+            
+            if (entry.is_selected()) {
+                LIST.select(entry, true, false);
+            }
             
         }
         
