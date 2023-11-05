@@ -77,7 +77,7 @@ class List {
         
         // -------------------- shift click --------------------
         
-        // keep last selected and select every entry up to and including target
+        // make a new selection from the last selected entry up to and including target
         // does nothing if last selected and target are the same entry
         
         if (shift) {
@@ -90,7 +90,6 @@ class List {
             }
             
             this.entries.forEach(entry => entry.node.removeAttribute("data-position"));
-            start.node.setAttribute("data-position", 1);
             
             let entries = this.entries.filter(entry => entry.is_visible());
             
@@ -98,17 +97,11 @@ class List {
                 entries.reverse();
             }
             
-            let position = 2;
+            let position = 0;
             
-            for (const current of entries.slice(entries.indexOf(start) + 1)) {
-                
-                current.node.setAttribute("data-position", position);
+            for (const current of entries.slice(entries.indexOf(start), entries.indexOf(target) + 1)) {
                 position++;
-                
-                if (current == target) {
-                    break;
-                }
-                
+                current.node.setAttribute("data-position", position);
             }
             
         }
