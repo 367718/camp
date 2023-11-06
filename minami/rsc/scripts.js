@@ -136,13 +136,10 @@ class List {
                     return;
                 }
                 
-                // container
+                // children
                 
                 const container = document.createElement("div");
-                
                 container.innerHTML = text;
-                
-                // children
                 
                 const children = Array.from(container.children);
                 
@@ -151,15 +148,18 @@ class List {
                     children.sort((a, b) => a.children.length - b.children.length || collator.compare(a.textContent, b.textContent));
                 }
                 
-                this.node.replaceChildren(...children);
-                
                 // entries
                 
-                this.entries = children.map(child => new Entry(child));
+                const entries = children.map(child => new Entry(child));
                 
                 // filter
                 
-                this.filter.apply();
+                this.filter.reapply(entries);
+                
+                // refresh
+                
+                this.node.replaceChildren(...children);
+                this.entries = entries;
                 
             }))
             .catch(error => window.alert(error));
@@ -211,6 +211,31 @@ class Filter {
             if (entry.is_selected()) {
                 LIST.select(entry, true, false);
             }
+            
+        }
+        
+    };
+    
+    reapply = (entries) => {
+        
+        if (this.node.value === "") {
+            return;
+        }
+        
+        const criteria = this.node.value.normalize("NFC");
+        const collator = new Intl.Collator("en", { usage: "search", sensitivity: "base" });
+        
+        outer: for (let entry of entries) {
+            
+            const current = entry.text(false).normalize("NFC");
+            
+            for (let start = 0, end = criteria.length; end <= current.length; start++, end++) {
+                if (collator.compare(criteria, current.slice(start, end)) === 0) {
+                    continue outer;
+                }
+            }
+            
+            entry.node.classList.add("filtered");
             
         }
         
