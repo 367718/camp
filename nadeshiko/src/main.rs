@@ -49,7 +49,7 @@ fn main() {
 
 fn process() -> Result<(), Box<dyn Error>> {
     println!();
-    println!("Loading configuration file...");
+    println!("Loading configuration...");
     
     let config = rin::Config::load()?;
     let folder = config.get(b"folder")?;
