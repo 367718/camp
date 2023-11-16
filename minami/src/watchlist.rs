@@ -225,6 +225,10 @@ fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     list.insert(title, 0)?;
     
+    // -------------------- commit --------------------
+    
+    list.commit()?;
+    
     // -------------------- response --------------------
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
@@ -254,6 +258,10 @@ fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     list.update(title, progress)?;
     
+    // -------------------- commit --------------------
+    
+    list.commit()?;
+    
     // -------------------- response --------------------
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
@@ -276,6 +284,10 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- operation --------------------
     
     list.delete(title)?;
+    
+    // -------------------- commit --------------------
+    
+    list.commit()?;
     
     // -------------------- response --------------------
     

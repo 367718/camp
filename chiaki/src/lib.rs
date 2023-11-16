@@ -4,7 +4,7 @@ use std::{
     fs::{ self, File },
     io::Write,
     mem,
-    path::{ Path, PathBuf },
+    path::PathBuf,
     str,
 };
 
@@ -101,6 +101,24 @@ impl List {
         Ok(())
     }
     
+    pub fn commit(&mut self) -> Result<(), Box<dyn Error>> {
+        let tmp_path = chikuwa::EphemeralPath::builder()
+            .with_base(self.path.parent().ok_or("Invalid path")?)
+            .with_suffix(".tmp")
+            .build();
+        
+        File::create(&tmp_path)?.write_all(&self.content)?;
+        
+        // attempt to perform the update atomically
+        fs::rename(&tmp_path, &self.path)?;
+        
+        tmp_path.unmanage();
+        
+        self.modified = false;
+        
+        Ok(())
+    }
+    
     
     // -------------------- helpers --------------------
     
@@ -122,27 +140,9 @@ impl List {
 impl Drop for List {
     
     fn drop(&mut self) {
-        
-        fn commit(path: &Path, content: &[u8]) -> Result<(), Box<dyn Error>> {
-            let tmp_path = chikuwa::EphemeralPath::builder()
-                .with_base(path.parent().ok_or("Invalid path")?)
-                .with_suffix(".tmp")
-                .build();
-            
-            File::create(&tmp_path)?.write_all(content)?;
-            
-            // attempt to perform the update atomically
-            fs::rename(&tmp_path, path)?;
-            
-            tmp_path.unmanage();
-            
-            Ok(())
-        }
-        
         if self.modified {
-            commit(&self.path, &self.content).ok();
+            self.commit().ok();
         }
-        
     }
     
 }

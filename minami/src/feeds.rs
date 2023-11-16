@@ -192,6 +192,10 @@ fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     list.insert(url, 0)?;
     
+    // -------------------- commit --------------------
+    
+    list.commit()?;
+    
     // -------------------- response --------------------
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
@@ -214,6 +218,10 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- operation --------------------
     
     list.delete(url)?;
+    
+    // -------------------- commit --------------------
+    
+    list.commit()?;
     
     // -------------------- response --------------------
     

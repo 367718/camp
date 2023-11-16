@@ -117,6 +117,8 @@ fn process() -> Result<(), Box<dyn Error>> {
             rules.update(matcher, episode)?;
         }
         
+        rules.commit()?;
+        
     }
     
     Ok(())
