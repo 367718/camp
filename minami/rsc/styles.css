@@ -162,14 +162,6 @@ iframe {
   display: inline;
 }
 
-.list.show-position a[data-position]::after {
-  content: attr(data-position);
-}
-
-.list.show-value a[data-value]::after {
-  content: attr(data-value);
-}
-
 
 /* -------------------- entries -------------------- */
 
@@ -217,15 +209,19 @@ iframe {
   color: var(--text-secondary-color);
 }
 
-.list a[data-position] {
-  background-color: var(--entry-selected-color);
-}
-
-.list a[data-position]:hover {
-  background-color: var(--entry-selected-hovered-color);
-}
-
 .list a span {
   display: none;
   color: var(--text-secondary-color);
+}
+
+.list a[data-value]::after {
+  content: attr(data-value);
+}
+
+.list a[data-selected] {
+  background-color: var(--entry-selected-color);
+}
+
+.list a[data-selected]:hover {
+  background-color: var(--entry-selected-hovered-color);
 }

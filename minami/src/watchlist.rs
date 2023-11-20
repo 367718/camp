@@ -119,7 +119,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div tabindex='0' data-refresh='/watchlist/entries' class='list sorted show-value show-primary show-secondary'></div>")?;
+                response.send(b"<div tabindex='0' data-refresh='/watchlist/entries' class='list sorted show-primary show-secondary'></div>")?;
                 
             }
             

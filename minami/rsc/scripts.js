@@ -11,9 +11,9 @@ class List {
         this.filter = new Filter();
         this.entries = [];
         
-        this.refresh();
-        
         Object.seal(this);
+        
+        this.refresh();
     }
     
     focus = () => this.node.focus();
@@ -22,8 +22,8 @@ class List {
         
         this.node.classList.toggle(criteria);
         
-        this.entries.filter(entry => ! entry.is_visible() && entry.is_selected())
-            .forEach(entry => this.select(entry, true, false));
+        this.entries.filter(entry => entry.is_selected() && ! entry.is_visible())
+            .forEach(entry => entry.select());
         
     };
     
@@ -34,75 +34,52 @@ class List {
         // select target and deselect every other entry
         
         if (! control && ! shift) {
-            this.entries.forEach(entry => entry.node.removeAttribute("data-position"));
-            target.node.setAttribute("data-position", 1);
+            
+            this.entries.filter(entry => entry.is_selected())
+                .forEach(entry => entry.select());
+            
+            target.select();
+            
             return;
+            
         }
         
         // -------------------- control click --------------------
         
-        // deselect target if selected
         // select target if deselected
+        // deselect target if selected
         
         if (control) {
-            
-            if (target.is_selected()) {
-                
-                const changed = target.position();
-                
-                for (let entry of this.entries.filter(entry => entry.is_selected())) {
-                    const current = entry.position();
-                    if (current > changed) {
-                        entry.node.setAttribute("data-position", current - 1);
-                    }
-                }
-                
-                target.node.removeAttribute("data-position");
-                
-            } else {
-                
-                let position = 0;
-                
-                for (let entry of this.entries.filter(entry => entry.is_selected())) {
-                    position = Math.max(position, entry.position());
-                }
-                
-                target.node.setAttribute("data-position", position + 1);
-                
-            }
-            
+            target.select();
             return;
-            
         }
         
         // -------------------- shift click --------------------
         
-        // make a new selection from the last selected entry up to and including target
-        // does nothing if last selected and target are the same entry
+        // if target is positioned after the first selected entry, make a new selection from the first selected entry up to target
+        // if target is positioned before the first selected entry, make a new selection from the target up to last selected entry
+        // if no entry is selected, make a new selection from the first visible entry up to target
         
         if (shift) {
             
-            const start = this.entries.filter(entry => entry.is_selected())
-                .reduce((a, b) => a.position() > b.position() ? a : b);
+            let start_index = this.entries.findIndex(entry => entry.is_selected());
+            let target_index = this.entries.indexOf(target);
             
-            if (! start || start == target) {
-                return;
+            if (start_index == -1) {
+                start_index = this.entries.findIndex(entry => entry.is_visible());
             }
             
-            this.entries.forEach(entry => entry.node.removeAttribute("data-position"));
-            
-            let entries = this.entries.filter(entry => entry.is_visible());
-            
-            if (entries.indexOf(start) > entries.indexOf(target)) {
-                entries.reverse();
+            if (start_index > target_index) {
+                start_index = target_index;
+                target_index = this.entries.findLastIndex(entry => entry.is_selected());
             }
             
-            let position = 0;
+            this.entries.filter(entry => entry.is_selected())
+                .forEach(entry => entry.select());
             
-            for (const current of entries.slice(entries.indexOf(start), entries.indexOf(target) + 1)) {
-                position++;
-                current.node.setAttribute("data-position", position);
-            }
+            this.entries.slice(start_index, target_index + 1)
+                .filter(entry => entry.is_visible())
+                .forEach(entry => entry.select());
             
         }
         
@@ -116,7 +93,6 @@ class List {
         }
         
         const text = this.entries.filter(entry => entry.is_selected())
-            .sort((first, second) => first.position() - second.position())
             .map(entry => entry.text(clean))
             .join("\n");
         
@@ -154,7 +130,7 @@ class List {
                 
                 // filter
                 
-                this.filter.reapply(entries);
+                this.filter.apply(entries);
                 
                 // refresh
                 
@@ -176,47 +152,17 @@ class Filter {
         this.node.addEventListener("input", () => {
             
             clearTimeout(this.node.dataset.timeout);
-            this.node.dataset.timeout = setTimeout(() => this.apply(), 500);
+            this.node.dataset.timeout = setTimeout(() => this.apply(LIST.entries), 500);
             
         }, false);
         
         Object.freeze(this);
     }
     
-    apply = () => {
+    apply = (entries) => {
         
-        if (this.node.value === "") {
-            for (let entry of LIST.entries) {
-                entry.node.classList.remove("filtered");
-            }
-            return;
-        }
-        
-        const criteria = this.node.value.normalize("NFC");
-        const collator = new Intl.Collator("en", { usage: "search", sensitivity: "base" });
-        
-        outer: for (let entry of LIST.entries) {
-            
-            const current = entry.text(false).normalize("NFC");
-            
-            for (let start = 0, end = criteria.length; end <= current.length; start++, end++) {
-                if (collator.compare(criteria, current.slice(start, end)) === 0) {
-                    entry.node.classList.remove("filtered");
-                    continue outer;
-                }
-            }
-            
-            entry.node.classList.add("filtered");
-            
-            if (entry.is_selected()) {
-                LIST.select(entry, true, false);
-            }
-            
-        }
-        
-    };
-    
-    reapply = (entries) => {
+        entries.filter(entry => entry.is_filtered())
+            .forEach(entry => entry.filter());
         
         if (this.node.value === "") {
             return;
@@ -235,9 +181,12 @@ class Filter {
                 }
             }
             
-            entry.node.classList.add("filtered");
+            entry.filter();
             
         }
+        
+        entries.filter(entry => entry.is_selected() && ! entry.is_visible())
+            .forEach(entry => entry.select());
         
     };
     
@@ -253,11 +202,15 @@ class Entry {
         Object.freeze(this);
     }
     
-    is_selected = () => this.node.hasAttribute("data-position");
+    is_selected = () => this.node.hasAttribute("data-selected");
+    
+    is_filtered = () => this.node.classList.contains("filtered");
     
     is_visible = () => this.node.offsetParent != null;
     
-    position = () => parseInt(this.node.getAttribute("data-position")) || 0;
+    select = () => this.node.toggleAttribute("data-selected");
+    
+    filter = () => this.node.classList.toggle("filtered");
     
     text = (clean) => {
         
@@ -320,7 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
         writable: false,
     });
     
-    // ---------- focus ----------
+    // -------------------- focus --------------------
     
     document.addEventListener("mouseover", (event) => {
         
@@ -332,13 +285,13 @@ document.addEventListener("DOMContentLoaded", () => {
         
     });
     
-    // ---------- toggles ----------
+    // -------------------- toggles --------------------
     
     for (let input of document.querySelectorAll(".panel input[type='checkbox']")) {
         input.addEventListener("click", (event) => LIST.toggle(event.target.value), false);
     }
     
-    // ---------- hotkeys ----------
+    // -------------------- hotkeys --------------------
     
     document.addEventListener("keydown", (event) => {
         
@@ -346,7 +299,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         
-        // ---------- buttons ----------
+        // -------------------- buttons --------------------
         
         const button = Array.from(document.querySelectorAll(".panel a"))
             .filter(button => button.hasAttribute("data-hotkey"))
@@ -356,7 +309,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return button.click();
         }
         
-        // ---------- copy text to clipboard ----------
+        // -------------------- copy text to clipboard --------------------
         
         if (event.ctrlKey && (event.code === "KeyC" || event.code === "KeyX")) {
             LIST.copy(event.code === "KeyX");
@@ -397,7 +350,6 @@ function request({ url = "", confirm = false, prompt = false, refresh = false } 
     // -------------------- tags --------------------
     
     LIST.entries.filter(entry => entry.is_selected())
-        .sort((first, second) => first.position() - second.position())
         .forEach(entry => form_data.append("tag", entry.text()));
     
     // -------------------- request --------------------

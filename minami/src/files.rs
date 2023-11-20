@@ -124,7 +124,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div tabindex='0' data-refresh='/files/entries' class='list sorted show-position show-containers show-primary'></div>")?;
+                response.send(b"<div tabindex='0' data-refresh='/files/entries' class='list sorted show-containers show-primary'></div>")?;
                 
             }
             
