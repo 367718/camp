@@ -85,7 +85,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
         
         {
             
-            response.send(b"<div class='section'>")?;
+            response.send(b"<div tabindex='0' class='section'>")?;
             
             // ---------- panel ----------
             
@@ -124,7 +124,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div data-refresh='/files/entries' class='list sorted show-position show-containers show-primary'></div>")?;
+                response.send(b"<div tabindex='0' data-refresh='/files/entries' class='list sorted show-position show-containers show-primary'></div>")?;
                 
             }
             
@@ -211,9 +211,9 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     for entry in files {
         
         if entry.is_marked(flag) {
-            response.send(b"<a class='secondary'>")?;
+            response.send(b"<a tabindex='0' class='secondary'>")?;
         } else {
-            response.send(b"<a>")?;
+            response.send(b"<a tabindex='0'>")?;
         }
         
         if let Some(container) = entry.container(root) {

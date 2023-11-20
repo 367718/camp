@@ -74,7 +74,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
         
         {
             
-            response.send(b"<div class='section'>")?;
+            response.send(b"<div tabindex='0' class='section'>")?;
             
             // ---------- panel ----------
             
@@ -113,7 +113,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div data-refresh='/feeds/entries' class='list show-primary'></div>")?;
+                response.send(b"<div tabindex='0' data-refresh='/feeds/entries' class='list show-primary'></div>")?;
                 
             }
             
@@ -166,7 +166,7 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in feeds.iter() {
         
-        response.send(b"<a>")?;
+        response.send(b"<a tabindex='0'>")?;
         response.send(entry.tag)?;
         response.send(b"</a>")?;
         

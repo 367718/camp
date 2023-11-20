@@ -80,7 +80,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
         
         {
             
-            response.send(b"<div class='section'>")?;
+            response.send(b"<div tabindex='0' class='section'>")?;
             
             // ---------- panel ----------
             
@@ -119,7 +119,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
             {
                 
-                response.send(b"<div data-refresh='/watchlist/entries' class='list sorted show-value show-primary show-secondary'></div>")?;
+                response.send(b"<div tabindex='0' data-refresh='/watchlist/entries' class='list sorted show-value show-primary show-secondary'></div>")?;
                 
             }
             
@@ -194,9 +194,9 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     for entry in watchlist.iter() {
         
         if entry.value == 0 {
-            response.send(format!("<a class='secondary' data-value='{}'>", entry.value).as_bytes())?;
+            response.send(format!("<a tabindex='0' class='secondary' data-value='{}'>", entry.value).as_bytes())?;
         } else {
-            response.send(format!("<a data-value='{}'>", entry.value).as_bytes())?;
+            response.send(format!("<a tabindex='0' data-value='{}'>", entry.value).as_bytes())?;
         }
         
         response.send(entry.tag)?;

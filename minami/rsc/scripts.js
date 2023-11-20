@@ -22,8 +22,8 @@ class List {
         
         this.node.classList.toggle(criteria);
         
-        this.entries.filter(entry => ! entry.is_visible())
-            .forEach(entry => this.deselect(entry));
+        this.entries.filter(entry => ! entry.is_visible() && entry.is_selected())
+            .forEach(entry => this.select(entry, true, false));
         
     };
     
@@ -176,7 +176,7 @@ class Filter {
         this.node.addEventListener("input", () => {
             
             clearTimeout(this.node.dataset.timeout);
-            this.node.dataset.timeout = setTimeout(() => this.apply(), 250);
+            this.node.dataset.timeout = setTimeout(() => this.apply(), 500);
             
         }, false);
         

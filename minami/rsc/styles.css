@@ -3,15 +3,12 @@
 
 :root {
   
-  --primary-color: rgb(43 42 51 / 1);
-  --secondary-color: rgb(66 65 77 / 1);
+  --primary-color: rgb(23 23 23 / 1);
+  --secondary-color: rgb(38 38 38 / 1);
   --accent-color: rgb(174 153 96 / 1);
   
-  --panel-elements-color: rgb(255 255 255 / 1);
-  
-  --entry-primary-color: rgb(255 255 255 / 1);
-  --entry-secondary-color: rgb(255 255 255 / 0.5);
-  --entry-container-color: rgb(255 255 255 / 0.5);
+  --text-primary-color: rgb(232 232 232 / 1);
+  --text-secondary-color: rgb(232 232 232 / 0.5);
   
   --entry-hovered-color: var(--secondary-color);
   --entry-selected-color: var(--accent-color);
@@ -21,20 +18,18 @@
   --panel-elements-spacing: 0.5rem;
   --panel-elements-min-width: 2.5rem;
   --panel-labels-spacing: 0.5rem;
-  --panel-filter-color: rgb(255 255 255 / 1);;
   --panel-filter-spacing: 0rem 0.5rem;
   
   --entry-line-height: 2.25rem;
   --entry-padding-left: 0.5rem;
   --entry-padding-right: 2rem;
   
-  --entry-pseudoelement-color: rgb(255 255 255 / 0.5);
   --entry-pseudoelement-right: 0.5rem;
   
-  --section-inactive-opacity: 0.25;
+  --list-unfocused-opacity: 0.25;
   
   --transition-general-duration: 0.15s;
-  --transition-body-duration: 0.6s;
+  --transition-opacity-duration: 0.6s;
   
 }
 
@@ -47,6 +42,10 @@ body {
   margin: 0rem;
   display: flex;
   background-color: var(--primary-color);
+}
+
+body:focus-within .list {
+  opacity: 1;
 }
 
 
@@ -72,12 +71,6 @@ iframe {
   width: 100%;
   display: flex;
   flex-direction: column;
-  opacity: var(--section-inactive-opacity);
-  transition: opacity var(--transition-body-duration) ease;
-}
-
-.section:hover {
-  opacity: 1;
 }
 
 
@@ -97,7 +90,7 @@ iframe {
 }
 
 .panel a {
-  color: var(--panel-elements-color);
+  color: var(--text-primary-color);
   transition: background-color var(--transition-general-duration) ease;
   text-decoration: none;
   text-align: center;
@@ -114,12 +107,12 @@ iframe {
   width: 50%;
   border: none;
   background-color: var(--primary-color);
-  color: var(--panel-filter-color);
+  color: var(--text-primary-color);
   padding: var(--panel-filter-spacing);
 }
 
 .panel label {
-  color: var(--panel-elements-color);
+  color: var(--text-primary-color);
   transition: background-color var(--transition-general-duration) ease;
   accent-color: var(--accent-color);
   display: flex;
@@ -149,6 +142,8 @@ iframe {
   overflow-y: scroll;
   scrollbar-width: none;
   height: 100%;
+  opacity: var(--list-unfocused-opacity);
+  transition: opacity var(--transition-opacity-duration) ease;
 }
 
 .list::-webkit-scrollbar {
@@ -192,6 +187,10 @@ iframe {
   transition: background-color var(--transition-general-duration) ease;
 }
 
+.list a:focus {
+  outline: none;
+}
+
 .list a:hover {
   cursor: pointer;
 }
@@ -201,11 +200,11 @@ iframe {
 }
 
 .list a:not(.secondary) {
-  color: var(--entry-primary-color);
+  color: var(--text-primary-color);
 }
 
 .list a.secondary {
-  color: var(--entry-secondary-color);
+  color: var(--text-secondary-color);
 }
 
 .list a.filtered {
@@ -215,7 +214,7 @@ iframe {
 .list a::after {
   position: absolute;
   right: var(--entry-pseudoelement-right);
-  color: var(--entry-pseudoelement-color);
+  color: var(--text-secondary-color);
 }
 
 .list a[data-position] {
@@ -228,5 +227,5 @@ iframe {
 
 .list a span {
   display: none;
-  color: var(--entry-container-color);
+  color: var(--text-secondary-color);
 }
