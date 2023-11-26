@@ -1,9 +1,12 @@
 use std::{
     error::Error,
     fs::{ OpenOptions, File },
-    io::{ self, stdout, Read, Write, BufWriter },
+    io::{ self, Read, Write, BufWriter },
     net::{ TcpListener, TcpStream },
-    os::raw::*,
+    os::{
+        raw::*,
+        windows::io::{ AsRawHandle, FromRawHandle },
+    },
     time::Duration,
 };
 
@@ -32,31 +35,32 @@ const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;
 const PIPE_MAX_WAIT: c_ulong = 5000; // milliseconds
 
 fn main() {
-    println!("{} v{}", APP_NAME, APP_VERSION);
-    println!("--------------------");
+    // avoid buffered output
+    let mut stdout = unsafe {
+        
+        File::from_raw_handle(io::stdout().as_raw_handle())
+        
+    };
     
-    if let Err(error) = process() {
-        println!();
-        println!("ERROR: {}", error);
+    stdout.write_all(format!("{} v{}", APP_NAME, APP_VERSION).as_bytes()).unwrap();
+    
+    if let Err(error) = process(&mut stdout) {
+        stdout.write_all(format!("\n\n{}", error).as_bytes()).unwrap();
     }
     
-    println!();
-    print!("Press 'enter' key to exit...");
+    stdout.write_all(b"\n\nPress 'enter' key to exit...").unwrap();
     
-    stdout().flush().unwrap();
-    io::stdin().read_line(&mut String::new()).unwrap();
+    let _ = io::stdin().read(&mut [0u8]).unwrap();
 }
 
-fn process() -> Result<(), Box<dyn Error>> {
-    println!();
-    println!("Loading configuration file...");
+fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
+    stdout.write_all(b"\n\nLoading configuration...").unwrap();
     
     let config = rin::Config::load()?;
     let address = config.get(b"address")?;
     let name = config.get(b"name")?;
     
-    println!();
-    println!("Connecting to named pipe...");
+    stdout.write_all(b"\nConnecting to named pipe...").unwrap();
     
     unsafe {
         
@@ -75,16 +79,11 @@ fn process() -> Result<(), Box<dyn Error>> {
         .write(true)
         .open(name)?;
     
-    println!();
-    println!("Binding listener...");
+    stdout.write_all(b"\nBinding address...").unwrap();
     
     let listener = TcpListener::bind(address)?;
     
-    println!();
-    println!("Success!");
-    
-    println!();
-    println!("Listening on {}", address);
+    stdout.write_all(format!("\n\nListening on {}", address).as_bytes()).unwrap();
     
     listen(&listener, pipe)
 }

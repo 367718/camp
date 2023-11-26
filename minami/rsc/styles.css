@@ -21,8 +21,7 @@
   --panel-filter-spacing: 0rem 0.5rem;
   
   --entry-line-height: 2.25rem;
-  --entry-padding-left: 0.5rem;
-  --entry-padding-right: 2rem;
+  --entry-spacing: 0rem 2rem 0rem 0.5rem;
   
   --entry-pseudoelement-right: 0.5rem;
   
@@ -103,14 +102,6 @@ iframe {
   background-color: var(--accent-color);
 }
 
-.panel input:not([type]) {
-  width: 50%;
-  border: none;
-  background-color: var(--primary-color);
-  color: var(--text-primary-color);
-  padding: var(--panel-filter-spacing);
-}
-
 .panel label {
   color: var(--text-primary-color);
   transition: background-color var(--transition-general-duration) ease;
@@ -124,6 +115,14 @@ iframe {
 .panel label:hover {
   cursor: pointer;
   background-color: var(--accent-color);
+}
+
+.panel input[type="text"] {
+  width: 50%;
+  border: none;
+  background-color: var(--primary-color);
+  color: var(--text-primary-color);
+  padding: var(--panel-filter-spacing);
 }
 
 .panel input[type="checkbox"] {
@@ -140,14 +139,9 @@ iframe {
 
 .list {
   overflow-y: scroll;
-  scrollbar-width: none;
   height: 100%;
   opacity: var(--list-unfocused-opacity);
   transition: opacity var(--transition-opacity-duration) ease;
-}
-
-.list::-webkit-scrollbar {
-  display: none;
 }
 
 .list:focus {
@@ -174,8 +168,7 @@ iframe {
   white-space: nowrap;
   overflow: hidden;
   line-height: var(--entry-line-height);
-  padding-left: var(--entry-padding-left);
-  padding-right: var(--entry-padding-right);
+  padding: var(--entry-spacing);
   transition: background-color var(--transition-general-duration) ease;
 }
 

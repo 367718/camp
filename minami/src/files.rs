@@ -112,7 +112,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
                 
                 {
                     
-                    response.send(b"<input class='filter' placeholder='filter'>")?;
+                    response.send(b"<input type='text' class='filter' placeholder='filter'>")?;
                     
                 }
                 

@@ -1,8 +1,9 @@
 use std::{
     error::Error,
     ffi::OsString,
-    fs,
-    io::{ self, stdout, Read, Write, BufWriter, },
+    fs::{ self, File },
+    io::{ self, Read, Write, BufWriter, },
+    os::windows::io::{ AsRawHandle, FromRawHandle },
     path::Path,
     str,
 };
@@ -29,49 +30,49 @@ const TITLE_CLOSE_TAG: &[u8] = b"</title>";
 const LINK_OPEN_TAG: &[u8] = b"<link>";
 const LINK_CLOSE_TAG: &[u8] = b"</link>";
 
+const FOUND_VEC_INITIAL_SIZE: usize = 20;
 const TORRENT_FILE_WRITER_BUFFER_SIZE: usize = 64 * 1024;
 
 fn main() {
-    println!("{} v{}", APP_NAME, APP_VERSION);
-    println!("--------------------");
+    // avoid buffered output
+    let mut stdout = unsafe {
+        
+        File::from_raw_handle(io::stdout().as_raw_handle())
+        
+    };
     
-    if let Err(error) = process() {
-        println!();
-        println!("ERROR: {}", error);
+    stdout.write_all(format!("{} v{}", APP_NAME, APP_VERSION).as_bytes()).unwrap();
+    
+    if let Err(error) = process(&mut stdout) {
+        stdout.write_all(format!("\n\n{}", error).as_bytes()).unwrap();
     }
     
-    println!();
-    print!("Press 'enter' key to exit...");
+    stdout.write_all(b"\n\nPress 'enter' key to exit...").unwrap();
     
-    stdout().flush().unwrap();
-    io::stdin().read_line(&mut String::new()).unwrap();
+    let _ = io::stdin().read(&mut [0u8]).unwrap();
 }
 
-fn process() -> Result<(), Box<dyn Error>> {
-    println!();
-    println!("Loading configuration...");
+fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
+    stdout.write_all(b"\n\nLoading configuration...").unwrap();
     
     let config = rin::Config::load()?;
     let folder = config.get(b"folder")?;
     
-    println!("Loading feeds...");
+    stdout.write_all(b"\nLoading feeds...").unwrap();
     
     let feeds = chiaki::List::load("feeds")?;
     
-    println!("Loading rules...");
+    stdout.write_all(b"\nLoading rules...").unwrap();
     
     let rules = chiaki::List::load("rules")?;
     
-    println!("Success!");
-    
     let mut client = akari::Client::new()?;
-    let mut found: Vec<(&[u8], u64)> = Vec::with_capacity(20);
+    let mut found: Vec<(&[u8], u64)> = Vec::with_capacity(FOUND_VEC_INITIAL_SIZE);
     
     for url in feeds.iter().filter_map(|feed| str::from_utf8(feed.tag).ok()) {
         
-        println!();
-        println!("{}", url);
-        println!("--------------------");
+        stdout.write_all(format!("\n\n{}", url).as_bytes()).unwrap();
+        stdout.write_all(b"\n--------------------").unwrap();
         
         match client.get(url) {
             
@@ -80,7 +81,7 @@ fn process() -> Result<(), Box<dyn Error>> {
                 let mut content = Vec::with_capacity(payload.content_length());
                 
                 if let Err(error) = payload.read_to_end(&mut content) {
-                    println!("ERROR: {}", error);
+                    stdout.write_all(format!("\nERROR: {}", error).as_bytes()).unwrap();
                     continue;
                 }
                 
@@ -90,10 +91,10 @@ fn process() -> Result<(), Box<dyn Error>> {
                         continue;
                     }
                     
-                    println!("{}", release.title);
+                    stdout.write_all(format!("\n{}", release.title).as_bytes()).unwrap();
                     
                     if let Err(error) = download_torrent(&mut client, release.title, release.link, folder) {
-                        println!("ERROR: {}", error);
+                        stdout.write_all(format!("\nERROR: {}", error).as_bytes()).unwrap();
                         continue;
                     }
                     
@@ -103,7 +104,7 @@ fn process() -> Result<(), Box<dyn Error>> {
                 
             },
             
-            Err(error) => println!("ERROR: {}", error),
+            Err(error) => stdout.write_all(format!("\nERROR: {}", error).as_bytes()).unwrap(),
             
         }
         
