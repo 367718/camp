@@ -2,6 +2,7 @@ use std::error::Error;
 
 use super::{ Request, StatusCode, ContentType, CacheControl };
 
+const INDEX: &[u8] = include_bytes!("../rsc/general.html");
 const FAVICON: &[u8] = include_bytes!("../rsc/favicon.ico");
 const STYLES: &[u8] = include_bytes!("../rsc/styles.css");
 const SCRIPTS: &[u8] = include_bytes!("../rsc/scripts.js");
@@ -43,47 +44,8 @@ impl GeneralEndpoint {
 }
 
 fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    
-    // -------------------- response --------------------
-    
-    let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)?;
-    
-    response.send(b"<!DOCTYPE html>")?;
-    response.send(b"<html lang='en'>")?;
-    
-    // ---------- head ----------
-    
-    {
-        
-        response.send(b"<head>")?;
-        
-        response.send(b"<meta charset='utf-8'>")?;
-        response.send(b"<meta name='viewport' content='width=device-width, initial-scale=1'>")?;
-        response.send(b"<title>minami</title>")?;
-        response.send(b"<link rel='icon' type='image/x-icon' href='/general/favicon.ico'>")?;
-        response.send(b"<link rel='stylesheet' type='text/css' href='/general/styles.css'>")?;
-        
-        response.send(b"</head>")?;
-        
-    }
-    
-    // ---------- body ----------
-    
-    {
-        
-        response.send(b"<body>")?;
-        
-        response.send(b"<iframe src='/files/'></iframe>")?;
-        response.send(b"<iframe src='/watchlist/'></iframe>")?;
-        
-        response.send(b"</body>")?;
-        
-    }
-    
-    response.send(b"</html>")?;
-    
-    Ok(())
-    
+    request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
+        .and_then(|mut response| response.send(INDEX))
 }
 
 fn favicon(request: &mut Request) -> Result<(), Box<dyn Error>> {

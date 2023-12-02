@@ -5,6 +5,8 @@ use std::{
 
 use super::{ Request, StatusCode, ContentType, CacheControl };
 
+const INDEX: &[u8] = include_bytes!("../rsc/rules.html");
+
 pub enum RulesEndpoint {
     Index,
     Entries,
@@ -45,120 +47,8 @@ impl RulesEndpoint {
 }
 
 fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    
-    // -------------------- response --------------------
-    
-    let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)?;
-    
-    response.send(b"<!DOCTYPE html>")?;
-    response.send(b"<html lang='en'>")?;
-    
-    // ---------- head ----------
-    
-    {
-        
-        response.send(b"<head>")?;
-        
-        response.send(b"<meta charset='utf-8'>")?;
-        response.send(b"<meta name='viewport' content='width=device-width, initial-scale=1'>")?;
-        response.send(b"<title>minami</title>")?;
-        response.send(b"<link rel='icon' type='image/x-icon' href='/general/favicon.ico'>")?;
-        response.send(b"<link rel='stylesheet' type='text/css' href='/general/styles.css'>")?;
-        response.send(b"<script type='text/javascript' src='/general/scripts.js'></script>")?;
-        
-        response.send(b"</head>")?;
-        
-    }
-    
-    // ---------- body ----------
-    
-    {
-        
-        response.send(b"<body>")?;
-        
-        // ---------- section ----------
-        
-        {
-            
-            response.send(b"<div tabindex='0' class='section'>")?;
-            
-            // ---------- panel ----------
-            
-            {
-                
-                response.send(b"<div class='panel'>")?;
-                
-                // ---------- sections ----------
-                
-                {
-                    
-                    response.send(b"<div>")?;
-                    
-                    response.send(b"<a href='/files/'>files</a>")?;
-                    response.send(b"<a href='/watchlist/'>watchlist</a>")?;
-                    response.send(b"<a href='/rules/'>rules</a>")?;
-                    response.send(b"<a href='/feeds/'>feeds</a>")?;
-                    
-                    response.send(b"</div>")?;
-                    
-                }
-                
-                // ---------- filter ----------
-                
-                {
-                    
-                    response.send(b"<input type='text' class='filter' placeholder='filter'>")?;
-                    
-                }
-                
-                response.send(b"</div>")?;
-                
-            }
-            
-            // ---------- list ----------
-            
-            {
-                
-                response.send(b"<div tabindex='0' data-refresh='/rules/entries' class='list sorted show-primary'></div>")?;
-                
-            }
-            
-            // ---------- panel ----------
-            
-            {
-                
-                response.send(b"<div class='panel'>")?;
-                
-                // ---------- actions ----------
-                
-                {
-                    
-                    response.send(b"<div>")?;
-                    
-                    response.send(b"<a data-hotkey='Insert' onclick='request({ url: \"/rules/insert\", confirm: false, prompt: true, refresh: true });'>insert</a>")?;
-                    response.send(b"<a data-hotkey='F2' onclick='request({ url: \"/rules/update\", confirm: false, prompt: true, refresh: true });'>update</a>")?;
-                    response.send(b"<a data-hotkey='Delete' onclick='request({ url: \"/rules/delete\", confirm: true, prompt: false, refresh: true });'>delete</a>")?;
-                    
-                    response.send(b"</div>")?;
-                    
-                }
-                
-                response.send(b"</div>")?;
-                
-            }
-            
-            response.send(b"</div>")?;
-            
-        }
-        
-        response.send(b"</body>")?;
-        
-    }
-    
-    response.send(b"</html>")?;
-    
-    Ok(())
-    
+    request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
+        .and_then(|mut response| response.send(INDEX))
 }
 
 fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {

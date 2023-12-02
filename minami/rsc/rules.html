@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+    
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>minami</title>
+        <link rel="icon" type="image/x-icon" href="/general/favicon.ico">
+        <link rel="stylesheet" type="text/css" href="/general/styles.css">
+        <script type="text/javascript" src="/general/scripts.js"></script>
+    </head>
+    
+    <body>
+        <div tabindex="0" class="section">
+            
+            <div class="panel">
+                
+                <div>
+                    <a href="/files/">files</a>
+                    <a href="/watchlist/">watchlist</a>
+                    <a href="/rules/">rules</a>
+                    <a href="/feeds/">feeds</a>
+                </div>
+                
+                <input type="text" class="filter" placeholder="filter">
+                
+            </div>
+            
+            <div tabindex="0" data-refresh="/rules/entries" class="list sorted show-primary">
+            </div>
+            
+            <div class="panel">
+                
+                <div>
+                    <a data-hotkey="Insert" onclick="request({ url: '/rules/insert', confirm: false, prompt: true, refresh: true });">insert</a>
+                    <a data-hotkey="F2" onclick="request({ url: '/rules/update', confirm: false, prompt: true, refresh: true });">update</a>
+                    <a data-hotkey="Delete" onclick="request({ url: '/rules/delete', confirm: true, prompt: false, refresh: true });">delete</a>
+                </div>
+                
+            </div>
+            
+        </div>
+    </body>
+    
+</html>
