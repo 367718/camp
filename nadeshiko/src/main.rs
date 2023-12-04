@@ -1,3 +1,5 @@
+mod releases;
+
 use std::{
     error::Error,
     ffi::OsString,
@@ -8,27 +10,10 @@ use std::{
     str,
 };
 
-struct Releases<'c, 'r> {
-    content: &'c [u8],
-    rules: &'r chiaki::List,
-}
-
-struct ReleasesEntry<'c, 'r> {
-    matcher: &'r [u8],
-    episode: u64,
-    title: &'c str,
-    link: &'c str,
-}
+use releases::Releases;
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-const ITEM_OPEN_TAG: &[u8] = b"<item>";
-const ITEM_CLOSE_TAG: &[u8] = b"</item>";
-const TITLE_OPEN_TAG: &[u8] = b"<title>";
-const TITLE_CLOSE_TAG: &[u8] = b"</title>";
-const LINK_OPEN_TAG: &[u8] = b"<link>";
-const LINK_CLOSE_TAG: &[u8] = b"</link>";
 
 const FOUND_VEC_INITIAL_SIZE: usize = 20;
 const TORRENT_FILE_WRITER_BUFFER_SIZE: usize = 64 * 1024;
@@ -53,20 +38,30 @@ fn main() {
 }
 
 fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
+    // -------------------- config --------------------
+    
     stdout.write_all(b"\n\nLoading configuration...").unwrap();
     
-    let config = rin::Config::load()?;
-    let folder = config.get(b"folder")?;
+    let folder = rin::get(b"folder")?;
+    
+    // -------------------- feeds --------------------
     
     stdout.write_all(b"\nLoading feeds...").unwrap();
     
     let feeds = chiaki::List::load("feeds")?;
     
+    // -------------------- rules --------------------
+    
     stdout.write_all(b"\nLoading rules...").unwrap();
     
     let rules = chiaki::List::load("rules")?;
     
+    // -------------------- client --------------------
+    
     let mut client = akari::Client::new()?;
+    
+    // -------------------- releases --------------------
+    
     let mut found: Vec<(&[u8], u64)> = Vec::with_capacity(FOUND_VEC_INITIAL_SIZE);
     
     for url in feeds.iter().filter_map(|feed| str::from_utf8(feed.tag).ok()) {
@@ -110,6 +105,8 @@ fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
         
     }
     
+    // -------------------- commit --------------------
+    
     if ! found.is_empty() {
         
         let mut rules = chiaki::List::load("rules")?;
@@ -151,79 +148,4 @@ fn download_torrent(client: &mut akari::Client, title: &str, link: &str, folder:
     writer.flush()?;
     
     Ok(())
-}
-
-impl<'c, 'r> Releases<'c, 'r> {
-    
-    fn new(content: &'c [u8], rules: &'r chiaki::List) -> Self {
-        Self {
-            content,
-            rules,
-        }
-    }
-    
-}
-
-impl<'c, 'r> Iterator for Releases<'c, 'r> {
-    
-    type Item = ReleasesEntry<'c, 'r>;
-    
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(range) = chikuwa::tag_range(self.content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
-            
-            let entry = build_entry(&self.content[range.start..range.end], self.rules);
-            self.content = &self.content[range.end..][ITEM_CLOSE_TAG.len()..];
-            
-            if entry.is_some() {
-                return entry;
-            }
-            
-        }
-        
-        None
-    }
-    
-}
-
-fn build_entry<'c, 'r>(item: &'c [u8], rules: &'r chiaki::List) -> Option<ReleasesEntry<'c, 'r>> {
-    let title = chikuwa::tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG)
-        .map(|field| &item[field])?;
-    
-    let rule = rules.iter().find(|rule| title.starts_with(rule.tag))?;
-    
-    let episode = extract_episode(&title[rule.tag.len()..])
-        .filter(|&episode| rule.value < episode)?;
-    
-    let link = chikuwa::tag_range(item, LINK_OPEN_TAG, LINK_CLOSE_TAG)
-        .map(|field| &item[field])?;
-    
-    Some(ReleasesEntry {
-        matcher: rule.tag,
-        episode,
-        title: str::from_utf8(title).ok()?,
-        link: str::from_utf8(link).ok()?,
-    })
-}
-
-fn extract_episode(title: &[u8]) -> Option<u64> {
-    let mut chars = title.iter().copied().map(char::from);
-    let mut result = chars.find_map(|current| current.to_digit(10)).map(u64::from)?;
-    
-    while let Some(current) = chars.next() {
-        
-        if let Some(digit) = current.to_digit(10).map(u64::from) {
-            result = result.checked_mul(10)?.checked_add(digit)?;
-            continue;
-        }
-        
-        // if next to a digit is a dot and next to the dot is another digit, abort
-        if current == '.' && chars.next().filter(char::is_ascii_digit).is_some() {
-            return None;
-        }
-        
-        break;
-        
-    }
-    
-    Some(result)
 }

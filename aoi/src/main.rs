@@ -54,11 +54,14 @@ fn main() {
 }
 
 fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
+    // -------------------- config --------------------
+    
     stdout.write_all(b"\n\nLoading configuration...").unwrap();
     
-    let config = rin::Config::load()?;
-    let address = config.get(b"address")?;
-    let name = config.get(b"name")?;
+    let address = rin::get(b"address")?;
+    let name = rin::get(b"name")?;
+    
+    // -------------------- pipe --------------------
     
     stdout.write_all(b"\nConnecting to named pipe...").unwrap();
     
@@ -79,6 +82,8 @@ fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
         .write(true)
         .open(name)?;
     
+    // -------------------- listener --------------------
+    
     stdout.write_all(b"\nBinding address...").unwrap();
     
     let listener = TcpListener::bind(address)?;
@@ -96,7 +101,7 @@ fn listen(listener: &TcpListener, mut pipe: File) -> Result<(), Box<dyn Error>> 
         stream.set_read_timeout(STREAM_TIMEOUT)?;
         stream.set_write_timeout(STREAM_TIMEOUT)?;
         
-        let Some((method, path)) = get_request(&mut stream) else {
+        let Some((method, endpoint)) = get_request(&mut stream) else {
             continue;
         };
         
@@ -106,14 +111,14 @@ fn listen(listener: &TcpListener, mut pipe: File) -> Result<(), Box<dyn Error>> 
         
         // index
         
-        if path == b"/" {
+        if endpoint == b"/" {
             send_response(stream, b"200 OK", Some(INDEX)).ok();
             continue;
         }
         
         // command
         
-        if let Some(command) = get_command(&path) {
+        if let Some(command) = get_command(&endpoint) {
             
             if let Err(error) = pipe.write_all(command) {
                 send_response(stream, b"500 Internal Server Error", Some(error.to_string().as_bytes())).ok();
@@ -159,13 +164,13 @@ fn get_request(stream: &mut TcpStream) -> Option<(Vec<u8>, Vec<u8>)> {
     let mut parts = request.split(|&curr| curr == b' ');
     
     let method = parts.next()?.to_vec();
-    let path = parts.next()?.to_vec();
+    let endpoint = parts.next()?.to_vec();
     
-    Some((method, path))
+    Some((method, endpoint))
 }
 
-fn get_command(path: &[u8]) -> Option<&'static [u8]> {
-    match path {
+fn get_command(endpoint: &[u8]) -> Option<&'static [u8]> {
+    match endpoint {
         b"/play" => Some(b"cycle pause\n"),
         b"/minuschapter" => Some(b"cycle chapter down\n"),
         b"/pluschapter" => Some(b"cycle chapter up\n"),

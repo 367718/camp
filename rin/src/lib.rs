@@ -3,37 +3,30 @@ use std::{
     error::Error,
     fs,
     str,
+    sync::OnceLock,
 };
 
-pub struct Config {
-    content: Vec<u8>,
+pub fn get(key: &[u8]) -> Result<&'static str, Box<dyn Error>> {
+    let content = load();
+    
+    if let Some(range) = chikuwa::tag_range(content, key, b"\r\n") {
+        if let [b' ', b'=', b' ', value @ ..] = &content[range] {
+            return Ok(str::from_utf8(value)?);
+        }
+    }
+    
+    Err(chikuwa::concat_str!("Missing or invalid field: '", &String::from_utf8_lossy(key), "'").into())
 }
 
-impl Config {
-    
-    // ---------- constructors ----------
-    
-    
-    pub fn load() -> Result<Self, Box<dyn Error>> {
-        let path = env::current_exe()?.with_extension("rn");
+fn load() -> &'static [u8] {
+    static CONTENT: OnceLock<Vec<u8>> = OnceLock::new();
+    CONTENT.get_or_init(|| {
         
-        fs::read(&path)
-            .map(|content| Self { content })
-            .map_err(|error| chikuwa::concat_str!("Load of configuration file located at '", &path.to_string_lossy(), "' failed: '", &error.to_string(), "'").into())
-    }
-    
-    
-    // ---------- accessors ----------
-    
-    
-    pub fn get<'c>(&'c self, key: &[u8]) -> Result<&'c str, Box<dyn Error>> {
-        if let Some(range) = chikuwa::tag_range(&self.content, key, b"\r\n") {
-            if let [b' ', b'=', b' ', value @ ..] = &self.content[range] {
-                return Ok(str::from_utf8(value)?);
-            }
-        }
+        let path = env::current_exe()
+            .expect("Failed to get executable name")
+            .with_extension("rn");
         
-        Err(chikuwa::concat_str!("Missing or invalid field: '", str::from_utf8(key)?, "'").into())
-    }
-    
+        fs::read(&path).expect(&chikuwa::concat_str!("Load of config file located at '", &path.to_string_lossy(), "' failed"))
+        
+    })
 }

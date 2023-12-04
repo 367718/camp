@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     path::{ MAIN_SEPARATOR_STR, Path, PathBuf },
-    process::Command,
+    process::{ Command, Stdio },
     str,
 };
 
@@ -57,12 +57,10 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    
     // -------------------- config --------------------
     
-    let config = rin::Config::load()?;
-    let root = config.get(b"root")?;
-    let flag = config.get(b"flag")?;
+    let root = rin::get(b"root")?;
+    let flag = rin::get(b"flag")?;
     
     // -------------------- list --------------------
     
@@ -94,16 +92,13 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     }
     
     Ok(())
-    
 }
 
 fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    
     // -------------------- config --------------------
     
-    let config = rin::Config::load()?;
-    let root = config.get(b"root")?;
-    let player = config.get(b"player")?;
+    let root = rin::get(b"root")?;
+    let player = rin::get(b"player")?;
     
     // -------------------- files --------------------
     
@@ -119,22 +114,24 @@ fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    Command::new(player).args(files).spawn()?;
+    Command::new(player)
+        .args(files)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()?;
     
     // -------------------- response --------------------
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
-    
 }
 
 fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    
     // -------------------- config --------------------
     
-    let config = rin::Config::load()?;
-    let root = config.get(b"root")?;
-    let flag = config.get(b"flag")?;
+    let root = rin::get(b"root")?;
+    let flag = rin::get(b"flag")?;
     
     // -------------------- files --------------------
     
@@ -158,15 +155,12 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
-    
 }
 
 fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    
     // -------------------- config --------------------
     
-    let config = rin::Config::load()?;
-    let root = config.get(b"root")?;
+    let root = rin::get(b"root")?;
     
     // -------------------- files --------------------
     
@@ -197,15 +191,12 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
-    
 }
 
 fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    
     // -------------------- config --------------------
     
-    let config = rin::Config::load()?;
-    let root = config.get(b"root")?;
+    let root = rin::get(b"root")?;
     
     // -------------------- files --------------------
     
@@ -229,5 +220,4 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
-    
 }

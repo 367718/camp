@@ -87,7 +87,7 @@ impl FilesEntry {
 impl AsRef<OsStr> for FilesEntry {
     
     fn as_ref(&self) -> &OsStr {
-        Path::new(&self.inner).as_os_str()
+        OsStr::new(&self.inner)
     }
     
 }

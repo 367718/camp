@@ -52,7 +52,6 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    
     // -------------------- list --------------------
     
     let watchlist = chiaki::List::load("watchlist")?;
@@ -76,11 +75,9 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     }
     
     Ok(())
-    
 }
 
 fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    
     // -------------------- list --------------------
     
     let mut list = chiaki::List::load("watchlist")?;
@@ -103,11 +100,9 @@ fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
-    
 }
 
 fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    
     // -------------------- list --------------------
     
     let mut list = chiaki::List::load("watchlist")?;
@@ -136,11 +131,9 @@ fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
-    
 }
 
 fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    
     // -------------------- list --------------------
     
     let mut list = chiaki::List::load("watchlist")?;
@@ -163,5 +156,4 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
         .and_then(|mut response| response.send(b"OK"))
-    
 }

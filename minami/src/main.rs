@@ -20,7 +20,7 @@ use general::GeneralEndpoint;
 use comms::{ Request, StatusCode, ContentType, CacheControl };
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let listener = TcpListener::bind(rin::Config::load()?.get(b"address")?)?;
+    let listener = TcpListener::bind(rin::get(b"address")?)?;
     
     for mut request in listener.incoming().filter_map(Request::get) {
         let resource = request.resource();
