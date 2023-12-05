@@ -148,7 +148,11 @@ iframe {
   outline: none;
 }
 
-.list.show-primary a:not(.secondary), .list.show-secondary a.secondary {
+.list.show-value a[data-value]::after {
+  display: inline;
+}
+
+.list.show-primary a:not([data-value="0"]), .list.show-secondary a[data-value="0"] {
   display: block;
 }
 
@@ -170,6 +174,7 @@ iframe {
   line-height: var(--entry-line-height);
   padding: var(--entry-spacing);
   transition: background-color var(--transition-general-duration) ease;
+  color: var(--text-primary-color);
 }
 
 .list a:focus {
@@ -184,11 +189,7 @@ iframe {
   background-color: var(--entry-hovered-color);
 }
 
-.list a:not(.secondary) {
-  color: var(--text-primary-color);
-}
-
-.list a.secondary {
+.list a[data-value="0"] {
   color: var(--text-secondary-color);
 }
 
@@ -208,6 +209,7 @@ iframe {
 }
 
 .list a[data-value]::after {
+  display: none;
   content: attr(data-value);
 }
 

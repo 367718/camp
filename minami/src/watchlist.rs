@@ -62,14 +62,8 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in watchlist.iter() {
         
-        if entry.value == 0 {
-            response.send(format!("<a tabindex='0' class='secondary' data-value='{}'>", entry.value).as_bytes())?;
-        } else {
-            response.send(format!("<a tabindex='0' data-value='{}'>", entry.value).as_bytes())?;
-        }
-        
+        response.send(format!("<a tabindex='0' data-value='{}'>", entry.value).as_bytes())?;
         response.send(entry.tag)?;
-        
         response.send(b"</a>")?;
         
     }

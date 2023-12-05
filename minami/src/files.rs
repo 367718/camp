@@ -1,6 +1,6 @@
 use std::{
     error::Error,
-    path::{ MAIN_SEPARATOR_STR, Path, PathBuf },
+    path::{ Path, PathBuf },
     process::{ Command, Stdio },
     str,
 };
@@ -72,16 +72,11 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in files {
         
-        if entry.is_marked(flag) {
-            response.send(b"<a tabindex='0' class='secondary'>")?;
-        } else {
-            response.send(b"<a tabindex='0'>")?;
-        }
+        response.send(format!("<a tabindex='0' data-value='{}'>", entry.value(flag)).as_bytes())?;
         
         if let Some(container) = entry.container(root) {
             response.send(b"<span>")?;
             response.send(container.as_bytes())?;
-            response.send(MAIN_SEPARATOR_STR.as_bytes())?;
             response.send(b"</span>")?;
         }
         

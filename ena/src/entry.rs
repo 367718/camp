@@ -34,13 +34,13 @@ impl FilesEntry {
     }
     
     pub fn container(&self, root: &str) -> Option<&str> {
-        self.inner.strip_prefix(root)?
-            .rsplit_once(MAIN_SEPARATOR)
-            .map(|(container, _)| container)
+        let clean = self.inner.strip_prefix(root)?;
+        clean.rfind(MAIN_SEPARATOR)
+            .map(|separator| &clean[..=separator])
     }
     
-    pub fn is_marked(&self, flag: &str) -> bool {
-        crate::mark::is_marked(&self.inner, flag)
+    pub fn value(&self, flag: &str) -> u8 {
+        u8::from(! crate::mark::is_marked(&self.inner, flag))
     }
     
     
@@ -48,7 +48,7 @@ impl FilesEntry {
     
     
     pub fn mark(&mut self, flag: &str) -> Result<(), Box<dyn Error>> {
-        if self.is_marked(flag) {
+        if crate::mark::is_marked(&self.inner, flag) {
             crate::mark::remove(&self.inner, flag)?;
         } else {
             crate::mark::add(&self.inner, flag)?;
