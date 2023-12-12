@@ -42,8 +42,6 @@ impl Files {
             
         }
         
-        
-        
         Self {
             entries,
         }

@@ -1,5 +1,6 @@
 use std::{
     error::Error,
+    io::Write,
     path::{ Path, PathBuf },
     process::{ Command, Stdio },
     str,
@@ -44,7 +45,7 @@ impl FilesEndpoint {
         
         if let Err(error) = result {
             request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
-                .and_then(|mut response| response.send(error.to_string().as_bytes()))
+                .and_then(|mut response| response.write_all(error.to_string().as_bytes()))
                 .ok();
         }
     }
@@ -53,7 +54,9 @@ impl FilesEndpoint {
 
 fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
-        .and_then(|mut response| response.send(INDEX))
+        .and_then(|mut response| response.write_all(INDEX))?;
+    
+    Ok(())
 }
 
 fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
@@ -72,17 +75,17 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in files {
         
-        response.send(format!("<a tabindex='0' data-value='{}'>", entry.value(flag)).as_bytes())?;
+        write!(&mut response, "<a tabindex='0' data-value='{}'>", entry.value(flag))?;
         
         if let Some(container) = entry.container(root) {
-            response.send(b"<span>")?;
-            response.send(container.as_bytes())?;
-            response.send(b"</span>")?;
+            response.write_all(b"<span>")?;
+            response.write_all(container.as_bytes())?;
+            response.write_all(b"</span>")?;
         }
         
-        response.send(entry.name().as_bytes())?;
+        response.write_all(entry.name().as_bytes())?;
         
-        response.send(b"</a>")?;
+        response.write_all(b"</a>")?;
         
     }
     
@@ -119,7 +122,9 @@ fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- response --------------------
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.send(b"OK"))
+        .and_then(|mut response| response.write_all(b"OK"))?;
+    
+    Ok(())
 }
 
 fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
@@ -149,7 +154,9 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- response --------------------
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.send(b"OK"))
+        .and_then(|mut response| response.write_all(b"OK"))?;
+    
+    Ok(())
 }
 
 fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
@@ -185,7 +192,9 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- response --------------------
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.send(b"OK"))
+        .and_then(|mut response| response.write_all(b"OK"))?;
+    
+    Ok(())
 }
 
 fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
@@ -214,5 +223,7 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- response --------------------
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.send(b"OK"))
+        .and_then(|mut response| response.write_all(b"OK"))?;
+    
+    Ok(())
 }

@@ -1,6 +1,5 @@
 use std::{
-    error::Error,
-    io::{ self, Read, Write, BufWriter },
+    io::{ self, Read, Write },
     net::TcpStream,
     str,
     time::Duration,
@@ -8,7 +7,7 @@ use std::{
 
 const STREAM_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;
-const REQUEST_SIZE_LIMIT: u64 = 50 * 1024 * 1024 + 1;
+const REQUEST_SIZE_LIMIT: u64 = 512 * 1024 + 1;
 
 #[derive(Copy, Clone)]
 pub enum StatusCode {
@@ -44,16 +43,17 @@ struct Payload<'h, 'b> {
 }
 
 pub struct Response {
-    writer: BufWriter<TcpStream>,
+    buffer: Vec<u8>,
+    stream: TcpStream,
 }
 
 impl StatusCode {
     
-    pub fn as_bytes(self) -> &'static [u8] {
+    fn as_header(self) -> &'static [u8] {
         match self {
-            Self::Ok => b"200 OK",
-            Self::Error => b"500 Internal Server Error",
-            Self::NotFound => b"404 Not Found",
+            Self::Ok => b"HTTP/1.1 200 OK\r\n",
+            Self::Error => b"HTTP/1.1 500 Internal Server Error\r\n",
+            Self::NotFound => b"HTTP/1.1 404 Not Found\r\n",
         }
     }
     
@@ -61,14 +61,13 @@ impl StatusCode {
 
 impl ContentType {
     
-    pub fn as_bytes(self) -> &'static [u8] {
-        #[allow(clippy::match_same_arms)]
+    fn as_header(self) -> &'static [u8] {
         match self {
-            Self::Plain => b"text/plain; charset=utf-8",
-            Self::Html => b"text/html; charset=utf-8",
-            Self::Icon => b"image/x-icon",
-            Self::Css => b"text/css; charset=utf-8",
-            Self::Javascript => b"text/javascript; charset=utf-8",
+            Self::Plain => b"Content-Type: text/plain; charset=utf-8\r\n",
+            Self::Html => b"Content-Type: text/html; charset=utf-8\r\n",
+            Self::Icon => b"Content-Type: image/x-icon\r\n",
+            Self::Css => b"Content-Type: text/css; charset=utf-8\r\n",
+            Self::Javascript => b"Content-Type: text/javascript; charset=utf-8\r\n",
         }
     }
     
@@ -76,11 +75,10 @@ impl ContentType {
 
 impl CacheControl {
     
-    pub fn as_bytes(self) -> &'static [u8] {
-        #[allow(clippy::match_same_arms)]
+    fn as_header(self) -> &'static [u8] {
         match self {
-            Self::Static => b"max-age=15552000, immutable",
-            Self::Dynamic => b"no-cache, no-store",
+            Self::Static => b"Cache-Control: max-age=15552000, immutable\r\n",
+            Self::Dynamic => b"Cache-Control: no-cache, no-store\r\n",
         }
     }
     
@@ -98,7 +96,7 @@ impl Request {
         let mut headers = Vec::new();
         let mut body = Vec::new();
         
-        // ---------- headers ----------
+        // -------------------- headers --------------------
         
         {
             
@@ -124,7 +122,7 @@ impl Request {
             
         }
         
-        // ---------- body ----------
+        // -------------------- body --------------------
         
         {
             
@@ -186,8 +184,11 @@ impl Request {
         payload.filter(move |(key, _)| key == &field).map(|(_, value)| value)
     }
     
-    pub fn start_response(&mut self, status: StatusCode, content: ContentType, cache: CacheControl) -> Result<Response, Box<dyn Error>> {
-        Response::new(self.stream.take().ok_or("Response already sent")?, status, content, cache)
+    pub fn start_response(&mut self, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Response> {
+        let stream = self.stream.take()
+            .ok_or(io::Error::new(io::ErrorKind::Other, "Response already sent"))?;
+        
+        Response::new(stream, status, content, cache)
     }
     
 }
@@ -231,34 +232,55 @@ impl<'h, 'b> Iterator for Payload<'h, 'b> {
 
 impl Response {
     
-    fn new(stream: TcpStream, status: StatusCode, content: ContentType, cache: CacheControl) -> Result<Response, Box<dyn Error>> {
+    fn new(mut stream: TcpStream, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Self> {
+        let mut buffer = Vec::with_capacity(CONNECTION_BUFFER_SIZE);
+        
+        buffer.extend_from_slice(status.as_header());
+        buffer.extend_from_slice(content.as_header());
+        buffer.extend_from_slice(cache.as_header());
+        
+        buffer.extend_from_slice(b"Transfer-Encoding: chunked\r\n");
+        buffer.extend_from_slice(b"Connection: close\r\n");
+        buffer.extend_from_slice(b"\r\n");
+        
         stream.set_write_timeout(STREAM_TIMEOUT)?;
+        stream.write_all(&buffer)?;
         
-        let mut writer = BufWriter::new(stream);
+        buffer.clear();
         
-        writer.write_all(b"HTTP/1.1 ")?;
-        writer.write_all(status.as_bytes())?;
-        writer.write_all(b"\r\n")?;
-        
-        writer.write_all(b"Content-Type: ")?;
-        writer.write_all(content.as_bytes())?;
-        writer.write_all(b"\r\n")?;
-        
-        writer.write_all(b"Cache-Control: ")?;
-        writer.write_all(cache.as_bytes())?;
-        writer.write_all(b"\r\n")?;
-        
-        writer.write_all(b"Transfer-Encoding: chunked\r\n")?;
-        writer.write_all(b"Connection: close\r\n")?;
-        writer.write_all(b"\r\n")?;
-        
-        Ok(Self { writer })
+        Ok(Self {
+            buffer,
+            stream,
+        })
     }
     
-    pub fn send(&mut self, content: &[u8]) -> Result<(), Box<dyn Error>> {
-        self.writer.write_all(format!("{:x}\r\n", content.len()).as_bytes())?;
-        self.writer.write_all(content)?;
-        self.writer.write_all(b"\r\n")?;
+}
+
+impl Write for Response {
+    
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let size = buf.len().min(self.buffer.capacity() - self.buffer.len());
+        
+        self.buffer.extend_from_slice(&buf[..size]);
+        
+        if self.buffer.capacity() == self.buffer.len() {
+            self.flush()?;
+        }
+        
+        Ok(size)
+    }
+    
+    fn flush(&mut self) -> io::Result<()> {
+        if ! self.buffer.is_empty() {
+            
+            write!(&mut self.stream, "{:x}\r\n", self.buffer.len())?;
+            self.stream.write_all(&self.buffer)?;
+            self.stream.write_all(b"\r\n")?;
+            
+            self.buffer.clear();
+            
+        }
+        
         Ok(())
     }
     
@@ -267,8 +289,8 @@ impl Response {
 impl Drop for Response {
     
     fn drop(&mut self) {
-        self.writer.write_all(b"0\r\n").ok();
-        self.writer.write_all(b"\r\n").ok();
+        self.flush().ok();
+        self.stream.write_all(b"0\r\n\r\n").ok();
     }
     
 }

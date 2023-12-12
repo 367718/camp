@@ -1,4 +1,7 @@
-use std::error::Error;
+use std::{
+    error::Error,
+    io::Write,
+};
 
 use super::{ Request, StatusCode, ContentType, CacheControl };
 
@@ -33,7 +36,7 @@ impl FeedsEndpoint {
         
         if let Err(error) = result {
             request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
-                .and_then(|mut response| response.send(error.to_string().as_bytes()))
+                .and_then(|mut response| response.write_all(error.to_string().as_bytes()))
                 .ok();
         }
     }
@@ -42,7 +45,9 @@ impl FeedsEndpoint {
 
 fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
-        .and_then(|mut response| response.send(INDEX))
+        .and_then(|mut response| response.write_all(INDEX))?;
+    
+    Ok(())
 }
 
 fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
@@ -56,9 +61,9 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in feeds.iter() {
         
-        response.send(b"<a tabindex='0'>")?;
-        response.send(entry.tag)?;
-        response.send(b"</a>")?;
+        response.write_all(b"<a tabindex='0'>")?;
+        response.write_all(entry.tag)?;
+        response.write_all(b"</a>")?;
         
     }
     
@@ -87,7 +92,9 @@ fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- response --------------------
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.send(b"OK"))
+        .and_then(|mut response| response.write_all(b"OK"))?;
+    
+    Ok(())
 }
 
 fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
@@ -112,5 +119,7 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- response --------------------
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.send(b"OK"))
+        .and_then(|mut response| response.write_all(b"OK"))?;
+    
+    Ok(())
 }

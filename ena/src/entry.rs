@@ -13,7 +13,7 @@ pub struct FilesEntry {
 
 impl FilesEntry {
     
-    // ---------- constructors ----------
+    // -------------------- constructors --------------------
     
     
     pub(crate) fn new(inner: String) -> Self {
@@ -21,7 +21,7 @@ impl FilesEntry {
     }
     
     
-    // ---------- accessors ----------
+    // -------------------- accessors --------------------
     
     
     pub fn path(&self) -> &str {
@@ -34,9 +34,14 @@ impl FilesEntry {
     }
     
     pub fn container(&self, root: &str) -> Option<&str> {
-        let clean = self.inner.strip_prefix(root)?;
-        clean.rfind(MAIN_SEPARATOR)
-            .map(|separator| &clean[..=separator])
+        if ! self.inner.starts_with(root) {
+            return None;
+        }
+        
+        self.inner.rfind(MAIN_SEPARATOR)
+            .map(|separator| &self.inner[root.len()..=separator])
+            .map(|container| container.strip_prefix(MAIN_SEPARATOR).unwrap_or(container))
+            .filter(|container| ! container.is_empty())
     }
     
     pub fn value(&self, flag: &str) -> u8 {
@@ -44,7 +49,7 @@ impl FilesEntry {
     }
     
     
-    // ---------- mutators ----------
+    // -------------------- mutators --------------------
     
     
     pub fn mark(&mut self, flag: &str) -> Result<(), Box<dyn Error>> {

@@ -9,6 +9,7 @@ mod comms;
 
 use std::{
     error::Error,
+    io::Write,
     net::TcpListener,
 };
 
@@ -51,7 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         
         request.start_response(StatusCode::NotFound, ContentType::Plain, CacheControl::Dynamic)
-            .and_then(|mut response| response.send(b"Endpoint not found"))
+            .and_then(|mut response| response.write_all(b"Endpoint not found"))
             .ok();
     }
     

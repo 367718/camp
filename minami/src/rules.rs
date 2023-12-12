@@ -1,5 +1,6 @@
 use std::{
     error::Error,
+    io::Write,
     str,
 };
 
@@ -39,7 +40,7 @@ impl RulesEndpoint {
         
         if let Err(error) = result {
             request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
-                .and_then(|mut response| response.send(error.to_string().as_bytes()))
+                .and_then(|mut response| response.write_all(error.to_string().as_bytes()))
                 .ok();
         }
     }
@@ -48,7 +49,9 @@ impl RulesEndpoint {
 
 fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
-        .and_then(|mut response| response.send(INDEX))
+        .and_then(|mut response| response.write_all(INDEX))?;
+    
+    Ok(())
 }
 
 fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
@@ -62,9 +65,9 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in rules.iter() {
         
-        response.send(format!("<a tabindex='0' data-value='{}'>", entry.value).as_bytes())?;
-        response.send(entry.tag)?;
-        response.send(b"</a>")?;
+        write!(&mut response, "<a tabindex='0' data-value='{}'>", entry.value)?;
+        response.write_all(entry.tag)?;
+        response.write_all(b"</a>")?;
         
     }
     
@@ -93,7 +96,9 @@ fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- response --------------------
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.send(b"OK"))
+        .and_then(|mut response| response.write_all(b"OK"))?;
+    
+    Ok(())
 }
 
 fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
@@ -124,7 +129,9 @@ fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- response --------------------
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.send(b"OK"))
+        .and_then(|mut response| response.write_all(b"OK"))?;
+    
+    Ok(())
 }
 
 fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
@@ -149,5 +156,7 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- response --------------------
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.send(b"OK"))
+        .and_then(|mut response| response.write_all(b"OK"))?;
+    
+    Ok(())
 }
