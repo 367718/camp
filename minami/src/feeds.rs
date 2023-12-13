@@ -5,7 +5,7 @@ use std::{
 
 use super::{ Request, StatusCode, ContentType, CacheControl };
 
-const INDEX: &[u8] = include_bytes!("../rsc/feeds.html");
+const INDEX: &[u8] = include_bytes!("../rsc/feeds/index.html");
 
 pub enum FeedsEndpoint {
     Index,
@@ -18,7 +18,7 @@ impl FeedsEndpoint {
     
     pub fn get(resource: (&[u8], &[u8])) -> Option<Self> {
         match resource {
-            (b"GET", b"/feeds/") => Some(Self::Index),
+            (b"GET", b"/feeds")=> Some(Self::Index),
             (b"GET", b"/feeds/entries") => Some(Self::Entries),
             (b"POST", b"/feeds/insert") => Some(Self::Insert),
             (b"POST", b"/feeds/delete") => Some(Self::Delete),

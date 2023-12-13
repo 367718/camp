@@ -5,10 +5,10 @@ use std::{
 
 use super::{ Request, StatusCode, ContentType, CacheControl };
 
-const INDEX: &[u8] = include_bytes!("../rsc/general.html");
-const FAVICON: &[u8] = include_bytes!("../rsc/favicon.ico");
-const STYLES: &[u8] = include_bytes!("../rsc/styles.css");
-const SCRIPTS: &[u8] = include_bytes!("../rsc/scripts.js");
+const INDEX: &[u8] = include_bytes!("../rsc/general/index.html");
+const FAVICON: &[u8] = include_bytes!("../rsc/general/favicon.ico");
+const STYLES: &[u8] = include_bytes!("../rsc/general/styles.css");
+const SCRIPTS: &[u8] = include_bytes!("../rsc/general/scripts.js");
 
 pub enum GeneralEndpoint {
     Index,

@@ -1,14 +1,34 @@
 "use strict";
 
 
+// -------------------- constants --------------------
+
+
+const LIST_NODE_SELECTOR = ".list";
+const FILTER_NODE_SELECTOR = ".panel .filter";
+const TOGGLES_NODES_SELECTOR = ".panel input[type='checkbox']";
+const BUTTONS_NODES_SELECTOR = ".panel a";
+
+const LIST_SORTED_CLASS = "sorted";
+
+const ENTRY_SELECTED_ATTRIBUTE = "data-selected";
+const ENTRY_FILTERED_CLASS = "filtered";
+
+const BUTTONS_HOTKEY_ATTRIBUTE = "data-hotkey";
+
+const HOYKEY_COPY_CONTROL = true;
+const HOYKET_COPY_COMPLETE = "KeyC";
+const HOYKEY_COPY_CLEAN = "KeyX";
+
+
 // -------------------- classes --------------------
 
 
 class List {
     
-    constructor() {
-        this.node = document.querySelector(".list");
-        this.filter = new Filter();
+    constructor(list_node, filter_node) {
+        this.node = list_node;
+        this.filter = new Filter(filter_node);
         this.entries = [];
         
         Object.seal(this);
@@ -119,14 +139,14 @@ class List {
                 
                 const children = Array.from(container.children);
                 
-                if (this.node.classList.contains("sorted")) {
+                if (this.node.classList.contains(LIST_SORTED_CLASS)) {
                     const collator = new Intl.Collator("en", { usage: "sort", sensitivity: "base", numeric: true });
                     children.sort((a, b) => a.children.length - b.children.length || collator.compare(a.textContent, b.textContent));
                 }
                 
                 // entries
                 
-                const entries = children.map(child => new Entry(child));
+                const entries = children.map(entry_node => new Entry(entry_node));
                 
                 // filter
                 
@@ -146,8 +166,8 @@ class List {
 
 class Filter {
     
-    constructor() {
-        this.node = document.querySelector(".panel .filter");
+    constructor(filter_node) {
+        this.node = filter_node;
         
         this.node.addEventListener("input", () => {
             
@@ -194,23 +214,23 @@ class Filter {
 
 class Entry {
     
-    constructor(node) {
-        this.node = node;
+    constructor(entry_node) {
+        this.node = entry_node;
         
         this.node.onclick = (event) => LIST.select(this, event.ctrlKey, event.shiftKey);
         
         Object.freeze(this);
     }
     
-    is_selected = () => this.node.hasAttribute("data-selected");
+    is_selected = () => this.node.hasAttribute(ENTRY_SELECTED_ATTRIBUTE);
     
-    is_filtered = () => this.node.classList.contains("filtered");
+    is_filtered = () => this.node.classList.contains(ENTRY_FILTERED_CLASS);
     
     is_visible = () => this.node.offsetParent != null;
     
-    select = () => this.node.toggleAttribute("data-selected");
+    select = () => this.node.toggleAttribute(ENTRY_SELECTED_ATTRIBUTE);
     
-    filter = () => this.node.classList.toggle("filtered");
+    filter = () => this.node.classList.toggle(ENTRY_FILTERED_CLASS);
     
     text = (clean) => {
         
@@ -262,13 +282,26 @@ class Entry {
 }
 
 
-// -------------------- init --------------------
+// -------------------- objects and events --------------------
 
 
 document.addEventListener("DOMContentLoaded", () => {
+    // -------------------- nodes --------------------
+    
+    const list_node = document.querySelector(LIST_NODE_SELECTOR);
+    const filter_node = document.querySelector(FILTER_NODE_SELECTOR);
+    
+    if (list_node === null || filter_node === null) {
+        return;
+    }
+    
+    const toggles_nodes = Array.from(document.querySelectorAll(TOGGLES_NODES_SELECTOR));
+    const buttons_nodes = Array.from(document.querySelectorAll(BUTTONS_NODES_SELECTOR));
+    
+    // -------------------- list --------------------
     
     Object.defineProperty(window, "LIST", {
-        value: new List(),
+        value: new List(list_node, filter_node),
         configurable: false,
         writable: false,
     });
@@ -287,37 +320,29 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // -------------------- toggles --------------------
     
-    for (let input of document.querySelectorAll(".panel input[type='checkbox']")) {
-        input.addEventListener("click", (event) => LIST.toggle(event.target.value), false);
-    }
+    toggles_nodes.forEach(toggle => toggle.addEventListener("click", (event) => LIST.toggle(event.target.value), false));
     
     // -------------------- hotkeys --------------------
     
     document.addEventListener("keydown", (event) => {
         
-        if (event.target.tagName === "INPUT") {
+        // do not intercept keystrokes for filter input
+        if (event.target === filter_node) {
             return;
-        }
-        
-        // -------------------- buttons --------------------
-        
-        const button = Array.from(document.querySelectorAll(".panel a"))
-            .filter(button => button.hasAttribute("data-hotkey"))
-            .find(button => event.code == button.getAttribute("data-hotkey"));
-        
-        if (button) {
-            return button.click();
         }
         
         // -------------------- copy text to clipboard --------------------
         
-        if (event.ctrlKey && (event.code === "KeyC" || event.code === "KeyX")) {
-            LIST.copy(event.code === "KeyX");
+        if ((event.ctrlKey === HOYKEY_COPY_CONTROL) && (event.code === HOYKET_COPY_COMPLETE || event.code === HOYKEY_COPY_CLEAN)) {
+            LIST.copy(event.code === HOYKEY_COPY_CLEAN);
             return event.preventDefault();
         }
         
+        // -------------------- buttons --------------------
+        
+        buttons_nodes.find(button => button.getAttribute(BUTTONS_HOTKEY_ATTRIBUTE) == event.code)?.click();
+        
     });
-    
 });
 
 

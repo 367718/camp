@@ -6,7 +6,7 @@ use std::{
 
 use super::{ Request, StatusCode, ContentType, CacheControl };
 
-const INDEX: &[u8] = include_bytes!("../rsc/rules.html");
+const INDEX: &[u8] = include_bytes!("../rsc/rules/index.html");
 
 pub enum RulesEndpoint {
     Index,
@@ -20,7 +20,7 @@ impl RulesEndpoint {
     
     pub fn get(resource: (&[u8], &[u8])) -> Option<Self> {
         match resource {
-            (b"GET", b"/rules/") => Some(Self::Index),
+            (b"GET", b"/rules") => Some(Self::Index),
             (b"GET", b"/rules/entries") => Some(Self::Entries),
             (b"POST", b"/rules/insert") => Some(Self::Insert),
             (b"POST", b"/rules/update") => Some(Self::Update),

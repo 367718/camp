@@ -8,7 +8,7 @@ use std::{
 
 use super::{ Request, StatusCode, ContentType, CacheControl };
 
-const INDEX: &[u8] = include_bytes!("../rsc/files.html");
+const INDEX: &[u8] = include_bytes!("../rsc/files/index.html");
 
 pub enum FilesEndpoint {
     Index,
@@ -23,7 +23,7 @@ impl FilesEndpoint {
     
     pub fn get(resource: (&[u8], &[u8])) -> Option<Self> {
         match resource {
-            (b"GET", b"/files/") => Some(Self::Index),
+            (b"GET", b"/files") => Some(Self::Index),
             (b"GET", b"/files/entries") => Some(Self::Entries),
             (b"POST", b"/files/play") => Some(Self::Play),
             (b"POST", b"/files/mark") => Some(Self::Mark),

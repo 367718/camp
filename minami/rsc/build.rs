@@ -6,9 +6,9 @@ use std::{
 
 fn main() {
     
-    // -------------------- prevent rerun --------------------
+    // -------------------- control execution --------------------
     
-    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=app.rc");
     
     // -------------------- resource file --------------------
     

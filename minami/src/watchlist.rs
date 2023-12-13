@@ -6,7 +6,7 @@ use std::{
 
 use super::{ Request, StatusCode, ContentType, CacheControl };
 
-const INDEX: &[u8] = include_bytes!("../rsc/watchlist.html");
+const INDEX: &[u8] = include_bytes!("../rsc/watchlist/index.html");
 
 pub enum WatchlistEndpoint {
     Index,
@@ -20,7 +20,7 @@ impl WatchlistEndpoint {
     
     pub fn get(resource: (&[u8], &[u8])) -> Option<Self> {
         match resource {
-            (b"GET", b"/watchlist/") => Some(Self::Index),
+            (b"GET", b"/watchlist") => Some(Self::Index),
             (b"GET", b"/watchlist/entries") => Some(Self::Entries),
             (b"POST", b"/watchlist/insert") => Some(Self::Insert),
             (b"POST", b"/watchlist/update") => Some(Self::Update),
