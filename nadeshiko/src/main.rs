@@ -19,17 +19,17 @@ const FOUND_VEC_INITIAL_SIZE: usize = 20;
 const TORRENT_FILE_WRITER_BUFFER_SIZE: usize = 64 * 1024;
 
 fn main() {
-    // avoid buffered output
+    // avoid locking
     let mut stdout = unsafe {
         
         File::from_raw_handle(io::stdout().as_raw_handle())
         
     };
     
-    stdout.write_all(format!("{} v{}", APP_NAME, APP_VERSION).as_bytes()).unwrap();
+    write!(&mut stdout, "{} v{}", APP_NAME, APP_VERSION).unwrap();
     
     if let Err(error) = process(&mut stdout) {
-        stdout.write_all(format!("\n\n{}", error).as_bytes()).unwrap();
+        write!(&mut stdout, "\n\n{}", error).unwrap();
     }
     
     stdout.write_all(b"\n\nPress 'enter' key to exit...").unwrap();
@@ -66,7 +66,7 @@ fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
     
     for url in feeds.iter().filter_map(|feed| str::from_utf8(feed.tag).ok()) {
         
-        stdout.write_all(format!("\n\n{}", url).as_bytes()).unwrap();
+        write!(stdout, "\n\n{}", url).unwrap();
         stdout.write_all(b"\n--------------------").unwrap();
         
         match client.get(url) {
@@ -76,7 +76,7 @@ fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
                 let mut content = Vec::with_capacity(payload.content_length());
                 
                 if let Err(error) = payload.read_to_end(&mut content) {
-                    stdout.write_all(format!("\nERROR: {}", error).as_bytes()).unwrap();
+                    write!(stdout, "\nERROR: {}", error).unwrap();
                     continue;
                 }
                 
@@ -86,10 +86,10 @@ fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
                         continue;
                     }
                     
-                    stdout.write_all(format!("\n{}", release.title).as_bytes()).unwrap();
+                    write!(stdout, "\n{}", release.title).unwrap();
                     
                     if let Err(error) = download_torrent(&mut client, release.title, release.link, folder) {
-                        stdout.write_all(format!("\nERROR: {}", error).as_bytes()).unwrap();
+                        write!(stdout, "\nERROR: {}", error).unwrap();
                         continue;
                     }
                     
@@ -99,7 +99,7 @@ fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
                 
             },
             
-            Err(error) => stdout.write_all(format!("\nERROR: {}", error).as_bytes()).unwrap(),
+            Err(error) => write!(stdout, "\nERROR: {}", error).unwrap(),
             
         }
         

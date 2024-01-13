@@ -35,17 +35,17 @@ const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;
 const PIPE_MAX_WAIT: c_ulong = 5000; // milliseconds
 
 fn main() {
-    // avoid buffered output
+    // avoid locking
     let mut stdout = unsafe {
         
         File::from_raw_handle(io::stdout().as_raw_handle())
         
     };
     
-    stdout.write_all(format!("{} v{}", APP_NAME, APP_VERSION).as_bytes()).unwrap();
+    write!(&mut stdout, "{} v{}", APP_NAME, APP_VERSION).unwrap();
     
     if let Err(error) = process(&mut stdout) {
-        stdout.write_all(format!("\n\n{}", error).as_bytes()).unwrap();
+        write!(&mut stdout, "\n\n{}", error).unwrap();
     }
     
     stdout.write_all(b"\n\nPress 'enter' key to exit...").unwrap();
@@ -88,7 +88,7 @@ fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
     
     let listener = TcpListener::bind(address)?;
     
-    stdout.write_all(format!("\n\nListening on {}", address).as_bytes()).unwrap();
+    write!(stdout, "\n\nListening on {}", address).unwrap();
     
     listen(&listener, pipe)
 }
@@ -199,7 +199,7 @@ fn send_response(stream: TcpStream, status: &[u8], payload: Option<&[u8]>) -> Re
     
     if let Some(payload) = payload {
         writer.write_all(b"Content-Length: ")?;
-        writer.write_all(format!("{}", payload.len()).as_bytes())?;
+        write!(&mut writer, "{}", payload.len()).unwrap();
         writer.write_all(b"\r\n")?;
         writer.write_all(b"\r\n")?;
         writer.write_all(payload)?;

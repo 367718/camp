@@ -59,7 +59,7 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
     
-    for entry in feeds.iter() {
+    for entry in &feeds {
         
         response.write_all(b"<a tabindex='0'>")?;
         response.write_all(entry.tag)?;

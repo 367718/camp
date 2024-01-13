@@ -63,7 +63,7 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
     
-    for entry in rules.iter() {
+    for entry in &rules {
         
         write!(&mut response, "<a tabindex='0' data-value='{}'>", entry.value)?;
         response.write_all(entry.tag)?;

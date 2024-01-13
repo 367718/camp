@@ -89,23 +89,11 @@ fn build_entry<'c, 'r>(item: &'c [u8], rules: &'r chiaki::List) -> Option<Releas
 
 fn extract_episode(title: &[u8]) -> Option<u64> {
     let mut chars = title.iter().copied().map(char::from);
-    let mut result = chars.find_map(|current| current.to_digit(10)).map(u64::from)?;
+    let mut episode = chars.find_map(|current| current.to_digit(10).map(u64::from))?;
     
-    while let Some(current) = chars.next() {
-        
-        if let Some(digit) = current.to_digit(10).map(u64::from) {
-            result = result.checked_mul(10)?.checked_add(digit)?;
-            continue;
-        }
-        
-        // if next to a digit is a dot and next to the dot is another digit, abort
-        if current == '.' && chars.next().filter(char::is_ascii_digit).is_some() {
-            return None;
-        }
-        
-        break;
-        
+    while let Some(digit) = chars.next().and_then(|current| current.to_digit(10).map(u64::from)) {
+        episode = episode.checked_mul(10)?.checked_add(digit)?;
     }
     
-    Some(result)
+    Some(episode)
 }

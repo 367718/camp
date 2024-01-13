@@ -5,7 +5,7 @@ mod watchlist;
 mod rules;
 mod feeds;
 mod general;
-mod comms;
+mod networking;
 
 use std::{
     error::Error,
@@ -18,7 +18,7 @@ use watchlist::WatchlistEndpoint;
 use rules::RulesEndpoint;
 use feeds::FeedsEndpoint;
 use general::GeneralEndpoint;
-use comms::{ Request, StatusCode, ContentType, CacheControl };
+use networking::{ Request, StatusCode, ContentType, CacheControl };
 
 fn main() -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind(rin::get(b"address")?)?;
