@@ -63,7 +63,7 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
     
-    for entry in &rules {
+    for entry in rules.iter() {
         
         write!(&mut response, "<a tabindex='0' data-value='{}'>", entry.value)?;
         response.write_all(entry.tag)?;
@@ -88,10 +88,6 @@ fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- operation --------------------
     
     list.insert(matcher, 0)?;
-    
-    // -------------------- commit --------------------
-    
-    list.commit()?;
     
     // -------------------- response --------------------
     
@@ -122,10 +118,6 @@ fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     list.update(matcher, progress)?;
     
-    // -------------------- commit --------------------
-    
-    list.commit()?;
-    
     // -------------------- response --------------------
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
@@ -148,10 +140,6 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- operation --------------------
     
     list.delete(matcher)?;
-    
-    // -------------------- commit --------------------
-    
-    list.commit()?;
     
     // -------------------- response --------------------
     

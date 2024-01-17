@@ -19,7 +19,7 @@ pub struct Session {
 impl Session {
     
     pub fn new() -> io::Result<Self> {
-        // ---------- handle ----------
+        // -------------------- handle --------------------
         
         let handle = unsafe {
             
@@ -39,7 +39,7 @@ impl Session {
             
         };
         
-        // ---------- timeouts ----------
+        // -------------------- timeouts --------------------
         
         unsafe {
             
@@ -59,7 +59,7 @@ impl Session {
             
         }
         
-        // ---------- http version ----------
+        // -------------------- http version --------------------
         
         unsafe {
             

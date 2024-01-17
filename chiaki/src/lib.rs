@@ -11,10 +11,9 @@ use std::{
 pub struct List {
     path: PathBuf,
     content: Vec<u8>,
-    modified: bool,
 }
 
-pub struct ListEntries<'c> {
+pub struct ListIter<'c> {
     content: &'c [u8],
 }
 
@@ -39,7 +38,6 @@ impl List {
         Ok(Self {
             path,
             content,
-            modified: false,
         })
     }
     
@@ -47,8 +45,8 @@ impl List {
     // -------------------- accessors --------------------
     
     
-    pub fn iter(&self) -> ListEntries {
-        ListEntries { content: &self.content }
+    pub fn iter(&self) -> ListIter {
+        ListIter { content: &self.content }
     }
     
     
@@ -64,10 +62,7 @@ impl List {
         let entries = self.iter()
             .chain(Some(ListEntry { tag, value }));
         
-        self.content = Self::serialize(capacity, entries);
-        self.modified = true;
-        
-        Ok(())
+        self.commit(Self::serialize(capacity, entries))
     }
     
     pub fn update(&mut self, tag: &[u8], value: u64) -> Result<(), Box<dyn Error>> {
@@ -80,10 +75,7 @@ impl List {
             .filter_map(|(current, entry)| (current != position).then_some(entry))
             .chain(Some(ListEntry { tag, value }));
         
-        self.content = Self::serialize(capacity, entries);
-        self.modified = true;
-        
-        Ok(())
+        self.commit(Self::serialize(capacity, entries))
     }
     
     pub fn delete(&mut self, tag: &[u8]) -> Result<(), Box<dyn Error>> {
@@ -95,26 +87,23 @@ impl List {
             .enumerate()
             .filter_map(|(current, entry)| (current != position).then_some(entry));
         
-        self.content = Self::serialize(capacity, entries);
-        self.modified = true;
-        
-        Ok(())
+        self.commit(Self::serialize(capacity, entries))
     }
     
-    pub fn commit(&mut self) -> Result<(), Box<dyn Error>> {
+    fn commit(&mut self, content: Vec<u8>) -> Result<(), Box<dyn Error>> {
         let tmp_path = chikuwa::EphemeralPath::builder()
             .with_base(self.path.parent().ok_or("Invalid path")?)
             .with_suffix(".tmp")
             .build();
         
-        File::create(&tmp_path)?.write_all(&self.content)?;
+        File::create(&tmp_path)?.write_all(&content)?;
         
         // attempt to perform the update atomically
         fs::rename(&tmp_path, &self.path)?;
         
         tmp_path.unmanage();
         
-        self.modified = false;
+        self.content = content;
         
         Ok(())
     }
@@ -137,17 +126,7 @@ impl List {
     
 }
 
-impl Drop for List {
-    
-    fn drop(&mut self) {
-        if self.modified {
-            self.commit().ok();
-        }
-    }
-    
-}
-
-impl <'c>Iterator for ListEntries<'c> {
+impl <'c>Iterator for ListIter<'c> {
     
     type Item = ListEntry<'c>;
     
@@ -171,17 +150,6 @@ impl <'c>Iterator for ListEntries<'c> {
             tag,
             value,
         })
-    }
-    
-}
-
-impl <'c>IntoIterator for &'c List {
-    
-    type IntoIter = ListEntries<'c>;
-    type Item = ListEntry<'c>;
-    
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
     }
     
 }

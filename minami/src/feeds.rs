@@ -59,7 +59,7 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
     
-    for entry in &feeds {
+    for entry in feeds.iter() {
         
         response.write_all(b"<a tabindex='0'>")?;
         response.write_all(entry.tag)?;
@@ -85,10 +85,6 @@ fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     list.insert(url, 0)?;
     
-    // -------------------- commit --------------------
-    
-    list.commit()?;
-    
     // -------------------- response --------------------
     
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
@@ -111,10 +107,6 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- operation --------------------
     
     list.delete(url)?;
-    
-    // -------------------- commit --------------------
-    
-    list.commit()?;
     
     // -------------------- response --------------------
     

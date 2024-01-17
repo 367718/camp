@@ -10,12 +10,11 @@ use std::{
     str,
 };
 
-use releases::Releases;
+use releases::{ Releases, ReleasesEntry };
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const FOUND_VEC_INITIAL_SIZE: usize = 20;
 const TORRENT_FILE_WRITER_BUFFER_SIZE: usize = 64 * 1024;
 
 fn main() {
@@ -54,7 +53,7 @@ fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
     
     stdout.write_all(b"\nLoading rules...").unwrap();
     
-    let rules = chiaki::List::load("rules")?;
+    let mut rules = chiaki::List::load("rules")?;
     
     // -------------------- client --------------------
     
@@ -62,67 +61,68 @@ fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
     
     // -------------------- releases --------------------
     
-    let mut found: Vec<(&[u8], u64)> = Vec::with_capacity(FOUND_VEC_INITIAL_SIZE);
-    
     for url in feeds.iter().filter_map(|feed| str::from_utf8(feed.tag).ok()) {
         
         write!(stdout, "\n\n{}", url).unwrap();
         stdout.write_all(b"\n--------------------").unwrap();
         
-        match client.get(url) {
+        for release in Releases::new(&mut client, url)?.iter() {
             
-            Ok(mut payload) => {
-                
-                let mut content = Vec::with_capacity(payload.content_length());
-                
-                if let Err(error) = payload.read_to_end(&mut content) {
-                    write!(stdout, "\nERROR: {}", error).unwrap();
-                    continue;
-                }
-                
-                for release in Releases::new(&content, &rules) {
-                    
-                    if found.iter().any(|&(matcher, episode)| matcher == release.matcher && episode >= release.episode) {
-                        continue;
-                    }
-                    
-                    write!(stdout, "\n{}", release.title).unwrap();
-                    
-                    if let Err(error) = download_torrent(&mut client, release.title, release.link, folder) {
-                        write!(stdout, "\nERROR: {}", error).unwrap();
-                        continue;
-                    }
-                    
-                    found.push((release.matcher, release.episode));
-                    
-                }
-                
-            },
+            // -------------------- rule and episode --------------------
             
-            Err(error) => write!(stdout, "\nERROR: {}", error).unwrap(),
+            let Some(rule) = rules.iter().find(|rule| release.title.starts_with(rule.tag)) else {
+                continue;
+            };
+            
+            let Some(episode) = extract_episode(&release, &rule) else {
+                continue;
+            };
+            
+            // -------------------- relevant --------------------
+            
+            if episode <= rule.value {
+                continue;
+            }
+            
+            // -------------------- fields --------------------
+            
+            let Ok(title) = str::from_utf8(release.title) else {
+                continue;
+            };
+            
+            let Ok(link) = str::from_utf8(release.link) else {
+                continue;
+            };
+            
+            // -------------------- download and update --------------------
+            
+            write!(stdout, "\n{}", title).unwrap();
+            
+            download_torrent(&mut client, title, link, folder)?;
+            rules.update(&rule.tag.to_owned(), episode)?;
             
         }
-        
-    }
-    
-    // -------------------- commit --------------------
-    
-    if ! found.is_empty() {
-        
-        let mut rules = chiaki::List::load("rules")?;
-        
-        for (matcher, episode) in found {
-            rules.update(matcher, episode)?;
-        }
-        
-        rules.commit()?;
         
     }
     
     Ok(())
 }
 
+fn extract_episode(release: &ReleasesEntry, rule: &chiaki::ListEntry) -> Option<u64> {
+    let clean = &release.title[rule.tag.len()..];
+    let mut chars = clean.iter().copied().map(char::from);
+    let mut episode = chars.find_map(|current| current.to_digit(10).map(u64::from))?;
+    
+    while let Some(digit) = chars.next().and_then(|current| current.to_digit(10).map(u64::from)) {
+        episode = episode.checked_mul(10)?.checked_add(digit)?;
+    }
+    
+    Some(episode)
+}
+
 fn download_torrent(client: &mut akari::Client, title: &str, link: &str, folder: &str) -> Result<(), Box<dyn Error>> {
+    let mut payload = client.get(link)?;
+    
     let filename = Path::new(title).file_name().ok_or("Invalid file name")?;
     let mut destination = Path::new(folder).join(filename);
     
@@ -137,13 +137,14 @@ fn download_torrent(client: &mut akari::Client, title: &str, link: &str, folder:
         destination.set_extension("torrent");
     }
     
-    let file = fs::OpenOptions::new().write(true)
+    let file = fs::OpenOptions::new()
+        .write(true)
         .create_new(true)
         .open(destination)?;
     
     let mut writer = BufWriter::with_capacity(TORRENT_FILE_WRITER_BUFFER_SIZE, file);
     
-    io::copy(&mut client.get(link)?, &mut writer)?;
+    io::copy(&mut payload, &mut writer)?;
     
     writer.flush()?;
     

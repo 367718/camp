@@ -1,15 +1,19 @@
-use std::str;
+use std::{
+    error::Error,
+    io::Read,
+};
 
-pub struct Releases<'c, 'r> {
-    content: &'c [u8],
-    rules: &'r chiaki::List,
+pub struct Releases {
+    content: Vec<u8>,
 }
 
-pub struct ReleasesEntry<'c, 'r> {
-    pub matcher: &'r [u8],
-    pub episode: u64,
-    pub title: &'c str,
-    pub link: &'c str,
+pub struct ReleasesIter<'c> {
+    rest: &'c [u8]
+}
+
+pub struct ReleasesEntry<'c> {
+    pub title: &'c [u8],
+    pub link: &'c [u8],
 }
 
 const ITEM_OPEN_TAG: &[u8] = b"<item>";
@@ -19,20 +23,30 @@ const TITLE_CLOSE_TAG: &[u8] = b"</title>";
 const LINK_OPEN_TAG: &[u8] = b"<link>";
 const LINK_CLOSE_TAG: &[u8] = b"</link>";
 
-impl<'c, 'r> Releases<'c, 'r> {
+impl Releases {
     
-    pub fn new(content: &'c [u8], rules: &'r chiaki::List) -> Self {
-        Self {
-            content,
-            rules,
+    pub fn new(client: &mut akari::Client, url: &str) -> Result<Self, Box<dyn Error>> {
+        let mut payload = client.get(url)?;
+        
+        let mut content = Vec::with_capacity(payload.content_length());
+        payload.read_to_end(&mut content)?;
+        
+        Ok(Self {
+            content
+        })
+    }
+    
+    pub fn iter(&self) -> ReleasesIter {
+        ReleasesIter {
+            rest: &self.content,
         }
     }
     
 }
 
-impl<'c, 'r> Iterator for Releases<'c, 'r> {
+impl<'c> Iterator for ReleasesIter<'c> {
     
-    type Item = ReleasesEntry<'c, 'r>;
+    type Item = ReleasesEntry<'c>;
     
     fn next(&mut self) -> Option<Self::Item> {
         
@@ -48,12 +62,12 @@ impl<'c, 'r> Iterator for Releases<'c, 'r> {
         // </item>
         // ...
         
-        while let Some(range) = chikuwa::tag_range(self.content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
+        while let Some(range) = chikuwa::tag_range(self.rest, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
             
-            let item = &self.content[range.start..range.end];
-            let entry = build_entry(item, self.rules);
+            let item = &self.rest[range.start..range.end];
+            self.rest = &self.rest[range.end..][ITEM_CLOSE_TAG.len()..];
             
-            self.content = &self.content[range.end..][ITEM_CLOSE_TAG.len()..];
+            let entry = ReleasesEntry::new(item);
             
             if entry.is_some() {
                 return entry;
@@ -67,33 +81,19 @@ impl<'c, 'r> Iterator for Releases<'c, 'r> {
     
 }
 
-fn build_entry<'c, 'r>(item: &'c [u8], rules: &'r chiaki::List) -> Option<ReleasesEntry<'c, 'r>> {
-    let title = chikuwa::tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG)
-        .map(|field| &item[field])?;
+impl<'c> ReleasesEntry<'c> {
     
-    let rule = rules.iter().find(|rule| title.starts_with(rule.tag))?;
-    
-    let episode = extract_episode(&title[rule.tag.len()..])
-        .filter(|&episode| rule.value < episode)?;
-    
-    let link = chikuwa::tag_range(item, LINK_OPEN_TAG, LINK_CLOSE_TAG)
-        .map(|field| &item[field])?;
-    
-    Some(ReleasesEntry {
-        matcher: rule.tag,
-        episode,
-        title: str::from_utf8(title).ok()?,
-        link: str::from_utf8(link).ok()?,
-    })
-}
-
-fn extract_episode(title: &[u8]) -> Option<u64> {
-    let mut chars = title.iter().copied().map(char::from);
-    let mut episode = chars.find_map(|current| current.to_digit(10).map(u64::from))?;
-    
-    while let Some(digit) = chars.next().and_then(|current| current.to_digit(10).map(u64::from)) {
-        episode = episode.checked_mul(10)?.checked_add(digit)?;
+    fn new(item: &'c [u8]) -> Option<Self> {
+        let title = chikuwa::tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG)
+            .map(|field| &item[field])?;
+        
+        let link = chikuwa::tag_range(item, LINK_OPEN_TAG, LINK_CLOSE_TAG)
+            .map(|field| &item[field])?;
+        
+        Some(Self {
+            title,
+            link,
+        })
     }
     
-    Some(episode)
 }

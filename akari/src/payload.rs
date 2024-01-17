@@ -17,7 +17,7 @@ impl Payload {
     
     
     pub fn new(connection: &Connection, path: &str, secure: bool) -> io::Result<Self> {
-        // ---------- handle ----------
+        // -------------------- handle --------------------
         
         let handle = unsafe {
             
@@ -45,7 +45,7 @@ impl Payload {
             
         };
         
-        // ---------- send ----------
+        // -------------------- send --------------------
         
         unsafe {
             
@@ -66,7 +66,7 @@ impl Payload {
             
         }
         
-        // ---------- receive ----------
+        // -------------------- receive --------------------
         
         unsafe {
             
