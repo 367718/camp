@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     io::Write,
-    path::{ Path, PathBuf },
+    path::Path,
     process::{ Command, Stdio },
     str,
 };
@@ -67,7 +67,7 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- list --------------------
     
-    let files = ena::Files::new(PathBuf::from(root));
+    let files = ena::Files::new(Path::new(root))?;
     
     // -------------------- response --------------------
     
@@ -100,10 +100,8 @@ fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- files --------------------
     
-    let mut files = request.param(b"tag")
-        .filter_map(|path| str::from_utf8(path).ok())
-        .map(|path| Path::new(root).join(path))
-        .filter_map(|path| ena::Files::new(path).next())
+    let mut files = ena::Files::new(Path::new(root))?
+        .filter(|file| request.param(b"tag").any(|tag| &file.path().as_bytes()[root.len()..] == tag))
         .peekable();
     
     if files.peek().is_none() {
@@ -135,10 +133,8 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- files --------------------
     
-    let mut files = request.param(b"tag")
-        .filter_map(|path| str::from_utf8(path).ok())
-        .map(|path| Path::new(root).join(path))
-        .filter_map(|path| ena::Files::new(path).next())
+    let mut files = ena::Files::new(Path::new(root))?
+        .filter(|file| request.param(b"tag").any(|tag| &file.path().as_bytes()[root.len()..] == tag))
         .peekable();
     
     if files.peek().is_none() {
@@ -166,10 +162,8 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- files --------------------
     
-    let mut files = request.param(b"tag")
-        .filter_map(|path| str::from_utf8(path).ok())
-        .map(|path| Path::new(root).join(path))
-        .filter_map(|path| ena::Files::new(path).next())
+    let mut files = ena::Files::new(Path::new(root))?
+        .filter(|file| request.param(b"tag").any(|tag| &file.path().as_bytes()[root.len()..] == tag))
         .peekable();
     
     if files.peek().is_none() {
@@ -204,10 +198,8 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- files --------------------
     
-    let mut files = request.param(b"tag")
-        .filter_map(|path| str::from_utf8(path).ok())
-        .map(|path| Path::new(root).join(path))
-        .filter_map(|path| ena::Files::new(path).next())
+    let mut files = ena::Files::new(Path::new(root))?
+        .filter(|file| request.param(b"tag").any(|tag| &file.path().as_bytes()[root.len()..] == tag))
         .peekable();
     
     if files.peek().is_none() {

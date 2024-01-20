@@ -4,6 +4,8 @@ Files and lists manager.
 
 ## Behavior
 
+## Configuration and lists
+
 Configuration parameters used:
 
 * **address**: listening address for the web interface.

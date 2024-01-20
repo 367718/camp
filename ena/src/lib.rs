@@ -2,49 +2,25 @@ mod entry;
 mod mark;
 
 use std::{
+    error::Error,
     fs,
-    path::{ PathBuf, Component },
+    path::Path,
 };
 
 pub use entry::FilesEntry;
 
 pub struct Files {
-    entries: Vec<FilesystemEntry>,
+    directory: fs::ReadDir,
+    subdirectory: Option<Box<Files>>,
 }
-
-enum FilesystemEntry {
-    File(PathBuf),
-    Directory(PathBuf),
-}
-
-const ENTRIES_INITIAL_CAPACITY: usize = 250;
 
 impl Files {
     
-    pub fn new(initial: PathBuf) -> Self {
-        let mut entries = Vec::with_capacity(ENTRIES_INITIAL_CAPACITY);
-        
-        // prevent directory traversal attacks
-        
-        if ! initial.components().any(|component| component == Component::ParentDir) {
-            
-            // do not follow symlinks when asking for metadata
-            if let Ok(file_type) = fs::symlink_metadata(&initial).map(|metadata| metadata.file_type()) {
-                
-                // file, dir and symlink tests are mutually exclusive
-                if file_type.is_dir() {
-                    entries.push(FilesystemEntry::Directory(initial));
-                } else if file_type.is_file() {
-                    entries.push(FilesystemEntry::File(initial));
-                }
-                
-            }
-            
-        }
-        
-        Self {
-            entries,
-        }
+    pub fn new(root: &Path) -> Result<Self, Box<dyn Error>> {
+        Ok(Self {
+            directory: root.read_dir()?,
+            subdirectory: None,
+        })
     }
     
 }
@@ -54,12 +30,46 @@ impl Iterator for Files {
     type Item = FilesEntry;
     
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(current) = self.entries.pop() {
-            match current {
+        
+        'outer: loop {
+            
+            // -------------------- subdirectory --------------------
+            
+            if let Some(subdirectory) = self.subdirectory.as_mut() {
                 
-                FilesystemEntry::File(path) => {
+                let entry = subdirectory.next();
+                
+                if entry.is_some() {
+                    return entry;
+                }
+                
+                self.subdirectory = None;
+                
+            }
+            
+            // -------------------- directory --------------------
+            
+            for entry in self.directory.by_ref().flatten() {
+                
+                let Ok(file_type) = entry.file_type() else {
+                    continue;
+                };
+                
+                // symlink
+                
+                if file_type.is_symlink() {
+                    continue;
+                }
+                
+                // file
+                
+                if file_type.is_file() {
                     
-                    let entry = path.to_str().map(|path| FilesEntry::new(path.to_string()));
+                    let entry = entry.path()
+                        .into_os_string()
+                        .into_string()
+                        .ok()
+                        .map(FilesEntry::new);
                     
                     if entry.is_some() {
                         return entry;
@@ -67,36 +77,23 @@ impl Iterator for Files {
                     
                     continue;
                     
-                },
+                }
                 
-                FilesystemEntry::Directory(path) => {
-                    
-                    let Ok(directory) = path.read_dir() else {
-                        continue;
-                    };
-                    
-                    for entry in directory.flatten() {
-                        
-                        let Ok(file_type) = entry.file_type() else {
-                            continue;
-                        };
-                        
-                        // file, dir and symlink tests are mutually exclusive
-                        if file_type.is_file() {
-                            self.entries.push(FilesystemEntry::File(entry.path()));
-                        } else if file_type.is_dir() {
-                            self.entries.push(FilesystemEntry::Directory(entry.path()));
-                        }
-                        
-                    }
-                    
-                },
+                // directory
+                
+                self.subdirectory = Some(Box::new(Files {
+                    directory: entry.path().read_dir().ok()?,
+                    subdirectory: None,
+                }));
+                
+                continue 'outer;
                 
             }
             
+            return None;
+            
         }
         
-        None
     }
     
 }
