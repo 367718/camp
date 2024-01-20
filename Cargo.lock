@@ -13,8 +13,16 @@ dependencies = [
 name = "aoi"
 version = "2.0.0"
 dependencies = [
+ "ayano",
  "chikuwa",
  "rin",
+]
+
+[[package]]
+name = "ayano"
+version = "2.0.0"
+dependencies = [
+ "chikuwa",
 ]
 
 [[package]]
@@ -39,6 +47,7 @@ dependencies = [
 name = "minami"
 version = "2.0.0"
 dependencies = [
+ "ayano",
  "chiaki",
  "chikuwa",
  "ena",

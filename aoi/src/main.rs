@@ -1,14 +1,14 @@
 use std::{
     error::Error,
     fs::{ OpenOptions, File },
-    io::{ self, Read, Write, BufWriter },
-    net::{ TcpListener, TcpStream },
+    io::{ self, Read, Write },
     os::{
         raw::*,
         windows::io::{ AsRawHandle, FromRawHandle },
     },
-    time::Duration,
 };
+
+use ayano::{ Server, StatusCode, ContentType, CacheControl };
 
 mod ffi {
     
@@ -30,8 +30,6 @@ const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const INDEX: &[u8] = include_bytes!("../rsc/index.html");
-const STREAM_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
-const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;
 const PIPE_MAX_WAIT: c_ulong = 5000; // milliseconds
 
 fn main() {
@@ -78,7 +76,7 @@ fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
         
     }
     
-    let pipe = OpenOptions::new()
+    let mut pipe = OpenOptions::new()
         .write(true)
         .open(name)?;
     
@@ -86,87 +84,59 @@ fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
     
     stdout.write_all(b"\nBinding address...").unwrap();
     
-    let listener = TcpListener::bind(address)?;
+    let server = Server::new(address)?;
     
     write!(stdout, "\n\nListening on {}", address).unwrap();
     
-    listen(&listener, pipe)
-}
-
-fn listen(listener: &TcpListener, mut pipe: File) -> Result<(), Box<dyn Error>> {
-    for stream in listener.incoming() {
+    // -------------------- requests --------------------
+    
+    for mut request in server {
         
-        let mut stream = stream?;
-        
-        stream.set_read_timeout(STREAM_TIMEOUT)?;
-        stream.set_write_timeout(STREAM_TIMEOUT)?;
-        
-        let Some((method, endpoint)) = get_request(&mut stream) else {
-            continue;
-        };
-        
-        if method != b"GET" {
-            continue;
+        if let Err(error) = handle_request(&mut request, &mut pipe) {
+            request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
+                .and_then(|mut response| response.write_all(error.to_string().as_bytes()))
+                .ok();
         }
-        
-        // index
-        
-        if endpoint == b"/" {
-            send_response(stream, b"200 OK", Some(INDEX)).ok();
-            continue;
-        }
-        
-        // command
-        
-        if let Some(command) = get_command(&endpoint) {
-            
-            if let Err(error) = pipe.write_all(command) {
-                send_response(stream, b"500 Internal Server Error", Some(error.to_string().as_bytes())).ok();
-                return Err(error.into());
-            }
-            
-            send_response(stream, b"200 OK", None).ok();
-            continue;
-            
-        }
-        
-        // not found
-        
-        send_response(stream, b"404 Not Found", Some(b"Endpoint not found")).ok();
         
     }
     
     Ok(())
 }
 
-fn get_request(stream: &mut TcpStream) -> Option<(Vec<u8>, Vec<u8>)> {
-    let mut request = Vec::new();
-    let mut buffer = [0; CONNECTION_BUFFER_SIZE];
+fn handle_request(request: &mut ayano::Request, pipe: &mut File) -> Result<(), Box<dyn Error>> {
+    let (method, endpoint) = request.resource();
     
-    loop {
+    if method != b"GET" {
+        return Err("Endpoint not found".into());
+    }
+    
+    // -------------------- index --------------------
+    
+    if endpoint == b"/" {
         
-        let bytes = stream.read(&mut buffer).ok()?;
+        request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
+            .and_then(|mut response| response.write_all(INDEX))?;
         
-        if bytes == 0 {
-            return None;
-        }
-        
-        request.extend_from_slice(&buffer[..bytes]);
-        
-        if let Some(index) = request.windows(4).position(|curr| curr == b"\r\n\r\n") {
-            // discard body, if any
-            request.truncate(index + 4);
-            break;
-        }
+        return Ok(());
         
     }
     
-    let mut parts = request.split(|&curr| curr == b' ');
+    // -------------------- commands --------------------
     
-    let method = parts.next()?.to_vec();
-    let endpoint = parts.next()?.to_vec();
+    if let Some(command) = get_command(endpoint) {
+        
+        pipe.write_all(command)?;
+        
+        request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
+            .and_then(|mut response| response.write_all(b"200 OK"))?;
+        
+        return Ok(());
+        
+    }
     
-    Some((method, endpoint))
+    // -------------------- not found --------------------
+    
+    Err("Endpoint not found".into())
 }
 
 fn get_command(endpoint: &[u8]) -> Option<&'static [u8]> {
@@ -186,27 +156,4 @@ fn get_command(endpoint: &[u8]) -> Option<&'static [u8]> {
         b"/time" => Some(b"show-text \"${playback-time} (${time-remaining})\" 5000\n"),
         _ => None,
     }
-}
-
-fn send_response(stream: TcpStream, status: &[u8], payload: Option<&[u8]>) -> Result<(), Box<dyn Error>> {
-    let mut writer = BufWriter::new(stream);
-    
-    writer.write_all(b"HTTP/1.0 ")?;
-    writer.write_all(status)?;
-    writer.write_all(b"\r\n")?;
-    
-    writer.write_all(b"Connection: close\r\n")?;
-    
-    if let Some(payload) = payload {
-        writer.write_all(b"Content-Length: ")?;
-        write!(&mut writer, "{}", payload.len()).unwrap();
-        writer.write_all(b"\r\n")?;
-        writer.write_all(b"\r\n")?;
-        writer.write_all(payload)?;
-    } else {
-        writer.write_all(b"Content-Length: 0\r\n")?;
-        writer.write_all(b"\r\n")?;
-    }
-    
-    Ok(())
 }

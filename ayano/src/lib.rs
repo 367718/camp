@@ -1,7 +1,11 @@
 mod request;
 mod response;
 
-use std::time::Duration;
+use std::{
+    error::Error,
+    net::TcpListener,
+    time::Duration,
+};
 
 pub use request::Request;
 pub use response::Response;
@@ -30,6 +34,10 @@ pub enum ContentType {
 pub enum CacheControl {
     Static,
     Dynamic,
+}
+
+pub struct Server {
+    listener: TcpListener,
 }
 
 impl StatusCode {
@@ -64,6 +72,36 @@ impl CacheControl {
         match self {
             Self::Static => b"Cache-Control: max-age=15552000, immutable\r\n",
             Self::Dynamic => b"Cache-Control: no-cache, no-store\r\n",
+        }
+    }
+    
+}
+
+impl Server {
+    
+    pub fn new(address: &str) -> Result<Self, Box<dyn Error>> {
+        Ok(Self {
+            listener: TcpListener::bind(address)?,
+        })
+    }
+    
+}
+
+impl Iterator for Server {
+    
+    type Item = Request;
+    
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            
+            let request = self.listener.accept()
+                .ok()
+                .and_then(|(stream, _)| Request::new(stream));
+            
+            if request.is_some() {
+                return request;
+            }
+            
         }
     }
     

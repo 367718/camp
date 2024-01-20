@@ -5,12 +5,10 @@ mod watchlist;
 mod rules;
 mod feeds;
 mod general;
-mod networking;
 
 use std::{
     error::Error,
     io::Write,
-    net::TcpListener,
 };
 
 use files::FilesEndpoint;
@@ -18,12 +16,12 @@ use watchlist::WatchlistEndpoint;
 use rules::RulesEndpoint;
 use feeds::FeedsEndpoint;
 use general::GeneralEndpoint;
-use networking::{ Request, StatusCode, ContentType, CacheControl };
+
+use ayano::{ Server, Request, StatusCode, ContentType, CacheControl };
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let listener = TcpListener::bind(rin::get(b"address")?)?;
-    
-    for mut request in listener.incoming().filter_map(Request::get) {
+    for mut request in Server::new(rin::get(b"address")?)? {
+        
         let resource = request.resource();
         
         if let Some(endpoint) = FilesEndpoint::get(resource) {
@@ -54,6 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         request.start_response(StatusCode::NotFound, ContentType::Plain, CacheControl::Dynamic)
             .and_then(|mut response| response.write_all(b"Endpoint not found"))
             .ok();
+        
     }
     
     Ok(())

@@ -11,4 +11,5 @@ license.workspace = true
 rin = { path = "../rin" }
 ena = { path = "../ena" }
 chiaki = { path = "../chiaki" }
+ayano = { path = "../ayano" }
 chikuwa = { path = "../chikuwa" }

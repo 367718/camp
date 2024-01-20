@@ -22,9 +22,7 @@ struct Payload<'h, 'b> {
 
 impl Request {
     
-    pub fn get(stream: Result<TcpStream, io::Error>) -> Option<Self> {
-        let stream = stream.ok()?;
-        
+    pub(crate) fn new(stream: TcpStream) -> Option<Self> {
         stream.set_read_timeout(STREAM_TIMEOUT).ok()?;
         
         let mut reader = stream.take(REQUEST_SIZE_LIMIT);
