@@ -79,14 +79,12 @@ impl Iterator for Files {
                     
                 }
                 
-                // directory
+                // subdirectory
                 
-                self.subdirectory = Some(Box::new(Files {
-                    directory: entry.path().read_dir().ok()?,
-                    subdirectory: None,
-                }));
-                
-                continue 'outer;
+                if let Ok(subdirectory) = Files::new(&entry.path()) {
+                    self.subdirectory = Some(Box::new(subdirectory));
+                    continue 'outer;
+                }
                 
             }
             

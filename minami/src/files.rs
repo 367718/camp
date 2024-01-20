@@ -77,13 +77,15 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
         
         write!(&mut response, "<a tabindex='0' data-value='{}'>", entry.value(flag))?;
         
-        if let Some(container) = entry.container(root) {
+        let (filename, container) = entry.components(root);
+        
+        if let Some(container) = container {
             response.write_all(b"<span>")?;
             response.write_all(container.as_bytes())?;
             response.write_all(b"</span>")?;
         }
         
-        response.write_all(entry.name().as_bytes())?;
+        response.write_all(filename.as_bytes())?;
         
         response.write_all(b"</a>")?;
         
@@ -101,7 +103,7 @@ fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- files --------------------
     
     let mut files = ena::Files::new(Path::new(root))?
-        .filter(|file| request.param(b"tag").any(|tag| &file.path().as_bytes()[root.len()..] == tag))
+        .filter(|file| request.param(b"tag").any(|tag| file.relative(root).as_bytes() == tag))
         .peekable();
     
     if files.peek().is_none() {
@@ -134,7 +136,7 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- files --------------------
     
     let mut files = ena::Files::new(Path::new(root))?
-        .filter(|file| request.param(b"tag").any(|tag| &file.path().as_bytes()[root.len()..] == tag))
+        .filter(|file| request.param(b"tag").any(|tag| file.relative(root).as_bytes() == tag))
         .peekable();
     
     if files.peek().is_none() {
@@ -163,24 +165,24 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- files --------------------
     
     let mut files = ena::Files::new(Path::new(root))?
-        .filter(|file| request.param(b"tag").any(|tag| &file.path().as_bytes()[root.len()..] == tag))
+        .filter(|file| request.param(b"tag").any(|tag| file.relative(root).as_bytes() == tag))
         .peekable();
     
     if files.peek().is_none() {
         return Err("File not provided".into());
     }
     
-    // -------------------- name --------------------
+    // -------------------- foldername --------------------
     
-    let name = request.param(b"input")
-        .next()
-        .and_then(|path| str::from_utf8(path).ok())
-        .ok_or("Invalid name")?;
+    let foldername = match request.param(b"input").next() {
+        Some(input) => str::from_utf8(input).map_err(|_| "Invalid foldername")?,
+        None => "",
+    };
     
     // -------------------- operation --------------------
     
     for entry in files {
-        entry.move_to_folder(root, name)?;
+        entry.move_to_folder(root, foldername)?;
     }
     
     // -------------------- response --------------------
@@ -199,7 +201,7 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- files --------------------
     
     let mut files = ena::Files::new(Path::new(root))?
-        .filter(|file| request.param(b"tag").any(|tag| &file.path().as_bytes()[root.len()..] == tag))
+        .filter(|file| request.param(b"tag").any(|tag| file.relative(root).as_bytes() == tag))
         .peekable();
     
     if files.peek().is_none() {

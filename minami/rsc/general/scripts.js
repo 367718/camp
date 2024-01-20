@@ -365,11 +365,9 @@ function request({ url = "", confirm = false, prompt = false, refresh = false } 
     if (prompt) {
         const input = window.prompt("The requested action requires a value");
         
-        if (! input) {
-            return;
+        if (input) {
+            form_data.append("input", input);
         }
-        
-        form_data.append("input", input);
     }
     
     // -------------------- tags --------------------

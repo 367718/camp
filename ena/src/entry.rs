@@ -24,24 +24,17 @@ impl FilesEntry {
     // -------------------- accessors --------------------
     
     
-    pub fn path(&self) -> &str {
-        &self.inner
+    pub fn relative(&self, root: &str) -> &str {
+        self.inner.strip_prefix(root)
+            .map_or(&self.inner, |container| container.strip_prefix(MAIN_SEPARATOR).unwrap_or(container))
     }
     
-    pub fn name(&self) -> &str {
-        self.inner.rsplit_once(MAIN_SEPARATOR)
-            .map_or(&self.inner, |(_, name)| name)
-    }
-    
-    pub fn container(&self, root: &str) -> Option<&str> {
-        if ! self.inner.starts_with(root) {
-            return None;
-        }
+    pub fn components(&self, root: &str) -> (&str, Option<&str>) {
+        let relative = self.relative(root);
         
-        self.inner.rfind(MAIN_SEPARATOR)
-            .map(|separator| &self.inner[root.len()..=separator])
-            .map(|container| container.strip_prefix(MAIN_SEPARATOR).unwrap_or(container))
-            .filter(|container| ! container.is_empty())
+        relative.rfind(MAIN_SEPARATOR)
+            .map(|index| relative.split_at(index + 1))
+            .map_or((relative, None), |(directory, filename)| (filename, Some(directory)))
     }
     
     pub fn value(&self, flag: &str) -> u8 {
@@ -61,20 +54,18 @@ impl FilesEntry {
         Ok(())
     }
     
-    pub fn move_to_folder(self, root: &str, name: &str) -> Result<(), Box<dyn Error>> {
-        let name = name.rsplit_once(MAIN_SEPARATOR)
-            .map_or(name, |(_, name)| name);
+    pub fn move_to_folder(self, root: &str, foldername: &str) -> Result<(), Box<dyn Error>> {
+        let foldername = foldername.rsplit(MAIN_SEPARATOR).next().unwrap_or(foldername);
+        let filename = self.inner.rsplit(MAIN_SEPARATOR).next().ok_or("Invalid filename")?;
+        let directory = Path::new(root).join(foldername);
+        let destination = directory.join(filename);
         
-        let folder = Path::new(root).join(name);
-        
-        if ! folder.exists() {
-            fs::create_dir(&folder)?;
-        }
-        
-        let destination = folder.join(self.name());
-        
-        if destination.exists() {
-            return Err(chikuwa::concat_str!("Destination already exists: '", &destination.to_string_lossy(), "'").into())
+        if directory.exists() {
+            if destination.exists() {
+                return Err(chikuwa::concat_str!("Destination already exists: '", &destination.to_string_lossy(), "'").into())
+            }
+        } else {
+            fs::create_dir(&directory)?;
         }
         
         fs::rename(self.inner, &destination)?;
