@@ -8,7 +8,7 @@ pub struct Releases {
 }
 
 pub struct ReleasesIter<'c> {
-    rest: &'c [u8]
+    rest: &'c [u8],
 }
 
 pub struct ReleasesEntry<'c> {
@@ -32,7 +32,7 @@ impl Releases {
         payload.read_to_end(&mut content)?;
         
         Ok(Self {
-            content
+            content,
         })
     }
     
@@ -67,33 +67,23 @@ impl<'c> Iterator for ReleasesIter<'c> {
             let item = &self.rest[range.start..range.end];
             self.rest = &self.rest[range.end..][ITEM_CLOSE_TAG.len()..];
             
-            let entry = ReleasesEntry::new(item);
+            let Some(title) = chikuwa::tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG) else {
+                continue;
+            };
             
-            if entry.is_some() {
-                return entry;
-            }
+            let Some(link) = chikuwa::tag_range(item, LINK_OPEN_TAG, LINK_CLOSE_TAG) else {
+                continue;
+            };
+            
+            return Some(Self::Item {
+                title: &item[title],
+                link: &item[link],
+            });
             
         }
         
         None
         
-    }
-    
-}
-
-impl<'c> ReleasesEntry<'c> {
-    
-    fn new(item: &'c [u8]) -> Option<Self> {
-        let title = chikuwa::tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG)
-            .map(|field| &item[field])?;
-        
-        let link = chikuwa::tag_range(item, LINK_OPEN_TAG, LINK_CLOSE_TAG)
-            .map(|field| &item[field])?;
-        
-        Some(Self {
-            title,
-            link,
-        })
     }
     
 }

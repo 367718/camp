@@ -32,12 +32,11 @@ fn main() {
     }
     
     stdout.write_all(b"\n\nPress 'enter' key to exit...").unwrap();
-    
     let _ = io::stdin().read(&mut [0u8]).unwrap();
 }
 
 fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
-    // -------------------- config --------------------
+    // -------------------- configuration --------------------
     
     stdout.write_all(b"\n\nLoading configuration...").unwrap();
     
@@ -63,8 +62,7 @@ fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
     
     for url in feeds.iter().filter_map(|feed| str::from_utf8(feed.tag).ok()) {
         
-        write!(stdout, "\n\n{}", url).unwrap();
-        stdout.write_all(b"\n--------------------").unwrap();
+        write!(stdout, "\n\n{}\n--------------------", url).unwrap();
         
         for release in Releases::new(&mut client, url)?.iter() {
             

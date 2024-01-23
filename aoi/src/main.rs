@@ -8,7 +8,7 @@ use std::{
     },
 };
 
-use ayano::{ Server, StatusCode, ContentType, CacheControl };
+use ayano::{ Server, Request, StatusCode, ContentType, CacheControl };
 
 mod ffi {
     
@@ -47,12 +47,11 @@ fn main() {
     }
     
     stdout.write_all(b"\n\nPress 'enter' key to exit...").unwrap();
-    
     let _ = io::stdin().read(&mut [0u8]).unwrap();
 }
 
 fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
-    // -------------------- config --------------------
+    // -------------------- configuration --------------------
     
     stdout.write_all(b"\n\nLoading configuration...").unwrap();
     
@@ -103,7 +102,7 @@ fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn handle_request(request: &mut ayano::Request, pipe: &mut File) -> Result<(), Box<dyn Error>> {
+fn handle_request(request: &mut Request, pipe: &mut File) -> Result<(), Box<dyn Error>> {
     let (method, endpoint) = request.resource();
     
     if method != b"GET" {
