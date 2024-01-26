@@ -97,7 +97,9 @@ fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
             write!(stdout, "\n{}", title).unwrap();
             
             download_torrent(&mut client, title, link, folder)?;
-            rules.update(&rule.tag.to_owned(), episode)?;
+            
+            // used release title instead of rule tag to avoid borrowing error
+            rules.update(&release.title[..rule.tag.len()], episode)?;
             
         }
         
