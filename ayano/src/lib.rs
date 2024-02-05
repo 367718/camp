@@ -28,6 +28,7 @@ pub enum ContentType {
     Icon,
     Css,
     Javascript,
+    Json,
 }
 
 #[derive(Copy, Clone)]
@@ -61,6 +62,7 @@ impl ContentType {
             Self::Icon => b"Content-Type: image/x-icon\r\n",
             Self::Css => b"Content-Type: text/css; charset=utf-8\r\n",
             Self::Javascript => b"Content-Type: text/javascript; charset=utf-8\r\n",
+            Self::Json => b"Content-Type: application/json; charset=utf-8\r\n",
         }
     }
     

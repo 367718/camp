@@ -37,8 +37,8 @@ impl FilesEntry {
             .map_or((relative, None), |(directory, filename)| (filename, Some(directory)))
     }
     
-    pub fn value(&self, flag: &str) -> u8 {
-        u8::from(! crate::mark::is_marked(&self.inner, flag))
+    pub fn is_marked(&self, flag: &str) -> bool {
+        crate::mark::is_marked(&self.inner, flag)
     }
     
     

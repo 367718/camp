@@ -75,7 +75,7 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in files {
         
-        write!(&mut response, "<a tabindex='0' data-value='{}'>", entry.value(flag))?;
+        write!(&mut response, "<a tabindex='0' data-value='{}'>", u8::from(! entry.is_marked(flag)))?;
         
         let (filename, container) = entry.components(root);
         
