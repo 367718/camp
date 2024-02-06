@@ -1,6 +1,6 @@
 use std::{
     error::Error,
-    io::Write,
+    io::{ self, Write },
 };
 
 use super::{ Request, StatusCode, ContentType, CacheControl };
@@ -61,8 +61,8 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in feeds.iter() {
         
-        response.write_all(b"<a tabindex='0'>")?;
-        response.write_all(entry.tag)?;
+        response.write_all(b"<a>")?;
+        io::copy(&mut chikuwa::HtmlEscaped::from(entry.tag), &mut response)?;
         response.write_all(b"</a>")?;
         
     }

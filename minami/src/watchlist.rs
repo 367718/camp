@@ -1,6 +1,6 @@
 use std::{
     error::Error,
-    io::Write,
+    io::{ self, Write },
     str,
 };
 
@@ -65,8 +65,8 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in watchlist.iter() {
         
-        write!(&mut response, "<a tabindex='0' data-value='{}'>", entry.value)?;
-        response.write_all(entry.tag)?;
+        write!(&mut response, "<a data-value='{}'>", entry.value)?;
+        io::copy(&mut chikuwa::HtmlEscaped::from(entry.tag), &mut response)?;
         response.write_all(b"</a>")?;
         
     }

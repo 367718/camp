@@ -1,6 +1,6 @@
 use std::{
     error::Error,
-    io::Write,
+    io::{ self, Write },
     path::Path,
     process::{ Command, Stdio },
     str,
@@ -75,17 +75,17 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in files {
         
-        write!(&mut response, "<a tabindex='0' data-value='{}'>", u8::from(! entry.is_marked(flag)))?;
+        write!(&mut response, "<a data-value='{}'>", u8::from(! entry.is_marked(flag)))?;
         
         let (filename, container) = entry.components(root);
         
         if let Some(container) = container {
             response.write_all(b"<span>")?;
-            response.write_all(container.as_bytes())?;
+            io::copy(&mut chikuwa::HtmlEscaped::from(container.as_bytes()), &mut response)?;
             response.write_all(b"</span>")?;
         }
         
-        response.write_all(filename.as_bytes())?;
+        io::copy(&mut chikuwa::HtmlEscaped::from(filename.as_bytes()), &mut response)?;
         
         response.write_all(b"</a>")?;
         
