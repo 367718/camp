@@ -71,7 +71,7 @@ impl Session {
             let result = ffi::WinHttpSetOption(
                 handle,
                 ffi::WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
-                ptr::addr_of_mut!(version).cast::<c_void>(),
+                ptr::from_mut(&mut version).cast::<c_void>(),
                 bytes,
             );
             

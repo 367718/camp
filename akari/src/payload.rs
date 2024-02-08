@@ -101,8 +101,8 @@ impl Payload {
                 self.handle,
                 ffi::WINHTTP_QUERY_CONTENT_LENGTH | ffi::WINHTTP_QUERY_FLAG_NUMBER,
                 ffi::WINHTTP_HEADER_NAME_BY_INDEX,
-                ptr::addr_of_mut!(content_length).cast::<c_void>(),
-                ptr::addr_of_mut!(bytes),
+                ptr::from_mut(&mut content_length).cast::<c_void>(),
+                &mut bytes,
                 ffi::WINHTTP_NO_HEADER_INDEX,
             );
             
@@ -125,7 +125,7 @@ impl Read for Payload {
             
             let result = ffi::WinHttpReadData(
                 self.handle,
-                buf.as_mut_ptr().cast::<c_void>(),
+                ptr::from_mut(buf).cast::<c_void>(),
                 bytes,
                 &mut amount_read,
             );
