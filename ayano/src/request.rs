@@ -63,7 +63,8 @@ impl Request {
         
         while body.len() < content_length {
             
-            let bytes = reader.read(&mut buffer).ok()
+            let bytes = reader.read(&mut buffer)
+                .ok()
                 .filter(|&bytes| bytes > 0)?;
             
             body.extend_from_slice(&buffer[..bytes]);
@@ -117,11 +118,6 @@ impl<'h, 'b> Iterator for Params<'h, 'b> {
     type Item = (&'b [u8], &'b [u8]);
     
     fn next(&mut self) -> Option<Self::Item> {
-        // windows method panics if given a zero as length
-        if self.boundary.is_empty() {
-            return None;
-        }
-        
         while let Some(range) = chikuwa::tag_range(self.content, self.boundary, self.boundary) {
             
             let item = build_pair(&self.content[range.start..range.end]);
