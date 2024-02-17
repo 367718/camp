@@ -1,6 +1,6 @@
 use std::{
     error::Error,
-    io::{ self, Write },
+    io::Write,
     path::Path,
     process::{ Command, Stdio },
     str,
@@ -81,11 +81,15 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
         
         if let Some(container) = container {
             response.write_all(b"<span>")?;
-            io::copy(&mut chikuwa::HtmlEscaped::from(container.as_bytes()), &mut response)?;
+            
+            chikuwa::HtmlEscaper::from(container.as_bytes())
+                .try_for_each(|escaped| response.write_all(escaped))?;
+            
             response.write_all(b"</span>")?;
         }
         
-        io::copy(&mut chikuwa::HtmlEscaped::from(filename.as_bytes()), &mut response)?;
+        chikuwa::HtmlEscaper::from(filename.as_bytes())
+            .try_for_each(|escaped| response.write_all(escaped))?;
         
         response.write_all(b"</a>")?;
         

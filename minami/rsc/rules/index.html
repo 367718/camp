@@ -26,15 +26,22 @@
                 
             </div>
             
-            <div tabindex="0" data-refresh="/rules/entries" class="list sorted show-value show-primary show-secondary">
+            <div tabindex="0" data-refresh="/rules/entries" data-sorted="true" class="list show-value">
             </div>
             
             <div class="panel">
                 
-                <div>
-                    <a data-hotkey="Insert" onclick="request({ url: '/rules/insert', confirm: false, prompt: true, refresh: true });">insert</a>
-                    <a data-hotkey="F2" onclick="request({ url: '/rules/update', confirm: false, prompt: true, refresh: true });">update</a>
-                    <a data-hotkey="Delete" onclick="request({ url: '/rules/delete', confirm: true, prompt: false, refresh: true });">delete</a>
+                <div class="actions">
+                    <a data-url="/rules/insert" data-confirm="false" data-prompt="true" data-refresh="true">insert</a>
+                    <a data-url="/rules/update" data-confirm="false" data-prompt="true" data-refresh="true">update</a>
+                    <a data-url="/rules/delete" data-confirm="true" data-prompt="false" data-refresh="true">delete</a>
+                </div>
+                
+                <div class="toggles">
+                    <label>
+                        <input type="checkbox" value="show-primary" checked="checked">
+                        active
+                    </label>
                 </div>
                 
             </div>

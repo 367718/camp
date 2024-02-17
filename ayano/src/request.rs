@@ -15,7 +15,7 @@ pub struct Request {
     stream: Option<TcpStream>,
 }
 
-struct Payload<'h, 'b> {
+struct Params<'h, 'b> {
     boundary: &'h [u8],
     content: &'b [u8],
 }
@@ -26,66 +26,51 @@ impl Request {
         stream.set_read_timeout(STREAM_TIMEOUT).ok()?;
         
         let mut reader = stream.take(REQUEST_SIZE_LIMIT);
+        let mut buffer = [0; CONNECTION_BUFFER_SIZE];
         
         let mut headers = Vec::new();
         let mut body = Vec::new();
         
         // -------------------- headers --------------------
         
-        {
+        loop {
             
-            let mut buffer = [0; CONNECTION_BUFFER_SIZE];
+            let bytes = reader.read(&mut buffer)
+                .ok()
+                .filter(|&bytes| bytes > 0)?;
             
-            loop {
-                
-                let bytes = reader.read(&mut buffer)
-                    .ok()
-                    .filter(|&bytes| bytes > 0)?;
-                
-                headers.extend_from_slice(&buffer[..bytes]);
-                
-                // separate body
-                if let Some(position) = headers.windows(4).position(|curr| curr == b"\r\n\r\n") {
-                    let index = position.checked_add(4)?;
-                    body.append(&mut headers.split_off(index));
-                    headers.truncate(index);
-                    break;
-                }
-                
+            headers.extend_from_slice(&buffer[..bytes]);
+            
+            // separate body
+            if let Some(position) = headers.windows(4).position(|curr| curr == b"\r\n\r\n") {
+                let index = position.checked_add(4)?;
+                body.append(&mut headers.split_off(index));
+                headers.truncate(index);
+                break;
             }
             
         }
         
         // -------------------- body --------------------
         
-        {
+        let content_length = chikuwa::tag_range(&headers, b"Content-Length: ", b"\r\n")
+            .map(|range| &headers[range])
+            .and_then(|value| str::from_utf8(value).ok())
+            .and_then(|value| value.parse::<usize>().ok())
+            .unwrap_or(0);
+        
+        body.reserve(content_length);
+        
+        while body.len() < content_length {
             
-            let content_length = chikuwa::tag_range(&headers, b"Content-Length: ", b"\r\n")
-                .map(|range| &headers[range])
-                .and_then(|value| str::from_utf8(value).ok())
-                .and_then(|value| value.parse::<usize>().ok())
-                .unwrap_or(0);
+            let bytes = reader.read(&mut buffer).ok()
+                .filter(|&bytes| bytes > 0)?;
             
-            if body.len() < content_length {
-                
-                body.reserve(content_length);
-                
-                let mut buffer = [0; CONNECTION_BUFFER_SIZE];
-                
-                while body.len() < content_length {
-                    
-                    let bytes = reader.read(&mut buffer).ok()
-                        .filter(|&bytes| bytes > 0)?;
-                    
-                    body.extend_from_slice(&buffer[..bytes]);
-                    
-                }
-                
-            }
-            
-            body.truncate(content_length);
+            body.extend_from_slice(&buffer[..bytes]);
             
         }
+        
+        body.truncate(content_length);
         
         let stream = Some(reader.into_inner());
         
@@ -110,7 +95,7 @@ impl Request {
     pub fn param<'p, 'k: 'p>(&'p self, field: &'k [u8]) -> impl Iterator<Item = &'p [u8]> {
         let range = chikuwa::tag_range(&self.headers, b"Content-Type: multipart/form-data; boundary=", b"\r\n");
         
-        let payload = Payload {
+        let payload = Params {
             boundary: range.map_or(&[], |range| &self.headers[range]),
             content: &self.body,
         };
@@ -127,7 +112,7 @@ impl Request {
     
 }
 
-impl<'h, 'b> Iterator for Payload<'h, 'b> {
+impl<'h, 'b> Iterator for Params<'h, 'b> {
     
     type Item = (&'b [u8], &'b [u8]);
     

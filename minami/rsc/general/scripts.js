@@ -4,46 +4,154 @@
 // -------------------- constants --------------------
 
 
-const LIST_NODE_SELECTOR = ".list";
-const FILTER_NODE_SELECTOR = ".panel .filter";
-const TOGGLES_NODES_SELECTOR = ".panel input[type='checkbox']";
-const BUTTONS_NODES_SELECTOR = ".panel a";
+const SECTION_NODE_SELECTOR = ".section";
 
-const LIST_SORTED_CLASS = "sorted";
+const FILTER_NODE_SELECTOR = ".filter";
+const FILTER_TIMEOUT_ATTRIBUTE = "data-timeout";
+const FILTER_TIMEOUT_VALUE = 500;
+
+const LIST_NODE_SELECTOR = ".list";
+const LIST_SORTED_ATTRIBUTE = "data-sorted";
+const LIST_REFRESH_ATTRIBUTE = "data-refresh";
 
 const ENTRY_SELECTED_ATTRIBUTE = "data-selected";
 const ENTRY_FILTERED_CLASS = "filtered";
 
-const BUTTONS_HOTKEY_ATTRIBUTE = "data-hotkey";
+const ACTIONS_NODE_SELECTOR = ".actions";
+const ACTIONS_URL_ATTRIBUTE = "data-url";
+const ACTIONS_CONFIRM_ATTRIBUTE = "data-confirm";
+const ACTIONS_PROMPT_ATTRIBUTE = "data-prompt";
+const ACTIONS_REFRESH_ATTRIBUTE = "data-refresh";
 
-const HOYKEY_COPY_CONTROL = true;
-const HOYKET_COPY_COMPLETE = "KeyC";
-const HOYKEY_COPY_CLEAN = "KeyX";
+const TOGGLES_NODE_SELECTOR = ".toggles";
+
+const HOTKEY_COPY_CONTROL = true;
+const HOTKEY_COPY_COMPLETE = "KeyC";
+const HOTKEY_COPY_CLEAN = "KeyX";
 
 
 // -------------------- classes --------------------
 
 
-class List {
+class Section {
     
-    constructor(list_node, filter_node) {
-        this.node = list_node;
-        this.filter = new Filter(filter_node);
-        this.entries = [];
+    constructor() {
         
-        Object.seal(this);
+        this.node = document.querySelector(SECTION_NODE_SELECTOR);
         
-        this.refresh();
+        if (this.node === null) {
+            return;
+        }
+        
+        this.filter = new Filter(this);
+        this.list = new List(this);
+        this.actions = new Actions(this);
+        this.toggles = new Toggles(this);
+        
+        Object.freeze(this);
+        
+        this.node.addEventListener("mouseover", () => {
+            
+            // bail if filter input is involved
+            if (document.activeElement === this.filter.node) {
+                return;
+            }
+            
+            this.list.node.focus();
+            
+        });
+        
     }
     
-    focus = () => this.node.focus();
+}
+
+class Filter {
+    
+    constructor(parent) {
+        
+        this.node = parent.node.querySelector(FILTER_NODE_SELECTOR);
+        this.parent = parent;
+        
+        Object.freeze(this);
+        
+        this.node.addEventListener("input", () => {
+            
+            clearTimeout(this.node.getAttribute(FILTER_TIMEOUT_ATTRIBUTE));
+            this.node.setAttribute(FILTER_TIMEOUT_ATTRIBUTE, setTimeout(() => this.apply(this.parent.list.entries), FILTER_TIMEOUT_VALUE));
+            
+        });
+        
+    }
+    
+    apply = (entries) => {
+        
+        entries.filter(entry => entry.is_filtered())
+            .forEach(entry => entry.toggle_filter());
+        
+        if (this.node.value === "") {
+            return;
+        }
+        
+        const criteria = this.node.value.normalize("NFC");
+        const collator = new Intl.Collator("en", { usage: "search", sensitivity: "base" });
+        
+        outer: for (let entry of entries) {
+            
+            const current = entry.text(false).normalize("NFC");
+            
+            for (let start = 0, end = criteria.length; end <= current.length; start++, end++) {
+                if (collator.compare(criteria, current.slice(start, end)) === 0) {
+                    continue outer;
+                }
+            }
+            
+            entry.toggle_filter();
+            
+        }
+        
+        entries.filter(entry => entry.is_selected() && ! entry.is_visible())
+            .forEach(entry => entry.toggle_select());
+        
+    };
+    
+}
+
+class List {
+    
+    constructor(parent) {
+        
+        this.node = parent.node.querySelector(LIST_NODE_SELECTOR);
+        this.parent = parent;
+        this.entries = [];
+        
+        // freeze would prevent the refreshing of the entries array
+        Object.seal(this);
+        
+        this.node.addEventListener("keydown", (event) => {
+            
+            // bail if filter input is involved
+            if (event.target === this.parent.filter.node) {
+                return;
+            }
+            
+            // copy text to clipboard
+            if ((event.ctrlKey === HOTKEY_COPY_CONTROL) && (event.code === HOTKEY_COPY_COMPLETE || event.code === HOTKEY_COPY_CLEAN)) {
+                this.copy(event.code === HOTKEY_COPY_CLEAN);
+                return event.preventDefault();
+            }
+            
+        });
+        
+        this.refresh();
+        
+    }
     
     toggle = (criteria) => {
         
         this.node.classList.toggle(criteria);
         
         this.entries.filter(entry => entry.is_selected() && ! entry.is_visible())
-            .forEach(entry => entry.select());
+            .forEach(entry => entry.toggle_select());
         
     };
     
@@ -56,9 +164,9 @@ class List {
         if (! control && ! shift) {
             
             this.entries.filter(entry => entry.is_selected())
-                .forEach(entry => entry.select());
+                .forEach(entry => entry.toggle_select());
             
-            target.select();
+            target.toggle_select();
             
             return;
             
@@ -70,7 +178,7 @@ class List {
         // deselect target if selected
         
         if (control) {
-            target.select();
+            target.toggle_select();
             return;
         }
         
@@ -95,11 +203,11 @@ class List {
             }
             
             this.entries.filter(entry => entry.is_selected())
-                .forEach(entry => entry.select());
+                .forEach(entry => entry.toggle_select());
             
             this.entries.slice(start_index, target_index + 1)
                 .filter(entry => entry.is_visible())
-                .forEach(entry => entry.select());
+                .forEach(entry => entry.toggle_select());
             
         }
         
@@ -122,7 +230,7 @@ class List {
     
     refresh = () => {
         
-        fetch(this.node.dataset.refresh)
+        fetch(this.node.getAttribute(LIST_REFRESH_ATTRIBUTE))
             .then(response => response.text().then(text => {
                 
                 if (response.status != 200) {
@@ -139,18 +247,18 @@ class List {
                 
                 const children = Array.from(container.children);
                 
-                if (this.node.classList.contains(LIST_SORTED_CLASS)) {
+                if (this.node.getAttribute(LIST_SORTED_ATTRIBUTE) === "true") {
                     const collator = new Intl.Collator("en", { usage: "sort", sensitivity: "base", numeric: true });
                     children.sort((a, b) => a.children.length - b.children.length || collator.compare(a.textContent, b.textContent));
                 }
                 
                 // entries
                 
-                const entries = children.map(entry_node => new Entry(entry_node));
+                const entries = children.map(child => new Entry(child, this));
                 
                 // filter
                 
-                this.filter.apply(entries);
+                this.parent.filter.apply(entries);
                 
                 // refresh
                 
@@ -164,62 +272,17 @@ class List {
     
 }
 
-class Filter {
-    
-    constructor(filter_node) {
-        this.node = filter_node;
-        
-        this.node.addEventListener("input", () => {
-            
-            clearTimeout(this.node.dataset.timeout);
-            this.node.dataset.timeout = setTimeout(() => this.apply(LIST.entries), 500);
-            
-        }, false);
-        
-        Object.freeze(this);
-    }
-    
-    apply = (entries) => {
-        
-        entries.filter(entry => entry.is_filtered())
-            .forEach(entry => entry.filter());
-        
-        if (this.node.value === "") {
-            return;
-        }
-        
-        const criteria = this.node.value.normalize("NFC");
-        const collator = new Intl.Collator("en", { usage: "search", sensitivity: "base" });
-        
-        outer: for (let entry of entries) {
-            
-            const current = entry.text(false).normalize("NFC");
-            
-            for (let start = 0, end = criteria.length; end <= current.length; start++, end++) {
-                if (collator.compare(criteria, current.slice(start, end)) === 0) {
-                    continue outer;
-                }
-            }
-            
-            entry.filter();
-            
-        }
-        
-        entries.filter(entry => entry.is_selected() && ! entry.is_visible())
-            .forEach(entry => entry.select());
-        
-    };
-    
-}
-
 class Entry {
     
-    constructor(entry_node) {
-        this.node = entry_node;
+    constructor(node, parent) {
         
-        this.node.onclick = (event) => LIST.select(this, event.ctrlKey, event.shiftKey);
+        this.node = node;
+        this.parent = parent;
         
         Object.freeze(this);
+        
+        this.node.onclick = (event) => this.parent.select(this, event.ctrlKey, event.shiftKey);
+        
     }
     
     is_selected = () => this.node.hasAttribute(ENTRY_SELECTED_ATTRIBUTE);
@@ -228,9 +291,9 @@ class Entry {
     
     is_visible = () => this.node.offsetParent != null;
     
-    select = () => this.node.toggleAttribute(ENTRY_SELECTED_ATTRIBUTE);
+    toggle_select = () => this.node.toggleAttribute(ENTRY_SELECTED_ATTRIBUTE);
     
-    filter = () => this.node.classList.toggle(ENTRY_FILTERED_CLASS);
+    toggle_filter = () => this.node.classList.toggle(ENTRY_FILTERED_CLASS);
     
     text = (clean) => {
         
@@ -281,114 +344,103 @@ class Entry {
     
 }
 
-
-// -------------------- objects and events --------------------
-
-
-document.addEventListener("DOMContentLoaded", () => {
-    // -------------------- nodes --------------------
+class Actions {
     
-    const list_node = document.querySelector(LIST_NODE_SELECTOR);
-    const filter_node = document.querySelector(FILTER_NODE_SELECTOR);
-    
-    if (list_node === null || filter_node === null) {
-        return;
+    constructor(parent) {
+        
+        this.node = parent.node.querySelector(ACTIONS_NODE_SELECTOR);
+        this.parent = parent;
+        
+        Object.freeze(this);
+        
+        for (const child of this.node.children) {
+            child.addEventListener("click", () => {
+                
+                const url = child.getAttribute(ACTIONS_URL_ATTRIBUTE);
+                const confirm = child.getAttribute(ACTIONS_CONFIRM_ATTRIBUTE) === "true";
+                const prompt = child.getAttribute(ACTIONS_PROMPT_ATTRIBUTE) === "true";
+                const refresh = child.getAttribute(ACTIONS_REFRESH_ATTRIBUTE) === "true";
+                
+                this.request(url, confirm, prompt, refresh);
+                
+            });
+        }
+        
     }
     
-    const toggles_nodes = Array.from(document.querySelectorAll(TOGGLES_NODES_SELECTOR));
-    const buttons_nodes = Array.from(document.querySelectorAll(BUTTONS_NODES_SELECTOR));
-    
-    // -------------------- list --------------------
-    
-    Object.defineProperty(window, "LIST", {
-        value: new List(list_node, filter_node),
-        configurable: false,
-        writable: false,
-    });
-    
-    // -------------------- focus --------------------
-    
-    document.addEventListener("mouseover", (event) => {
+    request = (url, confirm, prompt, refresh) => {
         
-        if (document.activeElement && document.activeElement.tagName === "INPUT") {
+        // -------------------- confirm --------------------
+        
+        if (confirm && ! window.confirm("Are you sure you want to proceed with the requested action?")) {
             return;
         }
         
-        LIST.focus();
+        // -------------------- form data --------------------
         
-    });
-    
-    // -------------------- toggles --------------------
-    
-    toggles_nodes.forEach(toggle => toggle.addEventListener("click", (event) => LIST.toggle(event.target.value), false));
-    
-    // -------------------- hotkeys --------------------
-    
-    document.addEventListener("keydown", (event) => {
+        const form_data = new FormData();
         
-        // do not intercept keystrokes for filter input
-        if (event.target === filter_node) {
-            return;
-        }
+        // -------------------- prompt --------------------
         
-        // -------------------- copy text to clipboard --------------------
-        
-        if ((event.ctrlKey === HOYKEY_COPY_CONTROL) && (event.code === HOYKET_COPY_COMPLETE || event.code === HOYKEY_COPY_CLEAN)) {
-            LIST.copy(event.code === HOYKEY_COPY_CLEAN);
-            return event.preventDefault();
-        }
-        
-        // -------------------- buttons --------------------
-        
-        buttons_nodes.find(button => button.getAttribute(BUTTONS_HOTKEY_ATTRIBUTE) == event.code)?.click();
-        
-    });
-});
-
-
-// -------------------- buttons --------------------
-
-
-function request({ url = "", confirm = false, prompt = false, refresh = false } = {}) {
-    // -------------------- confirm --------------------
-    
-    if (confirm && ! window.confirm("Are you sure you want to proceed with the requested action?")) {
-        return;
-    }
-    
-    // -------------------- form data --------------------
-    
-    const form_data = new FormData();
-    
-    // -------------------- prompt --------------------
-    
-    if (prompt) {
-        const input = window.prompt("The requested action requires a value");
-        
-        if (input) {
-            form_data.append("input", input);
-        }
-    }
-    
-    // -------------------- tags --------------------
-    
-    LIST.entries.filter(entry => entry.is_selected())
-        .forEach(entry => form_data.append("tag", entry.text()));
-    
-    // -------------------- request --------------------
-    
-    fetch(url, { method: "POST", body: form_data })
-        .then(response => {
+        if (prompt) {
+            const input = window.prompt("The requested action requires a value");
             
-            if (response.status != 200) {
-                response.text().then(error => window.alert(error));
-                return;
+            if (input) {
+                form_data.append("input", input);
             }
-            
-            if (refresh) {
-                LIST.refresh();
-            }
-            
-        })
-        .catch(error => window.alert(error));
+        }
+        
+        // -------------------- tags --------------------
+        
+        this.parent.list.entries.filter(entry => entry.is_selected())
+            .forEach(entry => form_data.append("tag", entry.text()));
+        
+        // -------------------- request --------------------
+        
+        fetch(url, { method: "POST", body: form_data })
+            .then(response => {
+                
+                if (response.status != 200) {
+                    response.text().then(error => window.alert(error));
+                    return;
+                }
+                
+                if (refresh) {
+                    this.parent.list.refresh();
+                }
+                
+            })
+            .catch(error => window.alert(error));
+        
+    };
+    
 }
+
+class Toggles {
+    
+    constructor(parent) {
+        
+        this.node = parent.node.querySelector(TOGGLES_NODE_SELECTOR);
+        this.parent = parent;
+        
+        Object.freeze(this);
+        
+        for (const child of this.node.children) {
+            
+            child.addEventListener("click", (event) => this.parent.list.toggle(event.target.value));
+            
+            if (child.firstElementChild.checked) {
+              this.parent.list.toggle(child.firstElementChild.value);
+            }
+            
+        }
+        
+    }
+    
+}
+
+
+// -------------------- initialization --------------------
+
+
+document.addEventListener("DOMContentLoaded", () => new Section());

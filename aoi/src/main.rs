@@ -2,10 +2,7 @@ use std::{
     error::Error,
     fs::{ OpenOptions, File },
     io::{ self, Read, Write },
-    os::{
-        raw::*,
-        windows::io::{ AsRawHandle, FromRawHandle },
-    },
+    os::raw::*,
 };
 
 use ayano::{ Server, Request, StatusCode, ContentType, CacheControl };
@@ -33,34 +30,32 @@ const INDEX: &[u8] = include_bytes!("../rsc/index.html");
 const PIPE_MAX_WAIT: c_ulong = 5000; // milliseconds
 
 fn main() {
-    // avoid locking
-    let mut stdout = unsafe {
-        
-        File::from_raw_handle(io::stdout().as_raw_handle())
-        
-    };
+    println!("{} v{}", APP_NAME, APP_VERSION);
     
-    write!(&mut stdout, "{} v{}", APP_NAME, APP_VERSION).unwrap();
-    
-    if let Err(error) = process(&mut stdout) {
-        write!(&mut stdout, "\n\n{}", error).unwrap();
+    if let Err(error) = process() {
+        println!();
+        println!("ERROR: {}", error);
     }
     
-    stdout.write_all(b"\n\nPress 'enter' key to exit...").unwrap();
+    println!();
+    print!("Press 'enter' key to exit...");
+    
+    io::stdout().flush().unwrap();
     let _ = io::stdin().read(&mut [0u8]).unwrap();
 }
 
-fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
+fn process() -> Result<(), Box<dyn Error>> {
     // -------------------- configuration --------------------
     
-    stdout.write_all(b"\n\nLoading configuration...").unwrap();
+    println!();
+    println!("Loading configuration...");
     
     let address = rin::get(b"address")?;
     let name = rin::get(b"name")?;
     
     // -------------------- pipe --------------------
     
-    stdout.write_all(b"\nConnecting to named pipe...").unwrap();
+    println!("Connecting to named pipe...");
     
     unsafe {
         
@@ -81,11 +76,12 @@ fn process(stdout: &mut File) -> Result<(), Box<dyn Error>> {
     
     // -------------------- listener --------------------
     
-    stdout.write_all(b"\nBinding address...").unwrap();
+    println!("Binding address...");
     
     let server = Server::new(address)?;
     
-    write!(stdout, "\n\nListening on {}", address).unwrap();
+    println!();
+    println!("Listening on {}", address);
     
     // -------------------- requests --------------------
     

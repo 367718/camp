@@ -26,18 +26,18 @@
                 
             </div>
             
-            <div tabindex="0" data-refresh="/watchlist/entries" class="list sorted show-value show-primary show-secondary">
+            <div tabindex="0" data-refresh="/watchlist/entries" data-sorted="true" class="list show-value">
             </div>
             
             <div class="panel">
                 
-                <div>
-                    <a data-hotkey="Insert" onclick="request({ url: '/watchlist/insert', confirm: false, prompt: true, refresh: true });">insert</a>
-                    <a data-hotkey="F2" onclick="request({ url: '/watchlist/update', confirm: false, prompt: true, refresh: true });">update</a>
-                    <a data-hotkey="Delete" onclick="request({ url: '/watchlist/delete', confirm: true, prompt: false, refresh: true });">delete</a>
+                <div class="actions">
+                    <a data-url="/watchlist/insert" data-confirm="false" data-prompt="true" data-refresh="true">insert</a>
+                    <a data-url="/watchlist/update" data-confirm="false" data-prompt="true" data-refresh="true">update</a>
+                    <a data-url="/watchlist/delete" data-confirm="true" data-prompt="false" data-refresh="true">delete</a>
                 </div>
                 
-                <div>
+                <div class="toggles">
                     <label>
                         <input type="checkbox" value="show-primary" checked="checked">
                         watched

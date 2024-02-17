@@ -26,14 +26,21 @@
                 
             </div>
             
-            <div tabindex="0" data-refresh="/feeds/entries" class="list show-primary">
+            <div tabindex="0" data-refresh="/feeds/entries" data-sorted="false" class="list">
             </div>
             
             <div class="panel">
                 
-                <div>
-                    <a data-hotkey="Insert" onclick="request({ url: '/feeds/insert', confirm: false, prompt: true, refresh: true });">insert</a>
-                    <a data-hotkey="Delete" onclick="request({ url: '/feeds/delete', confirm: true, prompt: false, refresh: true });">delete</a>
+                <div class="actions">
+                    <a data-url="/feeds/insert" data-confirm="false" data-prompt="true" data-refresh="true">insert</a>
+                    <a data-url="/feeds/delete" data-confirm="true" data-prompt="false" data-refresh="true">delete</a>
+                </div>
+                
+                <div class="toggles">
+                    <label>
+                        <input type="checkbox" value="show-primary" checked="checked">
+                        active
+                    </label>
                 </div>
                 
             </div>

@@ -26,19 +26,19 @@
                 
             </div>
             
-            <div tabindex="0" data-refresh="/files/entries" class="list sorted show-containers show-primary">
+            <div tabindex="0" data-refresh="/files/entries" data-sorted="true" class="list">
             </div>
             
             <div class="panel">
                 
-                <div>
-                    <a data-hotkey="Enter" onclick="request({ url: '/files/play', confirm: false, prompt: false, refresh: false });">play</a>
-                    <a data-hotkey='Delete' onclick="request({ url: '/files/mark', confirm: false, prompt: false, refresh: true });">mark</a>
-                    <a data-hotkey='F3' onclick="request({ url: '/files/move', confirm: false, prompt: true, refresh: true });">move</a>
-                    <a onclick="request({ url: '/files/delete', confirm: true, prompt: false, refresh: true });">delete</a>
+                <div class="actions">
+                    <a data-url="/files/play" data-confirm="false" data-prompt="false" data-refresh="false">play</a>
+                    <a data-url="/files/mark" data-confirm="false" data-prompt="false" data-refresh="true">mark</a>
+                    <a data-url="/files/move" data-confirm="true" data-prompt="true" data-refresh="true">move</a>
+                    <a data-url="/files/delete" data-confirm="true" data-prompt="false" data-refresh="true">delete</a>
                 </div>
                 
-                <div>
+                <div class="toggles">
                     <label>
                         <input type="checkbox" value="show-containers" checked="checked">
                         containers
