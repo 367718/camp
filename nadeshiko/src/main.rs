@@ -95,7 +95,7 @@ fn process() -> Result<(), Box<dyn Error>> {
             
             println!("{}", title);
             
-            download_torrent(&mut client, link, &build_destination(title, folder)?)?;
+            download_torrent(&mut client, link, &build_destination(folder, title)?)?;
             
             // used release title instead of rule tag to avoid borrowing error
             rules.update(&release.title[..rule.tag.len()], episode)?;
