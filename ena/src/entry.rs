@@ -45,7 +45,7 @@ impl FilesEntry {
     // -------------------- mutators --------------------
     
     
-    pub fn mark(&mut self, flag: &str) -> Result<(), Box<dyn Error>> {
+    pub fn toggle_mark(self, flag: &str) -> Result<(), Box<dyn Error>> {
         if crate::mark::is_marked(&self.inner, flag) {
             crate::mark::remove(&self.inner, flag)?;
         } else {

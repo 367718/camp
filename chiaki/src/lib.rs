@@ -126,6 +126,17 @@ impl List {
     
 }
 
+impl <'c>IntoIterator for &'c List {
+    
+    type IntoIter = ListIter<'c>;
+    type Item = ListEntry<'c>;
+    
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+    
+}
+
 impl <'c>Iterator for ListIter<'c> {
     
     type Item = ListEntry<'c>;

@@ -10,10 +10,6 @@ fn main() {
     
     println!("cargo:rerun-if-changed=app.rc");
     
-    // -------------------- windows api --------------------
-    
-    println!("cargo:rustc-link-lib=kernel32");
-    
     // -------------------- resource file --------------------
     
     let root = env::var("CARGO_MANIFEST_DIR").unwrap();

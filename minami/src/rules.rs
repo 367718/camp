@@ -63,7 +63,7 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
     
-    for entry in rules.iter() {
+    for entry in &rules {
         
         write!(&mut response, "<a data-value='{}'>", entry.value)?;
         
@@ -78,10 +78,6 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- list --------------------
-    
-    let mut list = chiaki::List::load("rules")?;
-    
     // -------------------- matcher --------------------
     
     let matcher = request.param(b"input")
@@ -90,7 +86,8 @@ fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    list.insert(matcher, 0)?;
+    chiaki::List::load("rules")
+        .and_then(|mut list| list.insert(matcher, 0))?;
     
     // -------------------- response --------------------
     
@@ -101,10 +98,6 @@ fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- list --------------------
-    
-    let mut list = chiaki::List::load("rules")?;
-    
     // -------------------- matcher and progress --------------------
     
     let matcher = request.param(b"tag")
@@ -119,7 +112,8 @@ fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    list.update(matcher, progress)?;
+    chiaki::List::load("rules")
+        .and_then(|mut list| list.update(matcher, progress))?;
     
     // -------------------- response --------------------
     
@@ -130,10 +124,6 @@ fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- list --------------------
-    
-    let mut list = chiaki::List::load("rules")?;
-    
     // -------------------- matcher --------------------
     
     let matcher = request.param(b"tag")
@@ -142,7 +132,8 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    list.delete(matcher)?;
+    chiaki::List::load("rules")
+        .and_then(|mut list| list.delete(matcher))?;
     
     // -------------------- response --------------------
     

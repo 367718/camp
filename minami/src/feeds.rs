@@ -59,7 +59,7 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
     
-    for entry in feeds.iter() {
+    for entry in &feeds {
         
         response.write_all(b"<a>")?;
         
@@ -74,10 +74,6 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- list --------------------
-    
-    let mut list = chiaki::List::load("feeds")?;
-    
     // -------------------- url --------------------
     
     let url = request.param(b"input")
@@ -86,7 +82,8 @@ fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    list.insert(url, 0)?;
+    chiaki::List::load("feeds")
+        .and_then(|mut list| list.insert(url, 0))?;
     
     // -------------------- response --------------------
     
@@ -97,10 +94,6 @@ fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- list --------------------
-    
-    let mut list = chiaki::List::load("feeds")?;
-    
     // -------------------- url --------------------
     
     let url = request.param(b"tag")
@@ -109,7 +102,8 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    list.delete(url)?;
+    chiaki::List::load("feeds")
+        .and_then(|mut list| list.delete(url))?;
     
     // -------------------- response --------------------
     

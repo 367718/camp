@@ -60,7 +60,7 @@ fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- config --------------------
+    // -------------------- configuration --------------------
     
     let root = rin::get(b"root")?;
     let flag = rin::get(b"flag")?;
@@ -99,7 +99,7 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- config --------------------
+    // -------------------- configuration --------------------
     
     let root = rin::get(b"root")?;
     let player = rin::get(b"player")?;
@@ -132,7 +132,7 @@ fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- config --------------------
+    // -------------------- configuration --------------------
     
     let root = rin::get(b"root")?;
     let flag = rin::get(b"flag")?;
@@ -149,9 +149,7 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    for mut entry in files {
-        entry.mark(flag)?;
-    }
+    files.try_for_each(|file| file.toggle_mark(flag))?;
     
     // -------------------- response --------------------
     
@@ -162,7 +160,7 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- config --------------------
+    // -------------------- configuration --------------------
     
     let root = rin::get(b"root")?;
     
@@ -185,9 +183,7 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    for entry in files {
-        entry.move_to_folder(root, foldername)?;
-    }
+    files.try_for_each(|file| file.move_to_folder(root, foldername))?;
     
     // -------------------- response --------------------
     
@@ -198,7 +194,7 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- config --------------------
+    // -------------------- configuration --------------------
     
     let root = rin::get(b"root")?;
     
@@ -214,9 +210,7 @@ fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    for entry in files {
-        entry.delete()?;
-    }
+    files.try_for_each(ena::FilesEntry::delete)?;
     
     // -------------------- response --------------------
     

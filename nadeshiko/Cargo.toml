@@ -1,6 +1,7 @@
 [package]
 name = "nadeshiko"
 description = "Torrent files downloader"
+build = "rsc/build.rs"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
