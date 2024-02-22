@@ -62,16 +62,16 @@ impl<'c> Iterator for ReleasesIter<'c> {
         // </item>
         // ...
         
-        while let Some(range) = chikuwa::tag_range(self.rest, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
+        while let Some(range) = chikuwa::subslice_range(self.rest, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
             
             let item = &self.rest[range.start..range.end];
             self.rest = &self.rest[range.end..][ITEM_CLOSE_TAG.len()..];
             
-            let Some(title) = chikuwa::tag_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG) else {
+            let Some(title) = chikuwa::subslice_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG) else {
                 continue;
             };
             
-            let Some(link) = chikuwa::tag_range(item, LINK_OPEN_TAG, LINK_CLOSE_TAG) else {
+            let Some(link) = chikuwa::subslice_range(item, LINK_OPEN_TAG, LINK_CLOSE_TAG) else {
                 continue;
             };
             

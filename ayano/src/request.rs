@@ -53,7 +53,7 @@ impl Request {
         
         // -------------------- body --------------------
         
-        let content_length = chikuwa::tag_range(&headers, b"Content-Length: ", b"\r\n")
+        let content_length = chikuwa::subslice_range(&headers, b"Content-Length: ", b"\r\n")
             .map(|range| &headers[range])
             .and_then(|value| str::from_utf8(value).ok())
             .and_then(|value| value.parse::<usize>().ok())
@@ -82,19 +82,17 @@ impl Request {
         })
     }
     
-    pub fn resource(&self) -> (&[u8], &[u8]) {
+    pub fn resource(&self) -> Option<(&[u8], &[u8])> {
         let mut parts = self.headers.split(|&curr| curr == b' ');
         
-        let method = parts.next().unwrap_or(&[]);
-        let path = parts.next()
-            .and_then(|path| path.split(|&curr| curr == b'?').next())
-            .unwrap_or(&[]);
+        let method = parts.next()?;
+        let path = parts.next().and_then(|path| path.split(|&curr| curr == b'?').next())?;
         
-        (method, path)
+        Some((method, path))
     }
     
     pub fn param<'p, 'k: 'p>(&'p self, field: &'k [u8]) -> impl Iterator<Item = &'p [u8]> {
-        let range = chikuwa::tag_range(&self.headers, b"Content-Type: multipart/form-data; boundary=", b"\r\n");
+        let range = chikuwa::subslice_range(&self.headers, b"Content-Type: multipart/form-data; boundary=", b"\r\n");
         
         let payload = Params {
             boundary: range.map_or(&[], |range| &self.headers[range]),
@@ -118,7 +116,7 @@ impl<'h, 'b> Iterator for Params<'h, 'b> {
     type Item = (&'b [u8], &'b [u8]);
     
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(range) = chikuwa::tag_range(self.content, self.boundary, self.boundary) {
+        while let Some(range) = chikuwa::subslice_range(self.content, self.boundary, self.boundary) {
             
             let item = build_pair(&self.content[range.start..range.end]);
             self.content = &self.content[range.end..];
@@ -135,24 +133,10 @@ impl<'h, 'b> Iterator for Params<'h, 'b> {
 }
 
 fn build_pair(data: &[u8]) -> Option<(&[u8], &[u8])> {
-    let mut current = data;
+    let range = chikuwa::subslice_range(data, b"Content-Disposition: form-data; name=\"", b"\"\r\n\r\n")?;
     
-    // key
-    
-    let range = chikuwa::tag_range(current, b"Content-Disposition: form-data; name=\"", b"\"\r\n")?;
-    
-    let key = &current[range.start..range.end];
-    current = &current[range.end..][3..];
-    
-    // empty line
-    
-    current.get(..2).filter(|line| line == b"\r\n")?;
-    current = &current[2..];
-    
-    // value
-    
-    current.get(current.len().saturating_sub(4)..).filter(|end| end == b"\r\n--")?;
-    let value = &current[..current.len() - 4];
+    let key = &data[range.start..range.end];
+    let value = data[range.end..][5..].strip_suffix(b"\r\n--")?;
     
     Some((key, value))
 }

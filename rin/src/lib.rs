@@ -9,7 +9,7 @@ use std::{
 pub fn get(key: &[u8]) -> Result<&'static str, Box<dyn Error>> {
     let content = load();
     
-    if let Some(range) = chikuwa::tag_range(content, key, b"\r\n") {
+    if let Some(range) = chikuwa::subslice_range(content, key, b"\r\n") {
         if let [b' ', b'=', b' ', value @ ..] = &content[range] {
             return Ok(str::from_utf8(value)?);
         }

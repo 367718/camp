@@ -22,7 +22,9 @@ use ayano::{ Server, Request, StatusCode, ContentType, CacheControl };
 fn main() -> Result<(), Box<dyn Error>> {
     for mut request in Server::new(rin::get(b"address")?)? {
         
-        let resource = request.resource();
+        let Some(resource) = request.resource() else {
+            continue;
+        };
         
         if let Some(endpoint) = FilesEndpoint::get(resource) {
             endpoint.process(request);

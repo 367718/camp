@@ -99,7 +99,7 @@ fn process() -> Result<(), Box<dyn Error>> {
 }
 
 fn handle_request(request: &mut Request, pipe: &mut File) -> Result<(), Box<dyn Error>> {
-    let (method, endpoint) = request.resource();
+    let (method, endpoint) = request.resource().ok_or("Invalid request")?;
     
     if method != b"GET" {
         return Err("Endpoint not found".into());
