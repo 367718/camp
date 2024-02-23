@@ -29,7 +29,7 @@ impl Request {
         let mut buffer = [0; CONNECTION_BUFFER_SIZE];
         
         let mut headers = Vec::new();
-        let mut body = Vec::new();
+        let mut body;
         
         // -------------------- headers --------------------
         
@@ -43,9 +43,7 @@ impl Request {
             
             // separate body
             if let Some(position) = headers.windows(4).position(|curr| curr == b"\r\n\r\n") {
-                let index = position.checked_add(4)?;
-                body.append(&mut headers.split_off(index));
-                headers.truncate(index);
+                body = headers.split_off(position.checked_add(4)?);
                 break;
             }
             
