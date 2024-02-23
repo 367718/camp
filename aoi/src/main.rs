@@ -99,7 +99,7 @@ fn process() -> Result<(), Box<dyn Error>> {
 }
 
 fn handle_request(request: &mut Request, pipe: &mut File) -> Result<(), Box<dyn Error>> {
-    let (method, endpoint) = request.resource().ok_or("Invalid request")?;
+    let (method, path) = request.resource().ok_or("Invalid request")?;
     
     if method != b"GET" {
         return Err("Endpoint not found".into());
@@ -107,7 +107,7 @@ fn handle_request(request: &mut Request, pipe: &mut File) -> Result<(), Box<dyn 
     
     // -------------------- index --------------------
     
-    if endpoint == b"/" {
+    if path == b"/" {
         
         request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
             .and_then(|mut response| response.write_all(INDEX))?;
@@ -118,7 +118,7 @@ fn handle_request(request: &mut Request, pipe: &mut File) -> Result<(), Box<dyn 
     
     // -------------------- commands --------------------
     
-    if let Some(command) = get_command(endpoint) {
+    if let Some(command) = get_command(path) {
         
         pipe.write_all(command)?;
         
@@ -134,8 +134,8 @@ fn handle_request(request: &mut Request, pipe: &mut File) -> Result<(), Box<dyn 
     Err("Endpoint not found".into())
 }
 
-fn get_command(endpoint: &[u8]) -> Option<&'static [u8]> {
-    match endpoint {
+fn get_command(path: &[u8]) -> Option<&'static [u8]> {
+    match path {
         b"/play" => Some(b"cycle pause\n"),
         b"/minuschapter" => Some(b"cycle chapter down\n"),
         b"/pluschapter" => Some(b"cycle chapter up\n"),
