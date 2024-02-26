@@ -58,13 +58,17 @@ impl AsRef<OsStr> for EphemeralPath {
 impl Drop for EphemeralPath {
     
     fn drop(&mut self) {
-        if self.managed && self.inner.exists() {
-            if self.inner.is_file() {
-                fs::remove_file(&self.inner).ok();
-            } else if self.inner.is_dir() {
-                fs::remove_dir_all(&self.inner).ok();
-            }
+        
+        if ! self.managed || ! self.inner.exists() {
+            return;
         }
+        
+        if self.inner.is_file() {
+            fs::remove_file(&self.inner).ok();
+        } else if self.inner.is_dir() {
+            fs::remove_dir_all(&self.inner).ok();
+        }
+        
     }
     
 }
@@ -72,7 +76,10 @@ impl Drop for EphemeralPath {
 impl EphemeralPath {
     
     pub fn builder() -> EphemeralPathBuilder {
-        EphemeralPathBuilder::new()
+        EphemeralPathBuilder {
+            base: None,
+            suffix: None,
+        }
     }
     
     pub fn unmanage(mut self) {
@@ -81,22 +88,7 @@ impl EphemeralPath {
     
 }
 
-impl Default for EphemeralPathBuilder {
-    
-    fn default() -> Self {
-        Self::new()
-    }
-    
-}
-
 impl EphemeralPathBuilder {
-    
-    pub fn new() -> Self {
-        Self {
-            base: None,
-            suffix: None,
-        }
-    }
     
     pub fn with_base<P: Into<PathBuf>>(mut self, base: P) -> Self {
         self.base = Some(base.into());
@@ -122,7 +114,7 @@ impl EphemeralPathBuilder {
             .finish()
             .to_string();
         
-        let sections = crate::concat_str!(start, "-", &middle, "-", &end);
+        let sections = format!("{}-{}-{}", start, &middle, &end);
         
         let mut name = OsString::with_capacity(sections.len() + suffix.len());
         

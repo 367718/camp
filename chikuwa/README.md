@@ -10,4 +10,3 @@ Available functionality:
 * **WinString**: Null-terminated UTF-16 encoded strings.
 * **subslice_range**: Position of subslice between two delimiters (case-insensitive).
 * **HtmlEscaper**: Escape bytes for use in HTML text.
-* **concat_str**: Macro for efficient string concatenation.

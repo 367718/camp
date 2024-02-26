@@ -62,7 +62,7 @@ impl FilesEntry {
         
         if directory.exists() {
             if destination.exists() {
-                return Err(chikuwa::concat_str!("Destination already exists: '", &destination.to_string_lossy(), "'").into())
+                return Err(format!("Destination already exists: '{}'", &destination.to_string_lossy()).into());
             }
         } else {
             fs::create_dir(&directory)?;

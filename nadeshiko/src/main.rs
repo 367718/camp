@@ -28,7 +28,7 @@ fn main() {
     print!("Press 'enter' key to exit...");
     
     io::stdout().flush().unwrap();
-    let _ = io::stdin().read(&mut [0u8]).unwrap();
+    let _ = io::stdin().read(&mut [0]).unwrap();
 }
 
 fn process() -> Result<(), Box<dyn Error>> {

@@ -33,7 +33,7 @@ impl List {
             .with_extension("ck");
         
         let content = fs::read(&path)
-            .map_err(|error| chikuwa::concat_str!("Load of list file located at '", &path.to_string_lossy(), "' failed: '", &error.to_string(), "'"))?;
+            .map_err(|error| format!("Load of list file located at '{}' failed: '{}'", &path.to_string_lossy(), &error.to_string()))?;
         
         Ok(Self {
             path,

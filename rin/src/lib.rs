@@ -15,7 +15,7 @@ pub fn get(key: &[u8]) -> Result<&'static str, Box<dyn Error>> {
         }
     }
     
-    Err(chikuwa::concat_str!("Missing or invalid field: '", &String::from_utf8_lossy(key), "'").into())
+    Err(format!("Missing or invalid field: '{}'", &String::from_utf8_lossy(key)).into())
 }
 
 fn load() -> &'static [u8] {
@@ -26,7 +26,7 @@ fn load() -> &'static [u8] {
             .expect("Failed to get executable name")
             .with_extension("rn");
         
-        fs::read(&path).expect(&chikuwa::concat_str!("Load of config file located at '", &path.to_string_lossy(), "' failed"))
+        fs::read(&path).unwrap_or_else(|_| panic!("Load of configuration file located at '{}' failed", &path.to_string_lossy()))
         
     })
 }
