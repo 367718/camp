@@ -197,6 +197,10 @@ iframe {
   display: none !important;
 }
 
+.list a::before {
+  content: "\200b";
+}
+
 .list a::after {
   position: absolute;
   right: var(--entry-pseudoelement-right);

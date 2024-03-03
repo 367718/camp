@@ -385,9 +385,11 @@ class Actions {
         if (prompt) {
             const input = window.prompt("The requested action requires a value");
             
-            if (input) {
-                form_data.append("input", input);
+            if (input === null) {
+                return;
             }
+            
+            form_data.append("input", input);
         }
         
         // -------------------- tags --------------------
