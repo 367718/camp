@@ -9,18 +9,33 @@ use std::{
 
 pub use entry::FilesEntry;
 
+const INITIAL_DIRECTORY_DEPTH: u8 = 1;
+const MAX_ALLOWED_DIRECTORY_DEPTH: u8 = 5;
+
 pub struct Files {
-    directory: fs::ReadDir,
+    depth: u8,
+    current: fs::ReadDir,
     subdirectory: Option<Box<Files>>,
 }
 
 impl Files {
     
     pub fn new(root: &Path) -> Result<Self, Box<dyn Error>> {
+        Self::with_depth(root, INITIAL_DIRECTORY_DEPTH)
+    }
+    
+    fn with_depth(root: &Path, depth: u8) -> Result<Self, Box<dyn Error>> {
+        
+        if depth > MAX_ALLOWED_DIRECTORY_DEPTH {
+            return Err("Maximum directory depth exceeded".into());
+        }
+        
         Ok(Self {
-            directory: root.read_dir()?,
+            depth,
+            current: root.read_dir()?,
             subdirectory: None,
         })
+        
     }
     
 }
@@ -47,25 +62,17 @@ impl Iterator for Files {
                 
             }
             
-            // -------------------- directory --------------------
+            // -------------------- current directory --------------------
             
-            for entry in self.directory.by_ref().flatten() {
+            'inner: for entry in self.current.by_ref().flatten() {
                 
-                let Ok(file_type) = entry.file_type() else {
-                    continue;
-                };
-                
-                // symlink
-                
-                if file_type.is_symlink() {
-                    continue;
-                }
+                let path = entry.path();
                 
                 // file
                 
-                if file_type.is_file() {
+                if path.is_file() {
                     
-                    let entry = entry.path()
+                    let entry = path
                         .into_os_string()
                         .into_string()
                         .map(FilesEntry::new)
@@ -75,13 +82,13 @@ impl Iterator for Files {
                         return entry;
                     }
                     
-                    continue;
+                    continue 'inner;
                     
                 }
                 
                 // subdirectory
                 
-                if let Ok(subdirectory) = Files::new(&entry.path()) {
+                if let Ok(subdirectory) = Files::with_depth(&path, self.depth + 1) {
                     self.subdirectory = Some(Box::new(subdirectory));
                     continue 'outer;
                 }
