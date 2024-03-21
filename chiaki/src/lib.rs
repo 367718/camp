@@ -142,18 +142,19 @@ impl <'c>Iterator for ListIter<'c> {
     type Item = ListEntry<'c>;
     
     fn next(&mut self) -> Option<Self::Item> {
-        let mem_size = mem::size_of::<u64>();
+        const MEM_SIZE: usize = mem::size_of::<u64>();
         
-        let working = self.content;
+        let mut working = self.content;
         
-        let size = usize::try_from(u64::from_le_bytes(working.get(..mem_size)?.try_into().unwrap())).ok()?;
-        let working = &working[mem_size..];
+        // bail if tag size cannot be represented as usize
+        let tag_size = usize::try_from(u64::from_le_bytes(*working.first_chunk::<MEM_SIZE>()?)).unwrap();
+        working = &working[MEM_SIZE..];
         
-        let tag = working.get(..size)?;
-        let working = &working[size..];
+        let tag = working.get(..tag_size)?;
+        working = &working[tag_size..];
         
-        let value = u64::from_le_bytes(working.get(..mem_size)?.try_into().unwrap());
-        let working = &working[mem_size..];
+        let value = u64::from_le_bytes(*working.first_chunk::<MEM_SIZE>()?);
+        working = &working[MEM_SIZE..];
         
         self.content = working;
         

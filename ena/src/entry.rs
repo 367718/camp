@@ -2,7 +2,7 @@ use std::{
     error::Error,
     ffi::OsStr,
     fs,
-    path::{ MAIN_SEPARATOR, Path },
+    path::{ MAIN_SEPARATOR, Path, PathBuf },
 };
 
 #[derive(PartialEq, Eq)]
@@ -16,8 +16,11 @@ impl FilesEntry {
     // -------------------- constructors --------------------
     
     
-    pub(crate) fn new(inner: String) -> Self {
-        Self { inner }
+    pub(crate) fn new(path: PathBuf) -> Option<Self> {
+        path.into_os_string()
+            .into_string()
+            .map(|inner| Self { inner })
+            .ok()
     }
     
     

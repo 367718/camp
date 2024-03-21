@@ -429,7 +429,7 @@ class Toggles {
         
         for (const child of this.node.children) {
             
-            child.addEventListener("click", (event) => this.parent.list.toggle(event.target.value));
+            child.firstElementChild.addEventListener("change", (event) => this.parent.list.toggle(event.target.value));
             
             if (child.firstElementChild.checked) {
               this.parent.list.toggle(child.firstElementChild.value);

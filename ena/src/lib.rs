@@ -72,11 +72,7 @@ impl Iterator for Files {
                 
                 if path.is_file() {
                     
-                    let entry = path
-                        .into_os_string()
-                        .into_string()
-                        .map(FilesEntry::new)
-                        .ok();
+                    let entry = FilesEntry::new(path);
                     
                     if entry.is_some() {
                         return entry;
