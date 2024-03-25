@@ -4,8 +4,9 @@ Configuration files manager.
 
 ## Behavior
 
-A file with the same name as the application but with extension "rn" is expected to be found alongside the executable, and will be loaded on the first attempted access to a parameter. A failure to find or read the file will trigger a panic.
-
-Keys and values are separated by " = " (e.g. "path = \example\").
-
-Lines must end with "\r\n".
+* Files must be created and modified manually and have the same name as the executable but with the "rn" extension.
+* Only a file located alongside the executable will be loaded.
+* File loading will be triggered on the first attempted access to a parameter.
+* A failure during file loading will result in a panic.
+* Keys and values are separated by " = " (e.g. "path = \example\").
+* Lines must end with "\r\n".

@@ -4,16 +4,14 @@ Files and lists manager.
 
 ## Behavior
 
-## Configuration and lists
-
-Configuration parameters used:
+## Configuration parameters used
 
 * **address**: listening address for the web interface.
 * **root**: path to files directory.
 * **flag**: tag used to mark files as watched.
 * **player**: application used to play files.
 
-List files used:
+## List files used
 
 * **watchlist**
 * **rules**

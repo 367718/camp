@@ -18,9 +18,9 @@ impl Response {
     pub fn new(mut stream: TcpStream, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Self> {
         let mut buffer = Vec::with_capacity(CONNECTION_BUFFER_SIZE);
         
-        buffer.extend_from_slice(status.as_header());
-        buffer.extend_from_slice(content.as_header());
-        buffer.extend_from_slice(cache.as_header());
+        buffer.extend_from_slice(status.into_header());
+        buffer.extend_from_slice(content.into_header());
+        buffer.extend_from_slice(cache.into_header());
         
         buffer.extend_from_slice(b"Transfer-Encoding: chunked\r\n");
         buffer.extend_from_slice(b"Connection: close\r\n");
