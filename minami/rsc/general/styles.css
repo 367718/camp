@@ -40,6 +40,7 @@ body {
   height: 100vh;
   margin: 0rem;
   display: flex;
+  gap: 0.25rem;
   background-color: var(--primary-color);
 }
 
