@@ -1,4 +1,5 @@
 mod releases;
+mod extractor;
 
 use std::{
     error::Error,
@@ -9,7 +10,7 @@ use std::{
     str,
 };
 
-use releases::{ Releases, ReleasesEntry };
+use releases::Releases;
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -63,7 +64,7 @@ fn process() -> Result<(), Box<dyn Error>> {
         println!("{}", url);
         println!("--------------------");
         
-        for release in Releases::new(&mut client, url)?.iter() {
+        for release in Releases::new(&get_content(&mut client, url)?) {
             
             // -------------------- rule and episode --------------------
             
@@ -71,7 +72,7 @@ fn process() -> Result<(), Box<dyn Error>> {
                 continue;
             };
             
-            let Some(episode) = extract_episode(&release, &rule) else {
+            let Some(episode) = extractor::get_episode(&release.title[rule.tag.len()..]) else {
                 continue;
             };
             
@@ -107,16 +108,13 @@ fn process() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn extract_episode(release: &ReleasesEntry, rule: &chiaki::ListEntry) -> Option<u64> {
-    let clean = &release.title[rule.tag.len()..];
-    let mut chars = clean.iter().copied().map(char::from);
-    let mut episode = chars.find_map(|current| current.to_digit(10).map(u64::from))?;
+fn get_content(client: &mut akari::Client, url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+    let mut payload = client.get(url)?;
     
-    while let Some(digit) = chars.next().and_then(|current| current.to_digit(10).map(u64::from)) {
-        episode = episode.checked_mul(10)?.checked_add(digit)?;
-    }
+    let mut content = Vec::with_capacity(payload.content_length());
+    payload.read_to_end(&mut content)?;
     
-    Some(episode)
+    Ok(content)
 }
 
 fn build_destination(folder: &str, title: &str) -> Result<PathBuf, Box<dyn Error>> {

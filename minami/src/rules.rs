@@ -87,7 +87,7 @@ fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- operation --------------------
     
     chiaki::List::load("rules")
-        .and_then(|mut list| list.insert(matcher, 0))?;
+        .and_then(|mut list| list.insert(matcher, 1))?;
     
     // -------------------- response --------------------
     

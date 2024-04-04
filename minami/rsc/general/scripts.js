@@ -445,4 +445,4 @@ class Toggles {
 // -------------------- initialization --------------------
 
 
-document.addEventListener("DOMContentLoaded", () => Object.defineProperty(window, "SECTION", { value: new Section() }));
+document.addEventListener("DOMContentLoaded", () => window.SECTION = new Section());
