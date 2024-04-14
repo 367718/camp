@@ -43,22 +43,22 @@ impl<'c> Iterator for Releases<'c> {
         // </item>
         // ...
         
-        while let Some(range) = chikuwa::subslice_range(self.content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
+        while let Some(item) = chikuwa::subslice_range(self.content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
             
-            let item = &self.content[range.start..range.end];
-            self.content = &self.content[range.end..][ITEM_CLOSE_TAG.len()..];
+            let current = &self.content[item.start..item.end];
+            self.content = &self.content[item.end..][ITEM_CLOSE_TAG.len()..];
             
-            let Some(title) = chikuwa::subslice_range(item, TITLE_OPEN_TAG, TITLE_CLOSE_TAG) else {
+            let Some(title) = chikuwa::subslice_range(current, TITLE_OPEN_TAG, TITLE_CLOSE_TAG) else {
                 continue;
             };
             
-            let Some(link) = chikuwa::subslice_range(item, LINK_OPEN_TAG, LINK_CLOSE_TAG) else {
+            let Some(link) = chikuwa::subslice_range(current, LINK_OPEN_TAG, LINK_CLOSE_TAG) else {
                 continue;
             };
             
             return Some(Self::Item {
-                title: &item[title],
-                link: &item[link],
+                title: &current[title],
+                link: &current[link],
             });
             
         }

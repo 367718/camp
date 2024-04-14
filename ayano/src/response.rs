@@ -15,7 +15,7 @@ pub struct Response {
 
 impl Response {
     
-    pub fn new(mut stream: TcpStream, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Self> {
+    pub(crate) fn new(mut stream: TcpStream, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Self> {
         let mut buffer = Vec::with_capacity(CONNECTION_BUFFER_SIZE);
         
         buffer.extend_from_slice(status.into_header());

@@ -1,7 +1,6 @@
 use std::{
-    error::Error,
     fs::{ OpenOptions, File },
-    io::{ self, Read, Write },
+    io::{ self, Read, Write, Error, ErrorKind },
     os::raw::*,
 };
 
@@ -44,41 +43,26 @@ fn main() {
     let _ = io::stdin().read(&mut [0]).unwrap();
 }
 
-fn process() -> Result<(), Box<dyn Error>> {
+fn process() -> io::Result<()> {
     // -------------------- configuration --------------------
     
     println!();
     println!("Loading configuration...");
     
-    let address = rin::get(b"address")?;
-    let name = rin::get(b"name")?;
+    let address = rin::get(b"address").map_err(|error| Error::other(error.to_string()))?;
+    let name = rin::get(b"name").map_err(|error| Error::other(error.to_string()))?;
     
     // -------------------- pipe --------------------
     
     println!("Connecting to named pipe...");
     
-    unsafe {
-        
-        let result = ffi::WaitNamedPipeW(
-            chikuwa::WinString::from(name).as_ptr(),
-            PIPE_MAX_WAIT,
-        );
-        
-        if result == 0 {
-            return Err(io::Error::last_os_error().into());
-        }
-        
-    }
-    
-    let mut pipe = OpenOptions::new()
-        .write(true)
-        .open(name)?;
+    let mut pipe = open_pipe(name)?;
     
     // -------------------- listener --------------------
     
     println!("Binding address...");
     
-    let server = Server::new(address)?;
+    let server = Server::new(address).map_err(|error| Error::other(error.to_string()))?;
     
     println!();
     println!("Listening on {}", address);
@@ -88,9 +72,24 @@ fn process() -> Result<(), Box<dyn Error>> {
     for mut request in server {
         
         if let Err(error) = handle_request(&mut request, &mut pipe) {
+            
+            // try to reopen pipe and retry the last request
+            if error.kind() == ErrorKind::BrokenPipe {
+                if let Ok(reopened) = open_pipe(name) {
+                    
+                    pipe = reopened;
+                    
+                    if handle_request(&mut request, &mut pipe).is_ok() {
+                        continue;
+                    }
+                    
+                }
+            }
+            
             request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
                 .and_then(|mut response| response.write_all(error.to_string().as_bytes()))
                 .ok();
+            
         }
         
     }
@@ -98,11 +97,31 @@ fn process() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn handle_request(request: &mut Request, pipe: &mut File) -> Result<(), Box<dyn Error>> {
-    let (method, path) = request.resource().ok_or("Invalid request")?;
+fn open_pipe(name: &str) -> Result<File, Error> {
+    unsafe {
+        
+        let result = ffi::WaitNamedPipeW(
+            chikuwa::WinString::from(name).as_ptr(),
+            PIPE_MAX_WAIT,
+        );
+        
+        if result == 0 {
+            return Err(Error::last_os_error());
+        }
+        
+    }
+    
+    OpenOptions::new()
+        .write(true)
+        .open(name)
+}
+
+fn handle_request(request: &mut Request, pipe: &mut File) -> io::Result<()> {
+    let (method, path) = request.resource()
+        .ok_or(Error::other("Invalid request"))?;
     
     if method != b"GET" {
-        return Err("Endpoint not found".into());
+        return Err(Error::other("Endpoint not found"));
     }
     
     // -------------------- index --------------------
@@ -131,7 +150,7 @@ fn handle_request(request: &mut Request, pipe: &mut File) -> Result<(), Box<dyn 
     
     // -------------------- not found --------------------
     
-    Err("Endpoint not found".into())
+    Err(Error::other("Endpoint not found"))
 }
 
 fn get_command(path: &[u8]) -> Option<&'static [u8]> {
@@ -149,6 +168,7 @@ fn get_command(path: &[u8]) -> Option<&'static [u8]> {
         b"/subtitles" => Some(b"cycle sub\n"),
         b"/title" => Some(b"show-text ${media-title} 5000\n"),
         b"/time" => Some(b"show-text \"${playback-time} (${time-remaining})\" 5000\n"),
+        b"/quit" => Some(b"quit\n"),
         _ => None,
     }
 }

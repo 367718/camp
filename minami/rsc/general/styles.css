@@ -1,4 +1,4 @@
-/* -------------------- params -------------------- */
+/* -------------------- globals -------------------- */
 
 
 :root {
@@ -89,7 +89,15 @@ iframe {
   gap: var(--panel-spacing);
 }
 
-.panel a {
+
+/* -------------------- sections -------------------- */
+
+
+.sections a.active {
+  color: var(--text-secondary-color);
+}
+
+.sections a {
   color: var(--text-primary-color);
   transition: background-color var(--transition-general-duration) ease;
   text-decoration: none;
@@ -98,40 +106,21 @@ iframe {
   min-width: var(--panel-elements-min-width);
 }
 
-.panel a:hover {
+.sections a:hover {
   cursor: pointer;
   background-color: var(--accent-color);
 }
 
-.panel label {
-  color: var(--text-primary-color);
-  transition: background-color var(--transition-general-duration) ease;
-  accent-color: var(--accent-color);
-  display: flex;
-  gap: var(--panel-labels-spacing);
-  padding: var(--panel-elements-spacing);
-  min-width: var(--panel-elements-min-width);
-}
 
-.panel label:hover {
-  cursor: pointer;
-  background-color: var(--accent-color);
-}
+/* -------------------- filter -------------------- */
 
-.panel input[type="text"] {
+
+.filter {
   width: 50%;
   border: none;
   background-color: var(--primary-color);
   color: var(--text-primary-color);
   padding: var(--panel-filter-spacing);
-}
-
-.panel input[type="checkbox"] {
-  margin: 0rem;
-}
-
-.panel input[type="checkbox"]:hover {
-  cursor: pointer;
 }
 
 
@@ -224,4 +213,49 @@ iframe {
 
 .list a[data-selected]:hover {
   background-color: var(--entry-selected-hovered-color);
+}
+
+
+/* -------------------- actions -------------------- */
+
+
+.actions a {
+  color: var(--text-primary-color);
+  transition: background-color var(--transition-general-duration) ease;
+  text-decoration: none;
+  text-align: center;
+  padding: var(--panel-elements-spacing);
+  min-width: var(--panel-elements-min-width);
+}
+
+.actions a:hover {
+  cursor: pointer;
+  background-color: var(--accent-color);
+}
+
+
+/* -------------------- toggles -------------------- */
+
+
+.toggles label {
+  color: var(--text-primary-color);
+  transition: background-color var(--transition-general-duration) ease;
+  accent-color: var(--accent-color);
+  display: flex;
+  gap: var(--panel-labels-spacing);
+  padding: var(--panel-elements-spacing);
+  min-width: var(--panel-elements-min-width);
+}
+
+.toggles label:hover {
+  cursor: pointer;
+  background-color: var(--accent-color);
+}
+
+.toggles input {
+  margin: 0rem;
+}
+
+.toggles input:hover {
+  cursor: pointer;
 }

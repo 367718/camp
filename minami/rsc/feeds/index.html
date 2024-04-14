@@ -15,18 +15,18 @@
             
             <div class="panel">
                 
-                <div>
+                <div class="sections">
                     <a href="/files">files</a>
                     <a href="/watchlist">watchlist</a>
                     <a href="/rules">rules</a>
-                    <a onclick="SECTION.list.refresh();">feeds</a>
+                    <a class="active" onclick="SECTION.list.refresh();">feeds</a>
                 </div>
                 
                 <input type="text" class="filter" placeholder="filter">
                 
             </div>
             
-            <div tabindex="0" data-refresh="/feeds/entries" data-sorted="false" class="list">
+            <div tabindex="0" data-refresh="/feeds/entries" data-sorted="false" class="list show-primary">
             </div>
             
             <div class="panel">
@@ -37,10 +37,6 @@
                 </div>
                 
                 <div class="toggles">
-                    <label>
-                        <input type="checkbox" value="show-primary" checked="checked">
-                        active
-                    </label>
                 </div>
                 
             </div>

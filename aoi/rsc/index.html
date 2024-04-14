@@ -24,9 +24,9 @@
       }
       
       div button {
-        font-size: 50px;
+        font-size: 40px;
         font-family: "Courier New", monospace;
-        height: 130px;
+        height: 85px;
         cursor: pointer;
         border: 5px solid lightgray;
         border-radius: 10px;
@@ -59,6 +59,14 @@
       
       div button:nth-of-type(n+10) {
         color: darkgoldenrod;
+      }
+      
+      /* quit */
+      
+      div button:nth-of-type(14) {
+        grid-column-start: 1;
+        grid-column-end: 3;
+        color: black;
       }
       
     </style>
@@ -98,6 +106,7 @@
       <button onmousedown="send_command('/subtitles')">Subtitles</button>
       <button onmousedown="send_command('/title')">Show title</button>
       <button onmousedown="send_command('/time')">Show time</button>
+      <button onmousedown="send_command('/quit')">Quit</button>
       
     </div>
     
