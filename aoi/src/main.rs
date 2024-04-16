@@ -1,32 +1,15 @@
-use std::{
-    fs::{ OpenOptions, File },
-    io::{ self, Read, Write, Error, ErrorKind },
-    os::raw::*,
-};
+mod pipe;
+
+use std::io::{ self, Read, Write, Error };
+
+use pipe::Pipe;
 
 use ayano::{ Server, Request, StatusCode, ContentType, CacheControl };
-
-mod ffi {
-    
-    use super::*;
-    
-    extern "system" {
-        
-        // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-waitnamedpipew
-        pub fn WaitNamedPipeW(
-            lpNamedPipeName: *const c_ushort,
-            nTimeOut: c_ulong,
-        ) -> c_int;
-        
-    }
-    
-}
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const INDEX: &[u8] = include_bytes!("../rsc/index.html");
-const PIPE_MAX_WAIT: c_ulong = 5000; // milliseconds
 
 fn main() {
     println!("{} v{}", APP_NAME, APP_VERSION);
@@ -52,44 +35,27 @@ fn process() -> io::Result<()> {
     let address = rin::get(b"address").map_err(|error| Error::other(error.to_string()))?;
     let name = rin::get(b"name").map_err(|error| Error::other(error.to_string()))?;
     
-    // -------------------- pipe --------------------
-    
-    println!("Connecting to named pipe...");
-    
-    let mut pipe = open_pipe(name)?;
-    
     // -------------------- listener --------------------
     
     println!("Binding address...");
     
     let server = Server::new(address).map_err(|error| Error::other(error.to_string()))?;
     
-    println!();
-    println!("Listening on {}", address);
+    // -------------------- pipe --------------------
+    
+    let mut pipe = Pipe::new(name);
     
     // -------------------- requests --------------------
+    
+    println!();
+    println!("Listening on {}", address);
     
     for mut request in server {
         
         if let Err(error) = handle_request(&mut request, &mut pipe) {
-            
-            // try to reopen pipe and retry the last request
-            if error.kind() == ErrorKind::BrokenPipe {
-                if let Ok(reopened) = open_pipe(name) {
-                    
-                    pipe = reopened;
-                    
-                    if handle_request(&mut request, &mut pipe).is_ok() {
-                        continue;
-                    }
-                    
-                }
-            }
-            
             request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
                 .and_then(|mut response| response.write_all(error.to_string().as_bytes()))
                 .ok();
-            
         }
         
     }
@@ -97,26 +63,7 @@ fn process() -> io::Result<()> {
     Ok(())
 }
 
-fn open_pipe(name: &str) -> Result<File, Error> {
-    unsafe {
-        
-        let result = ffi::WaitNamedPipeW(
-            chikuwa::WinString::from(name).as_ptr(),
-            PIPE_MAX_WAIT,
-        );
-        
-        if result == 0 {
-            return Err(Error::last_os_error());
-        }
-        
-    }
-    
-    OpenOptions::new()
-        .write(true)
-        .open(name)
-}
-
-fn handle_request(request: &mut Request, pipe: &mut File) -> io::Result<()> {
+fn handle_request(request: &mut Request, pipe: &mut Pipe) -> io::Result<()> {
     let (method, path) = request.resource()
         .ok_or(Error::other("Invalid request"))?;
     
