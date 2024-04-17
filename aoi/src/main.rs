@@ -1,6 +1,9 @@
 mod pipe;
 
-use std::io::{ self, Read, Write, Error };
+use std::{
+    error::Error,
+    io::{ self, Read, Write },
+};
 
 use pipe::Pipe;
 
@@ -26,20 +29,20 @@ fn main() {
     let _ = io::stdin().read(&mut [0]).unwrap();
 }
 
-fn process() -> io::Result<()> {
+fn process() -> Result<(), Box<dyn Error>> {
     // -------------------- configuration --------------------
     
     println!();
     println!("Loading configuration...");
     
-    let address = rin::get(b"address").map_err(|error| Error::other(error.to_string()))?;
-    let name = rin::get(b"name").map_err(|error| Error::other(error.to_string()))?;
+    let address = rin::get(b"address")?;
+    let name = rin::get(b"name")?;
     
     // -------------------- listener --------------------
     
     println!("Binding address...");
     
-    let server = Server::new(address).map_err(|error| Error::other(error.to_string()))?;
+    let server = Server::new(address)?;
     
     // -------------------- pipe --------------------
     
@@ -63,12 +66,12 @@ fn process() -> io::Result<()> {
     Ok(())
 }
 
-fn handle_request(request: &mut Request, pipe: &mut Pipe) -> io::Result<()> {
+fn handle_request(request: &mut Request, pipe: &mut Pipe) -> Result<(), Box<dyn Error>> {
     let (method, path) = request.resource()
-        .ok_or(Error::other("Invalid request"))?;
+        .ok_or("Invalid request")?;
     
     if method != b"GET" {
-        return Err(Error::other("Endpoint not found"));
+        return Err("Endpoint not found".into());
     }
     
     // -------------------- index --------------------
@@ -97,7 +100,7 @@ fn handle_request(request: &mut Request, pipe: &mut Pipe) -> io::Result<()> {
     
     // -------------------- not found --------------------
     
-    Err(Error::other("Endpoint not found"))
+    Err("Endpoint not found".into())
 }
 
 fn get_command(path: &[u8]) -> Option<&'static [u8]> {

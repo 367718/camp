@@ -10,56 +10,14 @@ use super::{ Request, StatusCode, ContentType, CacheControl };
 
 const INDEX: &[u8] = include_bytes!("../rsc/files/index.html");
 
-pub enum FilesEndpoint {
-    Index,
-    Entries,
-    Play,
-    Mark,
-    Move,
-    Delete,
-}
-
-impl FilesEndpoint {
-    
-    pub fn get(resource: (&[u8], &[u8])) -> Option<Self> {
-        match resource {
-            (b"GET", b"/files") => Some(Self::Index),
-            (b"GET", b"/files/entries") => Some(Self::Entries),
-            (b"POST", b"/files/play") => Some(Self::Play),
-            (b"POST", b"/files/mark") => Some(Self::Mark),
-            (b"POST", b"/files/move") => Some(Self::Move),
-            (b"POST", b"/files/delete") => Some(Self::Delete),
-            _ => None,
-        }
-    }
-    
-    pub fn process(&self, mut request: Request) {
-        let result = match self {
-            Self::Index => index(&mut request),
-            Self::Entries => entries(&mut request),
-            Self::Play => play(&mut request),
-            Self::Mark => mark(&mut request),
-            Self::Move => move_to_folder(&mut request),
-            Self::Delete => delete(&mut request),
-        };
-        
-        if let Err(error) = result {
-            request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
-                .and_then(|mut response| response.write_all(error.to_string().as_bytes()))
-                .ok();
-        }
-    }
-    
-}
-
-fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
         .and_then(|mut response| response.write_all(INDEX))?;
     
     Ok(())
 }
 
-fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- configuration --------------------
     
     let root = rin::get(b"root")?;
@@ -98,7 +56,7 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- configuration --------------------
     
     let root = rin::get(b"root")?;
@@ -131,7 +89,7 @@ fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- configuration --------------------
     
     let root = rin::get(b"root")?;
@@ -159,7 +117,7 @@ fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- configuration --------------------
     
     let root = rin::get(b"root")?;
@@ -193,7 +151,7 @@ fn move_to_folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- configuration --------------------
     
     let root = rin::get(b"root")?;

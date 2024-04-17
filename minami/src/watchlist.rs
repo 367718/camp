@@ -8,53 +8,14 @@ use super::{ Request, StatusCode, ContentType, CacheControl };
 
 const INDEX: &[u8] = include_bytes!("../rsc/watchlist/index.html");
 
-pub enum WatchlistEndpoint {
-    Index,
-    Entries,
-    Insert,
-    Update,
-    Delete,
-}
-
-impl WatchlistEndpoint {
-    
-    pub fn get(resource: (&[u8], &[u8])) -> Option<Self> {
-        match resource {
-            (b"GET", b"/watchlist") => Some(Self::Index),
-            (b"GET", b"/watchlist/entries") => Some(Self::Entries),
-            (b"POST", b"/watchlist/insert") => Some(Self::Insert),
-            (b"POST", b"/watchlist/update") => Some(Self::Update),
-            (b"POST", b"/watchlist/delete") => Some(Self::Delete),
-            _ => None,
-        }
-    }
-    
-    pub fn process(&self, mut request: Request) {
-        let result = match self {
-            Self::Index => index(&mut request),
-            Self::Entries => entries(&mut request),
-            Self::Insert => insert(&mut request),
-            Self::Update => update(&mut request),
-            Self::Delete => delete(&mut request),
-        };
-        
-        if let Err(error) = result {
-            request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
-                .and_then(|mut response| response.write_all(error.to_string().as_bytes()))
-                .ok();
-        }
-    }
-    
-}
-
-fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
         .and_then(|mut response| response.write_all(INDEX))?;
     
     Ok(())
 }
 
-fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- list --------------------
     
     let watchlist = chiaki::List::load("watchlist")?;
@@ -77,7 +38,7 @@ fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- title --------------------
     
     let title = request.param(b"input")
@@ -97,7 +58,7 @@ fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- title and progress --------------------
     
     let title = request.param(b"tag")
@@ -123,7 +84,7 @@ fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- title --------------------
     
     let title = request.param(b"tag")

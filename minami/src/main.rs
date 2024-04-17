@@ -1,61 +1,77 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod general;
 mod files;
 mod watchlist;
 mod rules;
 mod feeds;
-mod general;
 
 use std::{
     error::Error,
     io::Write,
 };
 
-use files::FilesEndpoint;
-use watchlist::WatchlistEndpoint;
-use rules::RulesEndpoint;
-use feeds::FeedsEndpoint;
-use general::GeneralEndpoint;
-
 use ayano::{ Server, Request, StatusCode, ContentType, CacheControl };
 
 fn main() -> Result<(), Box<dyn Error>> {
     for mut request in Server::new(rin::get(b"address")?)? {
         
-        let Some(resource) = request.resource() else {
-            continue;
-        };
-        
-        if let Some(endpoint) = FilesEndpoint::get(resource) {
-            endpoint.process(request);
-            continue;
+        if let Err(error) = handle_request(&mut request) {
+            request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
+                .and_then(|mut response| response.write_all(error.to_string().as_bytes()))
+                .ok();
         }
-        
-        if let Some(endpoint) = WatchlistEndpoint::get(resource) {
-            endpoint.process(request);
-            continue;
-        }
-        
-        if let Some(endpoint) = RulesEndpoint::get(resource) {
-            endpoint.process(request);
-            continue;
-        }
-        
-        if let Some(endpoint) = FeedsEndpoint::get(resource) {
-            endpoint.process(request);
-            continue;
-        }
-        
-        if let Some(endpoint) = GeneralEndpoint::get(resource) {
-            endpoint.process(request);
-            continue;
-        }
-        
-        request.start_response(StatusCode::NotFound, ContentType::Plain, CacheControl::Dynamic)
-            .and_then(|mut response| response.write_all(b"Endpoint not found"))
-            .ok();
         
     }
     
     Ok(())
+}
+
+fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
+    match request.resource().ok_or("Invalid request")? {
+        
+        // -------------------- general --------------------
+        
+        (b"GET", b"/") => general::index(request),
+        (b"GET", b"/favicon.ico") => general::favicon(request),
+        (b"GET", b"/styles.css") => general::styles(request),
+        (b"GET", b"/scripts.js") => general::scripts(request),
+        
+        // -------------------- files --------------------
+        
+        (b"GET", b"/files") => files::index(request),
+        (b"GET", b"/files/entries") => files::entries(request),
+        (b"POST", b"/files/play") => files::play(request),
+        (b"POST", b"/files/mark") => files::mark(request),
+        (b"POST", b"/files/folder") => files::folder(request),
+        (b"POST", b"/files/delete") => files::delete(request),
+        
+        // -------------------- watchlist --------------------
+        
+        (b"GET", b"/watchlist") => watchlist::index(request),
+        (b"GET", b"/watchlist/entries") => watchlist::entries(request),
+        (b"POST", b"/watchlist/insert") => watchlist::insert(request),
+        (b"POST", b"/watchlist/update") => watchlist::update(request),
+        (b"POST", b"/watchlist/delete") => watchlist::delete(request),
+        
+        // -------------------- rules --------------------
+        
+        (b"GET", b"/rules") => rules::index(request),
+        (b"GET", b"/rules/entries") => rules::entries(request),
+        (b"POST", b"/rules/insert") => rules::insert(request),
+        (b"POST", b"/rules/update") => rules::update(request),
+        (b"POST", b"/rules/delete") => rules::delete(request),
+        
+        // -------------------- feeds --------------------
+        
+        (b"GET", b"/feeds") => feeds::index(request),
+        (b"GET", b"/feeds/entries") => feeds::entries(request),
+        (b"POST", b"/feeds/insert") => feeds::insert(request),
+        (b"POST", b"/feeds/delete") => feeds::delete(request),
+        
+        // -------------------- not found --------------------
+        
+        _ => Err("Endpoint not found".into()),
+        
+    }
 }
