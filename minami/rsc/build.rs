@@ -8,6 +8,7 @@ fn main() {
     
     // -------------------- control execution --------------------
     
+    println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=app.rc");
     
     // -------------------- resource file --------------------

@@ -16,7 +16,7 @@ impl Payload {
     // -------------------- constructors --------------------
     
     
-    pub fn new(connection: &Connection, path: &str, secure: bool) -> io::Result<Self> {
+    pub(crate) fn new(connection: &Connection, path: &str, secure: bool) -> io::Result<Self> {
         // -------------------- handle --------------------
         
         let handle = unsafe {

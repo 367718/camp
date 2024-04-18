@@ -10,3 +10,7 @@ Configuration files manager.
 * A failure during file loading will result in a panic.
 * Keys and values are separated by " = " (e.g. "path = \example\").
 * Lines must end with "\r\n".
+
+## API
+
+* get

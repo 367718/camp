@@ -96,10 +96,15 @@ fn process() -> Result<(), Box<dyn Error>> {
             
             println!("{}", title);
             
-            download_torrent(&mut client, link, &build_destination(folder, title)?)?;
+            // since the list update can fail, an ephemeral path is used to prevent leaving a torrent file existing in destination for a future run
+            let destination = chikuwa::EphemeralPath::from(build_destination(folder, title)?);
             
-            // used release title instead of rule tag to avoid borrowing error
+            download_torrent(&mut client, link, &destination)?;
+            
+            // release title used instead of rule tag to avoid borrowing error
             rules.update(&release.title[..rule.tag.len()], episode)?;
+            
+            destination.make_permanent();
             
         }
         

@@ -6,7 +6,29 @@ Collection of small utilities.
 
 Available functionality:
 
-* **EphemeralPath**: Paths that attempt to delete themselves when dropped.
-* **WinString**: Null-terminated UTF-16 encoded strings.
-* **subslice_range**: Position of subslice between two delimiters (case-insensitive).
-* **HtmlEscaper**: Escape bytes for use in HTML text.
+* **EphemeralPath**: paths that attempt to delete themselves when dropped.
+* **WinString**: null-terminated UTF-16 encoded strings.
+* **subslice_range**: position of subslice between two delimiters (case-insensitive).
+* **HtmlEscaper**: escape bytes for safe usage in an HTML context.
+
+## API
+
+* EphemeralPath
+    * builder
+    * make_permanent
+    * Drop trait
+
+* EphemeralPathBuilder
+    * with_base
+    * with_suffix
+    * build
+
+* WinString
+    * From trait
+    * Deref trait
+
+* subslice_range
+
+* HtmlEscaper
+    * From trait
+    * Iterator trait

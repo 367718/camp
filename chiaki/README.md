@@ -11,3 +11,12 @@ Lists manager.
 * To prevent data loss, loading of lists that contains a tag too large for the target platform will be aborted.
 * UTF-8 correctness is not enforced.
 * Stored tags are required to be unique.
+
+## API
+
+* List
+    * load
+    * iter
+    * insert
+    * update
+    * delete

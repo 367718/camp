@@ -4,8 +4,11 @@ mpv player remote controller.
 
 ## Behavior
 
-* The frontend is an HTTP interface, while the backend is a named pipe.
-* No timeout mechanism has been implemented for the write operations on the named pipe.
+An HTTP interface allows the remote control of a running mpv instance. The parameter "input-ipc-server" of mpv must be configured with the name of the pipe to use for communication.
+
+No timeout mechanism has been implemented for the write operations on the named pipe.
+
+Only one route is available, "/".
 
 ## Configuration parameters used
 

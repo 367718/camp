@@ -10,7 +10,7 @@ use std::{
 
 pub struct EphemeralPath {
     inner: PathBuf,
-    managed: bool,
+    permanent: bool,
 }
 
 pub struct EphemeralPathBuilder {
@@ -23,7 +23,7 @@ impl From<PathBuf> for EphemeralPath {
     fn from(value: PathBuf) -> Self {
         Self {
             inner: value,
-            managed: true,
+            permanent: false,
         }
     }
     
@@ -59,7 +59,7 @@ impl Drop for EphemeralPath {
     
     fn drop(&mut self) {
         
-        if ! self.managed || ! self.inner.exists() {
+        if self.permanent || ! self.inner.exists() {
             return;
         }
         
@@ -82,8 +82,8 @@ impl EphemeralPath {
         }
     }
     
-    pub fn unmanage(mut self) {
-        self.managed = false;
+    pub fn make_permanent(mut self) {
+        self.permanent = true;
     }
     
 }
