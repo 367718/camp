@@ -101,6 +101,7 @@ impl List {
         // attempt to perform the update atomically
         fs::rename(&tmp_path, &self.path)?;
         
+        // since the path no longer exists, do not attempt to remove it
         tmp_path.make_permanent();
         
         self.content = content;

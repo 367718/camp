@@ -59,7 +59,7 @@ impl Drop for EphemeralPath {
     
     fn drop(&mut self) {
         
-        if self.permanent || ! self.inner.exists() {
+        if self.permanent {
             return;
         }
         
@@ -101,7 +101,8 @@ impl EphemeralPathBuilder {
     }
     
     pub fn build(self) -> EphemeralPath {
-        let mut inner = self.base.unwrap_or_else(env::temp_dir);
+        let mut base = self.base.unwrap_or_else(env::temp_dir);
+        
         let suffix = self.suffix.unwrap_or_default();
         
         let start = env!("CARGO_PKG_NAME");
@@ -114,16 +115,18 @@ impl EphemeralPathBuilder {
             .finish()
             .to_string();
         
-        let sections = format!("{}-{}-{}", start, &middle, &end);
+        let mut name = OsString::with_capacity(start.len() + 1 + middle.len() + 1 + end.len() + suffix.len());
         
-        let mut name = OsString::with_capacity(sections.len() + suffix.len());
-        
-        name.push(sections);
+        name.push(start);
+        name.push("-");
+        name.push(middle);
+        name.push("-");
+        name.push(end);
         name.push(suffix);
         
-        inner.push(name);
+        base.push(name);
         
-        EphemeralPath::from(inner)
+        EphemeralPath::from(base)
     }
     
 }
