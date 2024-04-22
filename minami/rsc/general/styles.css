@@ -93,12 +93,8 @@ iframe {
 /* -------------------- sections -------------------- */
 
 
-.sections a.active {
-  color: var(--text-secondary-color);
-}
-
 .sections a {
-  color: var(--text-primary-color);
+  color: var(--text-secondary-color);
   transition: background-color var(--transition-general-duration) ease;
   text-decoration: none;
   text-align: center;
@@ -109,6 +105,10 @@ iframe {
 .sections a:hover {
   cursor: pointer;
   background-color: var(--accent-color);
+}
+
+.sections a.active {
+  color: var(--text-primary-color);
 }
 
 
@@ -238,11 +238,8 @@ iframe {
 
 
 .toggles label {
-  color: var(--text-primary-color);
-  transition: background-color var(--transition-general-duration) ease;
-  accent-color: var(--accent-color);
-  display: flex;
-  gap: var(--panel-labels-spacing);
+  color: var(--text-secondary-color);
+  transition: background-color var(--transition-general-duration) ease, color var(--transition-general-duration) ease;
   padding: var(--panel-elements-spacing);
   min-width: var(--panel-elements-min-width);
 }
@@ -252,10 +249,6 @@ iframe {
   background-color: var(--accent-color);
 }
 
-.toggles input {
-  margin: 0rem;
-}
-
-.toggles input:hover {
-  cursor: pointer;
+.toggles label[data-active] {
+  color: var(--text-primary-color);
 }

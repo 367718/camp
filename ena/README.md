@@ -21,3 +21,4 @@ Files manager.
     * toggle_mark
     * move_to_folder
     * delete
+    * AsRef trait

@@ -1,7 +1,8 @@
 use std::{
     error::Error,
+    ffi::OsStr,
     io::Write,
-    path::Path,
+    path::MAIN_SEPARATOR_STR,
     process::{ Command, Stdio },
     str,
 };
@@ -25,7 +26,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- list --------------------
     
-    let files = ena::Files::new(Path::new(root))?;
+    let files = ena::Files::new(root)?;
     
     // -------------------- response --------------------
     
@@ -33,20 +34,30 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in files {
         
+        // skip entries whose file_name cannot be represented in UTF-8
+        let Some(file_name) = entry.file_name().to_str() else {
+            continue;
+        };
+        
+        // skip entries whose container cannot be represented in UTF-8
+        let Some(container) = entry.container(root).to_str() else {
+            continue;
+        };
+        
         write!(&mut response, "<a data-value='{}'>", u8::from(! entry.is_marked(flag)))?;
         
-        let (filename, container) = entry.components(root);
-        
-        if let Some(container) = container {
+        if ! container.is_empty() {
             response.write_all(b"<span>")?;
             
             chikuwa::HtmlEscaper::from(container.as_bytes())
                 .try_for_each(|escaped| response.write_all(escaped))?;
             
+            response.write_all(MAIN_SEPARATOR_STR.as_bytes())?;
+            
             response.write_all(b"</span>")?;
         }
         
-        chikuwa::HtmlEscaper::from(filename.as_bytes())
+        chikuwa::HtmlEscaper::from(file_name.as_bytes())
             .try_for_each(|escaped| response.write_all(escaped))?;
         
         response.write_all(b"</a>")?;
@@ -64,8 +75,8 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- files --------------------
     
-    let mut files = ena::Files::new(Path::new(root))?
-        .filter(|file| request.param(b"tag").any(|tag| file.relative(root).as_bytes() == tag))
+    let mut files = ena::Files::new(root)?
+        .filter(|file| is_file_selected(request, root, file))
         .peekable();
     
     if files.peek().is_none() {
@@ -97,8 +108,8 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- files --------------------
     
-    let mut files = ena::Files::new(Path::new(root))?
-        .filter(|file| request.param(b"tag").any(|tag| file.relative(root).as_bytes() == tag))
+    let mut files = ena::Files::new(root)?
+        .filter(|file| is_file_selected(request, root, file))
         .peekable();
     
     if files.peek().is_none() {
@@ -124,24 +135,24 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- files --------------------
     
-    let mut files = ena::Files::new(Path::new(root))?
-        .filter(|file| request.param(b"tag").any(|tag| file.relative(root).as_bytes() == tag))
+    let mut files = ena::Files::new(root)?
+        .filter(|file| is_file_selected(request, root, file))
         .peekable();
     
     if files.peek().is_none() {
         return Err("File not provided".into());
     }
     
-    // -------------------- foldername --------------------
+    // -------------------- folder --------------------
     
-    let foldername = match request.param(b"input").next() {
-        Some(input) => str::from_utf8(input).map_err(|_| "Invalid foldername")?,
+    let folder = match request.param(b"input").next() {
+        Some(input) => str::from_utf8(input).map_err(|_| "Invalid folder")?,
         None => "",
     };
     
     // -------------------- operation --------------------
     
-    files.try_for_each(|file| file.move_to_folder(root, foldername))?;
+    files.try_for_each(|file| file.move_to_folder(root, folder))?;
     
     // -------------------- response --------------------
     
@@ -158,8 +169,8 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- files --------------------
     
-    let mut files = ena::Files::new(Path::new(root))?
-        .filter(|file| request.param(b"tag").any(|tag| file.relative(root).as_bytes() == tag))
+    let mut files = ena::Files::new(root)?
+        .filter(|file| is_file_selected(request, root, file))
         .peekable();
     
     if files.peek().is_none() {
@@ -176,4 +187,10 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .and_then(|mut response| response.write_all(b"OK"))?;
     
     Ok(())
+}
+
+fn is_file_selected(request: &Request, root: &str, file: &ena::FilesEntry) -> bool {
+    request.param(b"tag")
+        .map(|tag| OsStr::new(str::from_utf8(tag).unwrap_or("")))
+        .any(|tag| file.relative(root) == tag)
 }

@@ -1,23 +1,28 @@
 use std::{
-    ffi::OsString,
+    ffi::{ OsStr, OsString },
     fs,
     io,
     path::Path,
 };
 
-pub fn is_marked(path: &str, flag: &str) -> bool {
+pub fn is_marked<P: AsRef<OsStr>, F: AsRef<OsStr>>(path: P, flag: F) -> bool {
     Path::new(&build_query(path, flag)).exists()
 }
 
-pub fn add(path: &str, flag: &str) -> io::Result<()> {
-    fs::write(build_query(path, flag), [0])
+pub fn toggle<P: AsRef<OsStr>, F: AsRef<OsStr>>(path: P, flag: F) -> io::Result<()> {
+    let stream = build_query(path, flag);
+    
+    if Path::new(&stream).exists() {
+        fs::remove_file(&stream)
+    } else {
+        fs::write(&stream, [0])
+    }
 }
 
-pub fn remove(path: &str, flag: &str) -> io::Result<()> {
-    fs::remove_file(build_query(path, flag))
-}
-
-fn build_query(path: &str, flag: &str) -> OsString {
+fn build_query<P: AsRef<OsStr>, F: AsRef<OsStr>>(path: P, flag: F) -> OsString {
+    let path = path.as_ref();
+    let flag = flag.as_ref();
+    
     let mut query = OsString::with_capacity(path.len() + 1 + flag.len());
     
     query.push(path);

@@ -16,6 +16,8 @@ Available functionality:
 * EphemeralPath
     * builder
     * make_permanent
+    * Deref trait
+    * AsRef trait
     * Drop trait
 
 * EphemeralPathBuilder

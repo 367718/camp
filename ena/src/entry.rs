@@ -1,14 +1,14 @@
 use std::{
-    error::Error,
     ffi::OsStr,
     fs,
-    path::{ MAIN_SEPARATOR, Path, PathBuf },
+    io::{ self, Error },
+    path::{ Path, PathBuf },
 };
 
 #[derive(PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct FilesEntry {
-    inner: String,
+    inner: PathBuf,
 }
 
 impl FilesEntry {
@@ -16,31 +16,31 @@ impl FilesEntry {
     // -------------------- constructors --------------------
     
     
-    pub(crate) fn new(path: PathBuf) -> Option<Self> {
-        path.into_os_string()
-            .into_string()
-            .map(|inner| Self { inner })
-            .ok()
+    pub(crate) fn new(inner: PathBuf) -> Self {
+        Self { inner }
     }
     
     
     // -------------------- accessors --------------------
     
     
-    pub fn relative(&self, root: &str) -> &str {
+    pub fn relative<R: AsRef<Path>>(&self, root: R) -> &Path {
         self.inner.strip_prefix(root)
-            .map_or(&self.inner, |container| container.strip_prefix(MAIN_SEPARATOR).unwrap_or(container))
+            .unwrap_or(&self.inner)
     }
     
-    pub fn components(&self, root: &str) -> (&str, Option<&str>) {
-        let relative = self.relative(root);
-        
-        relative.rfind(MAIN_SEPARATOR)
-            .map(|index| relative.split_at(index + 1))
-            .map_or((relative, None), |(directory, filename)| (filename, Some(directory)))
+    pub fn container<R: AsRef<Path>>(&self, root: R) -> &OsStr {
+        self.relative(root)
+            .parent()
+            .map_or_else(|| OsStr::new(""), Path::as_os_str)
     }
     
-    pub fn is_marked(&self, flag: &str) -> bool {
+    pub fn file_name(&self) -> &OsStr {
+        self.inner.file_name()
+            .unwrap_or_else(|| self.inner.as_os_str())
+    }
+    
+    pub fn is_marked<F: AsRef<OsStr>>(&self, flag: F) -> bool {
         crate::mark::is_marked(&self.inner, flag)
     }
     
@@ -48,37 +48,41 @@ impl FilesEntry {
     // -------------------- mutators --------------------
     
     
-    pub fn toggle_mark(self, flag: &str) -> Result<(), Box<dyn Error>> {
-        if crate::mark::is_marked(&self.inner, flag) {
-            crate::mark::remove(&self.inner, flag)?;
-        } else {
-            crate::mark::add(&self.inner, flag)?;
-        }
-        Ok(())
+    pub fn toggle_mark<F: AsRef<OsStr>>(self, flag: F) -> io::Result<()> {
+        crate::mark::toggle(self.inner, flag)
     }
     
-    pub fn move_to_folder(self, root: &str, foldername: &str) -> Result<(), Box<dyn Error>> {
-        let foldername = foldername.rsplit(MAIN_SEPARATOR).next().unwrap_or(foldername);
-        let filename = self.inner.rsplit(MAIN_SEPARATOR).next().ok_or("Invalid filename")?;
-        let directory = Path::new(root).join(foldername);
+    pub fn move_to_folder<R: AsRef<Path>, F: AsRef<Path>>(self, root: R, folder: F) -> io::Result<()> {
+        let folder = folder.as_ref();
+        
+        // disallow the creation of additional directories
+        let foldername = folder.file_name().unwrap_or(folder.as_os_str());
+        let filename = self.file_name();
+        
+        let directory = root.as_ref().join(foldername);
         let destination = directory.join(filename);
         
         if directory.exists() {
             if destination.exists() {
-                return Err(format!("Destination already exists: '{}'", &destination.to_string_lossy()).into());
+                return Err(Error::other(format!("Destination already exists: '{}'", &destination.to_string_lossy())));
             }
         } else {
             fs::create_dir(&directory)?;
         }
         
-        fs::rename(self.inner, &destination)?;
-        
-        Ok(())
+        fs::rename(self.inner, &destination)
     }
     
-    pub fn delete(self) -> Result<(), Box<dyn Error>> {
-        fs::remove_file(self.inner)?;
-        Ok(())
+    pub fn delete(self) -> io::Result<()> {
+        fs::remove_file(self.inner)
+    }
+    
+}
+
+impl AsRef<Path> for FilesEntry {
+    
+    fn as_ref(&self) -> &Path {
+        &self.inner
     }
     
 }

@@ -24,6 +24,8 @@ const ACTIONS_PROMPT_ATTRIBUTE = "data-prompt";
 const ACTIONS_REFRESH_ATTRIBUTE = "data-refresh";
 
 const TOGGLES_NODE_SELECTOR = ".toggles";
+const TOGGLES_VALUE_ATTRIBUTE = "data-value";
+const TOGGLES_ACTIVE_ATTRIBUTE = "data-active";
 
 const HOTKEY_COPY_CONTROL = true;
 const HOTKEY_COPY_COMPLETE = "KeyC";
@@ -429,10 +431,13 @@ class Toggles {
         
         for (const child of this.node.children) {
             
-            child.firstElementChild.addEventListener("change", (event) => this.parent.list.toggle(event.target.value));
+            child.addEventListener("click", (event) => {
+                child.toggleAttribute(TOGGLES_ACTIVE_ATTRIBUTE);
+                this.parent.list.toggle(event.target.getAttribute(TOGGLES_VALUE_ATTRIBUTE));
+            });
             
-            if (child.firstElementChild.checked) {
-              this.parent.list.toggle(child.firstElementChild.value);
+            if (child.hasAttribute(TOGGLES_ACTIVE_ATTRIBUTE)) {
+              this.parent.list.toggle(child.getAttribute(TOGGLES_VALUE_ATTRIBUTE));
             }
             
         }

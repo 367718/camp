@@ -2,8 +2,8 @@ mod entry;
 mod mark;
 
 use std::{
-    error::Error,
     fs,
+    io::{ self, Error },
     path::Path,
 };
 
@@ -20,19 +20,19 @@ pub struct Files {
 
 impl Files {
     
-    pub fn new(root: &Path) -> Result<Self, Box<dyn Error>> {
+    pub fn new<R: AsRef<Path>>(root: R) -> io::Result<Self> {
         Self::with_depth(root, INITIAL_DIRECTORY_DEPTH)
     }
     
-    fn with_depth(root: &Path, depth: u8) -> Result<Self, Box<dyn Error>> {
+    fn with_depth<C: AsRef<Path>>(current: C, depth: u8) -> io::Result<Self> {
         
         if depth > MAX_ALLOWED_DIRECTORY_DEPTH {
-            return Err("Maximum directory depth exceeded".into());
+            return Err(Error::other("Maximum directory depth exceeded"));
         }
         
         Ok(Self {
             depth,
-            current: root.read_dir()?,
+            current: current.as_ref().read_dir()?,
             subdirectory: None,
         })
         
@@ -64,22 +64,14 @@ impl Iterator for Files {
             
             // -------------------- current directory --------------------
             
-            'inner: for entry in self.current.by_ref().flatten() {
+            for entry in self.current.by_ref().flatten() {
                 
                 let path = entry.path();
                 
                 // file
                 
                 if path.is_file() {
-                    
-                    let entry = FilesEntry::new(path);
-                    
-                    if entry.is_some() {
-                        return entry;
-                    }
-                    
-                    continue 'inner;
-                    
+                    return Some(FilesEntry::new(path));
                 }
                 
                 // subdirectory
