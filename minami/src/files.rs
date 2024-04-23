@@ -40,7 +40,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
         };
         
         // skip entries whose container cannot be represented in UTF-8
-        let Some(container) = entry.container(root).to_str() else {
+        let Some(container) = entry.container().to_str() else {
             continue;
         };
         
@@ -76,7 +76,7 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- files --------------------
     
     let mut files = ena::Files::new(root)?
-        .filter(|file| is_file_selected(request, root, file))
+        .filter(|file| is_file_selected(request, file))
         .peekable();
     
     if files.peek().is_none() {
@@ -109,7 +109,7 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- files --------------------
     
     let mut files = ena::Files::new(root)?
-        .filter(|file| is_file_selected(request, root, file))
+        .filter(|file| is_file_selected(request, file))
         .peekable();
     
     if files.peek().is_none() {
@@ -136,7 +136,7 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- files --------------------
     
     let mut files = ena::Files::new(root)?
-        .filter(|file| is_file_selected(request, root, file))
+        .filter(|file| is_file_selected(request, file))
         .peekable();
     
     if files.peek().is_none() {
@@ -152,7 +152,7 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    files.try_for_each(|file| file.move_to_folder(root, folder))?;
+    files.try_for_each(|file| file.move_to_folder(folder))?;
     
     // -------------------- response --------------------
     
@@ -170,7 +170,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- files --------------------
     
     let mut files = ena::Files::new(root)?
-        .filter(|file| is_file_selected(request, root, file))
+        .filter(|file| is_file_selected(request, file))
         .peekable();
     
     if files.peek().is_none() {
@@ -189,8 +189,8 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn is_file_selected(request: &Request, root: &str, file: &ena::FilesEntry) -> bool {
+fn is_file_selected(request: &Request, file: &ena::FilesEntry) -> bool {
     request.param(b"tag")
         .map(|tag| OsStr::new(str::from_utf8(tag).unwrap_or("")))
-        .any(|tag| file.relative(root) == tag)
+        .any(|tag| ! tag.is_empty() && tag == file.relative())
 }

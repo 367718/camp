@@ -9,6 +9,7 @@ use std::{
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct FilesEntry {
     inner: PathBuf,
+    depth: u8,
 }
 
 impl FilesEntry {
@@ -16,32 +17,42 @@ impl FilesEntry {
     // -------------------- constructors --------------------
     
     
-    pub(crate) fn new(inner: PathBuf) -> Self {
-        Self { inner }
+    pub(crate) fn new(inner: PathBuf, depth: u8) -> Self {
+        Self { inner, depth }
     }
     
     
     // -------------------- accessors --------------------
     
     
-    pub fn relative<R: AsRef<Path>>(&self, root: R) -> &Path {
-        self.inner.strip_prefix(root)
-            .unwrap_or(&self.inner)
+    pub fn path(&self) -> &Path {
+        &self.inner
     }
     
-    pub fn container<R: AsRef<Path>>(&self, root: R) -> &OsStr {
-        self.relative(root)
+    pub fn relative(&self) -> &Path {
+        self.inner.strip_prefix(self.root())
+            .expect("Discrepancy between full path and root")
+    }
+    
+    pub fn container(&self) -> &OsStr {
+        self.relative()
             .parent()
             .map_or_else(|| OsStr::new(""), Path::as_os_str)
     }
     
     pub fn file_name(&self) -> &OsStr {
         self.inner.file_name()
-            .unwrap_or_else(|| self.inner.as_os_str())
+            .unwrap_or_else(|| OsStr::new(""))
     }
     
     pub fn is_marked<F: AsRef<OsStr>>(&self, flag: F) -> bool {
         crate::mark::is_marked(&self.inner, flag)
+    }
+    
+    fn root(&self) -> &Path {
+        self.inner.ancestors()
+            .nth(self.depth as usize)
+            .expect("Depth exceeded full path")
     }
     
     
@@ -52,14 +63,14 @@ impl FilesEntry {
         crate::mark::toggle(self.inner, flag)
     }
     
-    pub fn move_to_folder<R: AsRef<Path>, F: AsRef<Path>>(self, root: R, folder: F) -> io::Result<()> {
+    pub fn move_to_folder<F: AsRef<Path>>(self, folder: F) -> io::Result<()> {
         let folder = folder.as_ref();
         
         // disallow the creation of additional directories
         let foldername = folder.file_name().unwrap_or(folder.as_os_str());
         let filename = self.file_name();
         
-        let directory = root.as_ref().join(foldername);
+        let directory = self.root().join(foldername);
         let destination = directory.join(filename);
         
         if directory.exists() {

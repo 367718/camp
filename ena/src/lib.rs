@@ -13,9 +13,9 @@ const INITIAL_DIRECTORY_DEPTH: u8 = 1;
 const MAX_ALLOWED_DIRECTORY_DEPTH: u8 = 5;
 
 pub struct Files {
-    depth: u8,
     current: fs::ReadDir,
     subdirectory: Option<Box<Files>>,
+    depth: u8,
 }
 
 impl Files {
@@ -31,9 +31,9 @@ impl Files {
         }
         
         Ok(Self {
-            depth,
             current: current.as_ref().read_dir()?,
             subdirectory: None,
+            depth,
         })
         
     }
@@ -71,7 +71,7 @@ impl Iterator for Files {
                 // file
                 
                 if path.is_file() {
-                    return Some(FilesEntry::new(path));
+                    return Some(FilesEntry::new(path, self.depth));
                 }
                 
                 // subdirectory
