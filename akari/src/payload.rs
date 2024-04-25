@@ -1,5 +1,5 @@
 use std::{
-    io::{ self, Read },
+    io::{ self, Read, Error },
     mem,
     os::raw::*,
     ptr,
@@ -27,9 +27,9 @@ impl Payload {
                 0
             };
             
-            let handle = ffi::WinHttpOpenRequest(
+            let result = ffi::WinHttpOpenRequest(
                 connection.handle,
-                chikuwa::WinString::from("GET").as_ptr(),
+                ptr::null(),
                 chikuwa::WinString::from(path).as_ptr(),
                 ptr::null(),
                 ffi::WINHTTP_NO_REFERER,
@@ -37,11 +37,11 @@ impl Payload {
                 flags,
             );
             
-            if handle.is_null() {
-                return Err(io::Error::last_os_error());
+            if result.is_null() {
+                return Err(Error::last_os_error());
             }
             
-            handle
+            result
             
         };
         
@@ -53,7 +53,7 @@ impl Payload {
                 handle,
                 ffi::WINHTTP_NO_ADDITIONAL_HEADERS,
                 0,
-                ffi::WINHTTP_NO_REQUEST_DATA,
+                ptr::null_mut(),
                 0,
                 0,
                 0,
@@ -61,7 +61,7 @@ impl Payload {
             
             if result == 0 {
                 ffi::WinHttpCloseHandle(handle);
-                return Err(io::Error::last_os_error());
+                return Err(Error::last_os_error());
             }
             
         }
@@ -77,7 +77,7 @@ impl Payload {
             
             if result == 0 {
                 ffi::WinHttpCloseHandle(handle);
-                return Err(io::Error::last_os_error());
+                return Err(Error::last_os_error());
             }
             
         }
@@ -131,7 +131,7 @@ impl Read for Payload {
             );
             
             if result == 0 {
-                return Err(io::Error::last_os_error());
+                return Err(Error::last_os_error());
             }
             
             Ok(amount_read as usize)

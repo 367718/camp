@@ -1,5 +1,5 @@
 use std::{
-    io,
+    io::{ self, Error },
     mem,
     os::raw::*,
     ptr,
@@ -32,7 +32,7 @@ impl Session {
             );
             
             if result.is_null() {
-                return Err(io::Error::last_os_error());
+                return Err(Error::last_os_error());
             }
             
             result
@@ -52,14 +52,15 @@ impl Session {
             );
             
             if result == 0 {
-                let error = Err(io::Error::last_os_error());
                 ffi::WinHttpCloseHandle(handle);
-                return error;
+                return Err(Error::last_os_error());
             }
             
         }
         
-        // -------------------- http version --------------------
+        // -------------------- options --------------------
+        
+        // set HTTP/2 usage
         
         unsafe {
             
@@ -76,9 +77,8 @@ impl Session {
             );
             
             if result == 0 {
-                let error = Err(io::Error::last_os_error());
                 ffi::WinHttpCloseHandle(handle);
-                return error;
+                return Err(Error::last_os_error());
             }
             
         }

@@ -191,6 +191,6 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
 
 fn is_file_selected(request: &Request, file: &ena::FilesEntry) -> bool {
     request.param(b"tag")
-        .map(|tag| OsStr::new(str::from_utf8(tag).unwrap_or("")))
-        .any(|tag| ! tag.is_empty() && tag == file.relative())
+        .filter_map(|tag| str::from_utf8(tag).map(OsStr::new).ok())
+        .any(|tag| tag == file.relative())
 }

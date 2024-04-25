@@ -1,115 +1,111 @@
 <!DOCTYPE html>
-<html lang="en">
-  
-  <head>
+<html>
     
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Remote control</title>
-    <link rel="icon" href="data:,">
-    
-    <style>
-      
-      body {
-        display: flex;
-        justify-content: center;
-        margin: 25px;
-      }
-      
-      div {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 50px;
-        width: 850px;
-      }
-      
-      div button {
-        font-size: 40px;
-        font-family: "Courier New", monospace;
-        height: 85px;
-        cursor: pointer;
-        border: 5px solid lightgray;
-        border-radius: 10px;
-      }
-      
-      /* play / pause */
-      
-      div button:nth-of-type(1) {
-        grid-column-start: 1;
-        grid-column-end: 3;
-        color: red;
-      }
-      
-      /* minuschapter / pluschapter */
-      /* minusplaylist / plusplaylist */
-      
-      div button:nth-of-type(n+2) {
-        color: blue;
-      }
-      
-      /* minus5 / plus5 */
-      /* minus75 / plus75 */
-      
-      div button:nth-of-type(n+6) {
-        color: green;
-      }
-      
-      /* fullscreen / subtitles */
-      /* title / time */
-      
-      div button:nth-of-type(n+10) {
-        color: darkgoldenrod;
-      }
-      
-      /* quit */
-      
-      div button:nth-of-type(14) {
-        grid-column-start: 1;
-        grid-column-end: 3;
-        color: black;
-      }
-      
-    </style>
-    
-    <script>
-      
-      function send_command(command) {
+    <head>
         
-        fetch(command)
-          .then(response => {
-            if (response.status != 200) {
-              response.text().then(message => document.body.innerHTML = message);
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>aoi</title>
+        <link rel="icon" type="image/x-icon" href="data:,">
+        
+        <style>
+            
+            body {
+                display: flex;
+                justify-content: center;
+                margin: 25px;
             }
-          })
-          .catch(message => document.body.innerHTML = message);
+            
+            div {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 50px;
+                width: 850px;
+            }
+            
+            div button {
+                font-size: 40px;
+                font-family: "Courier New", monospace;
+                height: 85px;
+                cursor: pointer;
+                border: 5px solid lightgray;
+                border-radius: 10px;
+            }
+            
+            /* play / pause */
+            
+            div button:nth-of-type(1) {
+                grid-column-start: 1;
+                grid-column-end: 3;
+                color: red;
+            }
+            
+            /* minuschapter / pluschapter */
+            /* minusplaylist / plusplaylist */
+            
+            div button:nth-of-type(n+2) {
+                color: blue;
+            }
+            
+            /* minus5 / plus5 */
+            /* minus75 / plus75 */
+            
+            div button:nth-of-type(n+6) {
+                color: green;
+            }
+            
+            /* fullscreen / subtitles */
+            /* title / time */
+            
+            div button:nth-of-type(n+10) {
+                color: darkgoldenrod;
+            }
+            
+            /* quit */
+            
+            div button:nth-of-type(14) {
+                grid-column-start: 1;
+                grid-column-end: 3;
+                color: black;
+            }
+            
+        </style>
         
-      }
-      
-    </script>
+        <script>
+            
+            function send_command(command) {
+                
+                fetch(command)
+                    .then(response => {
+                        if (response.status != 200) {
+                            response.text().then(message => document.body.innerHTML = message);
+                        }
+                    })
+                .catch(message => document.body.innerHTML = message);
+                
+            }
+            
+        </script>
+        
+    </head>
     
-  </head>
-  
-  <body>
+    <body>
+        <div>
+            <button onmousedown="send_command('/play')">play / pause</button>
+            <button onmousedown="send_command('/minuschapter')">- chapter</button>
+            <button onmousedown="send_command('/pluschapter')">+ chapter</button>
+            <button onmousedown="send_command('/minusplaylist')">- playlist</button>
+            <button onmousedown="send_command('/plusplaylist')">+ playlist</button>
+            <button onmousedown="send_command('/minus5')">- 5 secs</button>
+            <button onmousedown="send_command('/plus5')">+ 5 secs</button>
+            <button onmousedown="send_command('/minus75')">- 75 secs</button>
+            <button onmousedown="send_command('/plus75')">+ 75 secs</button>
+            <button onmousedown="send_command('/fullscreen')">fullscreen</button>
+            <button onmousedown="send_command('/subtitles')">subtitles</button>
+            <button onmousedown="send_command('/title')">show title</button>
+            <button onmousedown="send_command('/time')">show time</button>
+            <button onmousedown="send_command('/quit')">quit</button>
+        </div>
+    </body>
     
-    <div>
-      
-      <button onmousedown="send_command('/play')">play / pause</button>
-      <button onmousedown="send_command('/minuschapter')">- chapter</button>
-      <button onmousedown="send_command('/pluschapter')">+ chapter</button>
-      <button onmousedown="send_command('/minusplaylist')">- playlist</button>
-      <button onmousedown="send_command('/plusplaylist')">+ playlist</button>
-      <button onmousedown="send_command('/minus5')">- 5 secs</button>
-      <button onmousedown="send_command('/plus5')">+ 5 secs</button>
-      <button onmousedown="send_command('/minus75')">- 75 secs</button>
-      <button onmousedown="send_command('/plus75')">+ 75 secs</button>
-      <button onmousedown="send_command('/fullscreen')">fullscreen</button>
-      <button onmousedown="send_command('/subtitles')">subtitles</button>
-      <button onmousedown="send_command('/title')">show title</button>
-      <button onmousedown="send_command('/time')">show time</button>
-      <button onmousedown="send_command('/quit')">quit</button>
-      
-    </div>
-    
-  </body>
-  
 </html>

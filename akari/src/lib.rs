@@ -4,7 +4,7 @@ mod connection;
 mod payload;
 mod extractor;
 
-use std::io;
+use std::io::{ self, Error };
 
 use session::Session;
 use connection::Connection;
@@ -32,7 +32,7 @@ impl Client {
     
     pub fn get(&mut self, url: &str) -> io::Result<Payload> {
         let (host, port, path, secure) = extractor::get_params(url)
-            .ok_or(io::Error::new(io::ErrorKind::InvalidInput, "Invalid URL"))?;
+            .ok_or(Error::other("Invalid URL"))?;
         
         let connection = Connection::new(&self.session, host, port)?;
         

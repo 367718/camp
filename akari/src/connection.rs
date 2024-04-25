@@ -1,4 +1,4 @@
-use std::io;
+use std::io::{ self, Error };
 
 use super::{ ffi, Session };
 
@@ -19,7 +19,7 @@ impl Connection {
             );
             
             if result.is_null() {
-                return Err(io::Error::last_os_error());
+                return Err(Error::last_os_error());
             }
             
             result

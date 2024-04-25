@@ -1,5 +1,5 @@
 use std::{
-    io::{ self, Read },
+    io::{ self, Read, Error },
     net::TcpStream,
     str,
 };
@@ -51,6 +51,7 @@ impl Request {
         
         // -------------------- body --------------------
         
+        // body will be empty unless the request specifies a content length
         let content_length = chikuwa::subslice_range(&headers, b"Content-Length: ", b"\r\n")
             .map(|range| &headers[range])
             .and_then(|value| str::from_utf8(value).ok())
@@ -102,7 +103,7 @@ impl Request {
     
     pub fn start_response(&mut self, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Response> {
         let stream = self.stream.take()
-            .ok_or(io::Error::new(io::ErrorKind::Other, "Response already sent"))?;
+            .ok_or(Error::other("Response already sent"))?;
         
         Response::new(stream, status, content, cache)
     }
@@ -114,10 +115,10 @@ impl<'h, 'b> Iterator for Params<'h, 'b> {
     type Item = (&'b [u8], &'b [u8]);
     
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(range) = chikuwa::subslice_range(self.content, self.boundary, self.boundary) {
+        while let Some(param) = chikuwa::subslice_range(self.content, self.boundary, self.boundary) {
             
-            let item = build_pair(&self.content[range.start..range.end]);
-            self.content = &self.content[range.end..];
+            let item = build_pair(&self.content[param.start..param.end]);
+            self.content = &self.content[param.end..];
             
             if item.is_some() {
                 return item;
@@ -130,11 +131,11 @@ impl<'h, 'b> Iterator for Params<'h, 'b> {
     
 }
 
-fn build_pair(data: &[u8]) -> Option<(&[u8], &[u8])> {
-    let range = chikuwa::subslice_range(data, b"Content-Disposition: form-data; name=\"", b"\"\r\n\r\n")?;
+fn build_pair(param: &[u8]) -> Option<(&[u8], &[u8])> {
+    let data = chikuwa::subslice_range(param, b"Content-Disposition: form-data; name=\"", b"\"\r\n\r\n")?;
     
-    let key = &data[range.start..range.end];
-    let value = data[range.end..][5..].strip_suffix(b"\r\n--")?;
+    let key = &param[data.start..data.end];
+    let value = param[data.end..][5..].strip_suffix(b"\r\n--")?;
     
     Some((key, value))
 }

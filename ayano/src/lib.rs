@@ -2,7 +2,7 @@ mod request;
 mod response;
 
 use std::{
-    error::Error,
+    io,
     net::TcpListener,
     time::Duration,
 };
@@ -76,7 +76,7 @@ impl CacheControl {
 
 impl Server {
     
-    pub fn new(address: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn new(address: &str) -> io::Result<Self> {
         Ok(Self {
             listener: TcpListener::bind(address)?,
         })

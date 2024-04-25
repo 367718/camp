@@ -23,6 +23,7 @@ extern "system" {
         n_receive_timeout: c_int,
     ) -> c_int; // BOOL
     
+    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsetoption
     pub fn WinHttpSetOption(
         h_internet: HINTERNET,
         dw_option: c_ulong, // DWORD
@@ -106,7 +107,6 @@ pub const WINHTTP_DEFAULT_ACCEPT_TYPES: *mut *const c_ushort = ptr::null_mut(); 
 pub const WINHTTP_FLAG_SECURE: c_ulong = 0x0080_0000; // DWORD
 
 pub const WINHTTP_NO_ADDITIONAL_HEADERS: *const c_ushort = ptr::null(); // // LPCWSTR -> WCHAR -> wchar_t
-pub const WINHTTP_NO_REQUEST_DATA: *mut c_void = ptr::null_mut(); // LPVOID
 
 pub const WINHTTP_QUERY_CONTENT_LENGTH: c_ulong = 5; // DWORD
 pub const WINHTTP_QUERY_FLAG_NUMBER: c_ulong = 0x2000_0000; // DWORD

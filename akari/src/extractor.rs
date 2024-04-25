@@ -44,6 +44,21 @@ mod tests {
     }
     
     #[test]
+    fn ip() {
+        // setup
+        
+        let url = "http://192.168.150.10/test";
+        
+        // operation
+        
+        let output = get_params(url);
+        
+        // control
+        
+        assert_eq!(output, Some(("192.168.150.10", 80, "/test", false)));
+    }
+    
+    #[test]
     fn with_querystring() {
         // setup
         

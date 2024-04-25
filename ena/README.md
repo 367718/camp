@@ -14,8 +14,10 @@ Files manager.
     * Iterator trait
 
 * FilesEntry
+    * path
     * relative
-    * components
+    * container
+    * file_name
     * is_marked
     * toggle_mark
     * move_to_folder
