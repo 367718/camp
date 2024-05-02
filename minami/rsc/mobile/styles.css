@@ -1,0 +1,37 @@
+/* -------------------- globals -------------------- */
+
+
+:root {
+    
+    --panel-spacing: 1.25rem;
+    --panel-elements-spacing: 1rem;
+    --panel-anchors-min-width: 22rem;
+    --panel-labels-min-width: 7rem;
+    
+    --list-gap: 1rem;
+    --list-margin: 1rem;
+    
+    --entry-line-height: 5rem;
+    
+    --font-size: 1.5rem;
+    --border-radius: 0.25rem;
+    --border-width: 2px;
+    
+}
+
+
+/* -------------------- body -------------------- */
+
+
+body {
+    height: 100%;
+}
+
+
+/* -------------------- list -------------------- */
+
+
+.list {
+    display: flex;
+    flex-direction: column;
+}

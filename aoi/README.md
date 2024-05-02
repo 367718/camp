@@ -8,7 +8,9 @@ An HTTP interface allows the remote control of a running mpv instance. The param
 
 No timeout mechanism has been implemented for the write operations on the named pipe.
 
-Only one route is available, "/".
+## Routes available
+
+* **/**: all the controls available, intended to be used by a tablet device.
 
 ## Configuration parameters used
 

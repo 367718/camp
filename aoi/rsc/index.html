@@ -23,50 +23,52 @@
                 width: 850px;
             }
             
-            div button {
+            button {
+                
                 font-size: 40px;
                 font-family: "Courier New", monospace;
                 height: 85px;
                 cursor: pointer;
                 border: 5px solid lightgray;
                 border-radius: 10px;
-            }
-            
-            /* play / pause */
-            
-            div button:nth-of-type(1) {
-                grid-column-start: 1;
-                grid-column-end: 3;
-                color: red;
-            }
-            
-            /* minuschapter / pluschapter */
-            /* minusplaylist / plusplaylist */
-            
-            div button:nth-of-type(n+2) {
-                color: blue;
-            }
-            
-            /* minus5 / plus5 */
-            /* minus75 / plus75 */
-            
-            div button:nth-of-type(n+6) {
-                color: green;
-            }
-            
-            /* fullscreen / subtitles */
-            /* title / time */
-            
-            div button:nth-of-type(n+10) {
-                color: darkgoldenrod;
-            }
-            
-            /* quit */
-            
-            div button:nth-of-type(14) {
-                grid-column-start: 1;
-                grid-column-end: 3;
-                color: black;
+                
+                /* play / pause */
+                
+                &::nth-of-type(1) {
+                    grid-column-start: 1;
+                    grid-column-end: 3;
+                    color: red;
+                }
+                
+                /* minuschapter / pluschapter */
+                /* minusplaylist / plusplaylist */
+                
+                &:nth-of-type(n+2) {
+                    color: blue;
+                }
+                
+                /* minus5 / plus5 */
+                /* minus75 / plus75 */
+                
+                &:nth-of-type(n+6) {
+                    color: green;
+                }
+                
+                /* fullscreen / subtitles */
+                /* title / time */
+                
+                &:nth-of-type(n+10) {
+                    color: darkgoldenrod;
+                }
+                
+                /* quit */
+                
+                &:nth-of-type(14) {
+                    grid-column-start: 1;
+                    grid-column-end: 3;
+                    color: black;
+                }
+                
             }
             
         </style>
@@ -78,10 +80,10 @@
                 fetch(command)
                     .then(response => {
                         if (response.status != 200) {
-                            response.text().then(message => document.body.innerHTML = message);
+                            response.text().then(error => window.alert(error));
                         }
                     })
-                .catch(message => document.body.innerHTML = message);
+                .catch(error => window.alert(error));
                 
             }
             

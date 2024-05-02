@@ -7,6 +7,7 @@
         <title>minami</title>
         <link rel="icon" type="image/x-icon" href="/favicon.ico">
         <link rel="stylesheet" type="text/css" href="/styles.css">
+        <link rel="stylesheet" type="text/css" href="/mobile/styles.css">
         <script type="text/javascript" src="/scripts.js"></script>
     </head>
     
@@ -15,27 +16,8 @@
             
             <div class="panel">
                 
-                <div class="sections">
-                    <a class="active">files</a>
-                    <a href="/watchlist">watchlist</a>
-                    <a href="/rules">rules</a>
-                    <a href="/feeds">feeds</a>
-                </div>
-                
-                <input type="text" class="filter" placeholder="filter">
-                
-            </div>
-            
-            <div tabindex="0" data-refresh="/files/entries" class="list sorted show-primary show-tertiary">
-            </div>
-            
-            <div class="panel">
-                
                 <div class="actions">
                     <a data-url="/files/play" data-confirm="false" data-prompt="false" data-refresh="false">play</a>
-                    <a data-url="/files/mark" data-confirm="false" data-prompt="false" data-refresh="true">mark</a>
-                    <a data-url="/files/folder" data-confirm="false" data-prompt="true" data-refresh="true">folder</a>
-                    <a data-url="/files/delete" data-confirm="true" data-prompt="false" data-refresh="true">delete</a>
                 </div>
                 
                 <div class="toggles">
@@ -50,6 +32,9 @@
                     </label>
                 </div>
                 
+            </div>
+            
+            <div data-refresh="/files/entries" class="list sorted show-primary show-tertiary">
             </div>
             
         </div>

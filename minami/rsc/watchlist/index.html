@@ -11,13 +11,13 @@
     </head>
     
     <body>
-        <div class="section">
+        <div class="current">
             
             <div class="panel">
                 
                 <div class="sections">
                     <a href="/files">files</a>
-                    <a class="active" onclick="SECTION.list.refresh();">watchlist</a>
+                    <a class="active">watchlist</a>
                     <a href="/rules">rules</a>
                     <a href="/feeds">feeds</a>
                 </div>
@@ -26,7 +26,7 @@
                 
             </div>
             
-            <div tabindex="0" data-refresh="/watchlist/entries" data-sorted="true" class="list show-value">
+            <div tabindex="0" data-refresh="/watchlist/entries" class="list sorted show-value show-primary show-secondary">
             </div>
             
             <div class="panel">

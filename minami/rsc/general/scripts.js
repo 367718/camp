@@ -4,14 +4,17 @@
 // -------------------- constants --------------------
 
 
-const SECTION_NODE_SELECTOR = ".section";
+const CURRENT_NODE_SELECTOR = ".current";
+
+const SECTIONS_NODE_SELECTOR = ".sections";
+const SECTIONS_ACTIVE_CLASS = "active";
 
 const FILTER_NODE_SELECTOR = ".filter";
 const FILTER_TIMEOUT_ATTRIBUTE = "data-timeout";
 const FILTER_TIMEOUT_VALUE = 500;
 
 const LIST_NODE_SELECTOR = ".list";
-const LIST_SORTED_ATTRIBUTE = "data-sorted";
+const LIST_SORTED_CLASS = "sorted";
 const LIST_REFRESH_ATTRIBUTE = "data-refresh";
 
 const ENTRY_SELECTED_ATTRIBUTE = "data-selected";
@@ -35,16 +38,12 @@ const HOTKEY_COPY_CLEAN = "KeyX";
 // -------------------- classes --------------------
 
 
-class Section {
+class Current {
     
     constructor() {
         
-        this.node = document.querySelector(SECTION_NODE_SELECTOR);
-        
-        if (this.node === null) {
-            return;
-        }
-        
+        this.node = document.querySelector(CURRENT_NODE_SELECTOR);
+        this.sections = new Sections(this);
         this.filter = new Filter(this);
         this.list = new List(this);
         this.actions = new Actions(this);
@@ -52,16 +51,32 @@ class Section {
         
         Object.freeze(this);
         
-        this.node.addEventListener("mouseover", () => {
-            
-            // bail if filter input is involved
-            if (document.activeElement === this.filter.node) {
-                return;
+    }
+    
+}
+
+class Sections {
+    
+    constructor(parent) {
+        
+        // -------------------- properties --------------------
+        
+        this.node = parent.node?.querySelector(SECTIONS_NODE_SELECTOR) ?? null;
+        this.parent = parent;
+        
+        Object.freeze(this);
+        
+        if (this.node === null) {
+            return;
+        }
+        
+        // -------------------- bindings --------------------
+        
+        for (const child of this.node.children) {
+            if (child.classList.contains(SECTIONS_ACTIVE_CLASS)) {
+                child.addEventListener("click", () => this.parent.list.refresh());
             }
-            
-            this.list.node.focus();
-            
-        });
+        }
         
     }
     
@@ -71,10 +86,18 @@ class Filter {
     
     constructor(parent) {
         
-        this.node = parent.node.querySelector(FILTER_NODE_SELECTOR);
+        // -------------------- properties --------------------
+        
+        this.node = parent.node?.querySelector(FILTER_NODE_SELECTOR) ?? null;
         this.parent = parent;
         
         Object.freeze(this);
+        
+        if (this.node === null) {
+            return;
+        }
+        
+        // -------------------- bindings --------------------
         
         this.node.addEventListener("input", () => {
             
@@ -99,10 +122,10 @@ class Filter {
         
         outer: for (let entry of entries) {
             
-            const current = entry.text(false).normalize("NFC");
+            const text = entry.text(false).normalize("NFC");
             
-            for (let start = 0, end = criteria.length; end <= current.length; start++, end++) {
-                if (collator.compare(criteria, current.slice(start, end)) === 0) {
+            for (let start = 0, end = criteria.length; end <= text.length; start++, end++) {
+                if (collator.compare(criteria, text.slice(start, end)) === 0) {
                     continue outer;
                 }
             }
@@ -122,17 +145,25 @@ class List {
     
     constructor(parent) {
         
-        this.node = parent.node.querySelector(LIST_NODE_SELECTOR);
+        // -------------------- properties --------------------
+        
+        this.node = parent.node?.querySelector(LIST_NODE_SELECTOR) ?? null;
         this.parent = parent;
         this.entries = [];
         
         // freeze would prevent the refreshing of the entries array
         Object.seal(this);
         
+        if (this.node === null) {
+            return;
+        }
+        
+        // -------------------- bindings --------------------
+        
         this.node.addEventListener("keydown", (event) => {
             
             // bail if filter input is involved
-            if (event.target === this.parent.filter.node) {
+            if (this.parent.filter.node && event.target === this.parent.filter.node) {
                 return;
             }
             
@@ -143,6 +174,8 @@ class List {
             }
             
         });
+        
+        // -------------------- initial load --------------------
         
         this.refresh();
         
@@ -249,7 +282,7 @@ class List {
                 
                 const children = Array.from(container.children);
                 
-                if (this.node.getAttribute(LIST_SORTED_ATTRIBUTE) === "true") {
+                if (this.node.classList.contains(LIST_SORTED_CLASS)) {
                     const collator = new Intl.Collator("en", { usage: "sort", sensitivity: "base", numeric: true });
                     children.sort((a, b) => a.children.length - b.children.length || collator.compare(a.textContent, b.textContent));
                 }
@@ -260,7 +293,9 @@ class List {
                 
                 // filter
                 
-                this.parent.filter.apply(entries);
+                if (this.parent.filter.node) {
+                    this.parent.filter.apply(entries);
+                }
                 
                 // refresh
                 
@@ -278,12 +313,39 @@ class Entry {
     
     constructor(node, parent) {
         
+        // -------------------- properties --------------------
+        
         this.node = node;
         this.parent = parent;
         
         Object.freeze(this);
         
-        this.node.onclick = (event) => this.parent.select(this, event.ctrlKey, event.shiftKey);
+        if (this.node === null) {
+            return;
+        }
+        
+        // -------------------- bindings --------------------
+        
+        this.node.onclick = (event) => this.parent.select(this, event.ctrlKey, event.shiftKey)
+        
+        this.node.ontouchstart = (_event) => {
+        
+            const initialPosition = this.parent.node.scrollTop;
+            
+            this.node.ontouchend = (event) => {
+                
+                // attempt to ignore scrolling and other gestures
+                if (initialPosition === this.parent.node.scrollTop && event.touches.length < 2) {
+                    // handle tap as "control click"
+                    this.parent.select(this, true, false);
+                }
+                
+                // prevent click event from firing
+                event.preventDefault();
+                
+            };
+            
+        };
         
     }
     
@@ -350,10 +412,18 @@ class Actions {
     
     constructor(parent) {
         
-        this.node = parent.node.querySelector(ACTIONS_NODE_SELECTOR);
+        // -------------------- properties --------------------
+        
+        this.node = parent.node?.querySelector(ACTIONS_NODE_SELECTOR) ?? null;
         this.parent = parent;
         
         Object.freeze(this);
+        
+        if (this.node === null) {
+            return;
+        }
+        
+        // -------------------- bindings --------------------
         
         for (const child of this.node.children) {
             child.addEventListener("click", () => {
@@ -424,10 +494,18 @@ class Toggles {
     
     constructor(parent) {
         
-        this.node = parent.node.querySelector(TOGGLES_NODE_SELECTOR);
+        // -------------------- properties --------------------
+        
+        this.node = parent.node?.querySelector(TOGGLES_NODE_SELECTOR) ?? null;
         this.parent = parent;
         
         Object.freeze(this);
+        
+        if (this.node === null) {
+            return;
+        }
+        
+        // -------------------- bindings --------------------
         
         for (const child of this.node.children) {
             
@@ -435,10 +513,6 @@ class Toggles {
                 child.toggleAttribute(TOGGLES_ACTIVE_ATTRIBUTE);
                 this.parent.list.toggle(event.target.getAttribute(TOGGLES_VALUE_ATTRIBUTE));
             });
-            
-            if (child.hasAttribute(TOGGLES_ACTIVE_ATTRIBUTE)) {
-              this.parent.list.toggle(child.getAttribute(TOGGLES_VALUE_ATTRIBUTE));
-            }
             
         }
         
@@ -450,4 +524,4 @@ class Toggles {
 // -------------------- initialization --------------------
 
 
-document.addEventListener("DOMContentLoaded", () => window.SECTION = new Section());
+document.addEventListener("DOMContentLoaded", () => new Current());

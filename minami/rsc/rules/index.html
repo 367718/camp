@@ -11,14 +11,14 @@
     </head>
     
     <body>
-        <div class="section">
+        <div class="current">
             
             <div class="panel">
                 
                 <div class="sections">
                     <a href="/files">files</a>
                     <a href="/watchlist">watchlist</a>
-                    <a class="active" onclick="SECTION.list.refresh();">rules</a>
+                    <a class="active">rules</a>
                     <a href="/feeds">feeds</a>
                 </div>
                 
@@ -26,7 +26,7 @@
                 
             </div>
             
-            <div tabindex="0" data-refresh="/rules/entries" data-sorted="true" class="list show-value show-primary show-secondary">
+            <div tabindex="0" data-refresh="/rules/entries" class="list sorted show-value show-primary show-secondary">
             </div>
             
             <div class="panel">
@@ -35,9 +35,6 @@
                     <a data-url="/rules/insert" data-confirm="false" data-prompt="true" data-refresh="true">insert</a>
                     <a data-url="/rules/update" data-confirm="false" data-prompt="true" data-refresh="true">update</a>
                     <a data-url="/rules/delete" data-confirm="true" data-prompt="false" data-refresh="true">delete</a>
-                </div>
-                
-                <div class="toggles">
                 </div>
                 
             </div>

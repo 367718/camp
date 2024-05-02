@@ -23,6 +23,7 @@ fn load() -> &'static [u8] {
     static CONTENT: OnceLock<Vec<u8>> = OnceLock::new();
     
     // possible future alternative: https://doc.rust-lang.org/std/sync/struct.OnceLock.html#method.get_or_try_init
+    
     CONTENT.get_or_init(|| {
         
         let path = env::current_exe()

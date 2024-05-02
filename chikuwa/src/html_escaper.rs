@@ -16,7 +16,7 @@ impl<'e> Iterator for HtmlEscaper<'e> {
     
     fn next(&mut self) -> Option<Self::Item> {
         
-        // possible alternative: https://github.com/rust-lang/rust/issues/62280
+        // possible future alternative: https://doc.rust-lang.org/core/primitive.slice.html#method.take
         
         if self.content.is_empty() {
             return None;
