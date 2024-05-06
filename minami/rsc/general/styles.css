@@ -10,27 +10,10 @@
     --text-primary-color: rgb(232 232 232 / 1);
     --text-secondary-color: rgb(232 232 232 / 0.5);
     
-    --panel-spacing: 0.25rem;
-    --panel-padding: 0.25rem;
-    --panel-elements-spacing: 0.5rem;
-    --panel-anchors-min-width: 2.5rem;
-    --panel-labels-spacing: 0.5rem;
-    --panel-labels-min-width: 2.5rem;
-    --panel-filter-spacing: 0rem 0.5rem;
-    
-    --list-gap: 0rem;
-    --list-margin: 0rem;
-    
     --entry-hovered-color: var(--secondary-color);
     --entry-selected-color: var(--accent-color);
-    --entry-selected-hovered-color: rgb(209 183 119 / 1);
-    --entry-line-height: 2.25rem;
-    --entry-spacing: 0rem 2rem 0rem 0.5rem;
-    --entry-pseudoelement-right: 0.5rem;
+    --entry-hovered-selected-color: color-mix(in srgb, var(--accent-color) 50%, var(--secondary-color));
     
-    --font-size: 1rem;
-    --border-radius: 0rem;
-    --border-width: 0px;
     --transition-duration: 0.25s;
     
 }
@@ -45,7 +28,6 @@ body {
     display: flex;
     gap: 0.25rem;
     background-color: var(--primary-color);
-    font-size: var(--font-size);
 }
 
 
@@ -70,9 +52,19 @@ iframe {
 
 
 .current {
+    
     width: 100%;
     display: flex;
     flex-direction: column;
+    
+    &:focus-within {
+        --entry-selected-color: var(--accent-color);
+    }
+    
+    &:not(:focus-within) {
+        --entry-selected-color: var(--secondary-color);
+    }
+    
 }
 
 
@@ -83,12 +75,12 @@ iframe {
     
     display: flex;
     justify-content: space-between;
-    padding: var(--panel-padding);
+    padding: 0.25rem;
     background-color: var(--secondary-color);
     
     > div {
         display: flex;
-        gap: var(--panel-spacing);
+        gap: 0.25rem;
     }
     
 }
@@ -103,8 +95,8 @@ iframe {
     transition: background-color var(--transition-duration) ease;
     text-decoration: none;
     text-align: center;
-    padding: var(--panel-elements-spacing);
-    min-width: var(--panel-anchors-min-width);
+    padding: 0.5rem;
+    min-width: 3rem;
     
     &:hover {
         cursor: pointer;
@@ -126,7 +118,7 @@ iframe {
     border: none;
     background-color: var(--primary-color);
     color: var(--text-primary-color);
-    padding: var(--panel-filter-spacing);
+    padding: 0rem 0.5rem;
 }
 
 
@@ -137,12 +129,6 @@ iframe {
     
     overflow-y: scroll;
     height: 100%;
-    gap: var(--list-gap);
-    padding: var(--list-margin);
-    
-    &:focus {
-        outline: none;
-    }
     
     &.show-value a[data-value]::after {
         display: inline;
@@ -165,16 +151,15 @@ iframe {
 .list a {
     
     display: none;
-    position: relative;  
+    position: relative;
     user-select: none;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
-    line-height: var(--entry-line-height);
-    padding: var(--entry-spacing);
+    line-height: 2.25rem;
+    padding: 0rem 2rem 0rem 0.5rem;
     transition: background-color var(--transition-duration) ease;
     color: var(--text-primary-color);
-    border-radius: var(--border-radius);
     
     &:hover {
         cursor: pointer;
@@ -200,7 +185,7 @@ iframe {
     
     &[data-value]::after {
         position: absolute;
-        right: var(--entry-pseudoelement-right);
+        right: 0.5rem;
         color: var(--text-secondary-color);
         display: none;
         content: attr(data-value);
@@ -211,7 +196,7 @@ iframe {
     }
     
     &[data-selected]:hover {
-        background-color: var(--entry-selected-hovered-color);
+        background-color: var(--entry-hovered-selected-color);
     }
     
 }
@@ -226,10 +211,8 @@ iframe {
     transition: background-color var(--transition-duration) ease;
     text-decoration: none;
     text-align: center;
-    padding: var(--panel-elements-spacing);
-    min-width: var(--panel-anchors-min-width);
-    border: var(--border-width) solid var(--text-primary-color);
-    border-radius: var(--border-radius);
+    padding: 0.5rem;
+    min-width: 3rem;
     
     &:hover {
         cursor: pointer;
@@ -246,11 +229,9 @@ iframe {
     
     color: var(--text-secondary-color);
     transition: background-color var(--transition-duration) ease, color var(--transition-duration) ease;
-    padding: var(--panel-elements-spacing);
-    min-width: var(--panel-labels-min-width);
+    padding: 0.5rem;
+    min-width: 3rem;
     text-align: center;
-    border: var(--border-width) solid var(--text-secondary-color);
-    border-radius: var(--border-radius);
     
     &:hover {
         cursor: pointer;
@@ -258,7 +239,6 @@ iframe {
     }
     
     &[data-active] {
-        border: var(--border-width) solid var(--text-primary-color);
         color: var(--text-primary-color);
     }
     

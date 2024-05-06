@@ -18,5 +18,5 @@ An entry is considered relevant if:
 
 ## List files used
 
-* **rules**
-* **feeds**
+* rules
+* feeds

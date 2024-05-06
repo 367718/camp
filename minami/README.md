@@ -29,6 +29,6 @@ The following keyboard shortcuts are available:
 
 ## List files used
 
-* **watchlist**
-* **rules**
-* **feeds**
+* watchlist
+* rules
+* feeds

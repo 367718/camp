@@ -3,7 +3,6 @@
     
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>minami</title>
         <link rel="icon" type="image/x-icon" href="/favicon.ico">
         <link rel="stylesheet" type="text/css" href="/styles.css">
@@ -11,7 +10,7 @@
     </head>
     
     <body>
-        <div class="current">
+        <div tabindex="0" class="current">
             
             <div class="panel">
                 
@@ -26,24 +25,20 @@
                 
             </div>
             
-            <div tabindex="0" data-refresh="/watchlist/entries" class="list sorted show-value show-primary show-secondary">
+            <div data-refresh="/watchlist/entries" class="list sorted show-value show-primary show-secondary">
             </div>
             
             <div class="panel">
                 
                 <div class="actions">
-                    <a data-url="/watchlist/insert" data-confirm="false" data-prompt="true" data-refresh="true">insert</a>
-                    <a data-url="/watchlist/update" data-confirm="false" data-prompt="true" data-refresh="true">update</a>
-                    <a data-url="/watchlist/delete" data-confirm="true" data-prompt="false" data-refresh="true">delete</a>
+                    <a data-url="/watchlist/insert" class="prompt refresh">insert</a>
+                    <a data-url="/watchlist/update" class="prompt refresh">update</a>
+                    <a data-url="/watchlist/delete" class="confirm refresh">delete</a>
                 </div>
                 
                 <div class="toggles">
-                    <label data-value="show-primary" data-active="">
-                        watched
-                    </label>
-                    <label data-value="show-secondary" data-active="">
-                        unwatched
-                    </label>
+                    <label data-value="show-primary" data-active="">watched</label>
+                    <label data-value="show-secondary" data-active="">unwatched</label>
                 </div>
                 
             </div>

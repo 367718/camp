@@ -3,7 +3,6 @@
     
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>minami</title>
         <link rel="icon" type="image/x-icon" href="/favicon.ico">
         <link rel="stylesheet" type="text/css" href="/styles.css">
@@ -11,7 +10,7 @@
     </head>
     
     <body>
-        <div class="current">
+        <div tabindex="0" class="current">
             
             <div class="panel">
                 
@@ -26,14 +25,14 @@
                 
             </div>
             
-            <div tabindex="0" data-refresh="/feeds/entries" class="list show-primary">
+            <div data-refresh="/feeds/entries" class="list show-primary">
             </div>
             
             <div class="panel">
                 
                 <div class="actions">
-                    <a data-url="/feeds/insert" data-confirm="false" data-prompt="true" data-refresh="true">insert</a>
-                    <a data-url="/feeds/delete" data-confirm="true" data-prompt="false" data-refresh="true">delete</a>
+                    <a data-url="/feeds/insert" class="prompt refresh">insert</a>
+                    <a data-url="/feeds/delete" class="confirm refresh">delete</a>
                 </div>
                 
             </div>

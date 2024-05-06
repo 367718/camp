@@ -66,19 +66,23 @@ impl Iterator for Files {
             
             for entry in self.current.by_ref().flatten() {
                 
-                let path = entry.path();
+                let Ok(file_type) = entry.file_type() else {
+                    continue;
+                };
                 
                 // file
                 
-                if path.is_file() {
-                    return Some(FilesEntry::new(path, self.depth));
+                if file_type.is_file() {
+                    return Some(FilesEntry::new(entry.path(), self.depth));
                 }
                 
                 // subdirectory
                 
-                if let Ok(subdirectory) = Files::with_depth(&path, self.depth + 1) {
-                    self.subdirectory = Some(Box::new(subdirectory));
-                    continue 'outer;
+                if file_type.is_dir() {
+                    if let Ok(subdirectory) = Files::with_depth(&entry.path(), self.depth + 1) {
+                        self.subdirectory = Some(Box::new(subdirectory));
+                        continue 'outer;
+                    }
                 }
                 
             }

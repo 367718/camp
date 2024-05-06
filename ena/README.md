@@ -4,8 +4,9 @@ Files manager.
 
 ## Behavior
 
-* From the provided directory, the maximum allowed depth is 5.
-* The "mark" functionality relies on NTFS's Alternate Data Streams feature.
+The struct "Files" provides access to "FilesEntries" in an unspecified order via the Iterator trait, walking each directory found up to a maximum depth of 5. Symlinks will not be followed.
+
+The "mark" functionality relies on NTFS's Alternate Data Streams feature.
 
 ## API
 

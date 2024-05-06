@@ -6,6 +6,10 @@
 
 const CURRENT_NODE_SELECTOR = ".current";
 
+const HOTKEY_COPY_CONTROL = true;
+const HOTKEY_COPY_COMPLETE = "KeyC";
+const HOTKEY_COPY_CLEAN = "KeyX";
+
 const SECTIONS_NODE_SELECTOR = ".sections";
 const SECTIONS_ACTIVE_CLASS = "active";
 
@@ -22,17 +26,13 @@ const ENTRY_FILTERED_CLASS = "filtered";
 
 const ACTIONS_NODE_SELECTOR = ".actions";
 const ACTIONS_URL_ATTRIBUTE = "data-url";
-const ACTIONS_CONFIRM_ATTRIBUTE = "data-confirm";
-const ACTIONS_PROMPT_ATTRIBUTE = "data-prompt";
-const ACTIONS_REFRESH_ATTRIBUTE = "data-refresh";
+const ACTIONS_CONFIRM_CLASS = "confirm";
+const ACTIONS_PROMPT_CLASS = "prompt";
+const ACTIONS_REFRESH_CLASS = "refresh";
 
 const TOGGLES_NODE_SELECTOR = ".toggles";
 const TOGGLES_VALUE_ATTRIBUTE = "data-value";
 const TOGGLES_ACTIVE_ATTRIBUTE = "data-active";
-
-const HOTKEY_COPY_CONTROL = true;
-const HOTKEY_COPY_COMPLETE = "KeyC";
-const HOTKEY_COPY_CLEAN = "KeyX";
 
 
 // -------------------- classes --------------------
@@ -42,6 +42,8 @@ class Current {
     
     constructor() {
         
+        // -------------------- properties --------------------
+        
         this.node = document.querySelector(CURRENT_NODE_SELECTOR);
         this.sections = new Sections(this);
         this.filter = new Filter(this);
@@ -50,6 +52,27 @@ class Current {
         this.toggles = new Toggles(this);
         
         Object.freeze(this);
+        
+        if (this.node === null) {
+            return;
+        }
+        
+        // -------------------- bindings --------------------
+        
+        this.node.addEventListener("keydown", (event) => {
+            
+            // bail if filter input is involved
+            if (this.filter.node && event.target === this.filter.node) {
+                return;
+            }
+            
+            // copy text to clipboard
+            if ((event.ctrlKey === HOTKEY_COPY_CONTROL) && (event.code === HOTKEY_COPY_COMPLETE || event.code === HOTKEY_COPY_CLEAN)) {
+                this.list?.copy(event.code === HOTKEY_COPY_CLEAN);
+                return event.preventDefault();
+            }
+            
+        });
         
     }
     
@@ -157,23 +180,6 @@ class List {
         if (this.node === null) {
             return;
         }
-        
-        // -------------------- bindings --------------------
-        
-        this.node.addEventListener("keydown", (event) => {
-            
-            // bail if filter input is involved
-            if (this.parent.filter.node && event.target === this.parent.filter.node) {
-                return;
-            }
-            
-            // copy text to clipboard
-            if ((event.ctrlKey === HOTKEY_COPY_CONTROL) && (event.code === HOTKEY_COPY_COMPLETE || event.code === HOTKEY_COPY_CLEAN)) {
-                this.copy(event.code === HOTKEY_COPY_CLEAN);
-                return event.preventDefault();
-            }
-            
-        });
         
         // -------------------- initial load --------------------
         
@@ -326,16 +332,17 @@ class Entry {
         
         // -------------------- bindings --------------------
         
-        this.node.onclick = (event) => this.parent.select(this, event.ctrlKey, event.shiftKey)
+        this.node.onclick = (event) => this.parent.select(this, event.ctrlKey, event.shiftKey);
         
         this.node.ontouchstart = (_event) => {
-        
-            const initialPosition = this.parent.node.scrollTop;
+            
+            let touchMove = false;
+            
+            this.node.ontouchmove = (_event) => touchMove = true;
             
             this.node.ontouchend = (event) => {
                 
-                // attempt to ignore scrolling and other gestures
-                if (initialPosition === this.parent.node.scrollTop && event.touches.length < 2) {
+                if (! touchMove) {
                     // handle tap as "control click"
                     this.parent.select(this, true, false);
                 }
@@ -429,9 +436,9 @@ class Actions {
             child.addEventListener("click", () => {
                 
                 const url = child.getAttribute(ACTIONS_URL_ATTRIBUTE);
-                const confirm = child.getAttribute(ACTIONS_CONFIRM_ATTRIBUTE) === "true";
-                const prompt = child.getAttribute(ACTIONS_PROMPT_ATTRIBUTE) === "true";
-                const refresh = child.getAttribute(ACTIONS_REFRESH_ATTRIBUTE) === "true";
+                const confirm = child.classList.contains(ACTIONS_CONFIRM_CLASS);
+                const prompt = child.classList.contains(ACTIONS_PROMPT_CLASS);
+                const refresh = child.classList.contains(ACTIONS_REFRESH_CLASS);
                 
                 this.request(url, confirm, prompt, refresh);
                 
