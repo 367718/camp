@@ -4,19 +4,17 @@ Lists manager.
 
 ## Behavior
 
-* List files must be created manually and have the "ck" extension.
-* Only files located alongside the executable will be loaded.
-* Symlinked files are not supported.
-* Multiple concurrent accesses to the same file are discouraged.
-* To prevent data loss, loading of lists that contains a tag too large for the target platform will be aborted.
-* UTF-8 correctness is not enforced.
-* Stored tags are required to be unique.
+The `List` struct provides access to `ListEntry` elements via the "iter" method.
+
+On construction, a file with the specified name and the "ck" extension will be loaded from the directory where the executable resides. Symlinks will not be followed.
 
 ## API
 
-* List
+* `List`
     * load
     * iter
     * insert
     * update
     * delete
+
+* `ListEntry`

@@ -1,37 +1,36 @@
 use std::{
     env,
     fs,
-    io::{ self, Error },
+    io::{ self, Error, ErrorKind },
     str,
     sync::OnceLock,
 };
 
 pub fn get(key: &[u8]) -> io::Result<&'static str> {
-    let content = load();
+    let contents = contents();
     
-    if let Some(range) = chikuwa::subslice_range(content, key, b"\r\n") {
-        if let [b' ', b'=', b' ', value @ ..] = &content[range] {
+    if let Some(range) = chikuwa::subslice_range(contents, key, b"\r\n") {
+        if let [b' ', b'=', b' ', value @ ..] = &contents[range] {
+            
             return str::from_utf8(value)
-                .map_err(|error| Error::other(error.to_string()));
+                .map_err(|error| Error::new(ErrorKind::InvalidData, error));
+            
         }
     }
     
-    Err(Error::other(format!("Missing or invalid field: '{}'", &String::from_utf8_lossy(key))))
+    Err(Error::new(ErrorKind::NotFound, "Key not found"))
 }
 
-fn load() -> &'static [u8] {
-    static CONTENT: OnceLock<Vec<u8>> = OnceLock::new();
+fn contents() -> &'static [u8] {
+    
+    fn load() -> io::Result<Vec<u8>> {
+        fs::read(env::current_exe()?.with_extension("rn"))
+    }
+    
+    static CONTENTS: OnceLock<Vec<u8>> = OnceLock::new();
     
     // possible future alternative: https://doc.rust-lang.org/std/sync/struct.OnceLock.html#method.get_or_try_init
     
-    CONTENT.get_or_init(|| {
-        
-        let path = env::current_exe()
-            .expect("Failed to get executable name")
-            .with_extension("rn");
-        
-        fs::read(&path)
-            .unwrap_or_else(|_| panic!("Load of configuration file located at '{}' failed", &path.to_string_lossy()))
-        
-    })
+    CONTENTS.get_or_init(|| load().unwrap())
+    
 }

@@ -26,7 +26,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- list --------------------
     
-    let files = ena::Files::new(root)?;
+    let files = ena::Files::walk(root)?;
     
     // -------------------- response --------------------
     
@@ -75,7 +75,7 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- files --------------------
     
-    let mut files = ena::Files::new(root)?
+    let mut files = ena::Files::walk(root)?
         .filter(|file| is_file_selected(request, file))
         .peekable();
     
@@ -108,7 +108,7 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- files --------------------
     
-    let mut files = ena::Files::new(root)?
+    let mut files = ena::Files::walk(root)?
         .filter(|file| is_file_selected(request, file))
         .peekable();
     
@@ -135,7 +135,7 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- files --------------------
     
-    let mut files = ena::Files::new(root)?
+    let mut files = ena::Files::walk(root)?
         .filter(|file| is_file_selected(request, file))
         .peekable();
     
@@ -169,7 +169,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- files --------------------
     
-    let mut files = ena::Files::new(root)?
+    let mut files = ena::Files::walk(root)?
         .filter(|file| is_file_selected(request, file))
         .peekable();
     

@@ -20,7 +20,7 @@ pub struct Files {
 
 impl Files {
     
-    pub fn new<R: AsRef<Path>>(root: R) -> io::Result<Self> {
+    pub fn walk<R: AsRef<Path>>(root: R) -> io::Result<Self> {
         Self::with_depth(root, INITIAL_DIRECTORY_DEPTH)
     }
     

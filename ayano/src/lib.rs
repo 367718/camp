@@ -12,7 +12,7 @@ pub use response::Response;
 
 const STREAM_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;
-const REQUEST_SIZE_LIMIT: u64 = 512 * 1024 + 1;
+const REQUEST_SIZE_LIMIT: u64 = 512 * 1024;
 
 pub enum StatusCode {
     Ok,
@@ -76,7 +76,7 @@ impl CacheControl {
 
 impl Server {
     
-    pub fn new(address: &str) -> io::Result<Self> {
+    pub fn bind(address: &str) -> io::Result<Self> {
         Ok(Self {
             listener: TcpListener::bind(address)?,
         })

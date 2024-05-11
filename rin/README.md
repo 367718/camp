@@ -1,16 +1,15 @@
 # rin
 
-Configuration files manager.
+Configuration parameters provider.
 
 ## Behavior
 
-* Files must be created and modified manually and have the same name as the executable but with the "rn" extension.
-* Only a file located alongside the executable will be loaded.
-* File loading will be triggered on the first attempted access to a parameter.
-* A failure during file loading will result in a panic.
-* Keys and values are separated by " = " (e.g. "path = \example\").
-* Lines must end with "\r\n".
+On the first attempted access to a parameter, a file with the same name as the executable but with the "rn" extension will be loaded. Data will be kept immutable.
+
+Keys and values must be separated by " = " (e.g. "path = \example\"), while lines must end with "\r\n".
+
+A failure during load will cause a panic.
 
 ## API
 
-* get
+* `get`

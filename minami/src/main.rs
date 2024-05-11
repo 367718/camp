@@ -15,7 +15,7 @@ use std::{
 use ayano::{ Server, Request, StatusCode, ContentType, CacheControl };
 
 fn main() -> Result<(), Box<dyn Error>> {
-    for mut request in Server::new(rin::get(b"address")?)? {
+    for mut request in Server::bind(rin::get(b"address")?)? {
         
         if let Err(error) = handle_request(&mut request) {
             request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)

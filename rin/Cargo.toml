@@ -1,6 +1,6 @@
 [package]
 name = "rin"
-description = "Configuration files manager"
+description = "Configuration parameters provider"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true

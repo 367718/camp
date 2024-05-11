@@ -1,9 +1,6 @@
 use std::{
-    collections::hash_map::RandomState,
-    env,
-    ffi::{ OsStr, OsString },
+    ffi::OsStr,
     fs,
-    hash::{ BuildHasher, Hasher },
     ops::Deref,
     path::{ Path, PathBuf },
 };
@@ -11,11 +8,6 @@ use std::{
 pub struct EphemeralPath {
     inner: PathBuf,
     permanent: bool,
-}
-
-pub struct EphemeralPathBuilder {
-    base: Option<PathBuf>,
-    suffix: Option<OsString>,
 }
 
 impl From<PathBuf> for EphemeralPath {
@@ -63,6 +55,8 @@ impl Drop for EphemeralPath {
             return;
         }
         
+        // symlinks will be skipped
+        
         if self.inner.is_file() {
             fs::remove_file(&self.inner).ok();
         } else if self.inner.is_dir() {
@@ -75,58 +69,8 @@ impl Drop for EphemeralPath {
 
 impl EphemeralPath {
     
-    pub fn builder() -> EphemeralPathBuilder {
-        EphemeralPathBuilder {
-            base: None,
-            suffix: None,
-        }
-    }
-    
     pub fn make_permanent(mut self) {
         self.permanent = true;
-    }
-    
-}
-
-impl EphemeralPathBuilder {
-    
-    pub fn with_base<P: Into<PathBuf>>(mut self, base: P) -> Self {
-        self.base = Some(base.into());
-        self
-    }
-    
-    pub fn with_suffix<S: Into<OsString>>(mut self, suffix: S) -> Self {
-        self.suffix = Some(suffix.into());
-        self
-    }
-    
-    pub fn build(self) -> EphemeralPath {
-        let mut base = self.base.unwrap_or_else(env::temp_dir);
-        
-        let suffix = self.suffix.unwrap_or_default();
-        
-        let start = env!("CARGO_PKG_NAME");
-        let middle = RandomState::new()
-            .build_hasher()
-            .finish()
-            .to_string();
-        let end = RandomState::new()
-            .build_hasher()
-            .finish()
-            .to_string();
-        
-        let mut name = OsString::with_capacity(start.len() + 1 + middle.len() + 1 + end.len() + suffix.len());
-        
-        name.push(start);
-        name.push("-");
-        name.push(middle);
-        name.push("-");
-        name.push(end);
-        name.push(suffix);
-        
-        base.push(name);
-        
-        EphemeralPath::from(base)
     }
     
 }

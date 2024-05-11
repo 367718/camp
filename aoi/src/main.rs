@@ -3,6 +3,7 @@ mod pipe;
 use std::{
     error::Error,
     io::{ self, Read, Write },
+    os::raw::*,
 };
 
 use pipe::Pipe;
@@ -11,6 +12,8 @@ use ayano::{ Server, Request, StatusCode, ContentType, CacheControl };
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+const PIPE_MAX_WAIT: c_ulong = 5000; // milliseconds
 
 const INDEX: &[u8] = include_bytes!("../rsc/index.html");
 
@@ -42,7 +45,7 @@ fn process() -> Result<(), Box<dyn Error>> {
     
     println!("Binding address...");
     
-    let server = Server::new(address)?;
+    let server = Server::bind(address)?;
     
     // -------------------- pipe --------------------
     

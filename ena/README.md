@@ -4,17 +4,19 @@ Files manager.
 
 ## Behavior
 
-The struct "Files" provides access to "FilesEntries" in an unspecified order via the Iterator trait, walking each directory found up to a maximum depth of 5. Symlinks will not be followed.
+The `Files` struct provides access to `FilesEntry` elements in an unspecified order via the "Iterator" trait.
+
+On construction, the specified directory will be walked up to a maximum depth of 5. Symlinks will not be followed.
 
 The "mark" functionality relies on NTFS's Alternate Data Streams feature.
 
 ## API
 
-* Files
-    * new
+* `Files`
+    * walk
     * Iterator trait
 
-* FilesEntry
+* `FilesEntry`
     * path
     * relative
     * container

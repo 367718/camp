@@ -4,24 +4,25 @@ Non-compliant HTTP/1.1 server.
 
 ## Behavior
 
-* "Connection: Keep-Alive" is not supported and will be ignored, alongside most other headers.
-* Only one Response per Request can be sent.
-* The "Transfer-Encoding" used for the Response is always "chunked".
-* EOF will be signaled on Response drop.
-* Both the read and write timeouts are set to 5 seconds.
-* Request size is limited to 512 KB.
+The `Server` struct provides access to `Request` elements via the "Iterator" trait.
+
+On construction, the specified address will be bound, blocking the execution thread.
+
+Each `Request` has a size limit of 512 KiB, and can be used to spawn one and only one `Response`.
+
+The timeouts for send and recieve are each set at 5 seconds.
 
 ## API
 
-* Server
-    * new
+* `Server`
+    * bind
     * Iterator trait
 
-* Request
+* `Request`
     * resource
     * param
     * start_response
 
-* Response
+* `Response`
     * Write trait
     * Drop trait

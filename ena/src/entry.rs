@@ -1,7 +1,7 @@
 use std::{
     ffi::OsStr,
     fs,
-    io::{ self, Error },
+    io::{ self, Error, ErrorKind },
     path::{ Path, PathBuf },
 };
 
@@ -75,7 +75,7 @@ impl FilesEntry {
         
         if directory.exists() {
             if destination.exists() {
-                return Err(Error::other(format!("Destination already exists: '{}'", &destination.to_string_lossy())));
+                return Err(Error::from(ErrorKind::AlreadyExists));
             }
         } else {
             fs::create_dir(&directory)?;

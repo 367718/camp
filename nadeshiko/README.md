@@ -14,9 +14,9 @@ An entry is considered relevant if:
 
 ## Configuration parameters used
 
-* **folder**: destination for the downloaded torrents.
+* `folder`: destination for the downloaded torrents.
 
 ## List files used
 
-* rules
-* feeds
+* `rules`
+* `feeds`

@@ -4,6 +4,8 @@ use std::{
     os::raw::*,
 };
 
+use super::PIPE_MAX_WAIT;
+
 mod ffi {
     
     use super::*;
@@ -19,8 +21,6 @@ mod ffi {
     }
     
 }
-
-const PIPE_MAX_WAIT: c_ulong = 5000; // milliseconds
 
 pub struct Pipe<'n> {
     name: &'n str,
@@ -97,7 +97,7 @@ impl<'n> Write for Pipe<'n> {
     
     fn flush(&mut self) -> io::Result<()> {
         self.connection.as_mut()
-            .ok_or(Error::other("The pipe connection is closed"))?
+            .ok_or(Error::new(ErrorKind::NotConnected, "The pipe connection is closed"))?
             .flush()
     }
     

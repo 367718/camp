@@ -1,7 +1,7 @@
 use std::{
     env,
     fs::{ self, File },
-    io::{ self, Write, Error },
+    io::{ self, Write, Error, ErrorKind },
     mem,
     path::PathBuf,
     str,
@@ -31,8 +31,11 @@ impl List {
             .with_file_name(name)
             .with_extension("ck");
         
-        let content = fs::read(&path)
-            .map_err(|error| Error::other(format!("Load of list file located at '{}' failed: '{}'", &path.to_string_lossy(), &error.to_string())))?;
+        if path.is_symlink() {
+            return Err(Error::new(ErrorKind::InvalidInput, "Symlinks are not allowed"));
+        }
+        
+        let content = fs::read(&path)?;
         
         Ok(Self {
             path,
@@ -54,7 +57,7 @@ impl List {
     
     pub fn insert(&mut self, tag: &[u8], value: u64) -> io::Result<()> {
         if self.iter().any(|current| current.tag.eq_ignore_ascii_case(tag)) {
-            return Err(Error::other("Tag in use"));
+            return Err(Error::new(ErrorKind::AlreadyExists, "Tag in use"));
         }
         
         let capacity = self.content.len() + (mem::size_of::<u64>() * 2 + tag.len());
@@ -66,7 +69,7 @@ impl List {
     
     pub fn update(&mut self, tag: &[u8], value: u64) -> io::Result<()> {
         let position = self.iter().position(|current| current.tag.eq_ignore_ascii_case(tag))
-            .ok_or(Error::other("Tag not found"))?;
+            .ok_or(Error::new(ErrorKind::NotFound, "Tag not found"))?;
         
         let capacity = self.content.len();
         let entries = self.iter()
@@ -79,7 +82,7 @@ impl List {
     
     pub fn delete(&mut self, tag: &[u8]) -> io::Result<()> {
         let position = self.iter().position(|current| current.tag.eq_ignore_ascii_case(tag))
-            .ok_or(Error::other("Tag not found"))?;
+            .ok_or(Error::new(ErrorKind::NotFound, "Tag not found"))?;
         
         let capacity = self.content.len() - (mem::size_of::<u64>() * 2 + tag.len());
         let entries = self.iter()
@@ -90,10 +93,13 @@ impl List {
     }
     
     fn commit(&mut self, content: Vec<u8>) -> io::Result<()> {
-        let tmp_path = chikuwa::EphemeralPath::builder()
-            .with_base(self.path.parent().ok_or(Error::other("Invalid path"))?)
-            .with_suffix(".tmp")
-            .build();
+        let mut file_name = self.path.file_name()
+            .expect("Invalid list file path")
+            .to_os_string();
+        
+        file_name.push(".tmp");
+        
+        let tmp_path = chikuwa::EphemeralPath::from(self.path.with_file_name(file_name));
         
         File::create(&tmp_path)?.write_all(&content)?;
         
@@ -148,8 +154,9 @@ impl <'c>Iterator for ListIter<'c> {
         
         let mut working = self.content;
         
-        // bail if tag size cannot be represented as usize
-        let tag_size = usize::try_from(u64::from_le_bytes(*working.first_chunk::<MEM_SIZE>()?)).unwrap();
+        let tag_size = usize::try_from(u64::from_le_bytes(*working.first_chunk::<MEM_SIZE>()?))
+            .expect("Tag size exceeded the maximum value supported by the plataform");
+        
         working = &working[MEM_SIZE..];
         
         let tag = working.get(..tag_size)?;

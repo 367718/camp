@@ -5,12 +5,11 @@ use std::{
     ptr,
 };
 
-use super::ffi;
-
-const DNS_RESOLUTION_TIMEOUT_AS_MILLIS: c_int = 15_000;
-const CONNECTION_TIMEOUT_AS_MILLIS: c_int = 15_000;
-const SEND_TIMEOUT_AS_MILLIS: c_int = 15_000;
-const RECEIVE_TIMEOUT_AS_MILLIS: c_int = 15_000;
+use super::{
+    ffi,
+    DNS_RESOLUTION_TIMEOUT_AS_MILLIS, CONNECTION_TIMEOUT_AS_MILLIS,
+    SEND_TIMEOUT_AS_MILLIS, RECEIVE_TIMEOUT_AS_MILLIS,
+};
 
 pub struct Session {
     pub handle: ffi::HINTERNET,
