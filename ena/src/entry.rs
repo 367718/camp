@@ -45,7 +45,7 @@ impl FilesEntry {
             .unwrap_or_else(|| OsStr::new(""))
     }
     
-    pub fn is_marked<F: AsRef<OsStr>>(&self, flag: F) -> bool {
+    pub fn is_marked<F: AsRef<OsStr>>(&self, flag: F) -> io::Result<bool> {
         crate::mark::is_marked(&self.inner, flag)
     }
     
@@ -73,8 +73,8 @@ impl FilesEntry {
         let directory = self.root().join(foldername);
         let destination = directory.join(filename);
         
-        if directory.exists() {
-            if destination.exists() {
+        if directory.try_exists()? {
+            if destination.try_exists()? {
                 return Err(Error::from(ErrorKind::AlreadyExists));
             }
         } else {

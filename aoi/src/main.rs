@@ -73,31 +73,30 @@ fn handle_request(request: &mut Request, pipe: &mut Pipe) -> Result<(), Box<dyn 
     let (method, path) = request.resource()
         .ok_or("Invalid request")?;
     
-    if method != b"GET" {
-        return Err("Endpoint not found".into());
-    }
-    
-    // -------------------- index --------------------
-    
-    if path == b"/" {
+    if method == b"GET" {
         
-        request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
-            .and_then(|mut response| response.write_all(INDEX))?;
+        // -------------------- index --------------------
         
-        return Ok(());
+        if path == b"/" {
+            
+            request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
+                .and_then(|mut response| response.write_all(INDEX))?;
+            
+            return Ok(());
+            
+        }
         
-    }
-    
-    // -------------------- commands --------------------
-    
-    if let Some(command) = get_command(path) {
+        // -------------------- commands --------------------
         
-        pipe.write_all(command)?;
-        
-        request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-            .and_then(|mut response| response.write_all(b"200 OK"))?;
-        
-        return Ok(());
+        if let Some(command) = get_command(path) {
+            
+            pipe.write_all(command)?;
+            
+            request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
+            
+            return Ok(());
+            
+        }
         
     }
     

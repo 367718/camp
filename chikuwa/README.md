@@ -8,8 +8,8 @@ Available functionality:
 
 * `EphemeralPath`: paths that attempt to delete themselves when dropped.
 * `WinString`: null-terminated UTF-16 encoded strings.
-* `subslice_range`: position of subslice between two delimiters (case-insensitive).
 * `HtmlEscaper`: escape bytes for safe usage in an HTML context.
+* `subslice_range`: position of subslice between two delimiters (case-insensitive).
 
 ## API
 
@@ -24,8 +24,8 @@ Available functionality:
     * From trait
     * Deref trait
 
-* `subslice_range`
-
 * `HtmlEscaper`
     * From trait
     * Iterator trait
+
+* `subslice_range`

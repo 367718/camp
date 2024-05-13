@@ -5,14 +5,20 @@ use std::{
     path::Path,
 };
 
-pub fn is_marked<P: AsRef<OsStr>, F: AsRef<OsStr>>(path: P, flag: F) -> bool {
-    Path::new(&build_query(path, flag)).exists()
+pub fn is_marked<P: AsRef<OsStr>, F: AsRef<OsStr>>(path: P, flag: F) -> io::Result<bool> {
+    
+    // possible future alternative: https://doc.rust-lang.org/std/fs/fn.try_exists.html
+    
+    Path::new(&build_query(path, flag)).try_exists()
+    
 }
 
 pub fn toggle<P: AsRef<OsStr>, F: AsRef<OsStr>>(path: P, flag: F) -> io::Result<()> {
     let stream = build_query(path, flag);
     
-    if Path::new(&stream).exists() {
+    // possible future alternative: https://doc.rust-lang.org/std/fs/fn.try_exists.html
+    
+    if Path::new(&stream).try_exists()? {
         fs::remove_file(&stream)
     } else {
         fs::write(&stream, [0])

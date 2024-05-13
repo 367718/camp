@@ -3,7 +3,7 @@ use std::{
     io::Write,
 };
 
-use super::{ Request, StatusCode, ContentType, CacheControl };
+use ayano::{ Request, StatusCode, ContentType, CacheControl };
 
 const INDEX: &[u8] = include_bytes!("../rsc/general/index.html");
 const FAVICON: &[u8] = include_bytes!("../rsc/general/favicon.ico");

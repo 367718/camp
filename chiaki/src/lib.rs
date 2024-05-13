@@ -1,9 +1,9 @@
 use std::{
     env,
-    fs::{ self, File },
-    io::{ self, Write, Error, ErrorKind },
+    fs,
+    io::{ self, Error, ErrorKind },
     mem,
-    path::PathBuf,
+    path::{ Path, PathBuf },
     str,
 };
 
@@ -32,7 +32,7 @@ impl List {
             .with_extension("ck");
         
         if path.is_symlink() {
-            return Err(Error::new(ErrorKind::InvalidInput, "Symlinks are not allowed"));
+            return Err(Error::new(ErrorKind::InvalidInput, "Symlinks are not supported"));
         }
         
         let content = fs::read(&path)?;
@@ -64,7 +64,12 @@ impl List {
         let entries = self.iter()
             .chain(Some(ListEntry { tag, value }));
         
-        self.commit(Self::serialize(capacity, entries))
+        let modified = Self::serialize(capacity, entries);
+        Self::commit(&self.path, &modified)?;
+        
+        self.content = modified;
+        
+        Ok(())
     }
     
     pub fn update(&mut self, tag: &[u8], value: u64) -> io::Result<()> {
@@ -77,7 +82,12 @@ impl List {
             .filter_map(|(current, entry)| (current != position).then_some(entry))
             .chain(Some(ListEntry { tag, value }));
         
-        self.commit(Self::serialize(capacity, entries))
+        let modified = Self::serialize(capacity, entries);
+        Self::commit(&self.path, &modified)?;
+        
+        self.content = modified;
+        
+        Ok(())
     }
     
     pub fn delete(&mut self, tag: &[u8]) -> io::Result<()> {
@@ -89,27 +99,10 @@ impl List {
             .enumerate()
             .filter_map(|(current, entry)| (current != position).then_some(entry));
         
-        self.commit(Self::serialize(capacity, entries))
-    }
-    
-    fn commit(&mut self, content: Vec<u8>) -> io::Result<()> {
-        let mut file_name = self.path.file_name()
-            .expect("Invalid list file path")
-            .to_os_string();
+        let modified = Self::serialize(capacity, entries);
+        Self::commit(&self.path, &modified)?;
         
-        file_name.push(".tmp");
-        
-        let tmp_path = chikuwa::EphemeralPath::from(self.path.with_file_name(file_name));
-        
-        File::create(&tmp_path)?.write_all(&content)?;
-        
-        // attempt to perform the update atomically
-        fs::rename(&tmp_path, &self.path)?;
-        
-        // since the path no longer exists, do not attempt to remove it
-        tmp_path.make_permanent();
-        
-        self.content = content;
+        self.content = modified;
         
         Ok(())
     }
@@ -128,6 +121,26 @@ impl List {
         }
         
         content
+    }
+    
+    fn commit(path: &Path, content: &[u8]) -> io::Result<()> {
+        let mut file_name = path.file_name()
+            .expect("Invalid list file path")
+            .to_os_string();
+        
+        file_name.push(".tmp");
+        
+        let tmp_path = chikuwa::EphemeralPath::from(path.with_file_name(file_name));
+        
+        fs::write(&tmp_path, content)?;
+        
+        // attempt to perform the update atomically
+        fs::rename(&tmp_path, path)?;
+        
+        // since the path no longer exists, do not attempt to remove it
+        tmp_path.make_permanent();
+        
+        Ok(())
     }
     
 }

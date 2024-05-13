@@ -4,7 +4,7 @@ use std::{
     str,
 };
 
-use super::{ Request, StatusCode, ContentType, CacheControl };
+use ayano::{ Request, StatusCode, ContentType, CacheControl };
 
 const INDEX: &[u8] = include_bytes!("../rsc/watchlist/index.html");
 
@@ -52,8 +52,7 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.write_all(b"OK"))?;
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
     
     Ok(())
 }
@@ -78,8 +77,7 @@ pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.write_all(b"OK"))?;
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
     
     Ok(())
 }
@@ -98,8 +96,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.write_all(b"OK"))?;
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
     
     Ok(())
 }

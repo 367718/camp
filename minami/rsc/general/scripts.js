@@ -231,22 +231,22 @@ class List {
         
         if (shift) {
             
-            let start_index = this.entries.findIndex(entry => entry.is_selected());
-            let target_index = this.entries.indexOf(target);
+            let start = this.entries.findIndex(entry => entry.is_selected());
+            let end = this.entries.indexOf(target);
             
-            if (start_index == -1) {
-                start_index = this.entries.findIndex(entry => entry.is_visible());
+            if (start == -1) {
+                start = this.entries.findIndex(entry => entry.is_visible());
             }
             
-            if (start_index > target_index) {
-                start_index = target_index;
-                target_index = this.entries.findLastIndex(entry => entry.is_selected());
+            if (start > end) {
+                start = end;
+                end = this.entries.findLastIndex(entry => entry.is_selected());
             }
             
             this.entries.filter(entry => entry.is_selected())
                 .forEach(entry => entry.toggle_select());
             
-            this.entries.slice(start_index, target_index + 1)
+            this.entries.slice(start, end + 1)
                 .filter(entry => entry.is_visible())
                 .forEach(entry => entry.toggle_select());
             

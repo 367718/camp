@@ -11,10 +11,8 @@ pub fn get(key: &[u8]) -> io::Result<&'static str> {
     
     if let Some(range) = chikuwa::subslice_range(contents, key, b"\r\n") {
         if let [b' ', b'=', b' ', value @ ..] = &contents[range] {
-            
             return str::from_utf8(value)
                 .map_err(|error| Error::new(ErrorKind::InvalidData, error));
-            
         }
     }
     

@@ -6,7 +6,7 @@ Files manager.
 
 The `Files` struct provides access to `FilesEntry` elements in an unspecified order via the "Iterator" trait.
 
-On construction, the specified directory will be walked up to a maximum depth of 5. Symlinks will not be followed.
+On construction, the specified directory will be walked up to a maximum depth of 5. Symlinks are not supported.
 
 The "mark" functionality relies on NTFS's Alternate Data Streams feature.
 

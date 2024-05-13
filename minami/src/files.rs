@@ -7,7 +7,7 @@ use std::{
     str,
 };
 
-use super::{ Request, StatusCode, ContentType, CacheControl };
+use ayano::{ Request, StatusCode, ContentType, CacheControl };
 
 const INDEX: &[u8] = include_bytes!("../rsc/files/index.html");
 
@@ -44,7 +44,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
             continue;
         };
         
-        write!(&mut response, "<a data-value='{}'>", u8::from(! entry.is_marked(flag)))?;
+        write!(&mut response, "<a data-value='{}'>", u8::from(! entry.is_marked(flag).unwrap_or(false)))?;
         
         if ! container.is_empty() {
             response.write_all(b"<span>")?;
@@ -94,8 +94,7 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.write_all(b"OK"))?;
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
     
     Ok(())
 }
@@ -122,8 +121,7 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.write_all(b"OK"))?;
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
     
     Ok(())
 }
@@ -156,8 +154,7 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.write_all(b"OK"))?;
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
     
     Ok(())
 }
@@ -183,8 +180,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)
-        .and_then(|mut response| response.write_all(b"OK"))?;
+    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
     
     Ok(())
 }

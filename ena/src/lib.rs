@@ -3,7 +3,7 @@ mod mark;
 
 use std::{
     fs,
-    io::{ self, Error },
+    io::{ self, Error, ErrorKind },
     path::Path,
 };
 
@@ -27,11 +27,17 @@ impl Files {
     fn with_depth<C: AsRef<Path>>(current: C, depth: u8) -> io::Result<Self> {
         
         if depth > MAX_ALLOWED_DIRECTORY_DEPTH {
-            return Err(Error::other("Maximum directory depth exceeded"));
+            return Err(Error::new(ErrorKind::InvalidInput, "Maximum directory depth exceeded"));
+        }
+        
+        let current = current.as_ref();
+        
+        if current.metadata()?.is_symlink() {
+            return Err(Error::new(ErrorKind::InvalidInput, "Symlinks are not supported"));
         }
         
         Ok(Self {
-            current: current.as_ref().read_dir()?,
+            current: current.read_dir()?,
             subdirectory: None,
             depth,
         })
@@ -51,15 +57,10 @@ impl Iterator for Files {
             // -------------------- subdirectory --------------------
             
             if let Some(subdirectory) = self.subdirectory.as_mut() {
-                
-                let entry = subdirectory.next();
-                
-                if entry.is_some() {
-                    return entry;
+                match subdirectory.next() {
+                    Some(entry) => return Some(entry),
+                    None => self.subdirectory = None,
                 }
-                
-                self.subdirectory = None;
-                
             }
             
             // -------------------- current directory --------------------
@@ -79,7 +80,7 @@ impl Iterator for Files {
                 // subdirectory
                 
                 if file_type.is_dir() {
-                    if let Ok(subdirectory) = Files::with_depth(&entry.path(), self.depth + 1) {
+                    if let Ok(subdirectory) = Self::with_depth(&entry.path(), self.depth + 1) {
                         self.subdirectory = Some(Box::new(subdirectory));
                         continue 'outer;
                     }
