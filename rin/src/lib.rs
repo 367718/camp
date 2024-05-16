@@ -7,10 +7,10 @@ use std::{
 };
 
 pub fn get(key: &[u8]) -> io::Result<&'static str> {
-    let contents = contents();
+    let content = content();
     
-    if let Some(range) = chikuwa::subslice_range(contents, key, b"\r\n") {
-        if let [b' ', b'=', b' ', value @ ..] = &contents[range] {
+    if let Some(line) = chikuwa::subslice_range(content, key, b"\r\n") {
+        if let [b' ', b'=', b' ', value @ ..] = &content[line] {
             return str::from_utf8(value)
                 .map_err(|error| Error::new(ErrorKind::InvalidData, error));
         }
@@ -19,16 +19,26 @@ pub fn get(key: &[u8]) -> io::Result<&'static str> {
     Err(Error::new(ErrorKind::NotFound, "Key not found"))
 }
 
-fn contents() -> &'static [u8] {
+fn content() -> &'static [u8] {
     
     fn load() -> io::Result<Vec<u8>> {
-        fs::read(env::current_exe()?.with_extension("rn"))
+        let app_path = env::current_exe()?;
+        
+        // prevent directory traversal
+        let clean = app_path.file_name()
+            .ok_or(Error::new(ErrorKind::InvalidInput, "Invalid configuration file name"))?;
+        
+        let mut path = env::current_dir()?;
+        path.push(clean);
+        path.set_extension("rn");
+        
+        fs::read(path)
     }
     
-    static CONTENTS: OnceLock<Vec<u8>> = OnceLock::new();
+    static CONTENT: OnceLock<Vec<u8>> = OnceLock::new();
     
     // possible future alternative: https://doc.rust-lang.org/std/sync/struct.OnceLock.html#method.get_or_try_init
     
-    CONTENTS.get_or_init(|| load().unwrap())
+    CONTENT.get_or_init(|| load().unwrap_or_else(|_| panic!("Failed to load configuration file")))
     
 }
