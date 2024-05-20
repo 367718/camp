@@ -18,9 +18,9 @@ pub struct Session {
 impl Session {
     
     pub fn new() -> io::Result<Self> {
-        // -------------------- handle --------------------
+        // -------------------- session --------------------
         
-        let handle = unsafe {
+        let session = unsafe {
             
             let result = ffi::WinHttpOpen(
                 chikuwa::WinString::from(env!("CARGO_PKG_NAME")).as_ptr(),
@@ -34,7 +34,7 @@ impl Session {
                 return Err(Error::last_os_error());
             }
             
-            result
+            Self { handle: result }
             
         };
         
@@ -43,7 +43,7 @@ impl Session {
         unsafe {
             
             let result = ffi::WinHttpSetTimeouts(
-                handle,
+                session.handle,
                 DNS_RESOLUTION_TIMEOUT_AS_MILLIS,
                 CONNECTION_TIMEOUT_AS_MILLIS,
                 SEND_TIMEOUT_AS_MILLIS,
@@ -51,38 +51,34 @@ impl Session {
             );
             
             if result == 0 {
-                ffi::WinHttpCloseHandle(handle);
                 return Err(Error::last_os_error());
             }
             
         }
         
-        // -------------------- options --------------------
+        // -------------------- HTTP/2 usage --------------------
         
-        // set HTTP/2 usage
+        let mut version = ffi::WINHTTP_PROTOCOL_FLAG_HTTP2;
+        
+        #[allow(clippy::cast_possible_truncation)]
+        let bytes = mem::size_of::<c_ulong>() as c_ulong;
         
         unsafe {
             
-            let mut version = ffi::WINHTTP_PROTOCOL_FLAG_HTTP2;
-            
-            #[allow(clippy::cast_possible_truncation)]
-            let bytes = mem::size_of::<c_ulong>() as c_ulong;
-            
             let result = ffi::WinHttpSetOption(
-                handle,
+                session.handle,
                 ffi::WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
                 ptr::from_mut(&mut version).cast::<c_void>(),
                 bytes,
             );
             
             if result == 0 {
-                ffi::WinHttpCloseHandle(handle);
                 return Err(Error::last_os_error());
             }
             
         }
         
-        Ok(Self { handle })
+        Ok(session)
     }
     
 }

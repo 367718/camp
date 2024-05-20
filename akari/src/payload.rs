@@ -17,9 +17,9 @@ impl Payload {
     
     
     pub(crate) fn new(connection: &Connection, path: &str, secure: bool) -> io::Result<Self> {
-        // -------------------- handle --------------------
+        // -------------------- payload --------------------
         
-        let handle = unsafe {
+        let payload = unsafe {
             
             let flags = if secure {
                 ffi::WINHTTP_FLAG_SECURE
@@ -41,7 +41,7 @@ impl Payload {
                 return Err(Error::last_os_error());
             }
             
-            result
+            Self { handle: result }
             
         };
         
@@ -50,7 +50,7 @@ impl Payload {
         unsafe {
             
             let result = ffi::WinHttpSendRequest(
-                handle,
+                payload.handle,
                 ffi::WINHTTP_NO_ADDITIONAL_HEADERS,
                 0,
                 ptr::null_mut(),
@@ -60,7 +60,6 @@ impl Payload {
             );
             
             if result == 0 {
-                ffi::WinHttpCloseHandle(handle);
                 return Err(Error::last_os_error());
             }
             
@@ -71,18 +70,17 @@ impl Payload {
         unsafe {
             
             let result = ffi::WinHttpReceiveResponse(
-                handle,
+                payload.handle,
                 ptr::null_mut(),
             );
             
             if result == 0 {
-                ffi::WinHttpCloseHandle(handle);
                 return Err(Error::last_os_error());
             }
             
         }
         
-        Ok(Self { handle })
+        Ok(payload)
     }
     
     
@@ -90,12 +88,12 @@ impl Payload {
     
     
     pub fn content_length(&self) -> usize {
+        let mut content_length: c_ulong = 0;
+        
+        #[allow(clippy::cast_possible_truncation)]
+        let mut bytes = mem::size_of::<c_ulong>() as c_ulong;
+        
         unsafe {
-            
-            let mut content_length: c_ulong = 0;
-            
-            #[allow(clippy::cast_possible_truncation)]
-            let mut bytes = mem::size_of::<c_ulong>() as c_ulong;
             
             ffi::WinHttpQueryHeaders(
                 self.handle,
@@ -106,9 +104,9 @@ impl Payload {
                 ffi::WINHTTP_NO_HEADER_INDEX,
             );
             
-            content_length as usize
-            
         }
+        
+        content_length as usize
     }
     
 }
@@ -116,12 +114,12 @@ impl Payload {
 impl Read for Payload {
     
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let mut amount_read: c_ulong = 0;
+        
+        #[allow(clippy::cast_possible_truncation)]
+        let bytes = buf.len() as c_ulong;
+        
         unsafe {
-            
-            let mut amount_read: c_ulong = 0;
-            
-            #[allow(clippy::cast_possible_truncation)]
-            let bytes = buf.len() as c_ulong;
             
             let result = ffi::WinHttpReadData(
                 self.handle,
@@ -134,9 +132,9 @@ impl Read for Payload {
                 return Err(Error::last_os_error());
             }
             
-            Ok(amount_read as usize)
-            
         }
+        
+        Ok(amount_read as usize)
     }
     
 }

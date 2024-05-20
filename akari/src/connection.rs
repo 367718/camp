@@ -9,7 +9,7 @@ pub struct Connection {
 impl Connection {
     
     pub fn new(session: &Session, host: &str, port: u16) -> io::Result<Self> {
-        let handle = unsafe {
+        let connection = unsafe {
             
             let result = ffi::WinHttpConnect(
                 session.handle,
@@ -22,11 +22,11 @@ impl Connection {
                 return Err(Error::last_os_error());
             }
             
-            result
+            Self { handle: result }
             
         };
         
-        Ok(Self { handle })
+        Ok(connection)
     }
     
 }
