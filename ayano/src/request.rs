@@ -1,5 +1,5 @@
 use std::{
-    io::{ self, Read, Error },
+    io::{ self, Read, Error, ErrorKind },
     net::TcpStream,
     str,
 };
@@ -22,8 +22,8 @@ struct Params<'h, 'b> {
 
 impl Request {
     
-    pub(crate) fn new(stream: TcpStream) -> Option<Self> {
-        stream.set_read_timeout(STREAM_TIMEOUT).ok()?;
+    pub(crate) fn new(stream: TcpStream) -> io::Result<Self> {
+        stream.set_read_timeout(STREAM_TIMEOUT)?;
         
         let mut reader = stream.take(REQUEST_SIZE_LIMIT);
         let mut buffer = [0; CONNECTION_BUFFER_SIZE];
@@ -35,15 +35,17 @@ impl Request {
         
         loop {
             
-            let bytes = reader.read(&mut buffer)
-                .ok()
-                .filter(|&bytes| bytes > 0)?;
+            let bytes = reader.read(&mut buffer)?;
+            
+            if bytes == 0 {
+                return Err(Error::from(ErrorKind::Interrupted));
+            }
             
             headers.extend_from_slice(&buffer[..bytes]);
             
             // separate body
             if let Some(position) = headers.windows(4).position(|curr| curr == b"\r\n\r\n") {
-                body = headers.split_off(position.checked_add(4)?);
+                body = headers.split_off(position + 4);
                 break;
             }
             
@@ -62,9 +64,11 @@ impl Request {
         
         while body.len() < content_length {
             
-            let bytes = reader.read(&mut buffer)
-                .ok()
-                .filter(|&bytes| bytes > 0)?;
+            let bytes = reader.read(&mut buffer)?;
+            
+            if bytes == 0 {
+                return Err(Error::from(ErrorKind::Interrupted));
+            }
             
             body.extend_from_slice(&buffer[..bytes]);
             
@@ -74,7 +78,7 @@ impl Request {
         
         let stream = Some(reader.into_inner());
         
-        Some(Self {
+        Ok(Self {
             headers,
             body,
             stream,

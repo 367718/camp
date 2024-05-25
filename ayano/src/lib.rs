@@ -3,7 +3,7 @@ mod response;
 
 use std::{
     io,
-    net::TcpListener,
+    net::{ TcpListener },
     time::Duration,
 };
 
@@ -86,20 +86,10 @@ impl Server {
 
 impl Iterator for Server {
     
-    type Item = Request;
+    type Item = io::Result<Request>;
     
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            
-            let request = self.listener.accept()
-                .ok()
-                .and_then(|(stream, _)| Request::new(stream));
-            
-            if request.is_some() {
-                return request;
-            }
-            
-        }
+        Some(self.listener.accept().and_then(|(stream, _)| Request::new(stream)))
     }
     
 }

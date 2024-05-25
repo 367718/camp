@@ -56,7 +56,7 @@ fn process() -> Result<(), Box<dyn Error>> {
     println!();
     println!("Listening on {}", address);
     
-    for mut request in server {
+    for mut request in server.flatten() {
         
         if let Err(error) = handle_request(&mut request, &mut pipe) {
             request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
