@@ -89,7 +89,10 @@ impl Request {
         let mut parts = self.headers.split(|&curr| curr == b' ');
         
         let method = parts.next()?;
-        let path = parts.next().and_then(|path| path.split(|&curr| curr == b'?').next())?;
+        
+        // strip query component
+        let path = parts.next()
+            .and_then(|path| path.split(|&curr| curr == b'?').next())?;
         
         Some((method, path))
     }

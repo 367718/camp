@@ -1,19 +1,12 @@
-mod pipe;
-
 use std::{
     error::Error,
     io::{ self, Read, Write },
-    os::raw::*,
 };
-
-use pipe::Pipe;
 
 use ayano::{ Server, Request, StatusCode, ContentType, CacheControl };
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-const PIPE_MAX_WAIT: c_ulong = 5000; // milliseconds
 
 const INDEX: &[u8] = include_bytes!("../rsc/index.html");
 
@@ -33,32 +26,15 @@ fn main() {
 }
 
 fn process() -> Result<(), Box<dyn Error>> {
-    // -------------------- configuration --------------------
-    
-    println!();
-    println!("Loading configuration...");
-    
     let address = rin::get(b"address")?;
-    let name = rin::get(b"name")?;
-    
-    // -------------------- listener --------------------
-    
-    println!("Binding address...");
-    
     let server = Server::bind(address)?;
-    
-    // -------------------- pipe --------------------
-    
-    let mut pipe = Pipe::new(name);
-    
-    // -------------------- requests --------------------
     
     println!();
     println!("Listening on {}", address);
     
     for mut request in server.flatten() {
         
-        if let Err(error) = handle_request(&mut request, &mut pipe) {
+        if let Err(error) = handle_request(&mut request) {
             request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
                 .and_then(|mut response| response.write_all(error.to_string().as_bytes()))
                 .ok();
@@ -69,7 +45,7 @@ fn process() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn handle_request(request: &mut Request, pipe: &mut Pipe) -> Result<(), Box<dyn Error>> {
+fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let (method, path) = request.resource()
         .ok_or("Invalid request")?;
     
@@ -90,7 +66,8 @@ fn handle_request(request: &mut Request, pipe: &mut Pipe) -> Result<(), Box<dyn 
         
         if let Some(command) = get_command(path) {
             
-            pipe.write_all(command)?;
+            chikuwa::NamedPipe::connect(rin::get(b"name")?)?
+                .write_all(command)?;
             
             request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
             

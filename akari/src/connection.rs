@@ -1,18 +1,18 @@
 use std::io::{ self, Error };
 
-use super::{ ffi, Session };
+use super::{ ffi, Handle, Session };
 
 pub struct Connection {
-    pub handle: ffi::HINTERNET,
+    pub handle: Handle,
 }
 
 impl Connection {
     
     pub fn new(session: &Session, host: &str, port: u16) -> io::Result<Self> {
-        let connection = unsafe {
+        let handle = unsafe {
             
             let result = ffi::WinHttpConnect(
-                session.handle,
+                session.handle.as_raw(),
                 chikuwa::WinString::from(host).as_ptr(),
                 port,
                 0,
@@ -22,23 +22,13 @@ impl Connection {
                 return Err(Error::last_os_error());
             }
             
-            Self { handle: result }
+            Handle::new(result)
             
         };
         
-        Ok(connection)
-    }
-    
-}
-
-impl Drop for Connection {
-    
-    fn drop(&mut self) {
-        unsafe {
-            
-            ffi::WinHttpCloseHandle(self.handle);
-            
-        }
+        Ok(Self {
+            handle,
+        })
     }
     
 }

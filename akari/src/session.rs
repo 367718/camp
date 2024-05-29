@@ -6,21 +6,21 @@ use std::{
 };
 
 use super::{
-    ffi,
+    ffi, Handle,
     DNS_RESOLUTION_TIMEOUT_AS_MILLIS, CONNECTION_TIMEOUT_AS_MILLIS,
     SEND_TIMEOUT_AS_MILLIS, RECEIVE_TIMEOUT_AS_MILLIS,
 };
 
 pub struct Session {
-    pub handle: ffi::HINTERNET,
+    pub handle: Handle,
 }
 
 impl Session {
     
     pub fn new() -> io::Result<Self> {
-        // -------------------- session --------------------
+        // -------------------- open --------------------
         
-        let session = unsafe {
+        let handle = unsafe {
             
             let result = ffi::WinHttpOpen(
                 chikuwa::WinString::from(env!("CARGO_PKG_NAME")).as_ptr(),
@@ -34,7 +34,7 @@ impl Session {
                 return Err(Error::last_os_error());
             }
             
-            Self { handle: result }
+            Handle::new(result)
             
         };
         
@@ -43,7 +43,7 @@ impl Session {
         unsafe {
             
             let result = ffi::WinHttpSetTimeouts(
-                session.handle,
+                handle.as_raw(),
                 DNS_RESOLUTION_TIMEOUT_AS_MILLIS,
                 CONNECTION_TIMEOUT_AS_MILLIS,
                 SEND_TIMEOUT_AS_MILLIS,
@@ -66,7 +66,7 @@ impl Session {
         unsafe {
             
             let result = ffi::WinHttpSetOption(
-                session.handle,
+                handle.as_raw(),
                 ffi::WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
                 ptr::from_mut(&mut version).cast::<c_void>(),
                 bytes,
@@ -78,19 +78,9 @@ impl Session {
             
         }
         
-        Ok(session)
-    }
-    
-}
-
-impl Drop for Session {
-    
-    fn drop(&mut self) {
-        unsafe {
-            
-            ffi::WinHttpCloseHandle(self.handle);
-            
-        }
+        Ok(Self {
+            handle,
+        })
     }
     
 }

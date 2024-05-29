@@ -1,4 +1,4 @@
-pub fn get_episode(value: &[u8]) -> Option<u64> {
+pub fn first_number(value: &[u8]) -> Option<u64> {
     let mut chars = value.iter().copied().map(char::from);
     let mut episode = chars.find_map(|current| current.to_digit(10).map(u64::from))?;
     
@@ -22,7 +22,7 @@ mod tests {
         
         // operation
         
-        let output = get_episode(value);
+        let output = first_number(value);
         
         // control
         
@@ -37,7 +37,7 @@ mod tests {
         
         // operation
         
-        let output = get_episode(value);
+        let output = first_number(value);
         
         // control
         
@@ -52,7 +52,7 @@ mod tests {
         
         // operation
         
-        let output = get_episode(value);
+        let output = first_number(value);
         
         // control
         
@@ -67,7 +67,7 @@ mod tests {
         
         // operation
         
-        let output = get_episode(value);
+        let output = first_number(value);
         
         // control
         
@@ -82,7 +82,7 @@ mod tests {
         
         // operation
         
-        let output = get_episode(value);
+        let output = first_number(value);
         
         // control
         
@@ -97,7 +97,7 @@ mod tests {
         
         // operation
         
-        let output = get_episode(value);
+        let output = first_number(value);
         
         // control
         

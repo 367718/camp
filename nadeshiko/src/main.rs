@@ -1,21 +1,14 @@
-mod releases;
-mod extractor;
-
 use std::{
     error::Error,
     ffi::OsString,
     fs,
-    io::{ self, Read, Write, BufWriter, },
+    io::{ self, Read, Write },
     path::{ Path, PathBuf },
     str,
 };
 
-use releases::Releases;
-
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-const TORRENT_FILE_WRITER_BUFFER_SIZE: usize = 64 * 1024;
 
 fn main() {
     println!("{} v{}", APP_NAME, APP_VERSION);
@@ -56,7 +49,7 @@ fn process() -> Result<(), Box<dyn Error>> {
     
     let mut client = akari::Client::new()?;
     
-    // -------------------- releases --------------------
+    // -------------------- entries --------------------
     
     for url in feeds.iter().filter_map(|feed| str::from_utf8(feed.tag).ok()) {
         
@@ -64,31 +57,29 @@ fn process() -> Result<(), Box<dyn Error>> {
         println!("{}", url);
         println!("--------------------");
         
-        for release in Releases::new(&get_content(&mut client, url)?) {
+        for entry in chikuwa::RssFeed::new(&get_feed_content(&mut client, url)?) {
             
             // -------------------- rule and episode --------------------
             
-            let Some(rule) = rules.iter().find(|rule| release.title.starts_with(rule.tag)) else {
+            let Some(rule) = rules.iter().find(|rule| entry.title.starts_with(rule.tag)) else {
                 continue;
             };
             
-            let Some(episode) = extractor::get_episode(&release.title[rule.tag.len()..]) else {
+            let Some(episode) = chikuwa::first_number(&entry.title[rule.tag.len()..]) else {
                 continue;
             };
-            
-            // -------------------- relevant --------------------
             
             if episode <= rule.value {
                 continue;
             }
             
-            // -------------------- fields --------------------
+            // -------------------- conversion --------------------
             
-            let Ok(title) = str::from_utf8(release.title) else {
+            let Ok(title) = str::from_utf8(entry.title) else {
                 continue;
             };
             
-            let Ok(link) = str::from_utf8(release.link) else {
+            let Ok(link) = str::from_utf8(entry.link) else {
                 continue;
             };
             
@@ -101,8 +92,8 @@ fn process() -> Result<(), Box<dyn Error>> {
             
             download_torrent(&mut client, link, &destination)?;
             
-            // release title used instead of rule tag to avoid borrowing error
-            rules.update(&release.title[..rule.tag.len()], episode)?;
+            // entry title used instead of rule tag to avoid borrowing error
+            rules.update(&entry.title[..rule.tag.len()], episode)?;
             
             destination.make_permanent();
             
@@ -113,11 +104,11 @@ fn process() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn get_content(client: &mut akari::Client, url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-    let mut payload = client.get(url)?;
+fn get_feed_content(client: &mut akari::Client, url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+    let mut response = client.get(url)?;
     
-    let mut content = Vec::with_capacity(payload.content_length());
-    payload.read_to_end(&mut content)?;
+    let mut content = Vec::with_capacity(response.content_length());
+    response.read_to_end(&mut content)?;
     
     Ok(content)
 }
@@ -141,18 +132,14 @@ fn build_destination(folder: &str, title: &str) -> Result<PathBuf, Box<dyn Error
 }
 
 fn download_torrent(client: &mut akari::Client, link: &str, destination: &Path) -> Result<(), Box<dyn Error>> {
-    let mut payload = client.get(link)?;
+    let mut response = client.get(link)?;
     
-    let file = fs::OpenOptions::new()
+    let mut file = fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(destination)?;
     
-    let mut writer = BufWriter::with_capacity(TORRENT_FILE_WRITER_BUFFER_SIZE, file);
-    
-    io::copy(&mut payload, &mut writer)?;
-    
-    writer.flush()?;
+    io::copy(&mut response, &mut file)?;
     
     Ok(())
 }
