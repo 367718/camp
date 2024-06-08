@@ -5,7 +5,7 @@ use std::{
 };
 
 use super::{
-    STREAM_TIMEOUT, REQUEST_SIZE_LIMIT, CONNECTION_BUFFER_SIZE,
+    REQUEST_SIZE_LIMIT, CONNECTION_BUFFER_SIZE, STREAM_TIMEOUT,
     StatusCode, ContentType, CacheControl, Response,
 };
 

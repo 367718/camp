@@ -89,7 +89,10 @@ impl Iterator for Server {
     type Item = io::Result<Request>;
     
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.listener.accept().and_then(|(stream, _)| Request::new(stream)))
+        let request = self.listener.accept()
+            .and_then(|(stream, _)| Request::new(stream));
+        
+        Some(request)
     }
     
 }

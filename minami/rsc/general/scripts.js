@@ -6,6 +6,7 @@
 
 const CURRENT_NODE_SELECTOR = ".current";
 
+const HOTKEY_FOCUS_FILTER = "NumpadDivide";
 const HOTKEY_COPY_CONTROL = true;
 const HOTKEY_COPY_COMPLETE = "KeyC";
 const HOTKEY_COPY_CLEAN = "KeyX";
@@ -64,6 +65,12 @@ class Current {
             // bail if filter input is involved
             if (this.filter.node && event.target === this.filter.node) {
                 return;
+            }
+            
+            // focus filter
+            if (event.code === HOTKEY_FOCUS_FILTER) {
+                this.filter?.focus();
+                return event.preventDefault();
             }
             
             // copy text to clipboard
@@ -130,6 +137,8 @@ class Filter {
         });
         
     }
+    
+    focus = () => this.node.focus();
     
     apply = (entries) => {
         

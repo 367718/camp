@@ -12,7 +12,8 @@
     
     --entry-hovered-color: var(--secondary-color);
     --entry-selected-color: var(--accent-color);
-    --entry-hovered-selected-color: color-mix(in srgb, var(--accent-color) 50%, var(--secondary-color));
+    --entry-hovered-selected-color: color-mix(in srgb, var(--accent-color) 75%, var(--secondary-color));
+    --entry-unfocused-selected-color: color-mix(in srgb, var(--accent-color) 50%, var(--secondary-color));
     
     --transition-duration: 0.25s;
     
@@ -62,7 +63,7 @@ iframe {
     }
     
     &:not(:focus-within) {
-        --entry-selected-color: var(--secondary-color);
+        --entry-selected-color: var(--entry-unfocused-selected-color);
     }
     
 }

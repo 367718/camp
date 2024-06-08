@@ -8,6 +8,7 @@ use ayano::{ Server, Request, StatusCode, ContentType, CacheControl };
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
+const FAVICON: &[u8] = include_bytes!("../rsc/favicon.ico");
 const INDEX: &[u8] = include_bytes!("../rsc/index.html");
 
 fn main() {
@@ -50,6 +51,17 @@ fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .ok_or("Invalid request")?;
     
     if method == b"GET" {
+        
+        // -------------------- favicon --------------------
+        
+        if path == b"/favicon.ico" {
+            
+            request.start_response(StatusCode::Ok, ContentType::Icon, CacheControl::Static)
+                .and_then(|mut response| response.write_all(FAVICON))?;
+            
+            return Ok(());
+            
+        }
         
         // -------------------- index --------------------
         
