@@ -69,7 +69,7 @@ fn process() -> Result<(), Box<dyn Error>> {
                 continue;
             };
             
-            if episode <= rule.value {
+            if rule.value >= episode {
                 continue;
             }
             

@@ -14,13 +14,13 @@ impl Request {
     pub fn new(connection: &Connection, path: &str, secure: bool) -> io::Result<Self> {
         // -------------------- open --------------------
         
+        let flags = if secure {
+            ffi::WINHTTP_FLAG_SECURE
+        } else {
+            0
+        };
+        
         let handle = unsafe {
-            
-            let flags = if secure {
-                ffi::WINHTTP_FLAG_SECURE
-            } else {
-                0
-            };
             
             let result = ffi::WinHttpOpenRequest(
                 connection.handle.as_raw(),

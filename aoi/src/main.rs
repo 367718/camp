@@ -78,9 +78,7 @@ fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
         
         if let Some(command) = get_command(path) {
             
-            chikuwa::NamedPipe::connect(rin::get(b"name")?)?
-                .write_all(command)?;
-            
+            chikuwa::write_to_named_pipe(rin::get(b"pipe")?, command)?;
             request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
             
             return Ok(());
