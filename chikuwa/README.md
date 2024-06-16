@@ -27,10 +27,6 @@ Available functionality:
     * From trait
     * Deref trait
 
-* `NamedPipe`
-    * connect
-    * Write trait
-
 * `HtmlEscaper`
     * From trait
     * Iterator trait
