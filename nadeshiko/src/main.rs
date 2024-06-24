@@ -26,23 +26,10 @@ fn main() {
 }
 
 fn process() -> Result<(), Box<dyn Error>> {
-    // -------------------- configuration --------------------
-    
-    println!();
-    println!("Loading configuration...");
+    // -------------------- params --------------------
     
     let folder = rin::get(b"folder")?;
-    
-    // -------------------- feeds --------------------
-    
-    println!("Loading feeds...");
-    
     let feeds = chiaki::List::load("feeds")?;
-    
-    // -------------------- rules --------------------
-    
-    println!("Loading rules...");
-    
     let mut rules = chiaki::List::load("rules")?;
     
     // -------------------- client --------------------
@@ -107,7 +94,7 @@ fn process() -> Result<(), Box<dyn Error>> {
 fn get_feed_content(client: &mut akari::Client, url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut response = client.get(url)?;
     
-    let mut content = Vec::with_capacity(response.content_length());
+    let mut content = Vec::with_capacity(response.content_length().unwrap_or(0));
     response.read_to_end(&mut content)?;
     
     Ok(content)

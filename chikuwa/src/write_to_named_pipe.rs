@@ -15,28 +15,34 @@ mod ffi {
     extern "system" {
         
         // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-waitnamedpipew
-        pub fn WaitNamedPipeW(
+        fn WaitNamedPipeW(
             lpNamedPipeName: *const c_ushort,
             nTimeOut: c_ulong,
         ) -> c_int;
         
     }
     
+    pub fn wait_named_pipe(path: &str) -> io::Result<()> {
+        unsafe {
+            
+            let result = ffi::WaitNamedPipeW(
+                WinString::from(path).as_ptr(),
+                MAX_WAIT,
+            );
+            
+            if result == 0 {
+                return Err(Error::last_os_error());
+            }
+            
+        }
+        
+        Ok(())
+    }
+    
 }
 
 pub fn write_to_named_pipe(path: &str, data: &[u8]) -> io::Result<()> {
-    unsafe {
-        
-        let result = ffi::WaitNamedPipeW(
-            WinString::from(path).as_ptr(),
-            MAX_WAIT,
-        );
-        
-        if result == 0 {
-            return Err(Error::last_os_error());
-        }
-        
-    }
+    ffi::wait_named_pipe(path)?;
     
     OpenOptions::new()
         .write(true)

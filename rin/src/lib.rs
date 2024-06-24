@@ -16,7 +16,7 @@ pub fn get(key: &[u8]) -> io::Result<&'static str> {
         }
     }
     
-    Err(Error::new(ErrorKind::NotFound, "Key not found"))
+    Err(Error::new(ErrorKind::NotFound, format!("Configuration key not found: '{}'", String::from_utf8_lossy(key))))
 }
 
 fn content() -> &'static [u8] {
