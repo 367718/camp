@@ -16,15 +16,15 @@ pub fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- list --------------------
+    // -------------------- operation --------------------
     
-    let watchlist = chiaki::List::load("watchlist")?;
+    let list = chiaki::List::load("watchlist")?;
     
     // -------------------- response --------------------
     
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
     
-    for entry in &watchlist {
+    for entry in &list {
         
         write!(&mut response, "<a data-value='{}'>", entry.value)?;
         
@@ -39,16 +39,16 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- title --------------------
+    // -------------------- params --------------------
     
-    let title = request.param(b"input")
+    let input = request.param(b"input")
         .next()
-        .ok_or("Title not provided")?;
+        .ok_or("Input not provided")?;
     
     // -------------------- operation --------------------
     
     chiaki::List::load("watchlist")
-        .and_then(|mut list| list.insert(title, 0))?;
+        .and_then(|mut list| list.insert(input, 0))?;
     
     // -------------------- response --------------------
     
@@ -58,22 +58,22 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- title and progress --------------------
+    // -------------------- params --------------------
     
-    let title = request.param(b"tag")
+    let matcher = request.param(b"matcher")
         .next()
-        .ok_or("Title not provided")?;
+        .ok_or("Matcher not provided")?;
     
-    let progress = request.param(b"input")
+    let input = request.param(b"input")
         .next()
-        .and_then(|progress| str::from_utf8(progress).ok())
-        .and_then(|progress| progress.parse().ok())
-        .ok_or("Progress not provided")?;
+        .and_then(|input| str::from_utf8(input).ok())
+        .and_then(|input| input.parse().ok())
+        .ok_or("Input not provided")?;
     
     // -------------------- operation --------------------
     
     chiaki::List::load("watchlist")
-        .and_then(|mut list| list.update(title, progress))?;
+        .and_then(|mut list| list.update(matcher, input))?;
     
     // -------------------- response --------------------
     
@@ -83,16 +83,16 @@ pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- title --------------------
+    // -------------------- params --------------------
     
-    let title = request.param(b"tag")
+    let matcher = request.param(b"matcher")
         .next()
-        .ok_or("Title not provided")?;
+        .ok_or("Matcher not provided")?;
     
     // -------------------- operation --------------------
     
     chiaki::List::load("watchlist")
-        .and_then(|mut list| list.delete(title))?;
+        .and_then(|mut list| list.delete(matcher))?;
     
     // -------------------- response --------------------
     

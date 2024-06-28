@@ -16,15 +16,15 @@ pub fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- list --------------------
+    // -------------------- operation --------------------
     
-    let rules = chiaki::List::load("rules")?;
+    let list = chiaki::List::load("rules")?;
     
     // -------------------- response --------------------
     
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
     
-    for entry in &rules {
+    for entry in &list {
         
         write!(&mut response, "<a data-value='{}'>", entry.value)?;
         
@@ -39,16 +39,16 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- matcher --------------------
+    // -------------------- params --------------------
     
-    let matcher = request.param(b"input")
+    let input = request.param(b"input")
         .next()
-        .ok_or("Matcher not provided")?;
+        .ok_or("Input not provided")?;
     
     // -------------------- operation --------------------
     
     chiaki::List::load("rules")
-        .and_then(|mut list| list.insert(matcher, 1))?;
+        .and_then(|mut list| list.insert(input, 1))?;
     
     // -------------------- response --------------------
     
@@ -58,22 +58,22 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- matcher and progress --------------------
+    // -------------------- params --------------------
     
-    let matcher = request.param(b"tag")
+    let matcher = request.param(b"matcher")
         .next()
         .ok_or("Matcher not provided")?;
     
-    let progress = request.param(b"input")
+    let input = request.param(b"input")
         .next()
-        .and_then(|progress| str::from_utf8(progress).ok())
-        .and_then(|progress| progress.parse().ok())
-        .ok_or("Progress not provided")?;
+        .and_then(|input| str::from_utf8(input).ok())
+        .and_then(|input| input.parse().ok())
+        .ok_or("Input not provided")?;
     
     // -------------------- operation --------------------
     
     chiaki::List::load("rules")
-        .and_then(|mut list| list.update(matcher, progress))?;
+        .and_then(|mut list| list.update(matcher, input))?;
     
     // -------------------- response --------------------
     
@@ -83,9 +83,9 @@ pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- matcher --------------------
+    // -------------------- params --------------------
     
-    let matcher = request.param(b"tag")
+    let matcher = request.param(b"matcher")
         .next()
         .ok_or("Matcher not provided")?;
     

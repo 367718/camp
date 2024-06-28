@@ -480,10 +480,10 @@ class Actions {
             form_data.append("input", input);
         }
         
-        // -------------------- tags --------------------
+        // -------------------- matcher --------------------
         
         this.parent.list.entries.filter(entry => entry.is_selected())
-            .forEach(entry => form_data.append("tag", entry.text()));
+            .forEach(entry => form_data.append("matcher", entry.text()));
         
         // -------------------- request --------------------
         

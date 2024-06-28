@@ -16,6 +16,8 @@ pub struct Response {
 impl Response {
     
     pub(crate) fn new(mut stream: TcpStream, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Self> {
+        stream.set_write_timeout(STREAM_TIMEOUT)?;
+        
         let mut buffer = Vec::with_capacity(CONNECTION_BUFFER_SIZE);
         
         buffer.extend_from_slice(status.into_header());
@@ -26,9 +28,7 @@ impl Response {
         buffer.extend_from_slice(b"Connection: close\r\n");
         buffer.extend_from_slice(b"\r\n");
         
-        stream.set_write_timeout(STREAM_TIMEOUT)?;
         stream.write_all(&buffer)?;
-        
         buffer.clear();
         
         Ok(Self {

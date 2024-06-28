@@ -15,15 +15,15 @@ pub fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- list --------------------
+    // -------------------- operation --------------------
     
-    let feeds = chiaki::List::load("feeds")?;
+    let list = chiaki::List::load("feeds")?;
     
     // -------------------- response --------------------
     
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
     
-    for entry in &feeds {
+    for entry in &list {
         
         response.write_all(b"<a>")?;
         
@@ -38,16 +38,16 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- url --------------------
+    // -------------------- params --------------------
     
-    let url = request.param(b"input")
+    let input = request.param(b"input")
         .next()
-        .ok_or("Url not provided")?;
+        .ok_or("Input not provided")?;
     
     // -------------------- operation --------------------
     
     chiaki::List::load("feeds")
-        .and_then(|mut list| list.insert(url, 0))?;
+        .and_then(|mut list| list.insert(input, 0))?;
     
     // -------------------- response --------------------
     
@@ -57,16 +57,16 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- url --------------------
+    // -------------------- params --------------------
     
-    let url = request.param(b"tag")
+    let matcher = request.param(b"matcher")
         .next()
-        .ok_or("Url not provided")?;
+        .ok_or("Matcher not provided")?;
     
     // -------------------- operation --------------------
     
     chiaki::List::load("feeds")
-        .and_then(|mut list| list.delete(url))?;
+        .and_then(|mut list| list.delete(matcher))?;
     
     // -------------------- response --------------------
     

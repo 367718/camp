@@ -19,20 +19,20 @@ pub fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- configuration --------------------
+    // -------------------- params --------------------
     
     let root = rin::get(b"root")?;
     let flag = rin::get(b"flag")?;
     
-    // -------------------- list --------------------
+    // -------------------- operation --------------------
     
-    let files = ena::Files::walk(root)?;
+    let list = ena::Files::walk(root)?;
     
     // -------------------- response --------------------
     
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
     
-    for entry in files {
+    for entry in list {
         
         // skip entries whose file_name cannot be represented in UTF-8
         let Some(file_name) = entry.file_name().to_str() else {
@@ -68,25 +68,23 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- configuration --------------------
+    // -------------------- params --------------------
     
     let root = rin::get(b"root")?;
     let player = rin::get(b"player")?;
     
-    // -------------------- files --------------------
-    
-    let mut files = ena::Files::walk(root)?
-        .filter(|file| is_file_selected(request, file))
+    let mut selected = ena::Files::walk(root)?
+        .filter(|entry| is_entry_selected(request, entry))
         .peekable();
     
-    if files.peek().is_none() {
-        return Err("File not provided".into());
+    if selected.peek().is_none() {
+        return Err("Matcher not provided".into());
     }
     
     // -------------------- operation --------------------
     
     Command::new(player)
-        .args(files)
+        .args(selected)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -100,24 +98,22 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- configuration --------------------
+    // -------------------- params --------------------
     
     let root = rin::get(b"root")?;
     let flag = rin::get(b"flag")?;
     
-    // -------------------- files --------------------
-    
-    let mut files = ena::Files::walk(root)?
-        .filter(|file| is_file_selected(request, file))
+    let mut selected = ena::Files::walk(root)?
+        .filter(|entry| is_entry_selected(request, entry))
         .peekable();
     
-    if files.peek().is_none() {
-        return Err("File not provided".into());
+    if selected.peek().is_none() {
+        return Err("Matcher not provided".into());
     }
     
     // -------------------- operation --------------------
     
-    files.try_for_each(|file| file.toggle_mark(flag))?;
+    selected.try_for_each(|entry| entry.toggle_mark(flag))?;
     
     // -------------------- response --------------------
     
@@ -127,30 +123,26 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- configuration --------------------
+    // -------------------- params --------------------
     
     let root = rin::get(b"root")?;
     
-    // -------------------- files --------------------
-    
-    let mut files = ena::Files::walk(root)?
-        .filter(|file| is_file_selected(request, file))
+    let mut selected = ena::Files::walk(root)?
+        .filter(|entry| is_entry_selected(request, entry))
         .peekable();
     
-    if files.peek().is_none() {
-        return Err("File not provided".into());
+    if selected.peek().is_none() {
+        return Err("Matcher not provided".into());
     }
     
-    // -------------------- folder --------------------
-    
     let folder = match request.param(b"input").next() {
-        Some(input) => str::from_utf8(input).map_err(|_| "Invalid folder")?,
+        Some(input) => str::from_utf8(input).map_err(|_| "Invalid input")?,
         None => "",
     };
     
     // -------------------- operation --------------------
     
-    files.try_for_each(|file| file.move_to_folder(folder))?;
+    selected.try_for_each(|entry| entry.move_to_folder(folder))?;
     
     // -------------------- response --------------------
     
@@ -160,23 +152,21 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- configuration --------------------
+    // -------------------- params --------------------
     
     let root = rin::get(b"root")?;
     
-    // -------------------- files --------------------
-    
-    let mut files = ena::Files::walk(root)?
-        .filter(|file| is_file_selected(request, file))
+    let mut selected = ena::Files::walk(root)?
+        .filter(|entry| is_entry_selected(request, entry))
         .peekable();
     
-    if files.peek().is_none() {
-        return Err("File not provided".into());
+    if selected.peek().is_none() {
+        return Err("Matcher not provided".into());
     }
     
     // -------------------- operation --------------------
     
-    files.try_for_each(ena::FilesEntry::delete)?;
+    selected.try_for_each(ena::FilesEntry::delete)?;
     
     // -------------------- response --------------------
     
@@ -185,8 +175,8 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn is_file_selected(request: &Request, file: &ena::FilesEntry) -> bool {
-    request.param(b"tag")
-        .filter_map(|tag| str::from_utf8(tag).map(OsStr::new).ok())
-        .any(|tag| tag == file.relative())
+fn is_entry_selected(request: &Request, entry: &ena::FilesEntry) -> bool {
+    request.param(b"matcher")
+        .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
+        .any(|matcher| matcher == entry.relative())
 }
