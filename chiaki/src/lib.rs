@@ -66,7 +66,7 @@ impl List {
             return Err(Error::new(ErrorKind::AlreadyExists, "Tag in use"));
         }
         
-        let capacity = self.content.len() + (mem::size_of::<u64>() * 2 + tag.len());
+        let capacity = self.content.len() + (size_of::<u64>() * 2 + tag.len());
         let entries = self.iter()
             .chain(Some(ListEntry { tag, value }));
         
@@ -90,7 +90,7 @@ impl List {
         let position = self.iter().position(|current| current.tag.eq_ignore_ascii_case(tag))
             .ok_or(Error::new(ErrorKind::NotFound, "Tag not found"))?;
         
-        let capacity = self.content.len() - (mem::size_of::<u64>() * 2 + tag.len());
+        let capacity = self.content.len() - (size_of::<u64>() * 2 + tag.len());
         let entries = self.iter()
             .enumerate()
             .filter_map(|(current, entry)| (current != position).then_some(entry));

@@ -80,7 +80,7 @@ impl Iterator for Files {
                 // subdirectory
                 
                 if file_type.is_dir() {
-                    if let Ok(subdirectory) = Self::with_depth(&entry.path(), self.depth + 1) {
+                    if let Ok(subdirectory) = Self::with_depth(entry.path(), self.depth + 1) {
                         self.subdirectory = Some(Box::new(subdirectory));
                         continue 'outer;
                     }

@@ -1,6 +1,5 @@
 use std::{
     io::{ self, Error, ErrorKind },
-    mem,
     os::raw::*,
     ptr,
 };
@@ -188,7 +187,7 @@ pub fn set_option(handle: &Handle) -> io::Result<()> {
     let mut version = WINHTTP_PROTOCOL_FLAG_HTTP2;
     
     #[allow(clippy::cast_possible_truncation)]
-    let bytes = mem::size_of::<c_ulong>() as c_ulong;
+    let bytes = size_of::<c_ulong>() as c_ulong;
     
     unsafe {
         
@@ -346,7 +345,7 @@ pub fn query_headers(handle: &Handle) -> io::Result<usize> {
     let mut content_length: c_ulong = 0;
     
     #[allow(clippy::cast_possible_truncation)]
-    let mut bytes = mem::size_of::<c_ulong>() as c_ulong;
+    let mut bytes = size_of::<c_ulong>() as c_ulong;
     
     unsafe {
         
