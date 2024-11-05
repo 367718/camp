@@ -281,43 +281,47 @@ class List {
     refresh = () => {
         
         fetch(this.node.getAttribute(LIST_REFRESH_ATTRIBUTE))
-            .then(response => response.text().then(text => {
+            .then(response => {
                 
                 if (response.status != 200) {
                     this.node.replaceChildren();
                     this.entries = [];
-                    window.alert(text);
+                    response.text().then(error => window.alert(error));
                     return;
                 }
                 
-                // children
+                response.text().then(text => {
+                    
+                    // children
+                    
+                    const container = document.createElement("div");
+                    container.innerHTML = text;
+                    
+                    const children = Array.from(container.children);
+                    
+                    if (this.node.classList.contains(LIST_SORTED_CLASS)) {
+                        const collator = new Intl.Collator("en", { usage: "sort", sensitivity: "base", numeric: true });
+                        children.sort((a, b) => a.children.length - b.children.length || collator.compare(a.textContent, b.textContent));
+                    }
+                    
+                    // entries
+                    
+                    const entries = children.map(child => new Entry(child, this));
+                    
+                    // filter
+                    
+                    if (this.parent.filter.node) {
+                        this.parent.filter.apply(entries);
+                    }
+                    
+                    // refresh
+                    
+                    this.node.replaceChildren(...children);
+                    this.entries = entries;
+                    
+                });
                 
-                const container = document.createElement("div");
-                container.innerHTML = text;
-                
-                const children = Array.from(container.children);
-                
-                if (this.node.classList.contains(LIST_SORTED_CLASS)) {
-                    const collator = new Intl.Collator("en", { usage: "sort", sensitivity: "base", numeric: true });
-                    children.sort((a, b) => a.children.length - b.children.length || collator.compare(a.textContent, b.textContent));
-                }
-                
-                // entries
-                
-                const entries = children.map(child => new Entry(child, this));
-                
-                // filter
-                
-                if (this.parent.filter.node) {
-                    this.parent.filter.apply(entries);
-                }
-                
-                // refresh
-                
-                this.node.replaceChildren(...children);
-                this.entries = entries;
-                
-            }))
+            })
             .catch(error => window.alert(error));
         
     };
