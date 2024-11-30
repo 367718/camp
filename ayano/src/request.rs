@@ -117,11 +117,24 @@ impl Request {
     
 }
 
-impl<'h, 'b> Iterator for Params<'h, 'b> {
+impl<'b> Iterator for Params<'_, 'b> {
     
     type Item = (&'b [u8], &'b [u8]);
     
     fn next(&mut self) -> Option<Self::Item> {
+        
+        // example
+        
+        // -----------------------------9999999999999999999999999999
+        // Content-Disposition: form-data; name="placeholder key #1"
+        // 
+        // placeholder value #1
+        // -----------------------------9999999999999999999999999999
+        // Content-Disposition: form-data; name="placeholder key #2"
+        // 
+        // placeholder value #2
+        // -----------------------------9999999999999999999999999999--
+        
         while let Some(param) = chikuwa::subslice_range(self.content, self.boundary, self.boundary) {
             
             let item = build_pair(&self.content[param.start..param.end]);
@@ -134,15 +147,25 @@ impl<'h, 'b> Iterator for Params<'h, 'b> {
         }
         
         None
+        
     }
     
 }
 
 fn build_pair(param: &[u8]) -> Option<(&[u8], &[u8])> {
+    
+    // example
+    
+    // Content-Disposition: form-data; name="placeholder"
+    // 
+    // placeholder value
+    // --
+    
     let data = chikuwa::subslice_range(param, b"Content-Disposition: form-data; name=\"", b"\"\r\n\r\n")?;
     
     let key = &param[data.start..data.end];
     let value = param[data.end..][5..].strip_suffix(b"\r\n--")?;
     
     Some((key, value))
+    
 }
