@@ -6,8 +6,8 @@ Collection of small utilities.
 
 Available functionality:
 
+* `win_str`: macro for creating UTF-16 encoded and null-terminated strings.
 * `EphemeralPath`: paths that attempt to delete themselves when dropped.
-* `WinString`: null-terminated UTF-16 encoded strings.
 * `HtmlEscaper`: escape bytes for safe usage in an HTML context.
 * `RssFeed`: entries of an RSS feed, with mandatory "title" and "link" fields.
 * `subslice_range`: position of subslice between two delimiters (case-insensitive).
@@ -16,16 +16,14 @@ Available functionality:
 
 ## API
 
+* `win_str!`
+
 * `EphemeralPath`
     * make_permanent
     * From trait
     * Deref trait
     * AsRef trait
     * Drop trait
-
-* `WinString`
-    * From trait
-    * Deref trait
 
 * `HtmlEscaper`
     * From trait

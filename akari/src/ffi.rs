@@ -137,7 +137,7 @@ pub fn open(user_agent: &str) -> io::Result<Handle> {
     let hinternet = unsafe {
         
         let result = WinHttpOpen(
-            chikuwa::WinString::from(user_agent).as_ptr(),
+            chikuwa::win_str!(user_agent).as_ptr(),
             WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
             WINHTTP_NO_PROXY_NAME,
             WINHTTP_NO_PROXY_BYPASS,
@@ -221,7 +221,7 @@ pub fn connect(handle: &Handle, host: &str, port: u16) -> io::Result<Handle> {
         
         let result = WinHttpConnect(
             handle.as_raw(),
-            chikuwa::WinString::from(host).as_ptr(),
+            chikuwa::win_str!(host).as_ptr(),
             port,
             0,
         );
@@ -263,7 +263,7 @@ pub fn open_request(handle: &Handle, path: &str, secure: bool) -> io::Result<Han
         let result = WinHttpOpenRequest(
             handle.as_raw(),
             ptr::null(),
-            chikuwa::WinString::from(path).as_ptr(),
+            chikuwa::win_str!(path).as_ptr(),
             ptr::null(),
             WINHTTP_NO_REFERER,
             WINHTTP_DEFAULT_ACCEPT_TYPES,

@@ -4,8 +4,6 @@ use std::{
     os::raw::*,
 };
 
-use super::WinString;
-
 const MAX_WAIT: c_ulong = 5000; // milliseconds
 
 mod ffi {
@@ -26,7 +24,7 @@ mod ffi {
         unsafe {
             
             let result = ffi::WaitNamedPipeW(
-                WinString::from(path).as_ptr(),
+                crate::win_str!(path).as_ptr(),
                 MAX_WAIT,
             );
             
