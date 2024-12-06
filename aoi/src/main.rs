@@ -1,15 +1,31 @@
 use std::{
     error::Error,
+    fs::OpenOptions,
     io::{ self, Read, Write },
+    os::raw::*,
 };
 
-use ayano::{ Server, Request, StatusCode, ContentType, CacheControl };
+use ayano::{
+    Server, Request,
+    StatusCode, ContentType, CacheControl,
+};
+
+extern "system" {
+    
+    // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-waitnamedpipew
+    fn WaitNamedPipeW(
+        lpNamedPipeName: *const c_ushort,
+        nTimeOut: c_ulong,
+    ) -> c_int;
+    
+}
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const FAVICON: &[u8] = include_bytes!("../rsc/favicon.ico");
 const INDEX: &[u8] = include_bytes!("../rsc/index.html");
+
+const PIPE_MAX_WAIT: c_ulong = 5000; // milliseconds
 
 fn main() {
     println!("{} v{}", APP_NAME, APP_VERSION);
@@ -52,17 +68,6 @@ fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     if method == b"GET" {
         
-        // -------------------- favicon --------------------
-        
-        if path == b"/favicon.ico" {
-            
-            request.start_response(StatusCode::Ok, ContentType::Icon, CacheControl::Static)
-                .and_then(|mut response| response.write_all(FAVICON))?;
-            
-            return Ok(());
-            
-        }
-        
         // -------------------- index --------------------
         
         if path == b"/" {
@@ -78,7 +83,7 @@ fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
         
         if let Some(command) = get_command(path) {
             
-            chikuwa::write_to_named_pipe(rin::get(b"pipe")?, command)?;
+            write_to_named_pipe(rin::get(b"pipe")?, command)?;
             request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
             
             return Ok(());
@@ -110,4 +115,24 @@ fn get_command(path: &[u8]) -> Option<&'static [u8]> {
         b"/quit" => Some(b"quit\n"),
         _ => None,
     }
+}
+
+fn write_to_named_pipe(path: &str, data: &[u8]) -> io::Result<()> {
+    unsafe {
+            
+        let result = WaitNamedPipeW(
+            chikuwa::win_str!(path).as_ptr(),
+            PIPE_MAX_WAIT,
+        );
+        
+        if result == 0 {
+            return Err(io::Error::last_os_error());
+        }
+        
+    }
+    
+    OpenOptions::new()
+        .write(true)
+        .open(path)
+        .and_then(|mut pipe| pipe.write_all(data))
 }

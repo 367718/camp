@@ -1,40 +1,45 @@
-use super::ffi;
+use std::os::{
+    raw::*,
+    windows::io::RawHandle,
+};
 
-#[derive(Clone, Copy, PartialEq)]
-pub enum HandleSource {
-    Session,
-    Connection,
-    Request,
-}
-
-pub struct Handle {
-    inner: ffi::HINTERNET,
-    source: HandleSource,
-}
-
-impl Handle {
+extern "system" {
     
-    pub fn new(handle: ffi::HINTERNET, source: HandleSource) -> Self {
+    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpclosehandle
+    fn WinHttpCloseHandle(
+        h_internet: RawHandle,
+    ) -> c_int; // BOOL
+    
+}
+
+pub struct HttpHandle {
+    inner: RawHandle,
+}
+
+impl HttpHandle {
+    
+    pub fn new(raw: RawHandle) -> Self {
         Self {
-            inner: handle,
-            source,
+            inner: raw,
         }
     }
     
-    pub fn as_raw(&self) -> ffi::HINTERNET {
+    pub fn as_raw(&self) -> RawHandle {
         self.inner
-    }
-    
-    pub fn source(&self) -> HandleSource {
-        self.source
     }
     
 }
 
-impl Drop for Handle {
+impl Drop for HttpHandle {
     
     fn drop(&mut self) {
-        ffi::close_handle(self).ok();
+        unsafe {
+            
+            WinHttpCloseHandle(
+                self.inner,
+            );
+            
+        }
     }
     
 }

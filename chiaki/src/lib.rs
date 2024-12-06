@@ -156,20 +156,15 @@ impl <'c>Iterator for ListIter<'c> {
     fn next(&mut self) -> Option<Self::Item> {
         const MEM_SIZE: usize = mem::size_of::<u64>();
         
-        // possible future alternative: https://doc.rust-lang.org/core/primitive.slice.html#method.take
-        
-        let mut working = self.content;
-        
-        let tag_size = usize::try_from(u64::from_le_bytes(*working.first_chunk::<MEM_SIZE>()?))
+        let (current, working) = self.content.split_at_checked(MEM_SIZE)?;
+        let tag_size = usize::try_from(u64::from_le_bytes(current.try_into().unwrap()))
             .expect("Tag size exceeded the maximum value supported by the plataform");
         
-        working = &working[MEM_SIZE..];
+        let (current, working) = working.split_at_checked(tag_size)?;
+        let tag = current;
         
-        let tag = working.get(..tag_size)?;
-        working = &working[tag_size..];
-        
-        let value = u64::from_le_bytes(*working.first_chunk::<MEM_SIZE>()?);
-        working = &working[MEM_SIZE..];
+        let (current, working) = working.split_at_checked(MEM_SIZE)?;
+        let value = u64::from_le_bytes(current.try_into().unwrap());
         
         self.content = working;
         

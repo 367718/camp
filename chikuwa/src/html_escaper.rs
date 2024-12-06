@@ -16,13 +16,7 @@ impl<'e> Iterator for HtmlEscaper<'e> {
     
     fn next(&mut self) -> Option<Self::Item> {
         
-        // possible future alternative: https://doc.rust-lang.org/core/primitive.slice.html#method.take
-        
-        if self.content.is_empty() {
-            return None;
-        }
-        
-        let (current, rest) = self.content.split_at(1);
+        let (current, rest) = self.content.split_at_checked(1)?;
         self.content = rest;
         
         // https://www.w3.org/International/questions/qa-escapes#use

@@ -12,7 +12,10 @@ use std::{
     io::Write,
 };
 
-use ayano::{ Server, Request, StatusCode, ContentType, CacheControl };
+use ayano::{
+    Server, Request,
+    StatusCode, ContentType, CacheControl,
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let server = Server::bind(rin::get(b"address")?)?;
@@ -36,7 +39,6 @@ fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
         // -------------------- general --------------------
         
         (b"GET", b"/") => general::index(request),
-        (b"GET", b"/favicon.ico") => general::favicon(request),
         (b"GET", b"/styles.css") => general::styles(request),
         (b"GET", b"/scripts.js") => general::scripts(request),
         
