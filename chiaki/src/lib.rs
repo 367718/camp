@@ -157,14 +157,14 @@ impl <'c>Iterator for ListIter<'c> {
         const MEM_SIZE: usize = mem::size_of::<u64>();
         
         let (current, working) = self.content.split_at_checked(MEM_SIZE)?;
-        let tag_size = usize::try_from(u64::from_le_bytes(current.try_into().unwrap()))
+        let tag_size = usize::try_from(u64::from_le_bytes(unsafe { current.try_into().unwrap_unchecked() }))
             .expect("Tag size exceeded the maximum value supported by the plataform");
         
         let (current, working) = working.split_at_checked(tag_size)?;
         let tag = current;
         
         let (current, working) = working.split_at_checked(MEM_SIZE)?;
-        let value = u64::from_le_bytes(current.try_into().unwrap());
+        let value = u64::from_le_bytes(unsafe { current.try_into().unwrap_unchecked() });
         
         self.content = working;
         
