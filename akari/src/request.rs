@@ -62,7 +62,7 @@ impl Request {
             let result = WinHttpOpenRequest(
                 connection.handle.as_raw(),
                 ptr::null(),
-                chikuwa::win_str!(path).as_ptr(),
+                chikuwa::win_string(path).as_ptr(),
                 ptr::null(),
                 WINHTTP_NO_REFERER,
                 WINHTTP_DEFAULT_ACCEPT_TYPES,

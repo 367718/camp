@@ -31,7 +31,7 @@ impl Connection {
             
             let result = WinHttpConnect(
                 session.handle.as_raw(),
-                chikuwa::win_str!(host).as_ptr(),
+                chikuwa::win_string(host).as_ptr(),
                 port,
                 0,
             );

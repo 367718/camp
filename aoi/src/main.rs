@@ -121,7 +121,7 @@ fn write_to_named_pipe(path: &str, data: &[u8]) -> io::Result<()> {
     unsafe {
             
         let result = WaitNamedPipeW(
-            chikuwa::win_str!(path).as_ptr(),
+            chikuwa::win_string(path).as_ptr(),
             PIPE_MAX_WAIT,
         );
         
