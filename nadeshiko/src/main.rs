@@ -1,3 +1,6 @@
+mod rss_feed;
+mod first_number;
+
 use std::{
     error::Error,
     ffi::OsString,
@@ -6,6 +9,9 @@ use std::{
     path::{ Path, PathBuf },
     str,
 };
+
+use rss_feed::RssFeed;
+use first_number::first_number;
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -44,7 +50,7 @@ fn process() -> Result<(), Box<dyn Error>> {
         println!("{}", url);
         println!("--------------------");
         
-        for entry in chikuwa::RssFeed::new(&get_feed_content(&mut client, url)?) {
+        for entry in RssFeed::new(&get_feed_content(&mut client, url)?) {
             
             // -------------------- rule and episode --------------------
             
@@ -52,7 +58,7 @@ fn process() -> Result<(), Box<dyn Error>> {
                 continue;
             };
             
-            let Some(episode) = chikuwa::first_number(&entry.title[rule.tag.len()..]) else {
+            let Some(episode) = first_number(&entry.title[rule.tag.len()..]) else {
                 continue;
             };
             

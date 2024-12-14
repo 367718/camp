@@ -28,7 +28,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
         
         write!(&mut response, "<a data-value='{}'>", entry.value)?;
         
-        chikuwa::HtmlEscaper::from(entry.tag)
+        chikuwa::escape_html(entry.tag)
             .try_for_each(|escaped| response.write_all(escaped))?;
         
         response.write_all(b"</a>")?;

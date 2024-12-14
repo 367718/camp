@@ -43,16 +43,16 @@ impl<'c> Iterator for RssFeed<'c> {
         // </item>
         // ...
         
-        while let Some(item) = super::subslice_range(self.content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
+        while let Some(item) = chikuwa::subslice_range(self.content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
             
             let current = &self.content[item.start..item.end];
             self.content = &self.content[item.end..][ITEM_CLOSE_TAG.len()..];
             
-            let Some(title) = super::subslice_range(current, TITLE_OPEN_TAG, TITLE_CLOSE_TAG) else {
+            let Some(title) = chikuwa::subslice_range(current, TITLE_OPEN_TAG, TITLE_CLOSE_TAG) else {
                 continue;
             };
             
-            let Some(link) = super::subslice_range(current, LINK_OPEN_TAG, LINK_CLOSE_TAG) else {
+            let Some(link) = chikuwa::subslice_range(current, LINK_OPEN_TAG, LINK_CLOSE_TAG) else {
                 continue;
             };
             

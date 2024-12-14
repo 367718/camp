@@ -7,6 +7,8 @@ use std::{
     str,
 };
 
+const MEM_SIZE: usize = mem::size_of::<u64>();
+
 pub struct List {
     path: PathBuf,
     content: Vec<u8>,
@@ -66,7 +68,7 @@ impl List {
             return Err(Error::new(ErrorKind::AlreadyExists, "Tag in use"));
         }
         
-        let capacity = self.content.len() + (size_of::<u64>() * 2 + tag.len());
+        let capacity = self.content.len() + (tag.len() + MEM_SIZE * 2);
         let entries = self.iter()
             .chain(Some(ListEntry { tag, value }));
         
@@ -90,7 +92,7 @@ impl List {
         let position = self.iter().position(|current| current.tag.eq_ignore_ascii_case(tag))
             .ok_or(Error::new(ErrorKind::NotFound, "Tag not found"))?;
         
-        let capacity = self.content.len() - (size_of::<u64>() * 2 + tag.len());
+        let capacity = self.content.len() - (tag.len() + MEM_SIZE * 2);
         let entries = self.iter()
             .enumerate()
             .filter_map(|(current, entry)| (current != position).then_some(entry));
@@ -154,8 +156,6 @@ impl <'c>Iterator for ListIter<'c> {
     type Item = ListEntry<'c>;
     
     fn next(&mut self) -> Option<Self::Item> {
-        const MEM_SIZE: usize = mem::size_of::<u64>();
-        
         let (current, working) = self.content.split_at_checked(MEM_SIZE)?;
         let tag_size = usize::try_from(u64::from_le_bytes(unsafe { current.try_into().unwrap_unchecked() }))
             .expect("Tag size exceeded the maximum value supported by the plataform");
