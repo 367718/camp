@@ -73,8 +73,12 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let root = rin::get(b"root")?;
     let player = rin::get(b"player")?;
     
+    let matchers = request.param(b"matcher")
+        .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
+        .collect::<Vec<&OsStr>>();
+    
     let mut selected = ena::Files::walk(root)?
-        .filter(|entry| is_entry_selected(request, entry))
+        .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
         .peekable();
     
     if selected.peek().is_none() {
@@ -103,8 +107,12 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let root = rin::get(b"root")?;
     let flag = rin::get(b"flag")?;
     
+    let matchers = request.param(b"matcher")
+        .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
+        .collect::<Vec<&OsStr>>();
+    
     let mut selected = ena::Files::walk(root)?
-        .filter(|entry| is_entry_selected(request, entry))
+        .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
         .peekable();
     
     if selected.peek().is_none() {
@@ -127,8 +135,12 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let root = rin::get(b"root")?;
     
+    let matchers = request.param(b"matcher")
+        .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
+        .collect::<Vec<&OsStr>>();
+    
     let mut selected = ena::Files::walk(root)?
-        .filter(|entry| is_entry_selected(request, entry))
+        .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
         .peekable();
     
     if selected.peek().is_none() {
@@ -156,8 +168,12 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let root = rin::get(b"root")?;
     
+    let matchers = request.param(b"matcher")
+        .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
+        .collect::<Vec<&OsStr>>();
+    
     let mut selected = ena::Files::walk(root)?
-        .filter(|entry| is_entry_selected(request, entry))
+        .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
         .peekable();
     
     if selected.peek().is_none() {
@@ -173,10 +189,4 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
     
     Ok(())
-}
-
-fn is_entry_selected(request: &Request, entry: &ena::FilesEntry) -> bool {
-    request.param(b"matcher")
-        .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
-        .any(|matcher| matcher == entry.relative())
 }
