@@ -57,10 +57,11 @@ impl Request {
         let content_length = chikuwa::subslice_range(&headers, b"Content-Length: ", b"\r\n")
             .map(|range| &headers[range])
             .and_then(|value| str::from_utf8(value).ok())
-            .and_then(|value| value.parse::<usize>().ok())
+            .and_then(|value| value.parse::<u64>().ok())
+            .and_then(|value| usize::try_from(value.min(reader.limit())).ok())
             .unwrap_or(0);
         
-        body.reserve(content_length);
+        body.reserve_exact(content_length);
         
         while body.len() < content_length {
             
