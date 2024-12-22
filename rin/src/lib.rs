@@ -1,10 +1,12 @@
 use std::{
     env,
-    fs,
-    io::{ self, Error, ErrorKind },
+    fs::File,
+    io::{ self, Read, Error, ErrorKind },
     str,
     sync::OnceLock,
 };
+
+const CONTENT_SIZE_LIMIT: u64 = 32 * 1024;
 
 pub fn get(key: &[u8]) -> io::Result<&'static str> {
     let content = content();
@@ -32,7 +34,21 @@ fn content() -> &'static [u8] {
         path.push(clean);
         path.set_extension("rn");
         
-        fs::read(path)
+        let file = File::open(&path)
+            .map_err(|error| Error::new(error.kind(), format!("Failed to open configuration file '{}': {}", path.to_string_lossy(), error)))?;
+        
+        let size = file.metadata()
+            .map(|metadata| metadata.len().min(CONTENT_SIZE_LIMIT))
+            .unwrap_or(0);
+        
+        let mut content = Vec::new();
+        content.reserve_exact(usize::try_from(size).unwrap());
+        
+        let mut reader = file.take(size);
+        reader.read_to_end(&mut content)
+            .map_err(|error| Error::new(error.kind(), format!("Failed to read configuration file '{}': {}", path.to_string_lossy(), error)))?;
+        
+        Ok(content)
     }
     
     static CONTENT: OnceLock<Vec<u8>> = OnceLock::new();

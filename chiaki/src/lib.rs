@@ -1,13 +1,14 @@
 use std::{
     env,
-    fs,
-    io::{ self, Error, ErrorKind },
+    fs::{ self, File },
+    io::{ self, Read, Error, ErrorKind },
     mem,
     path::{ Path, PathBuf },
     str,
 };
 
 const MEM_SIZE: usize = mem::size_of::<u64>();
+const CONTENT_SIZE_LIMIT: u64 = 1024 * 1024;
 
 pub struct List {
     path: PathBuf,
@@ -42,8 +43,19 @@ impl List {
             return Err(Error::new(ErrorKind::InvalidInput, "Symlinks are not supported"));
         }
         
-        let content = fs::read(&path)
-            .map_err(|error| Error::new(ErrorKind::Other, format!("Failed to load list file '{}': {}", path.to_string_lossy(), error)))?;
+        let file = File::open(&path)
+            .map_err(|error| Error::new(error.kind(), format!("Failed to open list file '{}': {}", path.to_string_lossy(), error)))?;
+        
+        let size = file.metadata()
+            .map(|metadata| metadata.len().min(CONTENT_SIZE_LIMIT))
+            .unwrap_or(0);
+        
+        let mut content = Vec::new();
+        content.reserve_exact(usize::try_from(size).unwrap());
+        
+        let mut reader = file.take(size);
+        reader.read_to_end(&mut content)
+            .map_err(|error| Error::new(error.kind(), format!("Failed to read list file '{}': {}", path.to_string_lossy(), error)))?;
         
         Ok(Self {
             path,
