@@ -6,19 +6,13 @@ pub fn get_params(url: &str) -> Option<(&str, u16, &str, bool)> {
 fn extract<'a>(url: &'a str, scheme: &str, default_port: u16, secure: bool) -> Option<(&'a str, u16, &'a str, bool)> {
     let base = url.strip_prefix(scheme)?;
     
-    let (host_plus_port, path) = match base.find('/') {
-        Some(index) => (&base[..index], &base[index..]),
-        None => (base, "/"),
-    };
+    let (host_plus_port, path) = base.find('/')
+        .map_or((base, "/"), |index| base.split_at(index));
     
     let (host, port) = match host_plus_port.split_once(':') {
         Some((host, port)) => (host, port.parse().ok()?),
         None => (host_plus_port, default_port),
     };
-    
-    if host.is_empty() {
-        return None;
-    }
     
     Some((host, port, path, secure))
 }
@@ -59,6 +53,21 @@ mod tests {
     }
     
     #[test]
+    fn ip_with_port() {
+        // setup
+        
+        let url = "http://192.168.150.10:7777";
+        
+        // operation
+        
+        let output = get_params(url);
+        
+        // control
+        
+        assert_eq!(output, Some(("192.168.150.10", 7777, "/", false)));
+    }
+    
+    #[test]
     fn with_querystring() {
         // setup
         
@@ -89,6 +98,21 @@ mod tests {
     }
     
     #[test]
+    fn no_host() {
+        // setup
+        
+        let url = "https://";
+        
+        // operation
+        
+        let output = get_params(url);
+        
+        // control
+        
+        assert_eq!(output, Some(("", 443, "/", true)));
+    }
+    
+    #[test]
     fn invalid_scheme() {
         // setup
         
@@ -104,10 +128,10 @@ mod tests {
     }
     
     #[test]
-    fn no_host() {
+    fn invalid_port() {
         // setup
         
-        let url = "https://";
+        let url = "http://example.com:port/test";
         
         // operation
         

@@ -10,7 +10,7 @@ use ayano::{
     StatusCode, ContentType, CacheControl,
 };
 
-extern "system" {
+unsafe extern "system" {
     
     // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-waitnamedpipew
     fn WaitNamedPipeW(

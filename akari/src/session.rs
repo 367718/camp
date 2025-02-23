@@ -13,7 +13,7 @@ use crate::{
     SEND_TIMEOUT_AS_MILLIS, RECEIVE_TIMEOUT_AS_MILLIS,
 };
 
-extern "system" {
+unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpopen
     fn WinHttpOpen(

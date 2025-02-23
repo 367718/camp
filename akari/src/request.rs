@@ -7,9 +7,9 @@ use std::{
     ptr,
 };
 
-use crate::{ Connection, HttpHandle };
+use crate::{ HttpHandle, Connection };
 
-extern "system" {
+unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpopenrequest
     fn WinHttpOpenRequest(

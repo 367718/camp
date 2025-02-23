@@ -7,9 +7,9 @@ use std::{
     ptr,
 };
 
-use super::{ Request, HttpHandle };
+use super::{ HttpHandle, Request };
 
-extern "system" {
+unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreceiveresponse
     fn WinHttpReceiveResponse(

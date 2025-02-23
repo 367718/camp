@@ -6,9 +6,9 @@ use std::{
     },
 };
 
-use crate::{ Session, HttpHandle };
+use crate::{ HttpHandle, Session };
 
-extern "system" {
+unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpconnect
     fn WinHttpConnect(

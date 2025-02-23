@@ -3,7 +3,7 @@ use std::os::{
     windows::io::RawHandle,
 };
 
-extern "system" {
+unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpclosehandle
     fn WinHttpCloseHandle(

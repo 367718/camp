@@ -45,10 +45,9 @@ impl Client {
         let (host, port, path, secure) = extractor::get_params(url)
             .ok_or(Error::new(ErrorKind::InvalidInput, "Invalid URL"))?;
         
-        let connection = Connection::new(&self.session, host, port)?;
-        let request = Request::new(connection, path, secure)?;
-        
-        Response::new(request)
+        Connection::new(&self.session, host, port)
+            .and_then(|connection| Request::new(connection, path, secure))
+            .and_then(Response::new)
     }
     
 }
