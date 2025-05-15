@@ -107,7 +107,7 @@ fn get_feed_content(client: &mut akari::Client, url: &str) -> Result<Vec<u8>, Bo
 }
 
 fn build_destination(folder: &str, title: &str) -> Result<PathBuf, Box<dyn Error>> {
-    let filename = Path::new(title).file_name().ok_or("Invalid file name")?;
+    let filename = chikuwa::win_filename(title).ok_or("Invalid file name")?;
     let mut destination = Path::new(folder).join(filename);
     
     if let Some(current) = destination.extension() {
