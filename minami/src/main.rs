@@ -18,9 +18,13 @@ use ayano::{
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let server = Server::bind(rin::get(b"address")?)?;
+    let mut server = Server::bind(rin::get(b"address")?)?;
     
-    for mut request in server.flatten() {
+    loop {
+        
+        let Ok(mut request) = server.accept() else {
+            continue;
+        };
         
         if let Err(error) = handle_request(&mut request) {
             request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
@@ -29,8 +33,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         
     }
-    
-    Ok(())
 }
 
 fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {

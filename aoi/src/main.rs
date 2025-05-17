@@ -44,12 +44,16 @@ fn main() {
 
 fn process() -> Result<(), Box<dyn Error>> {
     let address = rin::get(b"address")?;
-    let server = Server::bind(address)?;
+    let mut server = Server::bind(address)?;
     
     println!();
     println!("Listening on {}", address);
     
-    for mut request in server.flatten() {
+    loop {
+        
+        let Ok(mut request) = server.accept() else {
+            continue;
+        };
         
         if let Err(error) = handle_request(&mut request) {
             request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
@@ -58,8 +62,6 @@ fn process() -> Result<(), Box<dyn Error>> {
         }
         
     }
-    
-    Ok(())
 }
 
 fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {

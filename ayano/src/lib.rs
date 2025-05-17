@@ -82,16 +82,9 @@ impl Server {
         })
     }
     
-}
-
-impl Iterator for Server {
-    
-    type Item = io::Result<Request>;
-    
-    fn next(&mut self) -> Option<Self::Item> {
+    pub fn accept(&mut self) -> io::Result<Request> {
         self.listener.accept()
-            .ok()
-            .map(|(stream, _)| Request::new(stream))
+            .and_then(|(stream, _)| Request::new(stream))
     }
     
 }
