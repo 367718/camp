@@ -4,7 +4,6 @@ use std::{
     io::Write,
     path::MAIN_SEPARATOR_STR,
     process::{ Command, Stdio },
-    str,
 };
 
 use ayano::{ Request, StatusCode, ContentType, CacheControl };

@@ -7,7 +7,6 @@ use std::{
     fs,
     io::{ self, Read, Write },
     path::{ Path, PathBuf },
-    str,
 };
 
 use rss_feed::RssFeed;

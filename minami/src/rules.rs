@@ -1,7 +1,6 @@
 use std::{
     error::Error,
     io::Write,
-    str,
 };
 
 use ayano::{ Request, StatusCode, ContentType, CacheControl };

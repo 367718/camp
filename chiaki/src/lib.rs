@@ -4,7 +4,6 @@ use std::{
     io::{ self, Read, Error, ErrorKind },
     mem,
     path::{ Path, PathBuf },
-    str,
 };
 
 const MEM_SIZE: usize = mem::size_of::<u64>();
@@ -44,7 +43,7 @@ impl List {
         }
         
         let file = File::open(&path)
-            .map_err(|error| Error::new(error.kind(), format!("Failed to open list file '{}': {}", path.to_string_lossy(), error)))?;
+            .map_err(|error| Error::new(error.kind(), format!("Failed to open list file '{}': {}", path.display(), error)))?;
         
         let size = file.metadata()
             .map(|metadata| metadata.len().min(CONTENT_SIZE_LIMIT))
@@ -55,7 +54,7 @@ impl List {
         
         let mut reader = file.take(size);
         reader.read_to_end(&mut content)
-            .map_err(|error| Error::new(error.kind(), format!("Failed to read list file '{}': {}", path.to_string_lossy(), error)))?;
+            .map_err(|error| Error::new(error.kind(), format!("Failed to read list file '{}': {}", path.display(), error)))?;
         
         Ok(Self {
             path,

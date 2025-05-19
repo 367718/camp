@@ -1,7 +1,6 @@
 use std::{
     io::{ self, Read, Error, ErrorKind },
     net::TcpStream,
-    str,
 };
 
 use super::{

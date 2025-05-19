@@ -2,7 +2,6 @@ use std::{
     env,
     fs::File,
     io::{ self, Read, Error, ErrorKind },
-    str,
     sync::OnceLock,
 };
 
@@ -35,7 +34,7 @@ fn content() -> &'static [u8] {
         path.set_extension("rn");
         
         let file = File::open(&path)
-            .map_err(|error| Error::new(error.kind(), format!("Failed to open configuration file '{}': {}", path.to_string_lossy(), error)))?;
+            .map_err(|error| Error::new(error.kind(), format!("Failed to open configuration file '{}': {}", path.display(), error)))?;
         
         let size = file.metadata()
             .map(|metadata| metadata.len().min(CONTENT_SIZE_LIMIT))
@@ -46,7 +45,7 @@ fn content() -> &'static [u8] {
         
         let mut reader = file.take(size);
         reader.read_to_end(&mut content)
-            .map_err(|error| Error::new(error.kind(), format!("Failed to read configuration file '{}': {}", path.to_string_lossy(), error)))?;
+            .map_err(|error| Error::new(error.kind(), format!("Failed to read configuration file '{}': {}", path.display(), error)))?;
         
         Ok(content)
     }
