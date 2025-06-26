@@ -1,8 +1,12 @@
 pub fn first_number(value: &[u8]) -> Option<u64> {
-    let mut chars = value.iter().copied().map(char::from);
-    let mut episode = chars.find_map(|current| current.to_digit(10).map(u64::from))?;
+    let mut chars = value
+        .iter()
+        .copied()
+        .map(char::from);
     
-    while let Some(digit) = chars.next().and_then(|current| current.to_digit(10).map(u64::from)) {
+    let mut episode = chars.find_map(|character| character.to_digit(10).map(u64::from))?;
+    
+    while let Some(digit) = chars.next().and_then(|character| character.to_digit(10).map(u64::from)) {
         episode = episode.checked_mul(10)?.checked_add(digit)?;
     }
     

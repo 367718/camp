@@ -1,5 +1,6 @@
 mod request;
 mod response;
+mod form_data;
 
 use std::{
     io,
@@ -9,6 +10,7 @@ use std::{
 
 pub use request::Request;
 pub use response::Response;
+pub use form_data::FormData;
 
 const STREAM_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;

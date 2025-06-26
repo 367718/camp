@@ -8,6 +8,7 @@ Available functionality:
 
 * `EphemeralPath`: paths that attempt to delete themselves when dropped.
 * `escape_html`: escape bytes for safe usage in an HTML context.
+* `win_filename`: sanitize string for use as filename in Windows.
 * `win_string`: UTF-16 encoded and null-terminated string.
 * `subslice_range`: position of subslice between two delimiters (case-insensitive).
 
@@ -21,6 +22,8 @@ Available functionality:
     * Drop trait
 
 * `escape_html`
+
+* `win_filename`
 
 * `win_string`
 

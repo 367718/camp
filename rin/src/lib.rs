@@ -1,7 +1,7 @@
 use std::{
     env,
-    fs::File,
-    io::{ self, Read, Error, ErrorKind },
+    fs,
+    io::{ self, Error, ErrorKind },
     sync::OnceLock,
 };
 
@@ -33,18 +33,18 @@ fn content() -> &'static [u8] {
         path.push(clean);
         path.set_extension("rn");
         
-        let file = File::open(&path)
-            .map_err(|error| Error::new(error.kind(), format!("Failed to open configuration file '{}': {}", path.display(), error)))?;
+        // metadata
         
-        let size = file.metadata()
-            .map(|metadata| metadata.len().min(CONTENT_SIZE_LIMIT))
-            .unwrap_or(0);
+        let metadata = fs::metadata(&path)
+            .map_err(|error| Error::new(error.kind(), format!("Failed to fetch configuration file metadata '{}': {}", path.display(), error)))?;
         
-        let mut content = Vec::new();
-        content.reserve_exact(usize::try_from(size).unwrap());
+        if metadata.len() > CONTENT_SIZE_LIMIT {
+            return Err(Error::new(ErrorKind::FileTooLarge, "Maximum configuration file size exceeded"));
+        }
         
-        let mut reader = file.take(size);
-        reader.read_to_end(&mut content)
+        // content
+        
+        let content = fs::read(&path)
             .map_err(|error| Error::new(error.kind(), format!("Failed to read configuration file '{}': {}", path.display(), error)))?;
         
         Ok(content)

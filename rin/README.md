@@ -10,6 +10,8 @@ Keys and values must be separated by " = " (e.g. "path = \example\"), while line
 
 A failure during load will cause a panic.
 
+File size is limited to 32 KiB.
+
 ## API
 
 * `get`

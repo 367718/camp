@@ -36,7 +36,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    match request.resource().ok_or("Invalid request")? {
+    let (method, path) = request.method_and_path()
+        .ok_or("Invalid request")?;
+    
+    match (method, path) {
         
         // -------------------- general --------------------
         

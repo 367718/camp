@@ -72,7 +72,10 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let root = rin::get(b"root")?;
     let player = rin::get(b"player")?;
     
-    let matchers = request.param(b"matcher")
+    let form_data = request.form_data()
+        .ok_or("Could not extract form data")?;
+    
+    let matchers = form_data.get(b"matcher")
         .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
         .collect::<Vec<&OsStr>>();
     
@@ -81,7 +84,7 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if selected.peek().is_none() {
-        return Err("Matcher not provided".into());
+        return Err("No relevant file found".into());
     }
     
     // -------------------- operation --------------------
@@ -106,7 +109,10 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let root = rin::get(b"root")?;
     let flag = rin::get(b"flag")?;
     
-    let matchers = request.param(b"matcher")
+    let form_data = request.form_data()
+        .ok_or("Could not extract form data")?;
+    
+    let matchers = form_data.get(b"matcher")
         .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
         .collect::<Vec<&OsStr>>();
     
@@ -115,7 +121,7 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if selected.peek().is_none() {
-        return Err("Matcher not provided".into());
+        return Err("No relevant file found".into());
     }
     
     // -------------------- operation --------------------
@@ -134,7 +140,10 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let root = rin::get(b"root")?;
     
-    let matchers = request.param(b"matcher")
+    let form_data = request.form_data()
+        .ok_or("Could not extract form data")?;
+    
+    let matchers = form_data.get(b"matcher")
         .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
         .collect::<Vec<&OsStr>>();
     
@@ -143,10 +152,10 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if selected.peek().is_none() {
-        return Err("Matcher not provided".into());
+        return Err("No relevant file found".into());
     }
     
-    let folder = match request.param(b"input").next() {
+    let folder = match form_data.get(b"input").next() {
         Some(input) => str::from_utf8(input).map_err(|_| "Invalid input")?,
         None => "",
     };
@@ -167,7 +176,10 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let root = rin::get(b"root")?;
     
-    let matchers = request.param(b"matcher")
+    let form_data = request.form_data()
+        .ok_or("Could not extract form data")?;
+    
+    let matchers = form_data.get(b"matcher")
         .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
         .collect::<Vec<&OsStr>>();
     
@@ -176,7 +188,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if selected.peek().is_none() {
-        return Err("Matcher not provided".into());
+        return Err("No relevant file found".into());
     }
     
     // -------------------- operation --------------------

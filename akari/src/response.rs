@@ -80,7 +80,7 @@ impl Response {
                 WINHTTP_QUERY_CONTENT_LENGTH | WINHTTP_QUERY_FLAG_NUMBER,
                 WINHTTP_HEADER_NAME_BY_INDEX,
                 ptr::from_mut(&mut content_length).cast::<c_void>(),
-                &mut bytes,
+                &raw mut bytes,
                 WINHTTP_NO_HEADER_INDEX,
             );
             
@@ -109,7 +109,7 @@ impl Read for Response {
                 self.handle.as_raw(),
                 ptr::from_mut(buf).cast::<c_void>(),
                 bytes,
-                &mut amount_read,
+                &raw mut amount_read,
             );
             
             if result == 0 {

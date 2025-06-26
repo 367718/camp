@@ -40,7 +40,10 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let input = request.param(b"input")
+    let form_data = request.form_data()
+        .ok_or("Could not extract form data")?;
+    
+    let input = form_data.get(b"input")
         .next()
         .ok_or("Input not provided")?;
     
@@ -59,11 +62,14 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let matcher = request.param(b"matcher")
+    let form_data = request.form_data()
+        .ok_or("Could not extract form data")?;
+    
+    let matcher = form_data.get(b"matcher")
         .next()
         .ok_or("Matcher not provided")?;
     
-    let input = request.param(b"input")
+    let input = form_data.get(b"input")
         .next()
         .and_then(|input| str::from_utf8(input).ok())
         .and_then(|input| input.parse().ok())
@@ -84,7 +90,10 @@ pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let matcher = request.param(b"matcher")
+    let form_data = request.form_data()
+        .ok_or("Could not extract form data")?;
+    
+    let matcher = form_data.get(b"matcher")
         .next()
         .ok_or("Matcher not provided")?;
     

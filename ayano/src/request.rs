@@ -5,18 +5,13 @@ use std::{
 
 use super::{
     REQUEST_SIZE_LIMIT, CONNECTION_BUFFER_SIZE, STREAM_TIMEOUT,
-    StatusCode, ContentType, CacheControl, Response,
+    StatusCode, ContentType, CacheControl, FormData, Response,
 };
 
 pub struct Request {
     headers: Vec<u8>,
     body: Vec<u8>,
     stream: Option<TcpStream>,
-}
-
-struct Params<'h, 'b> {
-    boundary: &'h [u8],
-    content: &'b [u8],
 }
 
 impl Request {
@@ -85,7 +80,7 @@ impl Request {
         })
     }
     
-    pub fn resource(&self) -> Option<(&[u8], &[u8])> {
+    pub fn method_and_path(&self) -> Option<(&[u8], &[u8])> {
         let mut parts = self.headers.split(|&curr| curr == b' ');
         
         let method = parts.next()?;
@@ -97,15 +92,13 @@ impl Request {
         Some((method, path))
     }
     
-    pub fn param<'p, 'k: 'p>(&'p self, field: &'k [u8]) -> impl Iterator<Item = &'p [u8]> {
-        let range = chikuwa::subslice_range(&self.headers, b"Content-Type: multipart/form-data; boundary=", b"\r\n");
+    pub fn form_data(&self) -> Option<FormData> {
+        let range = chikuwa::subslice_range(&self.headers, b"Content-Type: multipart/form-data; boundary=", b"\r\n")?;
         
-        let payload = Params {
-            boundary: range.map_or(&[], |range| &self.headers[range]),
-            content: &self.body,
-        };
+        let boundary = &self.headers[range];
+        let content = &self.body;
         
-        payload.filter(move |(key, _)| key == &field).map(|(_, value)| value)
+        Some(FormData::new(boundary, content))
     }
     
     pub fn start_response(&mut self, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Response> {
@@ -114,58 +107,5 @@ impl Request {
         
         Response::new(stream, status, content, cache)
     }
-    
-}
-
-impl<'b> Iterator for Params<'_, 'b> {
-    
-    type Item = (&'b [u8], &'b [u8]);
-    
-    fn next(&mut self) -> Option<Self::Item> {
-        
-        // example
-        
-        // -----------------------------9999999999999999999999999999
-        // Content-Disposition: form-data; name="placeholder key #1"
-        // 
-        // placeholder value #1
-        // -----------------------------9999999999999999999999999999
-        // Content-Disposition: form-data; name="placeholder key #2"
-        // 
-        // placeholder value #2
-        // -----------------------------9999999999999999999999999999--
-        
-        while let Some(param) = chikuwa::subslice_range(self.content, self.boundary, self.boundary) {
-            
-            let item = build_pair(&self.content[param.start..param.end]);
-            self.content = &self.content[param.end..];
-            
-            if item.is_some() {
-                return item;
-            }
-            
-        }
-        
-        None
-        
-    }
-    
-}
-
-fn build_pair(param: &[u8]) -> Option<(&[u8], &[u8])> {
-    
-    // example
-    
-    // Content-Disposition: form-data; name="placeholder"
-    // 
-    // placeholder value
-    // --
-    
-    let data = chikuwa::subslice_range(param, b"Content-Disposition: form-data; name=\"", b"\"\r\n\r\n")?;
-    
-    let key = &param[data.start..data.end];
-    let value = param[data.end..][5..].strip_suffix(b"\r\n--")?;
-    
-    Some((key, value))
     
 }

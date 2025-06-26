@@ -65,7 +65,7 @@ fn process() -> Result<(), Box<dyn Error>> {
 }
 
 fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    let (method, path) = request.resource()
+    let (method, path) = request.method_and_path()
         .ok_or("Invalid request")?;
     
     if method == b"GET" {
