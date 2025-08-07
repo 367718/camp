@@ -47,17 +47,12 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
         
         if ! container.is_empty() {
             response.write_all(b"<span>")?;
-            
-            chikuwa::escape_html(container.as_bytes())
-                .try_for_each(|escaped| response.write_all(escaped))?;
-            
+            chikuwa::escape_html(container.as_bytes(), &mut response)?;
             response.write_all(MAIN_SEPARATOR_STR.as_bytes())?;
-            
             response.write_all(b"</span>")?;
         }
         
-        chikuwa::escape_html(file_name.as_bytes())
-            .try_for_each(|escaped| response.write_all(escaped))?;
+        chikuwa::escape_html(file_name.as_bytes(), &mut response)?;
         
         response.write_all(b"</a>")?;
         

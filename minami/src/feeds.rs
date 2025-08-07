@@ -24,14 +24,9 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
     
     for entry in &list {
-        
         response.write_all(b"<a>")?;
-        
-        chikuwa::escape_html(entry.tag)
-            .try_for_each(|escaped| response.write_all(escaped))?;
-        
+        chikuwa::escape_html(entry.tag, &mut response)?;
         response.write_all(b"</a>")?;
-        
     }
     
     Ok(())

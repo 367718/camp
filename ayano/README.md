@@ -6,7 +6,9 @@ Non-compliant HTTP/1.1 server.
 
 The `Server` struct provides access to `Request` elements via the "Iterator" trait, blocking the execution thread.
 
-Each `Request` has a size limit of 512 KiB, and can be used to spawn one and only one `Response`.
+`Server`: "Connection: Keep-Alive" is not supported and will be ignored
+`Request`: has a size limit of 512 KiB and neither "Transfer-Encoding" nor "Content-Type: application/x-www-form-urlencoded" are supported
+`Response`: only one per `Request` may be started and "Transfer-Encoding: chunked" is always used
 
 ## API
 

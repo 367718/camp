@@ -7,7 +7,7 @@ use std::{
 };
 
 const MEM_SIZE: usize = mem::size_of::<u64>();
-const CONTENT_SIZE_LIMIT: u64 = 1024 * 1024;
+const CONTENT_SIZE_LIMIT: u64 = 1024 * 512;
 
 pub struct List {
     path: PathBuf,
@@ -66,7 +66,7 @@ impl List {
     // -------------------- accessors --------------------
     
     
-    pub fn iter(&self) -> ListIter {
+    pub fn iter(&self) -> ListIter<'_> {
         ListIter { content: &self.content }
     }
     

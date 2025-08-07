@@ -24,7 +24,7 @@ impl<'r> FormData<'r> {
     // -------------------- accessors --------------------
     
     
-    pub fn iter(&self) -> FormDataIterator {
+    pub fn iter(&self) -> FormDataIterator<'_> {
         FormDataIterator {
             boundary: self.boundary,
             content: self.content,

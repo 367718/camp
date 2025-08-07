@@ -10,11 +10,9 @@ const CONTENT_SIZE_LIMIT: u64 = 32 * 1024;
 pub fn get(key: &[u8]) -> io::Result<&'static str> {
     let content = content();
     
-    if let Some(line) = chikuwa::subslice_range(content, key, b"\r\n") {
-        if let [b' ', b'=', b' ', value @ ..] = &content[line] {
-            return str::from_utf8(value)
-                .map_err(|error| Error::new(ErrorKind::InvalidData, error));
-        }
+    if let Some(line) = chikuwa::subslice_range(content, key, b"\r\n") && let [b' ', b'=', b' ', value @ ..] = &content[line] {
+        return str::from_utf8(value)
+            .map_err(|error| Error::new(ErrorKind::InvalidData, error));
     }
     
     Err(Error::new(ErrorKind::NotFound, format!("Configuration key not found: '{}'", String::from_utf8_lossy(key))))

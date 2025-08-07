@@ -190,15 +190,6 @@ iframe {
         display: none !important;
     }
     
-    &::before {
-        content: "\200b";
-    }
-    
-    & span {
-        display: none;
-        color: var(--text-secondary-color);
-    }
-    
     &[data-value="0"] {
         color: var(--text-secondary-color);
     }
@@ -217,6 +208,11 @@ iframe {
     
     &[data-selected]:hover {
         background-color: var(--entry-hovered-selected-color);
+    }
+    
+    span {
+        display: none;
+        color: var(--text-secondary-color);
     }
     
 }

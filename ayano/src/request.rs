@@ -92,7 +92,7 @@ impl Request {
         Some((method, path))
     }
     
-    pub fn form_data(&self) -> Option<FormData> {
+    pub fn form_data(&self) -> Option<FormData<'_>> {
         let range = chikuwa::subslice_range(&self.headers, b"Content-Type: multipart/form-data; boundary=", b"\r\n")?;
         
         let boundary = &self.headers[range];
