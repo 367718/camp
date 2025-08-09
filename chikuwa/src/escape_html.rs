@@ -125,4 +125,21 @@ mod tests {
         assert_eq!(writer, b"yL6LN4IW&amp;1RqEH&lt;N&lt;e&gt;0");
     }
     
+    #[test]
+    fn full() {
+        // setup
+        
+        let content = "<&<>";
+        let mut writer = Vec::new();
+        
+        // operation
+        
+        let output = escape_html(content.as_bytes(), &mut writer);
+        
+        // control
+        
+        assert!(output.is_ok());
+        assert_eq!(writer, b"&lt;&amp;&lt;&gt;");
+    }
+    
 }
