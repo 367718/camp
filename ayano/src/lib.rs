@@ -14,7 +14,7 @@ pub use form_data::FormData;
 
 const STREAM_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;
-const REQUEST_SIZE_LIMIT: u64 = 512 * 1024;
+const REQUEST_SIZE_LIMIT: usize = 512 * 1024;
 
 pub enum StatusCode {
     Ok,
