@@ -24,6 +24,8 @@ Available functionality:
 
 * `escape_html`
 
+* `first_number`
+
 * `subslice_range`
 
 * `win_filename`
