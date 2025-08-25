@@ -1,16 +1,23 @@
 pub fn first_number(value: &[u8]) -> Option<u64> {
-    let mut chars = value
-        .iter()
-        .copied()
-        .map(char::from);
+    let mut bytes = value.iter();
     
-    let mut episode = chars.find_map(|character| character.to_digit(10).map(u64::from))?;
+    let first_digit = bytes.find(|byte| byte.is_ascii_digit())?;
     
-    while let Some(digit) = chars.next().and_then(|character| character.to_digit(10).map(u64::from)) {
-        episode = episode.checked_mul(10)?.checked_add(digit)?;
+    let mut result = u64::from(first_digit - b'0');
+    
+    for byte in bytes {
+        
+        if ! byte.is_ascii_digit() {
+            break;
+        }
+        
+        let current_digit = u64::from(byte - b'0');
+        
+        result = result.checked_mul(10)?.checked_add(current_digit)?;
+        
     }
     
-    Some(episode)
+    Some(result)
 }
 
 #[cfg(test)]
@@ -94,10 +101,70 @@ mod tests {
     }
     
     #[test]
+    fn at_start() {
+        // setup
+        
+        let value = b"14[Example] Placeholder - (p) [AGDFASZ].mkv";
+        
+        // operation
+        
+        let output = first_number(value);
+        
+        // control
+        
+        assert_eq!(output, Some(14));
+    }
+    
+    #[test]
+    fn at_end() {
+        // setup
+        
+        let value = b"[Example] Placeholder - (p) [AGDFASZ]17.mkv";
+        
+        // operation
+        
+        let output = first_number(value);
+        
+        // control
+        
+        assert_eq!(output, Some(17));
+    }
+    
+    #[test]
+    fn number_only() {
+        // setup
+        
+        let value = b"894";
+        
+        // operation
+        
+        let output = first_number(value);
+        
+        // control
+        
+        assert_eq!(output, Some(894));
+    }
+    
+    #[test]
     fn no_number() {
         // setup
         
         let value = b"[Example] Placeholder - (p) [AGDFASZ].mkv";
+        
+        // operation
+        
+        let output = first_number(value);
+        
+        // control
+        
+        assert_eq!(output, None);
+    }
+    
+    #[test]
+    fn empty() {
+        // setup
+        
+        let value = b"";
         
         // operation
         

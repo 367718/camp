@@ -8,8 +8,9 @@ An HTTP interface allows the listing and manipulation of files, watchlist, rules
 
 The following keyboard shortcuts are available:
 
-* `Control + C`: copy the selected entries text to clipboard, inserting linebreaks.
-* `Control + X`: copy the selected entries text to clipboard, performing a cleanup and inserting linebreaks.
+* `/`: focus filter field.
+* `Control + C`: copy selected entries to clipboard, inserting linebreaks.
+* `Control + X`: copy selected entries to clipboard, performing a cleanup and inserting linebreaks.
 
 ## Routes available
 
@@ -24,7 +25,7 @@ The following keyboard shortcuts are available:
 
 * `address`: listening address for the web interface.
 * `root`: path to files directory.
-* `flag`: tag used to mark files as watched.
+* `flag`: tag used to mark files.
 * `player`: application used to play files.
 
 ## List files used

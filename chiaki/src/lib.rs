@@ -1,7 +1,7 @@
 use std::{
     env,
     fs::{ self, File },
-    io::{ self, Read, Error, ErrorKind },
+    io::{ self, Read, Write, Error, ErrorKind },
     mem,
     path::{ Path, PathBuf },
 };
@@ -120,7 +120,13 @@ impl List {
         
         let tmp_path = chikuwa::EphemeralPath::from(self.path.with_file_name(file_name));
         
-        fs::write(&tmp_path, &content)?;
+        let mut file = File::options()
+            .create_new(true)
+            .write(true)
+            .open(&tmp_path)?;
+        
+        file.write_all(&content)?;
+        file.sync_data()?;
         
         // attempt to perform the update atomically
         fs::rename(&tmp_path, &self.path)?;

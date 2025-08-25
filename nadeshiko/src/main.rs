@@ -1,16 +1,14 @@
 mod rss_feed;
-mod first_number;
 
 use std::{
     error::Error,
     ffi::OsString,
-    fs,
+    fs::File,
     io::{ self, Read, Write },
     path::{ Path, PathBuf },
 };
 
 use rss_feed::RssFeed;
-use first_number::first_number;
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -57,7 +55,7 @@ fn process() -> Result<(), Box<dyn Error>> {
                 continue;
             };
             
-            let Some(episode) = first_number(&entry.title[rule.tag.len()..]) else {
+            let Some(episode) = chikuwa::first_number(&entry.title[rule.tag.len()..]) else {
                 continue;
             };
             
@@ -98,9 +96,9 @@ fn process() -> Result<(), Box<dyn Error>> {
 
 fn get_feed_content(client: &mut akari::Client, url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut response = client.get(url)?;
-    
     let mut content = Vec::with_capacity(response.content_length().unwrap_or(0));
-    response.read_to_end(&mut content)?;
+    
+    io::copy(&mut response, &mut content)?;
     
     Ok(content)
 }
@@ -125,10 +123,9 @@ fn build_destination(folder: &str, title: &str) -> Result<PathBuf, Box<dyn Error
 
 fn download_torrent(client: &mut akari::Client, link: &str, destination: &Path) -> Result<(), Box<dyn Error>> {
     let mut response = client.get(link)?;
-    
-    let mut file = fs::OpenOptions::new()
-        .write(true)
+    let mut file = File::options()
         .create_new(true)
+        .write(true)
         .open(destination)?;
     
     io::copy(&mut response, &mut file)?;

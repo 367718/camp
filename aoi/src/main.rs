@@ -1,6 +1,6 @@
 use std::{
     error::Error,
-    fs::OpenOptions,
+    fs::File,
     io::{ self, Read, Write },
     os::raw::*,
 };
@@ -133,8 +133,9 @@ fn write_to_named_pipe(path: &str, data: &[u8]) -> io::Result<()> {
         
     }
     
-    OpenOptions::new()
+    let mut pipe = File::options()
         .write(true)
-        .open(path)
-        .and_then(|mut pipe| pipe.write_all(data))
+        .open(path)?;
+    
+    pipe.write_all(data)
 }

@@ -40,7 +40,7 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let input = form_data.get(b"input")
         .next()
-        .ok_or("Input not provided")?;
+        .ok_or("Wrong input")?;
     
     // -------------------- operation --------------------
     
@@ -62,7 +62,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let matcher = form_data.get(b"matcher")
         .next()
-        .ok_or("Matcher not provided")?;
+        .ok_or("Wrong matcher")?;
     
     // -------------------- operation --------------------
     

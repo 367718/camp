@@ -6,11 +6,12 @@ Collection of small utilities.
 
 Available functionality:
 
-* `EphemeralPath`: paths that attempt to delete themselves when dropped.
+* `EphemeralPath`: generate paths that attempt to delete themselves when dropped.
 * `escape_html`: escape bytes for safe usage in an HTML context.
+* `first_number`: extract the first number found as a positive integer.
+* `subslice_range`: find position of subslice between two delimiters (case-insensitive).
 * `win_filename`: sanitize string for use as filename in Windows.
-* `win_string`: UTF-16 encoded and null-terminated string.
-* `subslice_range`: position of subslice between two delimiters (case-insensitive).
+* `win_string`: generate UTF-16 null-terminated string.
 
 ## API
 
@@ -23,8 +24,8 @@ Available functionality:
 
 * `escape_html`
 
+* `subslice_range`
+
 * `win_filename`
 
 * `win_string`
-
-* `subslice_range`
