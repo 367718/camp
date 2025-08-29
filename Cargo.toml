@@ -1,31 +1,31 @@
 [workspace]
 resolver = "3"
 members = [
-  "minami",
-  "ayano",
-  "nadeshiko",
-  "aoi",
-  "rin",
-  "ena",
-  "chiaki",
   "akari",
+  "aoi",
+  "ayano",
+  "chiaki",
   "chikuwa",
+  "ena",
+  "minami",
+  "nadeshiko",
+  "rin",
 ]
 
 [workspace.package]
-version = "2.0.0"
-rust-version = "1.89.0"
 edition = "2024"
 license = "0BSD"
+rust-version = "1.89.0"
+version = "2.0.0"
 
 [profile.release]
-lto = true
-panic = "abort"
 codegen-units = 1
-opt-level = 3
-incremental = false
-overflow-checks = true
 debug = false
 debug-assertions = false
+incremental = false
+lto = true
+opt-level = 3
+overflow-checks = true
+panic = "abort"
 rpath = false
 strip = true

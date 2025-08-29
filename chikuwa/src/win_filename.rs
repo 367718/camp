@@ -25,7 +25,7 @@ const DISALLOWED_CHARACTERS: &[char] = &[
     '*', // asterisk
 ];
 
-pub fn win_filename(base: &str) -> Option<OsString> {
+pub fn win_filename(content: &str) -> Option<OsString> {
     // -------------------- forbidden names --------------------
     
     // Do not use the following reserved names for the name of a file:
@@ -36,7 +36,7 @@ pub fn win_filename(base: &str) -> Option<OsString> {
     //  LPT¹, LPT², and LPT³.
     //  Also avoid these names followed immediately by an extension; for example, NUL.txt and NUL.tar.gz are both equivalent to NUL.
     
-    let mut first_stage = base;
+    let mut first_stage = content;
     
     let file_stem = Path::new(&first_stage)
         .file_stem()

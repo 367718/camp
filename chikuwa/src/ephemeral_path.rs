@@ -12,9 +12,9 @@ pub struct EphemeralPath {
 
 impl From<PathBuf> for EphemeralPath {
     
-    fn from(value: PathBuf) -> Self {
+    fn from(content: PathBuf) -> Self {
         Self {
-            inner: value,
+            inner: content,
             permanent: false,
         }
     }

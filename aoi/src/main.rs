@@ -24,6 +24,8 @@ const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const INDEX: &[u8] = include_bytes!("../rsc/index.html");
+const STYLES: &[u8] = include_bytes!("../rsc/styles.css");
+const SCRIPTS: &[u8] = include_bytes!("../rsc/scripts.js");
 
 const PIPE_MAX_WAIT: c_ulong = 5000; // milliseconds
 
@@ -47,7 +49,7 @@ fn process() -> Result<(), Box<dyn Error>> {
     let mut server = Server::bind(address)?;
     
     println!();
-    println!("Listening on {}", address);
+    println!("Listening on http://{}", address);
     
     loop {
         
@@ -81,6 +83,28 @@ fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
             
         }
         
+        // -------------------- styles --------------------
+        
+        if path == b"/styles.css" {
+            
+            request.start_response(StatusCode::Ok, ContentType::Css, CacheControl::Static)
+                .and_then(|mut response| response.write_all(STYLES))?;
+            
+            return Ok(());
+            
+        }
+        
+        // -------------------- scripts --------------------
+        
+        if path == b"/scripts.js" {
+            
+            request.start_response(StatusCode::Ok, ContentType::Javascript, CacheControl::Static)
+                .and_then(|mut response| response.write_all(SCRIPTS))?;
+            
+            return Ok(());
+            
+        }
+        
         // -------------------- commands --------------------
         
         if let Some(command) = get_command(path) {
@@ -100,28 +124,30 @@ fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn get_command(path: &[u8]) -> Option<&'static [u8]> {
-    match path {
-        b"/play" => Some(b"cycle pause\n"),
-        b"/minuschapter" => Some(b"cycle chapter down\n"),
-        b"/pluschapter" => Some(b"cycle chapter up\n"),
-        b"/minusplaylist" => Some(b"playlist-prev\n"),
-        b"/plusplaylist" => Some(b"playlist-next\n"),
-        b"/minus5" => Some(b"seek -5\n"),
-        b"/plus5" => Some(b"seek 5\n"),
-        b"/minus75" => Some(b"seek -75\n"),
-        b"/plus75" => Some(b"seek 75\n"),
-        b"/fullscreen" => Some(b"cycle fullscreen\n"),
-        b"/subtitles" => Some(b"cycle sub\n"),
-        b"/title" => Some(b"show-text ${media-title} 5000\n"),
-        b"/time" => Some(b"show-text \"${playback-time} (${time-remaining})\" 5000\n"),
-        b"/quit" => Some(b"quit\n"),
-        _ => None,
-    }
+    let result: &[u8] = match path {
+        b"/play" => b"cycle pause\n",
+        b"/minuschapter" => b"cycle chapter down\n",
+        b"/pluschapter" => b"cycle chapter up\n",
+        b"/minusplaylist" => b"playlist-prev\n",
+        b"/plusplaylist" => b"playlist-next\n",
+        b"/minus5" => b"seek -5\n",
+        b"/plus5" => b"seek 5\n",
+        b"/minus75" => b"seek -75\n",
+        b"/plus75" => b"seek 75\n",
+        b"/fullscreen" => b"cycle fullscreen\n",
+        b"/subtitles" => b"cycle sub\n",
+        b"/title" => b"show-text ${media-title} 5000\n",
+        b"/time" => b"show-text \"${playback-time} (${time-remaining})\" 5000\n",
+        b"/quit" => b"quit\n",
+        _ => return None,
+    };
+    
+    Some(result)
 }
 
 fn write_to_named_pipe(path: &str, data: &[u8]) -> io::Result<()> {
     unsafe {
-            
+        
         let result = WaitNamedPipeW(
             chikuwa::win_string(path).as_ptr(),
             PIPE_MAX_WAIT,

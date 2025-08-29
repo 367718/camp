@@ -1,10 +1,10 @@
 [package]
 name = "minami"
 description = "Files and lists manager"
-version.workspace = true
-rust-version.workspace = true
 edition.workspace = true
 license.workspace = true
+rust-version.workspace = true
+version.workspace = true
 
 [dependencies]
 rin = { path = "../rin" }

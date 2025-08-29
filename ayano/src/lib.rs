@@ -41,7 +41,7 @@ pub struct Server {
 
 impl StatusCode {
     
-    fn into_header(self) -> &'static [u8] {
+    const fn into_header(self) -> &'static [u8] {
         match self {
             Self::Ok => b"HTTP/1.1 200 OK\r\n",
             Self::Error => b"HTTP/1.1 500 Internal Server Error\r\n",
@@ -53,7 +53,7 @@ impl StatusCode {
 
 impl ContentType {
     
-    fn into_header(self) -> &'static [u8] {
+    const fn into_header(self) -> &'static [u8] {
         match self {
             Self::Plain => b"Content-Type: text/plain; charset=utf-8\r\n",
             Self::Html => b"Content-Type: text/html; charset=utf-8\r\n",
@@ -67,7 +67,7 @@ impl ContentType {
 
 impl CacheControl {
     
-    fn into_header(self) -> &'static [u8] {
+    const fn into_header(self) -> &'static [u8] {
         match self {
             Self::Static => b"Cache-Control: max-age=15552000, immutable\r\n",
             Self::Dynamic => b"Cache-Control: no-cache, no-store\r\n",

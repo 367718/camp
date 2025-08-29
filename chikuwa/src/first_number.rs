@@ -1,5 +1,5 @@
-pub fn first_number(value: &[u8]) -> Option<u64> {
-    let mut bytes = value.iter();
+pub fn first_number(content: &[u8]) -> Option<u64> {
+    let mut bytes = content.iter();
     
     let first_digit = bytes.find(|byte| byte.is_ascii_digit())?;
     

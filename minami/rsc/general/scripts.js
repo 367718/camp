@@ -102,11 +102,10 @@ class Sections {
         
         // -------------------- bindings --------------------
         
-        for (const child of this.node.children) {
-            if (child.classList.contains(SECTIONS_ACTIVE_CLASS)) {
-                child.addEventListener("click", () => this.parent.list.refresh());
-            }
-        }
+		let active = Array.from(this.node.children)
+			.find(current => current.classList.contains(SECTIONS_ACTIVE_CLASS));
+		
+        active.addEventListener("click", () => this.parent.list.refresh());
         
     }
     

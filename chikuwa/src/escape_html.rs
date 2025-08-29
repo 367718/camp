@@ -12,8 +12,8 @@ pub fn escape_html(content: &[u8], writer: &mut impl Write) -> io::Result<()> {
                 writer.write_all(&content[previous_position..current_position])?;
             }
             
-            let replacement = match byte {
-                b'&' => b"&amp;".as_slice(),
+            let replacement: &[u8] = match byte {
+                b'&' => b"&amp;",
                 b'<' => b"&lt;",
                 b'>' => b"&gt;",
                 b'"' => b"&quot;",
@@ -140,6 +140,23 @@ mod tests {
         
         assert!(output.is_ok());
         assert_eq!(writer, b"&lt;&amp;&lt;&gt;");
+    }
+    
+    #[test]
+    fn emoji() {
+        // setup
+        
+        let content = "<&<🔌>";
+        let mut writer = Vec::new();
+        
+        // operation
+        
+        let output = escape_html(content.as_bytes(), &mut writer);
+        
+        // control
+        
+        assert!(output.is_ok());
+        assert_eq!(writer, "&lt;&amp;&lt;🔌&gt;".as_bytes());
     }
     
 }

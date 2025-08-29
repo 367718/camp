@@ -2,15 +2,15 @@
 
 ## Binaries
 
+* `aoi`: mpv player remote controller.
 * `minami`: files and lists manager.
 * `nadeshiko`: torrent files downloader.
-* `aoi`: mpv player remote controller.
 
 ## Libraries
 
-* `rin`: configuration parameters provider.
-* `ena`: files manager.
-* `chiaki`: lists manager.
-* `ayano`: non-compliant HTTP/1.1 server.
 * `akari`: HTTP/2 client.
+* `ayano`: non-compliant HTTP/1.1 server.
+* `chiaki`: lists manager.
 * `chikuwa`: collection of small utilities.
+* `ena`: files manager.
+* `rin`: configuration parameters provider.

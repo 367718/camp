@@ -2,111 +2,30 @@
 <html>
     
     <head>
-        
-        <meta charset="UTF-8">
+        <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Aoi</title>
         <link rel="icon" type="image/x-icon" href="data:,">
-        
-        <style>
-            
-            body {
-                display: flex;
-                justify-content: center;
-                margin: 25px;
-            }
-            
-            div {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 50px;
-                width: 850px;
-            }
-            
-            button {
-                
-                font-size: 40px;
-                font-family: "Courier New", monospace;
-                height: 85px;
-                cursor: pointer;
-                border: 5px solid lightgray;
-                border-radius: 10px;
-                
-                /* play / pause */
-                
-                &:nth-of-type(1) {
-                    grid-column-start: 1;
-                    grid-column-end: 3;
-                    color: red;
-                }
-                
-                /* minuschapter / pluschapter */
-                /* minusplaylist / plusplaylist */
-                
-                &:nth-of-type(n+2) {
-                    color: blue;
-                }
-                
-                /* minus5 / plus5 */
-                /* minus75 / plus75 */
-                
-                &:nth-of-type(n+6) {
-                    color: green;
-                }
-                
-                /* fullscreen / subtitles */
-                /* title / time */
-                
-                &:nth-of-type(n+10) {
-                    color: darkgoldenrod;
-                }
-                
-                /* quit */
-                
-                &:nth-of-type(14) {
-                    grid-column-start: 1;
-                    grid-column-end: 3;
-                    color: black;
-                }
-                
-            }
-            
-        </style>
-        
-        <script>
-            
-            function send_command(command) {
-                
-                fetch(command)
-                    .then(response => {
-                        if (response.status != 200) {
-                            response.text().then(error => window.alert(error));
-                        }
-                    })
-                .catch(error => window.alert(error));
-                
-            }
-            
-        </script>
-        
+        <link rel="stylesheet" type="text/css" href="/styles.css">
+        <script type="text/javascript" src="/scripts.js"></script>
     </head>
     
     <body>
         <div>
-            <button onmousedown="send_command('/play')">Play / Pause</button>
-            <button onmousedown="send_command('/minuschapter')">- chapter</button>
-            <button onmousedown="send_command('/pluschapter')">+ chapter</button>
-            <button onmousedown="send_command('/minusplaylist')">- playlist</button>
-            <button onmousedown="send_command('/plusplaylist')">+ playlist</button>
-            <button onmousedown="send_command('/minus5')">- 5 secs</button>
-            <button onmousedown="send_command('/plus5')">+ 5 secs</button>
-            <button onmousedown="send_command('/minus75')">- 75 secs</button>
-            <button onmousedown="send_command('/plus75')">+ 75 secs</button>
-            <button onmousedown="send_command('/fullscreen')">Fullscreen</button>
-            <button onmousedown="send_command('/subtitles')">Subtitles</button>
-            <button onmousedown="send_command('/title')">Show title</button>
-            <button onmousedown="send_command('/time')">Show time</button>
-            <button onmousedown="send_command('/quit')">Quit</button>
+            <button data-path="/play">Play / Pause</button>
+            <button data-path="/minuschapter">- chapter</button>
+            <button data-path="/pluschapter">+ chapter</button>
+            <button data-path="/minusplaylist">- playlist</button>
+            <button data-path="/plusplaylist">+ playlist</button>
+            <button data-path="/minus5">- 5 secs</button>
+            <button data-path="/plus5">+ 5 secs</button>
+            <button data-path="/minus75">- 75 secs</button>
+            <button data-path="/plus75">+ 75 secs</button>
+            <button data-path="/fullscreen">Fullscreen</button>
+            <button data-path="/subtitles">Subtitles</button>
+            <button data-path="/title">Show title</button>
+            <button data-path="/time">Show time</button>
+            <button data-path="/quit">Quit</button>
         </div>
     </body>
     

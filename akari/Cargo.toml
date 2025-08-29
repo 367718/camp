@@ -2,10 +2,10 @@
 name = "akari"
 description = "HTTP/2 client"
 build = "rsc/build.rs"
-version.workspace = true
-rust-version.workspace = true
 edition.workspace = true
 license.workspace = true
+rust-version.workspace = true
+version.workspace = true
 
 [dependencies]
 chikuwa = { path = "../chikuwa" }
