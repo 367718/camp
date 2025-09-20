@@ -133,6 +133,23 @@ mod tests {
     fn white_space() {
         // setup
         
+        let content = "placeholder+test";
+        let mut writer = Vec::new();
+        
+        // operation
+        
+        let output = percent_decode(content.as_bytes(), &mut writer);
+        
+        // control
+        
+        assert!(output.is_ok());
+        assert_eq!(writer, "placeholder test".as_bytes());
+    }
+    
+    #[test]
+    fn white_space_plus_symbols() {
+        // setup
+        
         let content = "placeholder+%5B%21%5D+test";
         let mut writer = Vec::new();
         
