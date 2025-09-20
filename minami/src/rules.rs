@@ -15,6 +15,12 @@ pub fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
+    // -------------------- params --------------------
+    
+    let filter = request.query_string(b"filter")
+        .next()
+        .unwrap_or_default();
+    
     // -------------------- operation --------------------
     
     let list = chiaki::List::load("rules")?;
@@ -24,9 +30,15 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
     
     for entry in &list {
+        
+        if ! filter.is_empty() && ! chikuwa::insensitive_contains(entry.tag, &filter) {
+            continue;
+        }
+        
         write!(&mut response, "<a data-value='{}'>", entry.value)?;
         chikuwa::escape_html(entry.tag, &mut response)?;
         response.write_all(b"</a>")?;
+        
     }
     
     Ok(())
@@ -35,10 +47,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let form_data = request.form_data()
-        .ok_or("Could not extract form data")?;
-    
-    let input = form_data.get(b"input")
+    let input = request.form_data(b"input")
         .next()
         .ok_or("Wrong input")?;
     
@@ -57,14 +66,11 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let form_data = request.form_data()
-        .ok_or("Could not extract form data")?;
-    
-    let matcher = form_data.get(b"matcher")
+    let matcher = request.form_data(b"matcher")
         .next()
         .ok_or("Wrong matcher")?;
     
-    let input = form_data.get(b"input")
+    let input = request.form_data(b"input")
         .next()
         .and_then(|input| str::from_utf8(input).ok())
         .and_then(|input| input.parse().ok())
@@ -85,10 +91,7 @@ pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let form_data = request.form_data()
-        .ok_or("Could not extract form data")?;
-    
-    let matcher = form_data.get(b"matcher")
+    let matcher = request.form_data(b"matcher")
         .next()
         .ok_or("Wrong matcher")?;
     

@@ -131,7 +131,7 @@ class Filter {
         this.node.addEventListener("input", () => {
             
             clearTimeout(this.node.getAttribute(FILTER_TIMEOUT_ATTRIBUTE));
-            this.node.setAttribute(FILTER_TIMEOUT_ATTRIBUTE, setTimeout(() => this.apply(this.parent.list.entries), FILTER_TIMEOUT_VALUE));
+            this.node.setAttribute(FILTER_TIMEOUT_ATTRIBUTE, setTimeout(() => this.apply(), FILTER_TIMEOUT_VALUE));
             
         });
         
@@ -139,36 +139,7 @@ class Filter {
     
     focus = () => this.node.focus();
     
-    apply = (entries) => {
-        
-        entries.filter(entry => entry.is_filtered())
-            .forEach(entry => entry.toggle_filter());
-        
-        if (this.node.value === "") {
-            return;
-        }
-        
-        const criteria = this.node.value.normalize("NFC");
-        const collator = new Intl.Collator("en", { usage: "search", sensitivity: "base" });
-        
-        outer: for (let entry of entries) {
-            
-            const text = entry.text(false).normalize("NFC");
-            
-            for (let start = 0, end = criteria.length; end <= text.length; start++, end++) {
-                if (collator.compare(criteria, text.slice(start, end)) === 0) {
-                    continue outer;
-                }
-            }
-            
-            entry.toggle_filter();
-            
-        }
-        
-        entries.filter(entry => entry.is_selected() && ! entry.is_visible())
-            .forEach(entry => entry.toggle_select());
-        
-    };
+    apply = () => this.parent.list.refresh();
     
 }
 
@@ -279,7 +250,14 @@ class List {
     
     refresh = () => {
         
-        fetch(this.node.getAttribute(LIST_REFRESH_ATTRIBUTE))
+        const resource = this.node.getAttribute(LIST_REFRESH_ATTRIBUTE);
+        const base = window.location.origin;
+        const filter = this.parent.filter.node.value;
+        
+        const url = new URL(resource, base);
+        url.searchParams.set("filter", filter);
+        
+        fetch(url)
             .then(response => {
                 
                 if (response.status != 200) {
@@ -298,6 +276,8 @@ class List {
                     
                     const children = Array.from(container.children);
                     
+                    // sort
+                    
                     if (this.node.classList.contains(LIST_SORTED_CLASS)) {
                         const collator = new Intl.Collator("en", { usage: "sort", sensitivity: "base", numeric: true });
                         children.sort((a, b) => a.children.length - b.children.length || collator.compare(a.textContent, b.textContent));
@@ -306,12 +286,6 @@ class List {
                     // entries
                     
                     const entries = children.map(child => new Entry(child, this));
-                    
-                    // filter
-                    
-                    if (this.parent.filter.node) {
-                        this.parent.filter.apply(entries);
-                    }
                     
                     // refresh
                     

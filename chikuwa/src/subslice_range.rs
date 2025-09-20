@@ -11,6 +11,7 @@ pub fn subslice_range(content: &[u8], left: &[u8], right: &[u8]) -> Option<Range
 }
 
 fn find_subslice_ignore_case(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    // 'windows' function panics on 0 length
     if needle.is_empty() {
         return None;
     }

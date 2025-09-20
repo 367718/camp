@@ -1,6 +1,7 @@
+mod headers;
+mod body;
 mod request;
 mod response;
-mod form_data;
 
 use std::{
     io,
@@ -8,9 +9,13 @@ use std::{
     time::Duration,
 };
 
+use headers::Headers;
+use body::Body;
+
 pub use request::Request;
 pub use response::Response;
-pub use form_data::FormData;
+pub use headers::QueryString;
+pub use body::FormData;
 
 const STREAM_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;

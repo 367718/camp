@@ -23,6 +23,10 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let root = rin::get(b"root")?;
     let flag = rin::get(b"flag")?;
     
+    let filter = request.query_string(b"filter")
+        .next()
+        .unwrap_or_default();
+    
     // -------------------- operation --------------------
     
     let list = ena::Files::walk(root)?;
@@ -33,15 +37,17 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in list {
         
-        // skip entries whose file_name cannot be represented in UTF-8
-        let Some(file_name) = entry.file_name().to_str() else {
+        // skip entries whose relative path cannot be represented in UTF-8
+        let Some(relative) = entry.relative().to_str() else {
             continue;
         };
         
-        // skip entries whose container cannot be represented in UTF-8
-        let Some(container) = entry.container().to_str() else {
+        if ! filter.is_empty() && ! chikuwa::insensitive_contains(relative.as_bytes(), &filter) {
             continue;
-        };
+        }
+        
+        let file_name = entry.file_name().to_str().unwrap();
+        let container = entry.container().to_str().unwrap();
         
         write!(&mut response, "<a data-value='{}'>", u8::from(! entry.is_marked(flag).unwrap_or(false)))?;
         
@@ -67,10 +73,7 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let root = rin::get(b"root")?;
     let player = rin::get(b"player")?;
     
-    let form_data = request.form_data()
-        .ok_or("Could not extract form data")?;
-    
-    let matchers = form_data.get(b"matcher")
+    let matchers = request.form_data(b"matcher")
         .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
         .collect::<Vec<&OsStr>>();
     
@@ -104,10 +107,7 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let root = rin::get(b"root")?;
     let flag = rin::get(b"flag")?;
     
-    let form_data = request.form_data()
-        .ok_or("Could not extract form data")?;
-    
-    let matchers = form_data.get(b"matcher")
+    let matchers = request.form_data(b"matcher")
         .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
         .collect::<Vec<&OsStr>>();
     
@@ -135,10 +135,7 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let root = rin::get(b"root")?;
     
-    let form_data = request.form_data()
-        .ok_or("Could not extract form data")?;
-    
-    let matchers = form_data.get(b"matcher")
+    let matchers = request.form_data(b"matcher")
         .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
         .collect::<Vec<&OsStr>>();
     
@@ -150,7 +147,7 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
         return Err("No relevant file found".into());
     }
     
-    let folder = match form_data.get(b"input").next() {
+    let folder = match request.form_data(b"input").next() {
         Some(input) => str::from_utf8(input).map_err(|_| "Invalid input")?,
         None => "",
     };
@@ -171,10 +168,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let root = rin::get(b"root")?;
     
-    let form_data = request.form_data()
-        .ok_or("Could not extract form data")?;
-    
-    let matchers = form_data.get(b"matcher")
+    let matchers = request.form_data(b"matcher")
         .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
         .collect::<Vec<&OsStr>>();
     

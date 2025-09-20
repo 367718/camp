@@ -5,12 +5,13 @@ use std::{
 
 use super::{
     REQUEST_SIZE_LIMIT, CONNECTION_BUFFER_SIZE, STREAM_TIMEOUT,
-    StatusCode, ContentType, CacheControl, FormData, Response,
+    StatusCode, ContentType, CacheControl,
+    Headers, Body, QueryString, FormData, Response,
 };
 
 pub struct Request {
-    headers: Vec<u8>,
-    body: Vec<u8>,
+    headers: Headers,
+    body: Body,
     stream: Option<TcpStream>,
 }
 
@@ -29,11 +30,23 @@ impl Request {
     }
     
     pub fn method_and_path(&self) -> Option<(&[u8], &[u8])> {
-        extract_method_and_path(&self.headers)
+        self.headers.method_and_path()
     }
     
-    pub fn form_data(&self) -> Option<FormData<'_>> {
-        FormData::new(&self.headers, &self.body)
+    pub fn get_header(&self, key: &[u8]) -> Option<&[u8]> {
+        self.headers.get(key)
+    }
+    
+    pub fn body_len(&self) -> usize {
+        self.body.len()
+    }
+    
+    pub fn query_string<'r, 'k>(&'r self, key: &'k [u8]) -> QueryString<'r, 'k> {
+        self.headers.query_string(key)
+    }
+    
+    pub fn form_data<'r: 'h, 'h, 'k>(&'r self, key: &'k [u8]) -> FormData<'r, 'h, 'k> {
+        self.body.form_data(&self.headers, key)
     }
     
     pub fn start_response(&mut self, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Response> {
@@ -45,16 +58,16 @@ impl Request {
     
 }
 
-fn extract_headers_and_body(reader: &mut impl Read) -> io::Result<(Vec<u8>, Vec<u8>)> {
+fn extract_headers_and_body(reader: &mut impl Read) -> io::Result<(Headers, Body)> {
     let mut buffer = [0; CONNECTION_BUFFER_SIZE];
     let mut search_start_index = 0;
     
-    let mut headers = Vec::new();
-    let mut body = Vec::new();
+    let mut headers_content = Vec::new();
+    let mut body_content = Vec::new();
     
     // -------------------- headers --------------------
     
-    while headers.len() < REQUEST_SIZE_LIMIT {
+    while headers_content.len() < REQUEST_SIZE_LIMIT {
         
         let bytes = match reader.read(&mut buffer) {
             Ok(0) => return Err(Error::new(ErrorKind::UnexpectedEof, "Connection closed while reading headers")),
@@ -63,41 +76,41 @@ fn extract_headers_and_body(reader: &mut impl Read) -> io::Result<(Vec<u8>, Vec<
             Err(error) => return Err(error),
         };
         
-        headers.extend_from_slice(&buffer[..bytes]);
+        headers_content.extend_from_slice(&buffer[..bytes]);
         
-        let headers_end = headers[search_start_index..]
+        let headers_end = headers_content[search_start_index..]
             .windows(4)
             .position(|window| window == b"\r\n\r\n");
         
         if let Some(headers_end) = headers_end {
-            body = headers.split_off(search_start_index + headers_end + 4);
+            body_content = headers_content.split_off(search_start_index + headers_end + 4);
             break;
         }
         
-        search_start_index = headers.len().saturating_sub(3);
+        search_start_index = headers_content.len().saturating_sub(3);
         
     };
     
-    headers.truncate(REQUEST_SIZE_LIMIT);
+    headers_content.truncate(REQUEST_SIZE_LIMIT);
+    let body_limit = REQUEST_SIZE_LIMIT.saturating_sub(headers_content.len());
     
-    let body_limit = REQUEST_SIZE_LIMIT.saturating_sub(headers.len());
+    let headers = Headers::new(headers_content);
     
     // -------------------- body --------------------
     
     // body will be empty unless the request specifies a content length
-    let content_length = chikuwa::subslice_range(&headers, b"Content-Length:", b"\r\n")
-        .map(|range| &headers[range])
+    let content_length = headers.get(b"Content-Length")
         .and_then(|value| str::from_utf8(value).ok())
         .and_then(|value| value.trim().parse::<usize>().ok())
         .map_or(0, |value| value.min(body_limit));
     
-    if body.len() < content_length {
+    if body_content.len() < content_length {
         
-        body.reserve_exact(content_length);
+        body_content.reserve_exact(content_length);
         
-        let remaining = content_length - body.len();
+        let remaining = content_length - body_content.len();
         let result = reader.take(remaining as u64)
-            .read_to_end(&mut body);
+            .read_to_end(&mut body_content);
         
         if let Err(error) = result && error.kind() != ErrorKind::UnexpectedEof {
             return Err(error);
@@ -105,21 +118,10 @@ fn extract_headers_and_body(reader: &mut impl Read) -> io::Result<(Vec<u8>, Vec<
         
     }
     
-    body.truncate(content_length);
+    body_content.truncate(content_length);
+    let body = Body::new(body_content);
     
     Ok((headers, body))
-}
-
-fn extract_method_and_path(data: &[u8]) -> Option<(&[u8], &[u8])> {
-    let mut parts = data.split(|&curr| curr == b' ');
-    
-    let method = parts.next()?;
-    
-    // strip query component
-    let path = parts.next()
-        .and_then(|path| path.split(|&curr| curr == b'?').next())?;
-    
-    Some((method, path))
 }
 
 #[cfg(test)]
@@ -151,8 +153,8 @@ mod tests {
             
             let (headers, body) = output.unwrap();
             
-            assert_eq!(headers, content);
-            assert!(body.is_empty());
+            assert_eq!(headers.get(b"Host"), Some(b"placeholder".as_slice()));
+            assert!(body.len() == 0);
         }
         
         #[test]
@@ -188,8 +190,8 @@ mod tests {
             
             let (headers, body) = output.unwrap();
             
-            assert_eq!(headers, content);
-            assert!(body.is_empty());
+            assert_eq!(headers.get(b"Priority"), Some(b"u=0".as_slice()));
+            assert!(body.len() == 0);
         }
         
         #[test]
@@ -230,58 +232,8 @@ mod tests {
             
             let (headers, body) = output.unwrap();
             
-            assert_eq!(headers, content[..content.len() - body.len()]);
-            assert_eq!(body, b"1234");
-        }
-        
-        #[test]
-        fn body_without_space_in_content_length() {
-            // setup
-            
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length:4\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"1234");
-            
-            // operation
-            
-            let output = extract_headers_and_body(&mut &content[..]);
-            
-            // control
-            
-            assert!(output.is_ok());
-            
-            let (headers, body) = output.unwrap();
-            
-            assert_eq!(headers, content[..content.len() - body.len()]);
-            assert_eq!(body, b"1234");
-        }
-        
-        #[test]
-        fn body_with_multiple_spaces_in_content_length() {
-            // setup
-            
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length:   4\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"1234");
-            
-            // operation
-            
-            let output = extract_headers_and_body(&mut &content[..]);
-            
-            // control
-            
-            assert!(output.is_ok());
-            
-            let (headers, body) = output.unwrap();
-            
-            assert_eq!(headers, content[..content.len() - body.len()]);
-            assert_eq!(body, b"1234");
+            assert_eq!(headers.get(b"Content-Length"), Some(b"4".as_slice()));
+            assert!(body.len() == 4);
         }
         
         #[test]
@@ -305,8 +257,8 @@ mod tests {
             
             let (headers, body) = output.unwrap();
             
-            assert_eq!(headers, content[..content.len() - body.len() - 1]);
-            assert_eq!(body, b"123");
+            assert_eq!(headers.get(b"Content-Length"), Some(b"3".as_slice()));
+            assert!(body.len() == 3);
         }
         
         #[test]
@@ -330,8 +282,8 @@ mod tests {
             
             let (headers, body) = output.unwrap();
             
-            assert_eq!(headers, content[..content.len() - body.len()]);
-            assert_eq!(body, b"1234");
+            assert_eq!(headers.get(b"Content-Length"), Some(b"5".as_slice()));
+            assert!(body.len() == 4);
         }
         
         #[test]
@@ -355,8 +307,8 @@ mod tests {
             
             let (headers, body) = output.unwrap();
             
-            assert_eq!(headers, content[..content.len() - body.len() - 1]);
-            assert_eq!(body, b"1234");
+            assert_eq!(headers.get(b"Content-Length"), Some(b"4".as_slice()));
+            assert!(body.len() == 4);
         }
         
         #[test]
@@ -379,24 +331,22 @@ mod tests {
             
             let (headers, body) = output.unwrap();
             
-            assert_eq!(headers, content[..content.len() - 4]);
-            assert!(body.is_empty());
+            assert!(headers.get(b"Content-Length").is_none());
+            assert!(body.len() == 0);
         }
         
         #[test]
         fn limit_exceeded() {
             // setup
             
-            let mut content = Vec::new();
+            let mut content = Vec::with_capacity(REQUEST_SIZE_LIMIT);
             content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"\r\n");
             
             for _ in 0..REQUEST_SIZE_LIMIT {
                 content.push(b'a');
             }
-            
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"\r\n");
             
             // operation
             
@@ -408,75 +358,8 @@ mod tests {
             
             let (headers, body) = output.unwrap();
             
-            assert_eq!(headers.len() + body.len(), REQUEST_SIZE_LIMIT as usize);
-        }
-        
-    }
-    
-    #[cfg(test)]
-    mod extract_method_and_path {
-        
-        use super::*;
-        
-        #[test]
-        fn simple() {
-            // setup
-            
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"\r\n");
-            
-            // operation
-            
-            let output = extract_method_and_path(&mut &content[..]);
-            
-            // control
-            
-            assert!(output.is_some());
-            
-            let (method, path) = output.unwrap();
-            
-            assert_eq!(method, b"GET");
-            assert_eq!(path, b"/test/endpoint");
-        }
-        
-        #[test]
-        fn no_path() {
-            // setup
-            
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET HTTP/1.1\r\n");
-            content.extend_from_slice(b"\r\n");
-            
-            // operation
-            
-            let output = extract_method_and_path(&mut &content[..]);
-            
-            // control
-            
-            assert!(output.is_some());
-            
-            let (method, path) = output.unwrap();
-            
-            assert_eq!(method, b"GET");
-            assert_eq!(path, b"HTTP/1.1\r\n\r\n");
-        }
-        
-        #[test]
-        fn malformed() {
-            // setup
-            
-            let mut content = Vec::new();
-            content.extend_from_slice(b"HTTP/1.1\r\n");
-            content.extend_from_slice(b"\r\n");
-            
-            // operation
-            
-            let output = extract_method_and_path(&mut &content[..]);
-            
-            // control
-            
-            assert!(output.is_none());
+            assert_eq!(headers.method_and_path(), Some((b"GET".as_slice(), b"/test/endpoint".as_slice())));
+            assert!(body.len() == 0);
         }
         
     }

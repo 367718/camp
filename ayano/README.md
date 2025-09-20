@@ -17,8 +17,11 @@ The `Server` struct provides access to `Request` elements via the "Iterator" tra
     * Iterator trait
 
 * `Request`
-    * resource
-    * param
+    * method_and_path
+    * get_header
+    * body_len
+    * query_string
+    * form_data
     * start_response
 
 * `Response`

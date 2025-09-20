@@ -41,10 +41,10 @@ mod tests {
     use super::*;
     
     #[test]
-    fn empty() {
+    fn single() {
         // setup
         
-        let content = "";
+        let content = "yL6&LN4IW1RqEHNe0";
         let mut writer = Vec::new();
         
         // operation
@@ -54,7 +54,92 @@ mod tests {
         // control
         
         assert!(output.is_ok());
-        assert_eq!(writer, content.as_bytes());
+        assert_eq!(writer, "yL6&amp;LN4IW1RqEHNe0".as_bytes());
+    }
+    
+    #[test]
+    fn single_first() {
+        // setup
+        
+        let content = "&yL6LN4IW1RqEHNe0";
+        let mut writer = Vec::new();
+        
+        // operation
+        
+        let output = escape_html(content.as_bytes(), &mut writer);
+        
+        // control
+        
+        assert!(output.is_ok());
+        assert_eq!(writer, "&amp;yL6LN4IW1RqEHNe0".as_bytes());
+    }
+    
+    #[test]
+    fn single_last() {
+        // setup
+        
+        let content = "yL6LN4IW1RqEHNe0>";
+        let mut writer = Vec::new();
+        
+        // operation
+        
+        let output = escape_html(content.as_bytes(), &mut writer);
+        
+        // control
+        
+        assert!(output.is_ok());
+        assert_eq!(writer, "yL6LN4IW1RqEHNe0&gt;".as_bytes());
+    }
+    
+    #[test]
+    fn multiple() {
+        // setup
+        
+        let content = "yL6LN4IW&1RqEH<N<e>0";
+        let mut writer = Vec::new();
+        
+        // operation
+        
+        let output = escape_html(content.as_bytes(), &mut writer);
+        
+        // control
+        
+        assert!(output.is_ok());
+        assert_eq!(writer, "yL6LN4IW&amp;1RqEH&lt;N&lt;e&gt;0".as_bytes());
+    }
+    
+    #[test]
+    fn full() {
+        // setup
+        
+        let content = "<&<>";
+        let mut writer = Vec::new();
+        
+        // operation
+        
+        let output = escape_html(content.as_bytes(), &mut writer);
+        
+        // control
+        
+        assert!(output.is_ok());
+        assert_eq!(writer, "&lt;&amp;&lt;&gt;".as_bytes());
+    }
+    
+    #[test]
+    fn emoji() {
+        // setup
+        
+        let content = "<&<🔌>";
+        let mut writer = Vec::new();
+        
+        // operation
+        
+        let output = escape_html(content.as_bytes(), &mut writer);
+        
+        // control
+        
+        assert!(output.is_ok());
+        assert_eq!(writer, "&lt;&amp;&lt;🔌&gt;".as_bytes());
     }
     
     #[test]
@@ -75,10 +160,10 @@ mod tests {
     }
     
     #[test]
-    fn single_first() {
+    fn empty() {
         // setup
         
-        let content = "&yL6LN4IW1RqEHNe0";
+        let content = "";
         let mut writer = Vec::new();
         
         // operation
@@ -88,75 +173,7 @@ mod tests {
         // control
         
         assert!(output.is_ok());
-        assert_eq!(writer, b"&amp;yL6LN4IW1RqEHNe0");
-    }
-    
-    #[test]
-    fn single_last() {
-        // setup
-        
-        let content = "yL6LN4IW1RqEHNe0>";
-        let mut writer = Vec::new();
-        
-        // operation
-        
-        let output = escape_html(content.as_bytes(), &mut writer);
-        
-        // control
-        
-        assert!(output.is_ok());
-        assert_eq!(writer, b"yL6LN4IW1RqEHNe0&gt;");
-    }
-    
-    #[test]
-    fn multiple() {
-        // setup
-        
-        let content = "yL6LN4IW&1RqEH<N<e>0";
-        let mut writer = Vec::new();
-        
-        // operation
-        
-        let output = escape_html(content.as_bytes(), &mut writer);
-        
-        // control
-        
-        assert!(output.is_ok());
-        assert_eq!(writer, b"yL6LN4IW&amp;1RqEH&lt;N&lt;e&gt;0");
-    }
-    
-    #[test]
-    fn full() {
-        // setup
-        
-        let content = "<&<>";
-        let mut writer = Vec::new();
-        
-        // operation
-        
-        let output = escape_html(content.as_bytes(), &mut writer);
-        
-        // control
-        
-        assert!(output.is_ok());
-        assert_eq!(writer, b"&lt;&amp;&lt;&gt;");
-    }
-    
-    #[test]
-    fn emoji() {
-        // setup
-        
-        let content = "<&<🔌>";
-        let mut writer = Vec::new();
-        
-        // operation
-        
-        let output = escape_html(content.as_bytes(), &mut writer);
-        
-        // control
-        
-        assert!(output.is_ok());
-        assert_eq!(writer, "&lt;&amp;&lt;🔌&gt;".as_bytes());
+        assert_eq!(writer, content.as_bytes());
     }
     
 }
