@@ -443,7 +443,7 @@ class Actions {
         
         // -------------------- form data --------------------
         
-        const form_data = new FormData();
+        const form_data = new URLSearchParams();
         
         // -------------------- prompt --------------------
         

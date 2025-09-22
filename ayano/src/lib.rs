@@ -15,7 +15,7 @@ use body::Body;
 pub use request::Request;
 pub use response::Response;
 pub use headers::QueryString;
-pub use body::FormData;
+pub use body::FormParams;
 
 const STREAM_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;

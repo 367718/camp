@@ -1,6 +1,6 @@
 use std::{
     error::Error,
-    ffi::OsStr,
+    ffi::OsString,
     io::Write,
     path::MAIN_SEPARATOR_STR,
     process::{ Command, Stdio },
@@ -73,9 +73,10 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let root = rin::get(b"root")?;
     let player = rin::get(b"player")?;
     
-    let matchers = request.form_data(b"matcher")
-        .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
-        .collect::<Vec<&OsStr>>();
+    let matchers = request.form_params(b"matcher")
+        .filter_map(|matcher| String::from_utf8(matcher).ok())
+        .map(OsString::from)
+        .collect::<Vec<OsString>>();
     
     let mut selected = ena::Files::walk(root)?
         .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
@@ -107,9 +108,10 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let root = rin::get(b"root")?;
     let flag = rin::get(b"flag")?;
     
-    let matchers = request.form_data(b"matcher")
-        .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
-        .collect::<Vec<&OsStr>>();
+    let matchers = request.form_params(b"matcher")
+        .filter_map(|matcher| String::from_utf8(matcher).ok())
+        .map(OsString::from)
+        .collect::<Vec<OsString>>();
     
     let mut selected = ena::Files::walk(root)?
         .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
@@ -135,9 +137,10 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let root = rin::get(b"root")?;
     
-    let matchers = request.form_data(b"matcher")
-        .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
-        .collect::<Vec<&OsStr>>();
+    let matchers = request.form_params(b"matcher")
+        .filter_map(|matcher| String::from_utf8(matcher).ok())
+        .map(OsString::from)
+        .collect::<Vec<OsString>>();
     
     let mut selected = ena::Files::walk(root)?
         .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
@@ -147,14 +150,14 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
         return Err("No relevant file found".into());
     }
     
-    let folder = match request.form_data(b"input").next() {
-        Some(input) => str::from_utf8(input).map_err(|_| "Invalid input")?,
-        None => "",
+    let folder = match request.form_params(b"input").next() {
+        Some(input) => String::from_utf8(input).map_err(|_| "Invalid input")?,
+        None => String::new(),
     };
     
     // -------------------- operation --------------------
     
-    selected.try_for_each(|entry| entry.move_to_folder(folder))?;
+    selected.try_for_each(|entry| entry.move_to_folder(&folder))?;
     
     // -------------------- response --------------------
     
@@ -168,9 +171,10 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let root = rin::get(b"root")?;
     
-    let matchers = request.form_data(b"matcher")
-        .filter_map(|matcher| str::from_utf8(matcher).map(OsStr::new).ok())
-        .collect::<Vec<&OsStr>>();
+    let matchers = request.form_params(b"matcher")
+        .filter_map(|matcher| String::from_utf8(matcher).ok())
+        .map(OsString::from)
+        .collect::<Vec<OsString>>();
     
     let mut selected = ena::Files::walk(root)?
         .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))

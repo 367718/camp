@@ -47,14 +47,14 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let input = request.form_data(b"input")
+    let input = request.form_params(b"input")
         .next()
         .ok_or("Wrong input")?;
     
     // -------------------- operation --------------------
     
     chiaki::List::load("rules")
-        .and_then(|mut list| list.insert(input, 1))?;
+        .and_then(|mut list| list.insert(&input, 1))?;
     
     // -------------------- response --------------------
     
@@ -66,12 +66,13 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let matcher = request.form_data(b"matcher")
+    let matcher = request.form_params(b"matcher")
         .next()
         .ok_or("Wrong matcher")?;
     
-    let input = request.form_data(b"input")
+    let input = request.form_params(b"input")
         .next()
+        .as_ref()
         .and_then(|input| str::from_utf8(input).ok())
         .and_then(|input| input.parse().ok())
         .ok_or("Wrong input")?;
@@ -79,7 +80,7 @@ pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- operation --------------------
     
     chiaki::List::load("rules")
-        .and_then(|mut list| list.update(matcher, input))?;
+        .and_then(|mut list| list.update(&matcher, input))?;
     
     // -------------------- response --------------------
     
@@ -91,14 +92,14 @@ pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let matcher = request.form_data(b"matcher")
+    let matcher = request.form_params(b"matcher")
         .next()
         .ok_or("Wrong matcher")?;
     
     // -------------------- operation --------------------
     
     chiaki::List::load("rules")
-        .and_then(|mut list| list.delete(matcher))?;
+        .and_then(|mut list| list.delete(&matcher))?;
     
     // -------------------- response --------------------
     

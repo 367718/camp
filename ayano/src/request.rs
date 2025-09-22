@@ -6,7 +6,7 @@ use std::{
 use super::{
     REQUEST_SIZE_LIMIT, CONNECTION_BUFFER_SIZE, STREAM_TIMEOUT,
     StatusCode, ContentType, CacheControl,
-    Headers, Body, QueryString, FormData, Response,
+    Headers, Body, QueryString, FormParams, Response,
 };
 
 pub struct Request {
@@ -45,8 +45,8 @@ impl Request {
         self.headers.query_string(key)
     }
     
-    pub fn form_data<'r: 'h, 'h, 'k>(&'r self, key: &'k [u8]) -> FormData<'r, 'h, 'k> {
-        self.body.form_data(&self.headers, key)
+    pub fn form_params<'r: 'h, 'h, 'k>(&'r self, key: &'k [u8]) -> FormParams<'r, 'h, 'k> {
+        self.body.form_params(&self.headers, key)
     }
     
     pub fn start_response(&mut self, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Response> {

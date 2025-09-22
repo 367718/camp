@@ -3,7 +3,7 @@ pub struct Headers {
 }
 
 pub struct QueryString<'r, 'k> {
-    pairs: &'r [u8],
+    content: &'r [u8],
     key: &'k [u8],
 }
 
@@ -19,7 +19,7 @@ impl Headers {
         // GET /test/endpoint HTTP/1.1\r\n
         
         // first line
-        let (working, _) = split_on_separator(&self.content, b'\r');
+        let (working, _) = chikuwa::split_on_separator(&self.content, b"\r");
         let mut parts = working.split(|&curr| curr == b' ');
         
         let method = parts.next()?;
@@ -45,17 +45,17 @@ impl Headers {
         // GET /test/endpoint?fkey=fvalue HTTP/1.1\r\n
         // GET /test/endpoint?fkey=fvalue&skey=svalue HTTP/1.1\r\n
         
-        let mut pairs: &[u8] = &[];
+        let mut content: &[u8] = &[];
         
         // first line
-        let (working, _) = split_on_separator(&self.content, b'\r');
+        let (working, _) = chikuwa::split_on_separator(&self.content, b"\r");
         
         if let Some(range) = chikuwa::subslice_range(working, b"?", b" ") {
-            pairs = &working[range];
+            content = &working[range];
         }
         
         QueryString {
-            pairs,
+            content,
             key,
         }
     }
@@ -71,36 +71,28 @@ impl Iterator for QueryString<'_, '_> {
         // fkey=fvalue
         // fkey=fvalue&skey=svalue
         
-        while ! self.pairs.is_empty() {
-            let (working, rest) = split_on_separator(self.pairs, b'&');
-            let (left, right) = split_on_separator(working, b'=');
+        while ! self.content.is_empty() {
             
-            self.pairs = rest;
+            let (working, rest) = chikuwa::split_on_separator(self.content, b"&");
+            let (left, right) = chikuwa::split_on_separator(working, b"=");
+            
+            self.content = rest;
             
             let mut key = Vec::new();
             chikuwa::percent_decode(left, &mut key).unwrap();
             
-            if key == self.key {
+            if key.eq_ignore_ascii_case(self.key) {
                 let mut value = Vec::new();
                 chikuwa::percent_decode(right, &mut value).unwrap();
                 return Some(value);
             }
+            
         }
         
         None
         
     }
     
-}
-
-fn split_on_separator(content: &[u8], separator: u8) -> (&[u8], &[u8]) {
-    let mut parts = content.split(|&curr| curr == separator);
-    
-    if let (Some(left), Some(right)) = (parts.next(), parts.next()) {
-        return (left, right);
-    }
-    
-    (content, &[])
 }
 
 #[cfg(test)]
@@ -329,6 +321,32 @@ mod tests {
         }
         
         #[test]
+        fn duplicate() {
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"Host: non-existant\r\n");
+            content.extend_from_slice(b"\r\n");
+            
+            let headers = Headers::new(content);
+            let key = b"host";
+            
+            // operation
+            
+            let output = headers.get(key);
+            
+            // control
+            
+            assert!(output.is_some());
+            
+            let value = output.unwrap();
+            
+            assert_eq!(value, b"placeholder");
+        }
+        
+        #[test]
         fn case_mixing() {
             // setup
             
@@ -505,6 +523,28 @@ mod tests {
         }
         
         #[test]
+        fn case_mixing() {
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"GET /test/endpoint?key=value HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"\r\n");
+            
+            let headers = Headers::new(content);
+            let key = b"KEy";
+            
+            // operation
+            
+            let mut output = headers.query_string(key);
+            
+            // control
+            
+            assert_eq!(output.next(), Some(b"value".to_vec()));
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
         fn nonexistent_key() {
             // setup
             
@@ -530,7 +570,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint?key HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/endpoint?key= HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             

@@ -47,14 +47,14 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let input = request.form_data(b"input")
+    let input = request.form_params(b"input")
         .next()
         .ok_or("Wrong input")?;
     
     // -------------------- operation --------------------
     
     chiaki::List::load("feeds")
-        .and_then(|mut list| list.insert(input, 0))?;
+        .and_then(|mut list| list.insert(&input, 0))?;
     
     // -------------------- response --------------------
     
@@ -66,14 +66,14 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let matcher = request.form_data(b"matcher")
+    let matcher = request.form_params(b"matcher")
         .next()
         .ok_or("Wrong matcher")?;
     
     // -------------------- operation --------------------
     
     chiaki::List::load("feeds")
-        .and_then(|mut list| list.delete(matcher))?;
+        .and_then(|mut list| list.delete(&matcher))?;
     
     // -------------------- response --------------------
     
