@@ -67,7 +67,7 @@ impl Response {
         })
     }
     
-    pub fn content_length(&self) -> io::Result<usize> {
+    pub fn content_length(&self) -> io::Result<u64> {
         let mut content_length: c_ulong = 0;
         
         #[allow(clippy::cast_possible_truncation)]
@@ -90,7 +90,7 @@ impl Response {
             
         }
         
-        Ok(content_length as usize)
+        Ok(u64::from(content_length))
     }
     
 }

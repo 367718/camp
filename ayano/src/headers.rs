@@ -19,7 +19,7 @@ impl Headers {
         // GET /test/endpoint HTTP/1.1\r\n
         
         // first line
-        let (working, _) = chikuwa::split_on_separator(&self.content, b"\r");
+        let (working, _) = chikuwa::split_slice_once(&self.content, b"\r");
         let mut parts = working.split(|&curr| curr == b' ');
         
         let method = parts.next()?;
@@ -48,7 +48,7 @@ impl Headers {
         let mut content: &[u8] = &[];
         
         // first line
-        let (working, _) = chikuwa::split_on_separator(&self.content, b"\r");
+        let (working, _) = chikuwa::split_slice_once(&self.content, b"\r");
         
         if let Some(range) = chikuwa::subslice_range(working, b"?", b" ") {
             content = &working[range];
@@ -73,8 +73,8 @@ impl Iterator for QueryString<'_, '_> {
         
         while ! self.content.is_empty() {
             
-            let (working, rest) = chikuwa::split_on_separator(self.content, b"&");
-            let (left, right) = chikuwa::split_on_separator(working, b"=");
+            let (working, rest) = chikuwa::split_slice_once(self.content, b"&");
+            let (left, right) = chikuwa::split_slice_once(working, b"=");
             
             self.content = rest;
             
