@@ -10,6 +10,8 @@ On construction, a file with the specified name and the "ck" extension will be l
 
 The maximum allowed size of the loaded list is 512 KiB.
 
+An invalid entry encountered while loading a list will cause the next entries, if any, to be skipped.
+
 ## API
 
 * `List`

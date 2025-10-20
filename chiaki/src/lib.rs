@@ -29,6 +29,8 @@ impl List {
     
     
     pub fn load(name: &str) -> io::Result<Self> {
+        // -------------------- path --------------------
+        
         // prevent directory traversal
         let clean = Path::new(name)
             .file_name()
@@ -38,16 +40,25 @@ impl List {
         path.push(clean);
         path.set_extension("ck");
         
-        if path.is_symlink() {
+        // -------------------- metadata --------------------
+        
+        let metadata = fs::metadata(&path)
+            .map_err(|error| Error::new(error.kind(), format!("Failed to query metadata for list file '{}': {}", path.display(), error)))?;
+        
+        // -------------------- symlink --------------------
+        
+        if metadata.is_symlink() {
             return Err(Error::new(ErrorKind::InvalidInput, "Symlinks are not supported"));
         }
+        
+        // -------------------- file --------------------
         
         let file = File::open(&path)
             .map_err(|error| Error::new(error.kind(), format!("Failed to open list file '{}': {}", path.display(), error)))?;
         
-        let size = file.metadata()
-            .map(|metadata| metadata.len().min(CONTENT_SIZE_LIMIT))
-            .unwrap_or(0);
+        // -------------------- content --------------------
+        
+        let size = metadata.len().min(CONTENT_SIZE_LIMIT);
         
         let mut content = Vec::new();
         content.reserve_exact(usize::try_from(size).unwrap());
@@ -80,8 +91,9 @@ impl List {
         }
         
         let capacity = self.content.len() + (tag.len() + MEM_SIZE * 2);
-        let entries = self.iter()
-            .chain(Some(ListEntry { tag, value }));
+        let entries = Some(ListEntry { tag, value })
+            .into_iter()
+            .chain(self.iter());
         
         self.commit(Self::serialize(capacity, entries))
     }
@@ -91,10 +103,13 @@ impl List {
             .ok_or(Error::new(ErrorKind::NotFound, "Tag not found"))?;
         
         let capacity = self.content.len();
-        let entries = self.iter()
-            .enumerate()
-            .filter_map(|(current, entry)| (current != position).then_some(entry))
-            .chain(Some(ListEntry { tag, value }));
+        let entries = Some(ListEntry { tag, value })
+            .into_iter()
+            .chain(
+                self.iter()
+                    .enumerate()
+                    .filter_map(|(current, entry)| (current != position).then_some(entry))
+            );
         
         self.commit(Self::serialize(capacity, entries))
     }
@@ -173,17 +188,23 @@ impl <'c>Iterator for ListIter<'c> {
     type Item = ListEntry<'c>;
     
     fn next(&mut self) -> Option<Self::Item> {
-        let (current, working) = self.content.split_at_checked(MEM_SIZE)?;
+        // -------------------- tag size --------------------
+        
+        let (current, rest) = self.content.split_at_checked(MEM_SIZE)?;
         let tag_size = usize::try_from(u64::from_le_bytes(unsafe { current.try_into().unwrap_unchecked() }))
             .expect("Tag size exceeded the maximum value supported by the plataform");
         
-        let (current, working) = working.split_at_checked(tag_size)?;
+        // -------------------- tag --------------------
+        
+        let (current, rest) = rest.split_at_checked(tag_size)?;
         let tag = current;
         
-        let (current, working) = working.split_at_checked(MEM_SIZE)?;
+        // -------------------- value --------------------
+        
+        let (current, rest) = rest.split_at_checked(MEM_SIZE)?;
         let value = u64::from_le_bytes(unsafe { current.try_into().unwrap_unchecked() });
         
-        self.content = working;
+        self.content = rest;
         
         Some(ListEntry {
             tag,

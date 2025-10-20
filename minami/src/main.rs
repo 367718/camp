@@ -18,7 +18,8 @@ use ayano::{
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut server = Server::bind(rin::get(b"address")?)?;
+    let address = rin::get(b"address")?;
+    let mut server = Server::bind(address)?;
     
     loop {
         
