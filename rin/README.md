@@ -4,7 +4,7 @@ Configuration parameters provider.
 
 ## Behavior
 
-On first access to a parameter, a file with the executable location and name, but with the "rn" extension, will be loaded. The data will be kept in memory.
+On first access to a parameter, a file with the executable name, but with the "rn" extension, will be loaded from the current directory. The data will be kept in memory.
 
 Keys and values must be separated by "=", while lines must end with "\r\n".
 
