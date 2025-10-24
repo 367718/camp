@@ -35,11 +35,11 @@ unsafe extern "system" {
     
 }
 
-const WINHTTP_NO_REFERER: *const c_ushort = ptr::null(); // // LPCWSTR -> WCHAR -> wchar_t
-const WINHTTP_DEFAULT_ACCEPT_TYPES: *mut *const c_ushort = ptr::null_mut(); // // LPCWSTR -> WCHAR -> wchar_t
+const WINHTTP_NO_REFERER: *const c_ushort = ptr::null(); // LPCWSTR -> WCHAR -> wchar_t
+const WINHTTP_DEFAULT_ACCEPT_TYPES: *mut *const c_ushort = ptr::null_mut(); // LPCWSTR -> WCHAR -> wchar_t
 const WINHTTP_FLAG_SECURE: c_ulong = 0x0080_0000; // DWORD
 
-const WINHTTP_NO_ADDITIONAL_HEADERS: *const c_ushort = ptr::null(); // // LPCWSTR -> WCHAR -> wchar_t
+const WINHTTP_NO_ADDITIONAL_HEADERS: *const c_ushort = ptr::null(); // LPCWSTR -> WCHAR -> wchar_t
 
 pub struct Request {
     pub handle: HttpHandle,

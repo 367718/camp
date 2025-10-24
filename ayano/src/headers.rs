@@ -78,6 +78,10 @@ impl Iterator for QueryString<'_, '_> {
             
             self.content = rest;
             
+            if left.is_empty() || right.is_empty() {
+                continue;
+            }
+            
             let mut key = Vec::new();
             chikuwa::percent_decode(left, &mut key).unwrap();
             
@@ -570,6 +574,27 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
+            content.extend_from_slice(b"GET /test/endpoint?=value HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"\r\n");
+            
+            let headers = Headers::new(content);
+            let key = b"key";
+            
+            // operation
+            
+            let mut output = headers.query_string(key);
+            
+            // control
+            
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn empty_value() {
+            // setup
+            
+            let mut content = Vec::new();
             content.extend_from_slice(b"GET /test/endpoint?key= HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
@@ -583,7 +608,6 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next(), Some(Vec::new()));
             assert!(output.next().is_none());
         }
         

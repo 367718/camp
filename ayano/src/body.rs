@@ -74,6 +74,10 @@ impl Iterator for FormParams<'_, '_, '_> {
                     
                     self.content = rest;
                     
+                    if left.is_empty() || right.is_empty() {
+                        continue;
+                    }
+                    
                     let mut key = Vec::new();
                     chikuwa::percent_decode(left, &mut key).unwrap();
                     
@@ -105,6 +109,10 @@ impl Iterator for FormParams<'_, '_, '_> {
                     
                     let (key, value) = build_form_data_pair(&self.content[param.start..param.end])?;
                     self.content = &self.content[param.end..];
+                    
+                    if key.is_empty() || value.is_empty() {
+                        continue;
+                    }
                     
                     if key.eq_ignore_ascii_case(self.key) {
                         return Some(value.to_vec());
@@ -299,6 +307,32 @@ mod tests {
                 headers_content.extend_from_slice(b"\r\n");
                 
                 let mut body_content = Vec::new();
+                body_content.extend_from_slice(b"fkey=fvalue&=svalue");
+                
+                let headers = Headers::new(headers_content);
+                let body = Body::new(body_content);
+                let key = b"skey";
+                
+                // operation
+                
+                let mut output = body.form_params(&headers, key);
+                
+                // control
+                
+                assert!(output.next().is_none());
+            }
+            
+            #[test]
+            fn empty_value() {
+                // setup
+                
+                let mut headers_content = Vec::new();
+                headers_content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+                headers_content.extend_from_slice(b"Host: placeholder\r\n");
+                headers_content.extend_from_slice(b"Content-Type: application/x-www-form-urlencoded\r\n");
+                headers_content.extend_from_slice(b"\r\n");
+                
+                let mut body_content = Vec::new();
                 body_content.extend_from_slice(b"fkey=fvalue&skey=");
                 
                 let headers = Headers::new(headers_content);
@@ -311,7 +345,6 @@ mod tests {
                 
                 // control
                 
-                assert_eq!(output.next(), Some(Vec::new()));
                 assert!(output.next().is_none());
             }
             
@@ -480,7 +513,109 @@ mod tests {
             }
             
             #[test]
-            fn no_content() {
+            fn nonexistent_key() {
+                // setup
+                
+                let mut headers_content = Vec::new();
+                headers_content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+                headers_content.extend_from_slice(b"Host: placeholder\r\n");
+                headers_content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=----9999999999999999999999999999\r\n");
+                headers_content.extend_from_slice(b"\r\n");
+                
+                let mut body_content = Vec::new();
+                body_content.extend_from_slice(b"------9999999999999999999999999999\r\n");
+                body_content.extend_from_slice(b"Content-Disposition: form-data; name=\"second\"\r\n");
+                body_content.extend_from_slice(b"\r\n");
+                body_content.extend_from_slice(b"10\r\n");
+                body_content.extend_from_slice(b"------9999999999999999999999999999\r\n");
+                body_content.extend_from_slice(b"Content-Disposition: form-data; name=\"first\"\r\n");
+                body_content.extend_from_slice(b"\r\n");
+                body_content.extend_from_slice(b"90\r\n");
+                body_content.extend_from_slice(b"------9999999999999999999999999999--\r\n");
+                
+                let headers = Headers::new(headers_content);
+                let body = Body::new(body_content);
+                let key = b"third";
+                
+                // operation
+                
+                let mut output = body.form_params(&headers, key);
+                
+                // control
+                
+                assert!(output.next().is_none());
+            }
+            
+            #[test]
+            fn empty_key() {
+                // setup
+                
+                let mut headers_content = Vec::new();
+                headers_content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+                headers_content.extend_from_slice(b"Host: placeholder\r\n");
+                headers_content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=----9999999999999999999999999999\r\n");
+                headers_content.extend_from_slice(b"\r\n");
+                
+                let mut body_content = Vec::new();
+                body_content.extend_from_slice(b"------9999999999999999999999999999\r\n");
+                body_content.extend_from_slice(b"Content-Disposition: form-data; name=\"second\"\r\n");
+                body_content.extend_from_slice(b"\r\n");
+                body_content.extend_from_slice(b"10\r\n");
+                body_content.extend_from_slice(b"------9999999999999999999999999999\r\n");
+                body_content.extend_from_slice(b"Content-Disposition: form-data; name=\"\"\r\n");
+                body_content.extend_from_slice(b"\r\n");
+                body_content.extend_from_slice(b"90\r\n");
+                body_content.extend_from_slice(b"------9999999999999999999999999999--\r\n");
+                
+                let headers = Headers::new(headers_content);
+                let body = Body::new(body_content);
+                let key = b"first";
+                
+                // operation
+                
+                let mut output = body.form_params(&headers, key);
+                
+                // control
+                
+                assert!(output.next().is_none());
+            }
+            
+            #[test]
+            fn empty_value() {
+                // setup
+                
+                let mut headers_content = Vec::new();
+                headers_content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+                headers_content.extend_from_slice(b"Host: placeholder\r\n");
+                headers_content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=----9999999999999999999999999999\r\n");
+                headers_content.extend_from_slice(b"\r\n");
+                
+                let mut body_content = Vec::new();
+                body_content.extend_from_slice(b"------9999999999999999999999999999\r\n");
+                body_content.extend_from_slice(b"Content-Disposition: form-data; name=\"second\"\r\n");
+                body_content.extend_from_slice(b"\r\n");
+                body_content.extend_from_slice(b"10\r\n");
+                body_content.extend_from_slice(b"------9999999999999999999999999999\r\n");
+                body_content.extend_from_slice(b"Content-Disposition: form-data; name=\"first\"\r\n");
+                body_content.extend_from_slice(b"\r\n");
+                body_content.extend_from_slice(b"\r\n");
+                body_content.extend_from_slice(b"------9999999999999999999999999999--\r\n");
+                
+                let headers = Headers::new(headers_content);
+                let body = Body::new(body_content);
+                let key = b"first";
+                
+                // operation
+                
+                let mut output = body.form_params(&headers, key);
+                
+                // control
+                
+                assert!(output.next().is_none());
+            }
+            
+            #[test]
+            fn no_pairs() {
                 // setup
                 
                 let mut headers_content = Vec::new();
@@ -532,6 +667,8 @@ mod tests {
                 
                 assert!(output.next().is_none());
             }
+            
+            
             
             #[test]
             fn wrong_boundary() {

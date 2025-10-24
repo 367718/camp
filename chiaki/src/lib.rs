@@ -18,6 +18,8 @@ pub struct ListIter<'c> {
     content: &'c [u8],
 }
 
+#[derive(PartialEq, Eq)]
+#[cfg_attr(debug_assertions, derive(Debug))]
 pub struct ListEntry<'c> {
     pub tag: &'c [u8],
     pub value: u64,
@@ -210,6 +212,108 @@ impl <'c>Iterator for ListIter<'c> {
             tag,
             value,
         })
+    }
+    
+}
+
+#[cfg(test)]
+mod tests {
+    
+    use super::*;
+    
+    mod serialization_and_deserialization {
+        
+        use super::*;
+        
+        #[test]
+        fn one_entry() {
+            // setup
+            
+            let entries = [
+                ListEntry {
+                    tag: b"ftag",
+                    value: 1,
+                },
+            ];
+            
+            let list = List {
+                path: PathBuf::new(),
+                content: List::serialize(0, entries.into_iter()),
+            };
+            
+            // operation
+            
+            let mut output = list.iter();
+            
+            // control
+            
+            assert!(output.next() == Some(ListEntry {
+                tag: b"ftag",
+                value: 1,
+            }));
+            
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn two_entries() {
+            // setup
+            
+            let entries = [
+                ListEntry {
+                    tag: b"ftag",
+                    value: 1,
+                },
+                ListEntry {
+                    tag: b"stag",
+                    value: 2,
+                },
+            ];
+            
+            let list = List {
+                path: PathBuf::new(),
+                content: List::serialize(0, entries.into_iter()),
+            };
+            
+            // operation
+            
+            let mut output = list.iter();
+            
+            // control
+            
+            assert!(output.next() == Some(ListEntry {
+                tag: b"ftag",
+                value: 1,
+            }));
+            
+            assert!(output.next() == Some(ListEntry {
+                tag: b"stag",
+                value: 2,
+            }));
+            
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn no_entries() {
+            // setup
+            
+            let entries = [];
+            
+            let list = List {
+                path: PathBuf::new(),
+                content: List::serialize(0, entries.into_iter()),
+            };
+            
+            // operation
+            
+            let mut output = list.iter();
+            
+            // control
+            
+            assert!(output.next().is_none());
+        }
+        
     }
     
 }

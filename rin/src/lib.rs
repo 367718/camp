@@ -21,7 +21,13 @@ pub fn get(key: &[u8]) -> io::Result<&'static str> {
 fn load_content() -> &'static [u8] {
     
     fn read_file() -> io::Result<Vec<u8>> {
-        let mut file_path = env::current_exe()?;
+        let directory = env::current_dir()?;
+        let executable_path = env::current_exe()?;
+        
+        let file_name = executable_path.file_name()
+            .ok_or(Error::from(ErrorKind::InvalidFilename))?;
+        
+        let mut file_path = directory.join(file_name);
         file_path.set_extension("rn");
         
         let file = File::open(file_path)?;

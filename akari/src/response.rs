@@ -39,8 +39,8 @@ unsafe extern "system" {
 
 const WINHTTP_QUERY_CONTENT_LENGTH: c_ulong = 5; // DWORD
 const WINHTTP_QUERY_FLAG_NUMBER: c_ulong = 0x2000_0000; // DWORD
-const WINHTTP_HEADER_NAME_BY_INDEX: *const c_ushort = ptr::null(); // // LPCWSTR -> WCHAR -> wchar_t
-const WINHTTP_NO_HEADER_INDEX: *mut c_ulong = ptr::null_mut(); // // LPCWSTR -> WCHAR -> wchar_t
+const WINHTTP_HEADER_NAME_BY_INDEX: *const c_ushort = ptr::null(); // LPCWSTR -> WCHAR -> wchar_t
+const WINHTTP_NO_HEADER_INDEX: *mut c_ulong = ptr::null_mut(); // LPCWSTR -> WCHAR -> wchar_t
 
 pub struct Response {
     handle: HttpHandle,
