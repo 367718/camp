@@ -17,8 +17,7 @@ An invalid entry encountered while loading a list will cause the next entries, i
 * `List`
     * load
     * iter
-    * insert
-    * update
+    * set
     * delete
 
 * `ListEntry`

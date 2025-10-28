@@ -54,7 +54,7 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- operation --------------------
     
     chiaki::List::load("feeds")
-        .and_then(|mut list| list.insert(&input, 0))?;
+        .and_then(|list| list.set(&input, 0))?;
     
     // -------------------- response --------------------
     
@@ -73,7 +73,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- operation --------------------
     
     chiaki::List::load("feeds")
-        .and_then(|mut list| list.delete(&matcher))?;
+        .and_then(|list| list.delete(&matcher))?;
     
     // -------------------- response --------------------
     

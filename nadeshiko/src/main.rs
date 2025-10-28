@@ -1,4 +1,5 @@
-mod rss_feed;
+mod rules;
+mod feed;
 
 use std::{
     error::Error,
@@ -8,7 +9,8 @@ use std::{
     path::{ Path, PathBuf },
 };
 
-use rss_feed::RssFeed;
+use rules::Rules;
+use feed::Feed;
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -35,7 +37,8 @@ fn process() -> Result<(), Box<dyn Error>> {
     
     let folder = rin::get(b"folder")?;
     let feeds = chiaki::List::load("feeds")?;
-    let mut rules = chiaki::List::load("rules")?;
+    
+    let mut rules = Rules::load()?;
     
     // -------------------- client --------------------
     
@@ -49,21 +52,16 @@ fn process() -> Result<(), Box<dyn Error>> {
         println!("{}", url);
         println!("--------------------");
         
-        for entry in RssFeed::new(&get_feed_content(&mut client, url)?) {
+        let feed = Feed::new(&mut client, url)?;
+        
+        for entry in &feed {
             
-            // -------------------- rule and episode --------------------
+            // -------------------- rule --------------------
             
-            let Some(rule) = rules.iter().find(|rule| entry.title.starts_with(rule.tag)) else {
+            // defer update until torrent file has been downloaded
+            let Some(rule_update) = rules.get_update(entry.title) else {
                 continue;
             };
-            
-            let Some(episode) = chikuwa::first_number(&entry.title[rule.tag.len()..]) else {
-                continue;
-            };
-            
-            if rule.value >= episode {
-                continue;
-            }
             
             // -------------------- conversion --------------------
             
@@ -79,13 +77,12 @@ fn process() -> Result<(), Box<dyn Error>> {
             
             println!("{}", title);
             
-            // since the list update can fail, an ephemeral path is used to prevent leaving a torrent file existing in destination for a future run
+            // rule update may fail, so torrent path is initially treated as ephemeral
             let destination = chikuwa::EphemeralPath::from(build_destination(folder, title)?);
             
             download_torrent(&mut client, link, &destination)?;
             
-            // entry title used instead of rule tag to avoid borrowing error
-            rules.update(&entry.title[..rule.tag.len()], episode)?;
+            rule_update.execute()?;
             
             destination.make_permanent();
             
@@ -94,20 +91,6 @@ fn process() -> Result<(), Box<dyn Error>> {
     }
     
     Ok(())
-}
-
-fn get_feed_content(client: &mut akari::Client, url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-    let response = client.get(url)?;
-    
-    let content_length = response.content_length().unwrap_or(0);
-    let limit = content_length.min(CONTENT_SIZE_LIMIT);
-    
-    let mut handle = response.take(limit);
-    let mut content = Vec::with_capacity(limit as usize);
-    
-    io::copy(&mut handle, &mut content)?;
-    
-    Ok(content)
 }
 
 fn build_destination(folder: &str, title: &str) -> Result<PathBuf, Box<dyn Error>> {

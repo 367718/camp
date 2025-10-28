@@ -1,9 +1,17 @@
-pub struct RssFeed<'c> {
+use std::io::{ self, Read };
+
+use super::CONTENT_SIZE_LIMIT;
+
+pub struct Feed {
+    content: Vec<u8>,
+}
+
+pub struct FeedIter<'c> {
     content: &'c [u8],
 }
 
 #[cfg_attr(debug_assertions, derive(PartialEq, Debug))]
-pub struct RssFeedEntry<'c> {
+pub struct FeedEntry<'c> {
     pub title: &'c [u8],
     pub link: &'c [u8],
 }
@@ -15,19 +23,42 @@ const TITLE_CLOSE_TAG: &[u8] = b"</title>";
 const LINK_OPEN_TAG: &[u8] = b"<link>";
 const LINK_CLOSE_TAG: &[u8] = b"</link>";
 
-impl<'c> RssFeed<'c> {
+impl Feed {
     
-    pub fn new(content: &'c [u8]) -> Self {
-        Self {
-            content,
-        }
+    pub fn new(client: &mut akari::Client, url: &str) -> io::Result<Self> {
+        let response = client.get(url)?;
+        
+        let content_length = response.content_length().unwrap_or(0);
+        let limit = content_length.min(CONTENT_SIZE_LIMIT);
+        
+        let mut handle = response.take(limit);
+        let mut content = Vec::with_capacity(limit as usize);
+        
+        io::copy(&mut handle, &mut content)?;
+        
+        Ok(Self { content })
+    }
+    
+    pub fn iter(&self) -> FeedIter<'_> {
+        FeedIter { content: &self.content }
     }
     
 }
 
-impl<'c> Iterator for RssFeed<'c> {
+impl <'c>IntoIterator for &'c Feed {
     
-    type Item = RssFeedEntry<'c>;
+    type IntoIter = FeedIter<'c>;
+    type Item = FeedEntry<'c>;
+    
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+    
+}
+
+impl<'c> Iterator for FeedIter<'c> {
+    
+    type Item = FeedEntry<'c>;
     
     fn next(&mut self) -> Option<Self::Item> {
         
@@ -100,13 +131,17 @@ mod tests {
                 </rss>
             "#;
             
+            let feed = Feed {
+                content: content.to_vec(),
+            };
+            
             // operation
             
-            let mut output = RssFeed::new(content);
+            let mut output = feed.iter();
             
             // control
             
-            assert_eq!(output.next(), Some(RssFeedEntry {
+            assert_eq!(output.next(), Some(FeedEntry {
                 title: b"[Example] Placeholder - 17 (720p) [83538700].mkv",
                 link: b"http://localhost/download/123456.torrent",
             }));
@@ -147,23 +182,27 @@ mod tests {
                 </rss>
             "#;
             
+            let feed = Feed {
+                content: content.to_vec(),
+            };
+            
             // operation
             
-            let mut output = RssFeed::new(content);
+            let mut output = feed.iter();
             
             // control
             
-            assert_eq!(output.next(), Some(RssFeedEntry {
+            assert_eq!(output.next(), Some(FeedEntry {
                 title: b"[Example] Placeholder - 17 (720p) [83538700].mkv",
                 link: b"http://localhost/download/123456.torrent",
             }));
             
-            assert_eq!(output.next(), Some(RssFeedEntry {
+            assert_eq!(output.next(), Some(FeedEntry {
                 title: b"[Example] Placeholder - 18 (720p) [83538700].mkv",
                 link: b"http://localhost/download/654321.torrent",
             }));
             
-            assert_eq!(output.next(), Some(RssFeedEntry {
+            assert_eq!(output.next(), Some(FeedEntry {
                 title: b"[Example] Placeholder - 19 (720p) [83538700].mkv",
                 link: b"http://localhost/download/123123.torrent",
             }));
@@ -199,13 +238,17 @@ mod tests {
                 </rss>
             "#;
             
+            let feed = Feed {
+                content: content.to_vec(),
+            };
+            
             // operation
             
-            let mut output = RssFeed::new(content);
+            let mut output = feed.iter();
             
             // control
             
-            assert_eq!(output.next(), Some(RssFeedEntry {
+            assert_eq!(output.next(), Some(FeedEntry {
                 title: b"[Example] Placeholder - 17 (720p) [83538700].mkv",
                 link: b"",
             }));
@@ -244,13 +287,17 @@ mod tests {
                 </rss>
             "#;
             
+            let feed = Feed {
+                content: content.to_vec(),
+            };
+            
             // operation
             
-            let mut output = RssFeed::new(content);
+            let mut output = feed.iter();
             
             // control
             
-            assert_eq!(output.next(), Some(RssFeedEntry {
+            assert_eq!(output.next(), Some(FeedEntry {
                 title: b"[Example] Placeholder - 16 (720p) [83538700].mkv",
                 link: b"http://localhost/download/321321.torrent",
             }));
@@ -280,13 +327,17 @@ mod tests {
                 </rss>
             "#;
             
+            let feed = Feed {
+                content: content.to_vec(),
+            };
+            
             // operation
             
-            let mut output = RssFeed::new(content);
+            let mut output = feed.iter();
             
             // control
             
-            assert_eq!(output.next(), Some(RssFeedEntry {
+            assert_eq!(output.next(), Some(FeedEntry {
                 title: b"[Example] Placeholder - 17 (720p) [83538700].mkv",
                 link: b"http://localhost/download/123456.torrent",
             }));
@@ -309,9 +360,13 @@ mod tests {
                 </rss>
             "#;
             
+            let feed = Feed {
+                content: content.to_vec(),
+            };
+            
             // operation
             
-            let mut output = RssFeed::new(content);
+            let mut output = feed.iter();
             
             // control
             
@@ -343,23 +398,27 @@ mod tests {
                 </item>
             "#;
             
+            let feed = Feed {
+                content: content.to_vec(),
+            };
+            
             // operation
             
-            let mut output = RssFeed::new(content);
+            let mut output = feed.iter();
             
             // control
             
-            assert_eq!(output.next(), Some(RssFeedEntry {
+            assert_eq!(output.next(), Some(FeedEntry {
                 title: b"[Example] Placeholder - 17 (720p) [83538700].mkv",
                 link: b"http://localhost/download/123456.torrent",
             }));
             
-            assert_eq!(output.next(), Some(RssFeedEntry {
+            assert_eq!(output.next(), Some(FeedEntry {
                 title: b"[Example] Placeholder - 18 (720p) [83538700].mkv",
                 link: b"http://localhost/download/654321.torrent",
             }));
             
-            assert_eq!(output.next(), Some(RssFeedEntry {
+            assert_eq!(output.next(), Some(FeedEntry {
                 title: b"[Example] Placeholder - 19 (720p) [83538700].mkv",
                 link: b"http://localhost/download/123123.torrent",
             }));
@@ -394,9 +453,13 @@ mod tests {
                 </rss>
             "#;
             
+            let feed = Feed {
+                content: content.to_vec(),
+            };
+            
             // operation
             
-            let mut output = RssFeed::new(content);
+            let mut output = feed.iter();
             
             // control
             
@@ -441,23 +504,27 @@ mod tests {
                 </rss>
             "#;
             
+            let feed = Feed {
+                content: content.to_vec(),
+            };
+            
             // operation
             
-            let mut output = RssFeed::new(content);
+            let mut output = feed.iter();
             
             // control
             
-            assert_eq!(output.next(), Some(RssFeedEntry {
+            assert_eq!(output.next(), Some(FeedEntry {
                 title: b"[Example] Placeholder - 17 (720p) [83538700].mkv",
                 link: b"http://localhost/download/123456.torrent",
             }));
             
-            assert_eq!(output.next(), Some(RssFeedEntry {
+            assert_eq!(output.next(), Some(FeedEntry {
                 title: b"[Example] Placeholder - 18 (720p) [83538700].mkv",
                 link: b"",
             }));
             
-            assert_eq!(output.next(), Some(RssFeedEntry {
+            assert_eq!(output.next(), Some(FeedEntry {
                 title: b"[Example] Placeholder - 20 (720p) [83538700].mkv",
                 link: b"http://localhost/download/123123.torrent",
             }));

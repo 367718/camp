@@ -1,7 +1,9 @@
+mod serdes;
+
 use std::{
     env,
     fs::{ self, File },
-    io::{ self, Read, Write, Error, ErrorKind },
+    io::{ self, Read, Write, BufWriter, Error, ErrorKind },
     mem,
     path::{ Path, PathBuf },
 };
@@ -87,89 +89,58 @@ impl List {
     // -------------------- mutators --------------------
     
     
-    pub fn insert(&mut self, tag: &[u8], value: u64) -> io::Result<()> {
-        if self.iter().any(|current| current.tag.eq_ignore_ascii_case(tag)) {
-            return Err(Error::new(ErrorKind::AlreadyExists, "Tag in use"));
-        }
-        
-        let capacity = self.content.len() + (tag.len() + MEM_SIZE * 2);
-        let entries = Some(ListEntry { tag, value })
-            .into_iter()
-            .chain(self.iter());
-        
-        self.commit(Self::serialize(capacity, entries))
-    }
-    
-    pub fn update(&mut self, tag: &[u8], value: u64) -> io::Result<()> {
-        let position = self.iter().position(|current| current.tag.eq_ignore_ascii_case(tag))
-            .ok_or(Error::new(ErrorKind::NotFound, "Tag not found"))?;
-        
-        let capacity = self.content.len();
-        let entries = Some(ListEntry { tag, value })
-            .into_iter()
-            .chain(
-                self.iter()
-                    .enumerate()
-                    .filter_map(|(current, entry)| (current != position).then_some(entry))
-            );
-        
-        self.commit(Self::serialize(capacity, entries))
-    }
-    
-    pub fn delete(&mut self, tag: &[u8]) -> io::Result<()> {
-        let position = self.iter().position(|current| current.tag.eq_ignore_ascii_case(tag))
-            .ok_or(Error::new(ErrorKind::NotFound, "Tag not found"))?;
-        
-        let capacity = self.content.len() - (tag.len() + MEM_SIZE * 2);
+    pub fn set(self, tag: &[u8], value: u64) -> io::Result<()> {
         let entries = self.iter()
-            .enumerate()
-            .filter_map(|(current, entry)| (current != position).then_some(entry));
+            .filter(|entry| entry.tag != tag)
+            .chain(Some(ListEntry { tag, value }));
         
-        self.commit(Self::serialize(capacity, entries))
+        Self::commit(&self.path, entries)
     }
     
-    fn commit(&mut self, content: Vec<u8>) -> io::Result<()> {
-        let mut file_name = self.path.file_name()
-            .expect("Invalid list file path")
-            .to_os_string();
+    pub fn delete(self, tag: &[u8]) -> io::Result<()> {
+        let entries = self.iter()
+            .filter(|entry| entry.tag != tag);
         
-        file_name.push(".tmp");
-        
-        let tmp_path = chikuwa::EphemeralPath::from(self.path.with_file_name(file_name));
-        
-        let mut file = File::options()
-            .create_new(true)
-            .write(true)
-            .open(&tmp_path)?;
-        
-        file.write_all(&content)?;
-        file.sync_data()?;
-        
-        // attempt to perform the update atomically
-        fs::rename(&tmp_path, &self.path)?;
-        
-        // since the path no longer exists, do not attempt to remove it
-        tmp_path.make_permanent();
-        
-        self.content = content;
-        
-        Ok(())
+        Self::commit(&self.path, entries)
     }
     
     
     // -------------------- helpers --------------------
     
     
-    fn serialize<'c>(capacity: usize, entries: impl Iterator<Item = ListEntry<'c>>) -> Vec<u8> {
-        let mut content = Vec::with_capacity(capacity);
+    fn commit<'c>(list_path: &Path, entries: impl Iterator<Item = ListEntry<'c>>) -> io::Result<()> {
+        // serialize new content to temp file
+        
+        let mut temp_name = list_path.file_name()
+            .expect("Invalid list file path")
+            .to_os_string();
+        
+        temp_name.push(".tmp");
+        
+        let temp_path = chikuwa::EphemeralPath::from(list_path.with_file_name(temp_name));
+        
+        let temp_file = File::options()
+            .create_new(true)
+            .write(true)
+            .open(&temp_path)?;
+        
+        let mut writer = BufWriter::new(temp_file);
         
         for entry in entries {
-            content.extend_from_slice(&u64::try_from(entry.tag.len()).unwrap().to_le_bytes());
-            content.extend_from_slice(entry.tag);
-            content.extend_from_slice(&entry.value.to_le_bytes());
+            serdes::serialize(&mut writer, &entry)?;
         }
         
-        content
+        writer.flush()?;
+        
+        // attempt to update list file atomically
+        
+        fs::rename(&temp_path, list_path)?;
+        
+        // temp file should no longer exist
+        
+        temp_path.make_permanent();
+        
+        Ok(())
     }
     
 }
@@ -190,130 +161,12 @@ impl <'c>Iterator for ListIter<'c> {
     type Item = ListEntry<'c>;
     
     fn next(&mut self) -> Option<Self::Item> {
-        // -------------------- tag size --------------------
+        let entry = serdes::deserialize(self.content)?;
         
-        let (current, rest) = self.content.split_at_checked(MEM_SIZE)?;
-        let tag_size = usize::try_from(u64::from_le_bytes(unsafe { current.try_into().unwrap_unchecked() }))
-            .expect("Tag size exceeded the maximum value supported by the plataform");
+        let offset = entry.tag.len() + MEM_SIZE * 2;
+        self.content = &self.content[offset..];
         
-        // -------------------- tag --------------------
-        
-        let (current, rest) = rest.split_at_checked(tag_size)?;
-        let tag = current;
-        
-        // -------------------- value --------------------
-        
-        let (current, rest) = rest.split_at_checked(MEM_SIZE)?;
-        let value = u64::from_le_bytes(unsafe { current.try_into().unwrap_unchecked() });
-        
-        self.content = rest;
-        
-        Some(ListEntry {
-            tag,
-            value,
-        })
-    }
-    
-}
-
-#[cfg(test)]
-mod tests {
-    
-    use super::*;
-    
-    mod serialization_and_deserialization {
-        
-        use super::*;
-        
-        #[test]
-        fn one_entry() {
-            // setup
-            
-            let entries = [
-                ListEntry {
-                    tag: b"ftag",
-                    value: 1,
-                },
-            ];
-            
-            let list = List {
-                path: PathBuf::new(),
-                content: List::serialize(0, entries.into_iter()),
-            };
-            
-            // operation
-            
-            let mut output = list.iter();
-            
-            // control
-            
-            assert!(output.next() == Some(ListEntry {
-                tag: b"ftag",
-                value: 1,
-            }));
-            
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn two_entries() {
-            // setup
-            
-            let entries = [
-                ListEntry {
-                    tag: b"ftag",
-                    value: 1,
-                },
-                ListEntry {
-                    tag: b"stag",
-                    value: 2,
-                },
-            ];
-            
-            let list = List {
-                path: PathBuf::new(),
-                content: List::serialize(0, entries.into_iter()),
-            };
-            
-            // operation
-            
-            let mut output = list.iter();
-            
-            // control
-            
-            assert!(output.next() == Some(ListEntry {
-                tag: b"ftag",
-                value: 1,
-            }));
-            
-            assert!(output.next() == Some(ListEntry {
-                tag: b"stag",
-                value: 2,
-            }));
-            
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn no_entries() {
-            // setup
-            
-            let entries = [];
-            
-            let list = List {
-                path: PathBuf::new(),
-                content: List::serialize(0, entries.into_iter()),
-            };
-            
-            // operation
-            
-            let mut output = list.iter();
-            
-            // control
-            
-            assert!(output.next().is_none());
-        }
-        
+        Some(entry)
     }
     
 }
