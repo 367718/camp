@@ -1,27 +1,26 @@
-use std::io::{ self, Write };
+use std::{
+    io::{ self, Write },
+    mem,
+};
 
-use super::{ MEM_SIZE, ListEntry };
+use super::ListEntry;
 
 pub fn serialize(writer: &mut impl Write, entry: &ListEntry) -> io::Result<()> {
-    let tag_size = u64::try_from(entry.tag.len())
-        .expect("Tag size exceeded the maximum value supported")
-        .to_le_bytes();
+    let tag_size = u16::try_from(entry.tag.len())
+        .expect("Tag size exceeded the maximum value supported");
     
-    let value = entry.value.to_le_bytes();
-    
-    writer.write_all(&tag_size)?;
+    writer.write_all(&tag_size.to_le_bytes())?;
     writer.write_all(entry.tag)?;
-    writer.write_all(&value)?;
+    writer.write_all(&entry.value.to_le_bytes())?;
     
     Ok(())
 }
 
-pub fn deserialize(data: &[u8]) -> Option<ListEntry<'_>> {
+pub fn deserialize(data: &[u8]) -> Option<(ListEntry<'_>, &[u8])> {
     // -------------------- tag size --------------------
     
-    let (current, rest) = data.split_at_checked(MEM_SIZE)?;
-    let tag_size = usize::try_from(u64::from_le_bytes(unsafe { current.try_into().unwrap_unchecked() }))
-        .expect("Tag size exceeded the maximum value supported");
+    let (current, rest) = data.split_at_checked(mem::size_of::<u16>())?;
+    let tag_size = usize::from(u16::from_le_bytes(unsafe { current.try_into().unwrap_unchecked() }));
     
     // -------------------- tag --------------------
     
@@ -30,13 +29,17 @@ pub fn deserialize(data: &[u8]) -> Option<ListEntry<'_>> {
     
     // -------------------- value --------------------
     
-    let current = rest.get(..MEM_SIZE)?;
-    let value = u64::from_le_bytes(unsafe { current.try_into().unwrap_unchecked() });
+    let (current, rest) = rest.split_at_checked(mem::size_of::<u16>())?;
+    let value = u16::from_le_bytes(unsafe { current.try_into().unwrap_unchecked() });
     
-    Some(ListEntry {
+    // -------------------- entry --------------------
+    
+    let entry = ListEntry {
         tag,
         value,
-    })
+    };
+    
+    Some((entry, rest))
 }
 
 #[cfg(test)]
@@ -63,7 +66,11 @@ mod tests {
         
         // control
         
-        assert_eq!(output, Some(entry));
+        assert!(output.is_some());
+        
+        let (output, _) = output.unwrap();
+        
+        assert_eq!(output, entry);
     }
     
     #[test]
@@ -138,7 +145,7 @@ mod tests {
             value: 89,
         };
         
-        content.extend_from_slice(&entry.tag.len().to_le_bytes());
+        content.extend_from_slice(&(entry.tag.len() as u16).to_le_bytes());
         content.extend_from_slice(entry.tag);
         
         // operation
@@ -161,7 +168,7 @@ mod tests {
             value: 89,
         };
         
-        content.extend_from_slice(&(entry.tag.len() - 1).to_le_bytes());
+        content.extend_from_slice(&(entry.tag.len() as u16 - 1).to_le_bytes());
         content.extend_from_slice(entry.tag);
         content.extend_from_slice(&entry.value.to_le_bytes());
         
@@ -171,10 +178,14 @@ mod tests {
         
         // control
         
-        assert_eq!(output, Some(ListEntry {
+        assert!(output.is_some());
+        
+        let (output, _) = output.unwrap();
+        
+        assert_eq!(output, ListEntry {
             tag: b"placeholde",
             value: 22898,
-        }));
+        });
     }
     
     #[test]
@@ -188,7 +199,7 @@ mod tests {
             value: 89,
         };
         
-        content.extend_from_slice(&(entry.tag.len() + 1).to_le_bytes());
+        content.extend_from_slice(&(entry.tag.len() as u16 + 1).to_le_bytes());
         content.extend_from_slice(entry.tag);
         content.extend_from_slice(&entry.value.to_le_bytes());
         

@@ -2,7 +2,7 @@
 
 use std::io::{ self, Write };
 
-pub fn escape_html(content: &[u8], writer: &mut impl Write) -> io::Result<()> {
+pub fn escape_html(writer: &mut impl Write, content: &[u8]) -> io::Result<()> {
     let mut previous_position = 0;
     
     for (current_position, &byte) in content.iter().enumerate() {
@@ -49,7 +49,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(content.as_bytes(), &mut writer);
+        let output = escape_html(&mut writer, content.as_bytes());
         
         // control
         
@@ -66,7 +66,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(content.as_bytes(), &mut writer);
+        let output = escape_html(&mut writer, content.as_bytes());
         
         // control
         
@@ -83,7 +83,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(content.as_bytes(), &mut writer);
+        let output = escape_html(&mut writer, content.as_bytes());
         
         // control
         
@@ -100,7 +100,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(content.as_bytes(), &mut writer);
+        let output = escape_html(&mut writer, content.as_bytes());
         
         // control
         
@@ -117,7 +117,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(content.as_bytes(), &mut writer);
+        let output = escape_html(&mut writer, content.as_bytes());
         
         // control
         
@@ -134,7 +134,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(content.as_bytes(), &mut writer);
+        let output = escape_html(&mut writer, content.as_bytes());
         
         // control
         
@@ -151,7 +151,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(content.as_bytes(), &mut writer);
+        let output = escape_html(&mut writer, content.as_bytes());
         
         // control
         
@@ -168,7 +168,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(content.as_bytes(), &mut writer);
+        let output = escape_html(&mut writer, content.as_bytes());
         
         // control
         

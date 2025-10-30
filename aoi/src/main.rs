@@ -40,8 +40,8 @@ fn main() {
     println!();
     print!("Press 'enter' key to exit...");
     
-    io::stdout().flush().unwrap();
-    let _ = io::stdin().read(&mut [0]).unwrap();
+    io::stdout().flush().ok();
+    let _ = io::stdin().read(&mut [0]).ok();
 }
 
 fn process() -> Result<(), Box<dyn Error>> {

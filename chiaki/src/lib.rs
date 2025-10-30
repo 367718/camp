@@ -4,11 +4,10 @@ use std::{
     env,
     fs::{ self, File },
     io::{ self, Read, Write, BufWriter, Error, ErrorKind },
-    mem,
     path::{ Path, PathBuf },
 };
 
-const MEM_SIZE: usize = mem::size_of::<u64>();
+const TAG_SIZE_LIMIT: usize = u16::MAX as usize;
 const CONTENT_SIZE_LIMIT: u64 = 1024 * 512;
 
 pub struct List {
@@ -24,7 +23,7 @@ pub struct ListIter<'c> {
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct ListEntry<'c> {
     pub tag: &'c [u8],
-    pub value: u64,
+    pub value: u16,
 }
 
 impl List {
@@ -89,7 +88,11 @@ impl List {
     // -------------------- mutators --------------------
     
     
-    pub fn set(self, tag: &[u8], value: u64) -> io::Result<()> {
+    pub fn set(self, tag: &[u8], value: u16) -> io::Result<()> {
+        if tag.len() > TAG_SIZE_LIMIT {
+            return Err(io::Error::from(ErrorKind::InvalidInput));
+        }
+        
         let entries = self.iter()
             .filter(|entry| entry.tag != tag)
             .chain(Some(ListEntry { tag, value }));
@@ -161,10 +164,8 @@ impl <'c>Iterator for ListIter<'c> {
     type Item = ListEntry<'c>;
     
     fn next(&mut self) -> Option<Self::Item> {
-        let entry = serdes::deserialize(self.content)?;
-        
-        let offset = entry.tag.len() + MEM_SIZE * 2;
-        self.content = &self.content[offset..];
+        let (entry, rest) = serdes::deserialize(self.content)?;
+        self.content = rest;
         
         Some(entry)
     }

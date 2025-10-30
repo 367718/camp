@@ -1,41 +1,31 @@
 use std::error::Error;
 
-pub struct Rules {
-    inner: Vec<RuleEntry>,
+pub struct Cache<'l> {
+    inner: Vec<chiaki::ListEntry<'l>>,
 }
 
-pub struct RuleEntry {
-    tag: Vec<u8>,
-    value: u64,
-}
-
-pub struct RuleUpdate<'r> {
-    parent: &'r mut Rules,
+pub struct RuleUpdate<'c, 'l> {
+    cache: &'c mut Cache<'l>,
     index: usize,
-    episode: u64,
+    episode: u16,
 }
 
-impl Rules {
+impl<'l> Cache<'l> {
     
-    pub fn load() -> Result<Self, Box<dyn Error>> {
-        let content = chiaki::List::load("rules")?;
-        
+    pub fn new(content: &'l chiaki::List) -> Self {
         let mut inner = Vec::new();
         
-        for entry in &content {
-            inner.push(RuleEntry {
-                tag: entry.tag.to_owned(),
-                value: entry.value,
-            });
+        for entry in content {
+            inner.push(entry);
         }
         
-        Ok(Self { inner })
+        Self { inner }
     }
     
-    pub fn get_update<'r>(&'r mut self, title: &[u8]) -> Option<RuleUpdate<'r>> {
+    pub fn get_rule_update<'c>(&'c mut self, title: &[u8]) -> Option<RuleUpdate<'c, 'l>> {
         for (index, entry) in self.inner.iter().enumerate() {
             
-            if ! title.starts_with(&entry.tag) {
+            if ! title.starts_with(entry.tag) {
                 continue;
             }
             
@@ -48,7 +38,7 @@ impl Rules {
             }
             
             return Some(RuleUpdate {
-                parent: self,
+                cache: self,
                 index,
                 episode,
             });
@@ -60,15 +50,15 @@ impl Rules {
     
 }
 
-impl RuleUpdate<'_> {
+impl RuleUpdate<'_, '_> {
     
     pub fn execute(self) -> Result<(), Box<dyn Error>> {
-        let entry = self.parent.inner
+        let entry = self.cache.inner
             .get_mut(self.index)
             .unwrap();
         
         chiaki::List::load("rules")
-            .and_then(|list| list.set(&entry.tag, self.episode))?;
+            .and_then(|list| list.set(entry.tag, self.episode))?;
         
         entry.value = self.episode;
         

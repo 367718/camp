@@ -1,15 +1,14 @@
-mod rules;
+mod cache;
 mod feed;
 
 use std::{
     error::Error,
-    ffi::OsString,
     fs::File,
     io::{ self, Read, Write },
     path::{ Path, PathBuf },
 };
 
-use rules::Rules;
+use cache::Cache;
 use feed::Feed;
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
@@ -28,8 +27,8 @@ fn main() {
     println!();
     print!("Press 'enter' key to exit...");
     
-    io::stdout().flush().unwrap();
-    let _ = io::stdin().read(&mut [0]).unwrap();
+    io::stdout().flush().ok();
+    let _ = io::stdin().read(&mut [0]).ok();
 }
 
 fn process() -> Result<(), Box<dyn Error>> {
@@ -37,8 +36,11 @@ fn process() -> Result<(), Box<dyn Error>> {
     
     let folder = rin::get(b"folder")?;
     let feeds = chiaki::List::load("feeds")?;
+    let rules = chiaki::List::load("rules")?;
     
-    let mut rules = Rules::load()?;
+    // -------------------- cache --------------------
+    
+    let mut cache = Cache::new(&rules);
     
     // -------------------- client --------------------
     
@@ -58,8 +60,9 @@ fn process() -> Result<(), Box<dyn Error>> {
             
             // -------------------- rule --------------------
             
-            // defer update until torrent file has been downloaded
-            let Some(rule_update) = rules.get_update(entry.title) else {
+            // an update means the current feed entry is relevant
+            // defer execution until torrent file has been downloaded
+            let Some(rule_update) = cache.get_rule_update(entry.title) else {
                 continue;
             };
             
@@ -94,21 +97,21 @@ fn process() -> Result<(), Box<dyn Error>> {
 }
 
 fn build_destination(folder: &str, title: &str) -> Result<PathBuf, Box<dyn Error>> {
-    let filename = chikuwa::win_filename(title).ok_or("Invalid file name")?;
-    let mut destination = Path::new(folder).join(filename);
+    let file_name = chikuwa::win_filename(title)
+        .ok_or(format!("Invalid file name for torrent file: {}", title))?;
     
-    if let Some(current) = destination.extension() {
+    let mut file_path = Path::new(folder)
+        .join(file_name);
+    
+    if let Some(current) = file_path.extension() {
         if ! current.eq_ignore_ascii_case("torrent") {
-            let mut composite = OsString::with_capacity(current.len() + 8);
-            composite.push(current);
-            composite.push(".torrent");
-            destination.set_extension(composite);
+            file_path.add_extension("torrent");
         }
     } else {
-        destination.set_extension("torrent");
+        file_path.set_extension("torrent");
     }
     
-    Ok(destination)
+    Ok(file_path)
 }
 
 fn download_torrent(client: &mut akari::Client, link: &str, destination: &Path) -> Result<(), Box<dyn Error>> {

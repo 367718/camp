@@ -1,9 +1,9 @@
-pub fn first_number(content: &[u8]) -> Option<u64> {
+pub fn first_number(content: &[u8]) -> Option<u16> {
     let mut bytes = content.iter();
     
     let first_digit = bytes.find(|byte| byte.is_ascii_digit())?;
     
-    let mut result = u64::from(first_digit - b'0');
+    let mut result = u16::from(first_digit - b'0');
     
     for byte in bytes {
         
@@ -11,7 +11,7 @@ pub fn first_number(content: &[u8]) -> Option<u64> {
             break;
         }
         
-        let current_digit = u64::from(byte - b'0');
+        let current_digit = u16::from(byte - b'0');
         
         result = result.checked_mul(10)?.checked_add(current_digit)?;
         
@@ -74,7 +74,7 @@ mod tests {
     fn limit() {
         // setup
         
-        let value = b"[Example] Placeholder - 18446744073709551615 (720p) [83538700].mkv";
+        let value = b"[Example] Placeholder - 65535 (720p) [83538700].mkv";
         
         // operation
         
@@ -82,14 +82,14 @@ mod tests {
         
         // control
         
-        assert_eq!(output, Some(18446744073709551615));
+        assert_eq!(output, Some(65535));
     }
     
     #[test]
     fn too_big() {
         // setup
         
-        let value = b"[Example] Placeholder - 18446744073709551616 (720p) [83538700].mkv";
+        let value = b"[Example] Placeholder - 65536 (720p) [83538700].mkv";
         
         // operation
         
