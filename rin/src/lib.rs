@@ -1,7 +1,7 @@
 use std::{
     env,
-    fs::File,
-    io::{ self, Read, Error, ErrorKind },
+    fs::{ self, File },
+    io::{ self, Error, ErrorKind },
     sync::OnceLock,
 };
 
@@ -21,20 +21,36 @@ pub fn get(key: &[u8]) -> io::Result<&'static str> {
 fn load_content() -> &'static [u8] {
     
     fn read_file() -> io::Result<Vec<u8>> {
+        // -------------------- path --------------------
+        
         let directory = env::current_dir()?;
         let executable_path = env::current_exe()?;
         
         let file_name = executable_path.file_name()
             .ok_or(Error::from(ErrorKind::InvalidFilename))?;
         
-        let mut file_path = directory.join(file_name);
-        file_path.set_extension("rn");
+        let file_path = directory
+            .join(file_name)
+            .with_extension("rn");
         
-        let file = File::open(file_path)?;
-        let mut handle = file.take(CONTENT_SIZE_LIMIT);
+        // -------------------- metadata --------------------
+        
+        let metadata = fs::metadata(&file_path)?;
+        
+        // -------------------- file --------------------
+        
+        let file = File::open(&file_path)?;
+        
+        // -------------------- content --------------------
+        
+        let size = metadata.len().min(CONTENT_SIZE_LIMIT);
+        
+        let mut reader = chikuwa::LimitedReader::new(file, size)?;
         
         let mut content = Vec::new();
-        handle.read_to_end(&mut content)?;
+        content.reserve_exact(usize::try_from(size).expect("Unsupported platform"));
+        
+        io::copy(&mut reader, &mut content)?;
         
         Ok(content)
     }

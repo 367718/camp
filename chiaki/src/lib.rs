@@ -3,7 +3,7 @@ mod serdes;
 use std::{
     env,
     fs::{ self, File },
-    io::{ self, Read, Write, BufWriter, Error, ErrorKind },
+    io::{ self, Write, BufWriter, Error, ErrorKind },
     path::{ Path, PathBuf },
 };
 
@@ -35,18 +35,18 @@ impl List {
         // -------------------- path --------------------
         
         // prevent directory traversal
-        let clean = Path::new(name)
+        let file_name = Path::new(name)
             .file_name()
             .ok_or(Error::new(ErrorKind::InvalidInput, "Invalid list file name"))?;
         
-        let mut path = env::current_dir()?;
-        path.push(clean);
-        path.set_extension("ck");
+        let file_path = env::current_dir()?
+            .join(file_name)
+            .with_extension("ck");
         
         // -------------------- metadata --------------------
         
-        let metadata = fs::metadata(&path)
-            .map_err(|error| Error::new(error.kind(), format!("Failed to query metadata for list file '{}': {}", path.display(), error)))?;
+        let metadata = fs::metadata(&file_path)
+            .map_err(|error| Error::new(error.kind(), format!("Failed to query metadata for list file '{}': {}", file_path.display(), error)))?;
         
         // -------------------- symlink --------------------
         
@@ -56,22 +56,23 @@ impl List {
         
         // -------------------- file --------------------
         
-        let file = File::open(&path)
-            .map_err(|error| Error::new(error.kind(), format!("Failed to open list file '{}': {}", path.display(), error)))?;
+        let file = File::open(&file_path)
+            .map_err(|error| Error::new(error.kind(), format!("Failed to open list file '{}': {}", file_path.display(), error)))?;
         
         // -------------------- content --------------------
         
         let size = metadata.len().min(CONTENT_SIZE_LIMIT);
         
-        let mut content = Vec::new();
-        content.reserve_exact(usize::try_from(size).unwrap());
+        let mut reader = chikuwa::LimitedReader::new(file, size)?;
         
-        let mut reader = file.take(size);
-        reader.read_to_end(&mut content)
-            .map_err(|error| Error::new(error.kind(), format!("Failed to read list file '{}': {}", path.display(), error)))?;
+        let mut content = Vec::new();
+        content.reserve_exact(usize::try_from(size).expect("Unsupported platform"));
+        
+        io::copy(&mut reader, &mut content)
+            .map_err(|error| Error::new(error.kind(), format!("Failed to read list file '{}': {}", file_path.display(), error)))?;
         
         Ok(Self {
-            path,
+            path: file_path,
             content,
         })
     }
@@ -90,7 +91,7 @@ impl List {
     
     pub fn set(self, tag: &[u8], value: u16) -> io::Result<()> {
         if tag.len() > TAG_SIZE_LIMIT {
-            return Err(io::Error::from(ErrorKind::InvalidInput));
+            return Err(io::Error::new(ErrorKind::InvalidInput, "Tag size exceeded the maximum value supported"));
         }
         
         let entries = self.iter()

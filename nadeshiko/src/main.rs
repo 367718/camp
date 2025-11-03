@@ -121,9 +121,9 @@ fn download_torrent(client: &mut akari::Client, link: &str, destination: &Path) 
         .write(true)
         .open(destination)?;
     
-    let mut handle = response.take(CONTENT_SIZE_LIMIT);
+    let mut reader = chikuwa::LimitedReader::new(response, CONTENT_SIZE_LIMIT)?;
     
-    io::copy(&mut handle, &mut file)?;
+    io::copy(&mut reader, &mut file)?;
     
     Ok(())
 }

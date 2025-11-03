@@ -17,15 +17,17 @@ pub struct Request {
 
 impl Request {
     
-    pub(crate) fn new(mut stream: TcpStream) -> io::Result<Self> {
+    pub(crate) fn new(stream: TcpStream) -> io::Result<Self> {
         stream.set_read_timeout(STREAM_TIMEOUT)?;
         
-        let (headers, body) = extract_headers_and_body(&mut stream)?;
+        let mut reader = chikuwa::LimitedReader::new(stream, REQUEST_SIZE_LIMIT)?;
+        let (headers, body) = extract_headers_and_body(&mut reader)?;
+        let stream = Some(reader.into_inner());
         
         Ok(Self {
             headers,
             body,
-            stream: Some(stream),
+            stream,
         })
     }
     
@@ -63,11 +65,13 @@ fn extract_headers_and_body(reader: &mut impl Read) -> io::Result<(Headers, Body
     let mut search_start_index = 0;
     
     let mut headers_content = Vec::new();
+    
+    #[allow(unused_assignments)]
     let mut body_content = Vec::new();
     
     // -------------------- headers --------------------
     
-    while headers_content.len() < REQUEST_SIZE_LIMIT {
+    loop {
         
         let bytes = match reader.read(&mut buffer) {
             Ok(0) => return Err(Error::new(ErrorKind::UnexpectedEof, "Connection closed while reading headers")),
@@ -91,9 +95,6 @@ fn extract_headers_and_body(reader: &mut impl Read) -> io::Result<(Headers, Body
         
     };
     
-    headers_content.truncate(REQUEST_SIZE_LIMIT);
-    let body_limit = REQUEST_SIZE_LIMIT.saturating_sub(headers_content.len());
-    
     let headers = Headers::new(headers_content);
     
     // -------------------- body --------------------
@@ -102,23 +103,25 @@ fn extract_headers_and_body(reader: &mut impl Read) -> io::Result<(Headers, Body
     let content_length = headers.get(b"Content-Length")
         .and_then(|value| str::from_utf8(value).ok())
         .and_then(|value| value.trim().parse::<usize>().ok())
-        .map_or(0, |value| value.min(body_limit));
+        .unwrap_or(0);
     
-    if body_content.len() < content_length {
+    body_content.reserve_exact(content_length);
+    
+    while body_content.len() < content_length {
         
-        body_content.reserve_exact(content_length);
+        let bytes = match reader.read(&mut buffer) {
+            Ok(0) => return Err(Error::new(ErrorKind::UnexpectedEof, "Connection closed while reading body")),
+            Ok(bytes) => bytes,
+            Err(error) if error.kind() == ErrorKind::Interrupted => continue,
+            Err(error) => return Err(error),
+        };
         
-        let remaining = content_length - body_content.len();
-        let result = reader.take(remaining as u64)
-            .read_to_end(&mut body_content);
-        
-        if let Err(error) = result && error.kind() != ErrorKind::UnexpectedEof {
-            return Err(error);
-        }
+        body_content.extend_from_slice(&buffer[..bytes]);
         
     }
     
     body_content.truncate(content_length);
+    
     let body = Body::new(body_content);
     
     Ok((headers, body))
@@ -278,12 +281,7 @@ mod tests {
             
             // control
             
-            assert!(output.is_ok());
-            
-            let (headers, body) = output.unwrap();
-            
-            assert_eq!(headers.get(b"Content-Length"), Some(b"5".as_slice()));
-            assert!(body.len() == 4);
+            assert!(output.is_err());
         }
         
         #[test]
@@ -339,7 +337,7 @@ mod tests {
         fn limit_exceeded() {
             // setup
             
-            let mut content = Vec::with_capacity(REQUEST_SIZE_LIMIT);
+            let mut content = Vec::with_capacity(REQUEST_SIZE_LIMIT as usize);
             content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");

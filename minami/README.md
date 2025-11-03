@@ -8,7 +8,6 @@ An HTTP interface allows the listing and manipulation of files, watchlist, rules
 
 The following keyboard shortcuts are available:
 
-* `/`: focus filter field.
 * `Control + C`: copy selected entries to clipboard, inserting linebreaks.
 * `Control + X`: copy selected entries to clipboard, performing a cleanup and inserting linebreaks.
 
