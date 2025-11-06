@@ -3,8 +3,9 @@ mod feed;
 
 use std::{
     error::Error,
+    ffi::OsStr,
     fs::File,
-    io::{ self, Read, Write },
+    io::{ self, Read, Write, BufWriter },
     path::{ Path, PathBuf },
 };
 
@@ -103,12 +104,11 @@ fn build_destination(folder: &str, title: &str) -> Result<PathBuf, Box<dyn Error
     let mut file_path = Path::new(folder)
         .join(file_name);
     
-    if let Some(current) = file_path.extension() {
-        if ! current.eq_ignore_ascii_case("torrent") {
-            file_path.add_extension("torrent");
-        }
-    } else {
-        file_path.set_extension("torrent");
+    let current_extension = file_path.extension()
+        .unwrap_or_else(|| OsStr::new(""));
+    
+    if ! current_extension.eq_ignore_ascii_case("torrent") {
+        file_path.add_extension("torrent");
     }
     
     Ok(file_path)
@@ -116,14 +116,17 @@ fn build_destination(folder: &str, title: &str) -> Result<PathBuf, Box<dyn Error
 
 fn download_torrent(client: &mut akari::Client, link: &str, destination: &Path) -> Result<(), Box<dyn Error>> {
     let response = client.get(link)?;
-    let mut file = File::options()
+    let file = File::options()
         .create_new(true)
         .write(true)
         .open(destination)?;
     
     let mut reader = chikuwa::LimitedReader::new(response, CONTENT_SIZE_LIMIT)?;
+    let mut writer = BufWriter::new(file);
     
-    io::copy(&mut reader, &mut file)?;
+    io::copy(&mut reader, &mut writer)?;
+    
+    writer.flush()?;
     
     Ok(())
 }

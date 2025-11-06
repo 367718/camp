@@ -1,4 +1,4 @@
-use std::io::{ self, Read };
+use std::io;
 
 use super::CONTENT_SIZE_LIMIT;
 
@@ -28,13 +28,14 @@ impl Feed {
     pub fn new(client: &mut akari::Client, url: &str) -> io::Result<Self> {
         let response = client.get(url)?;
         
-        let content_length = response.content_length().unwrap_or(0);
-        let limit = content_length.min(CONTENT_SIZE_LIMIT);
+        let size = response.content_length()
+            .unwrap_or(0)
+            .min(CONTENT_SIZE_LIMIT);
         
-        let mut handle = response.take(limit);
-        let mut content = Vec::with_capacity(limit as usize);
+        let mut reader = chikuwa::LimitedReader::new(response, size)?;
+        let mut content = Vec::with_capacity(usize::try_from(size).expect("Unsupported platform"));
         
-        io::copy(&mut handle, &mut content)?;
+        io::copy(&mut reader, &mut content)?;
         
         Ok(Self { content })
     }

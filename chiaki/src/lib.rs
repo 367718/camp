@@ -64,9 +64,7 @@ impl List {
         let size = metadata.len().min(CONTENT_SIZE_LIMIT);
         
         let mut reader = chikuwa::LimitedReader::new(file, size)?;
-        
-        let mut content = Vec::new();
-        content.reserve_exact(usize::try_from(size).expect("Unsupported platform"));
+        let mut content = Vec::with_capacity(usize::try_from(size).expect("Unsupported platform"));
         
         io::copy(&mut reader, &mut content)
             .map_err(|error| Error::new(error.kind(), format!("Failed to read list file '{}': {}", file_path.display(), error)))?;
