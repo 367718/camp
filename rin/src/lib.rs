@@ -35,7 +35,13 @@ fn load_content() -> &'static [u8] {
         
         // -------------------- metadata --------------------
         
-        let metadata = fs::metadata(&file_path)?;
+        let metadata = fs::symlink_metadata(&file_path)?;
+        
+        // -------------------- symlink --------------------
+        
+        if metadata.is_symlink() {
+            return Err(Error::new(ErrorKind::InvalidInput, "Symlinks are not supported"));
+        }
         
         // -------------------- file --------------------
         

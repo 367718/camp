@@ -45,7 +45,7 @@ impl List {
         
         // -------------------- metadata --------------------
         
-        let metadata = fs::metadata(&file_path)
+        let metadata = fs::symlink_metadata(&file_path)
             .map_err(|error| Error::new(error.kind(), format!("Failed to query metadata for list file '{}': {}", file_path.display(), error)))?;
         
         // -------------------- symlink --------------------

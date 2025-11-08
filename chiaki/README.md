@@ -8,9 +8,9 @@ The `List` struct provides access to `ListEntry` elements via the "iter" method.
 
 On construction, a file with the specified name and the "ck" extension will be loaded from the current directory. Symlinks are not supported.
 
-The maximum allowed size of the loaded list is 512 KiB.
+An invalid entry encountered while deserialization will cause the next entries, if any, to be skipped. This can lead to data loss.
 
-An invalid entry encountered while loading a list will cause the next entries, if any, to be skipped.
+File size is limited to 512 KiB.
 
 ## API
 

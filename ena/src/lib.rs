@@ -67,6 +67,7 @@ impl Iterator for Files {
             
             for entry in self.current.by_ref().flatten() {
                 
+                // does not traverse symlinks
                 let Ok(file_type) = entry.file_type() else {
                     continue;
                 };
