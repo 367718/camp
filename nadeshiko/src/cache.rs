@@ -13,13 +13,10 @@ pub struct RuleUpdate<'c, 'l> {
 impl<'l> Cache<'l> {
     
     pub fn new(content: &'l chiaki::List) -> Self {
-        let mut inner = Vec::new();
-        
-        for entry in content {
-            inner.push(entry);
+        Self {
+            inner: content.iter()
+                .collect(),
         }
-        
-        Self { inner }
     }
     
     pub fn get_rule_update<'c>(&'c mut self, title: &[u8]) -> Option<RuleUpdate<'c, 'l>> {

@@ -9,28 +9,27 @@ pub fn serialize(writer: &mut impl Write, entry: &ListEntry) -> io::Result<()> {
     let tag_size = u16::try_from(entry.tag.len())
         .expect("Tag size exceeded the maximum value supported");
     
+    writer.write_all(&entry.value.to_le_bytes())?;
     writer.write_all(&tag_size.to_le_bytes())?;
     writer.write_all(entry.tag)?;
-    writer.write_all(&entry.value.to_le_bytes())?;
     
     Ok(())
 }
 
 pub fn deserialize(data: &[u8]) -> Option<(ListEntry<'_>, &[u8])> {
-    // -------------------- tag size --------------------
+    const NUMBER_SIZE: usize = mem::size_of::<u16>();
+    const NUMBERS_SIZE: usize = NUMBER_SIZE * 2;
     
-    let (current, rest) = data.split_at_checked(mem::size_of::<u16>())?;
-    let tag_size = usize::from(u16::from_le_bytes(unsafe { current.try_into().unwrap_unchecked() }));
+    // -------------------- value and tag size --------------------
+    
+    let (current, rest) = data.split_at_checked(NUMBERS_SIZE)?;
+    let value = u16::from_le_bytes(unsafe { *current[..NUMBER_SIZE].as_ptr().cast() });
+    let tag_size = usize::from(u16::from_le_bytes(unsafe { *current[NUMBER_SIZE..].as_ptr().cast() }));
     
     // -------------------- tag --------------------
     
     let (current, rest) = rest.split_at_checked(tag_size)?;
     let tag = current;
-    
-    // -------------------- value --------------------
-    
-    let (current, rest) = rest.split_at_checked(mem::size_of::<u16>())?;
-    let value = u16::from_le_bytes(unsafe { current.try_into().unwrap_unchecked() });
     
     // -------------------- entry --------------------
     
