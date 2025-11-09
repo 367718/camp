@@ -98,8 +98,8 @@ mod tests {
             value: 89,
         };
         
-        content.extend_from_slice(entry.tag);
         content.extend_from_slice(&entry.value.to_le_bytes());
+        content.extend_from_slice(entry.tag);
         
         // operation
         
@@ -121,8 +121,8 @@ mod tests {
             value: 89,
         };
         
-        content.extend_from_slice(&entry.tag.len().to_le_bytes());
         content.extend_from_slice(&entry.value.to_le_bytes());
+        content.extend_from_slice(&entry.tag.len().to_le_bytes());        
         
         // operation
         
@@ -140,7 +140,7 @@ mod tests {
         let mut content = Vec::new();
         
         let entry = ListEntry {
-            tag: b"placeholder",
+            tag: b"\x03\0aceholder",
             value: 89,
         };
         
@@ -153,7 +153,14 @@ mod tests {
         
         // control
         
-        assert!(output.is_none());
+        assert!(output.is_some());
+        
+        let (output, _) = output.unwrap();
+        
+        assert_eq!(output, ListEntry {
+            tag: b"ace",
+            value: 11,
+        });
     }
     
     #[test]
@@ -167,9 +174,9 @@ mod tests {
             value: 89,
         };
         
+        content.extend_from_slice(&entry.value.to_le_bytes());
         content.extend_from_slice(&(entry.tag.len() as u16 - 1).to_le_bytes());
         content.extend_from_slice(entry.tag);
-        content.extend_from_slice(&entry.value.to_le_bytes());
         
         // operation
         
@@ -183,7 +190,7 @@ mod tests {
         
         assert_eq!(output, ListEntry {
             tag: b"placeholde",
-            value: 22898,
+            value: 89,
         });
     }
     
@@ -198,9 +205,9 @@ mod tests {
             value: 89,
         };
         
+        content.extend_from_slice(&entry.value.to_le_bytes());
         content.extend_from_slice(&(entry.tag.len() as u16 + 1).to_le_bytes());
         content.extend_from_slice(entry.tag);
-        content.extend_from_slice(&entry.value.to_le_bytes());
         
         // operation
         
