@@ -20,28 +20,29 @@ pub struct Files {
 
 impl Files {
     
-    pub fn walk<R: AsRef<Path>>(root: R) -> io::Result<Self> {
-        Self::with_depth(root, INITIAL_DIRECTORY_DEPTH)
+    pub fn walk<P: AsRef<Path>>(path: P) -> io::Result<Self> {
+        let path = path.as_ref();
+        
+        let metadata = fs::symlink_metadata(path)
+            .map_err(|error| Error::new(error.kind(), format!("Failed to query metadata for path '{}': {}", path.display(), error)))?;
+        
+        if ! metadata.is_dir() {
+            return Err(Error::new(ErrorKind::InvalidInput, format!("Invalid path: {}", path.display())));
+        }
+        
+        Self::with_depth(path, INITIAL_DIRECTORY_DEPTH)
     }
     
-    fn with_depth<C: AsRef<Path>>(current: C, depth: u8) -> io::Result<Self> {
-        
+    fn with_depth(path: &Path, depth: u8) -> io::Result<Self> {
         if depth > MAX_ALLOWED_DIRECTORY_DEPTH {
             return Err(Error::new(ErrorKind::InvalidInput, "Maximum directory depth exceeded"));
         }
         
-        let current = current.as_ref();
-        
-        if current.metadata()?.is_symlink() {
-            return Err(Error::new(ErrorKind::InvalidInput, "Symlinks are not supported"));
-        }
-        
         Ok(Self {
-            current: current.read_dir()?,
+            current: path.read_dir()?,
             subdirectory: None,
             depth,
         })
-        
     }
     
 }
@@ -80,7 +81,7 @@ impl Iterator for Files {
                 
                 // subdirectory
                 
-                if file_type.is_dir() && let Ok(subdirectory) = Self::with_depth(entry.path(), self.depth + 1) {
+                if file_type.is_dir() && let Ok(subdirectory) = Self::with_depth(&entry.path(), self.depth + 1) {
                     self.subdirectory = Some(Box::new(subdirectory));
                     continue 'outer;
                 }

@@ -48,7 +48,7 @@ pub struct Request {
 impl Request {
     
     #[allow(clippy::needless_pass_by_value)]
-    pub fn new(connection: Connection, path: &str, secure: bool) -> io::Result<Self> {
+    pub fn new(connection: &Connection, path: &str, secure: bool) -> io::Result<Self> {
         // -------------------- open --------------------
         
         let flags = if secure {
