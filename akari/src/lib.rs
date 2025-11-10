@@ -1,6 +1,6 @@
 mod handle;
 mod session;
-mod connections;
+mod connection;
 mod request;
 mod response;
 mod extractor;
@@ -12,7 +12,7 @@ use std::{
 
 use handle::HttpHandle;
 use session::Session;
-use connections::{ Connections, Connection };
+use connection::Connection;
 use request::Request;
 
 pub use response::Response;
@@ -24,7 +24,6 @@ const RECEIVE_TIMEOUT_AS_MILLIS: c_int = 15_000;
 
 pub struct Client {
     session: Session,
-    connections: Connections,
 }
 
 impl Client {
@@ -35,7 +34,6 @@ impl Client {
     pub fn new() -> io::Result<Self> {
         Ok(Self {
             session: Session::new(env!("CARGO_PKG_NAME"))?,
-            connections: Connections::new(),
         })
     }
     
@@ -47,7 +45,7 @@ impl Client {
         let (host, port, path, secure) = extractor::get_params(url)
             .ok_or(Error::new(ErrorKind::InvalidInput, "Invalid URL"))?;
         
-        self.connections.open_or_reuse(&self.session, host, port)
+        Connection::new(&self.session, host, port)
             .and_then(|connection| Request::new(connection, path, secure))
             .and_then(Response::new)
     }
