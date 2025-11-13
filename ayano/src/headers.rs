@@ -15,20 +15,19 @@ impl Headers {
         }
     }
     
-    pub fn method_and_path(&self) -> Option<(&[u8], &[u8])> {
-        // GET /test/endpoint HTTP/1.1\r\n
-        
-        // first line
+    pub fn endpoint(&self) -> Option<&[u8]> {
+        // GET /test/resource?fkey=fvalue HTTP/1.1
         let (working, _) = chikuwa::split_slice_once(&self.content, b"\r");
-        let mut parts = working.split(|&curr| curr == b' ');
+        let mut parts = working.rsplitn(2, |&curr| curr == b' ');
         
-        let method = parts.next()?;
+        // HTTP/1.1
+        parts.next()?;
         
-        // strip query component
-        let path = parts.next()
-            .and_then(|path| path.split(|&curr| curr == b'?').next())?;
+        // GET /test/resource?fkey=fvalue
+        let endpoint = parts.next()?;
         
-        Some((method, path))
+        // strip query component, if any
+        endpoint.split(|&curr| curr == b'?').next()
     }
     
     pub fn get(&self, key: &[u8]) -> Option<&[u8]> {
@@ -42,8 +41,8 @@ impl Headers {
     }
     
     pub fn query_string<'r, 'k>(&'r self, key: &'k [u8]) -> QueryString<'r, 'k> {
-        // GET /test/endpoint?fkey=fvalue HTTP/1.1\r\n
-        // GET /test/endpoint?fkey=fvalue&skey=svalue HTTP/1.1\r\n
+        // GET /test/resource?fkey=fvalue HTTP/1.1\r\n
+        // GET /test/resource?fkey=fvalue&skey=svalue HTTP/1.1\r\n
         
         let mut content: &[u8] = &[];
         
@@ -105,7 +104,7 @@ mod tests {
     use super::*;
     
     #[cfg(test)]
-    mod method_and_path {
+    mod endpoint {
         
         use super::*;
         
@@ -114,7 +113,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -122,16 +121,11 @@ mod tests {
             
             // operation
             
-            let output = headers.method_and_path();
+            let output = headers.endpoint();
             
             // control
             
-            assert!(output.is_some());
-            
-            let (method, path) = output.unwrap();
-            
-            assert_eq!(method, b"GET");
-            assert_eq!(path, b"/test/endpoint");
+            assert_eq!(output, Some(b"GET /test/resource".as_slice()));
         }
         
         #[test]
@@ -139,7 +133,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint?fkey=fvalue HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource?fkey=fvalue HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -147,16 +141,11 @@ mod tests {
             
             // operation
             
-            let output = headers.method_and_path();
+            let output = headers.endpoint();
             
             // control
             
-            assert!(output.is_some());
-            
-            let (method, path) = output.unwrap();
-            
-            assert_eq!(method, b"GET");
-            assert_eq!(path, b"/test/endpoint");
+            assert_eq!(output, Some(b"GET /test/resource".as_slice()));
         }
         
         #[test]
@@ -164,7 +153,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET  /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET  /test/resource HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -172,16 +161,11 @@ mod tests {
             
             // operation
             
-            let output = headers.method_and_path();
+            let output = headers.endpoint();
             
             // control
             
-            assert!(output.is_some());
-            
-            let (method, path) = output.unwrap();
-            
-            assert_eq!(method, b"GET");
-            assert_eq!(path, b"");
+            assert_eq!(output, Some(b"GET  /test/resource".as_slice()));
         }
         
         #[test]
@@ -189,7 +173,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"/test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"/test/resource HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -197,16 +181,11 @@ mod tests {
             
             // operation
             
-            let output = headers.method_and_path();
+            let output = headers.endpoint();
             
             // control
             
-            assert!(output.is_some());
-            
-            let (method, path) = output.unwrap();
-            
-            assert_eq!(method, b"/test/endpoint");
-            assert_eq!(path, b"HTTP/1.1");
+            assert_eq!(output, Some(b"/test/resource".as_slice()));
         }
         
         #[test]
@@ -222,16 +201,11 @@ mod tests {
             
             // operation
             
-            let output = headers.method_and_path();
+            let output = headers.endpoint();
             
             // control
             
-            assert!(output.is_some());
-            
-            let (method, path) = output.unwrap();
-            
-            assert_eq!(method, b"GET");
-            assert_eq!(path, b"HTTP/1.1");
+            assert_eq!(output, Some(b"GET".as_slice()));
         }
         
         #[test]
@@ -246,7 +220,7 @@ mod tests {
             
             // operation
             
-            let output = headers.method_and_path();
+            let output = headers.endpoint();
             
             // control
             
@@ -265,7 +239,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -290,7 +264,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"User-Agent: Mozilla/9.0 (Windows NT 9.0; Win64; x64; rv:9.0) Gecko/9 Firefox/9.0\r\n");
             content.extend_from_slice(b"Accept: */*\r\n");
@@ -329,7 +303,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"Host: non-existant\r\n");
             content.extend_from_slice(b"\r\n");
@@ -355,7 +329,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -380,7 +354,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"User-Agent: Mozilla/9.0 (Windows NT 9.0; Win64; x64; rv:9.0) Gecko/9 Firefox/9.0\r\n");
             content.extend_from_slice(b"Accept:    */*\r\n");
@@ -407,7 +381,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"User-Agent: Mozilla/9.0 (Windows NT 9.0; Win64; x64; rv:9.0) Gecko/9 Firefox/9.0\r\n");
             content.extend_from_slice(b"Accept:\r\n");
@@ -434,7 +408,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"User-Agent: Mozilla/9.0 (Windows NT 9.0; Win64; x64; rv:9.0) Gecko/9 Firefox/9.0\r\n");
             content.extend_from_slice(b"Accept: */*\r\n");
@@ -464,7 +438,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint?key=value HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource?key=value HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -486,7 +460,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint?key1=value1&key2=value2&key3=value3 HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource?key1=value1&key2=value2&key3=value3 HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -508,7 +482,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint?key1=value1&key1=value2 HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource?key1=value1&key1=value2 HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -531,7 +505,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint?key=value HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource?key=value HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -553,7 +527,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint?key1=value1&key2=value2&key3=value3 HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource?key1=value1&key2=value2&key3=value3 HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -574,7 +548,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint?=value HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource?=value HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -595,7 +569,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint?key= HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource?key= HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -616,7 +590,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint??key=value HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource??key=value HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -637,7 +611,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint? HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource? HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -658,7 +632,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             

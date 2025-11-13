@@ -31,8 +31,8 @@ impl Request {
         })
     }
     
-    pub fn method_and_path(&self) -> Option<(&[u8], &[u8])> {
-        self.headers.method_and_path()
+    pub fn endpoint(&self) -> Option<&[u8]> {
+        self.headers.endpoint()
     }
     
     pub fn get_header(&self, key: &[u8]) -> Option<&[u8]> {
@@ -356,7 +356,7 @@ mod tests {
             
             let (headers, body) = output.unwrap();
             
-            assert_eq!(headers.method_and_path(), Some((b"GET".as_slice(), b"/test/endpoint".as_slice())));
+            assert_eq!(headers.endpoint(), Some(b"GET /test/endpoint".as_slice()));
             assert!(body.len() == 0);
         }
         

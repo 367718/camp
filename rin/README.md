@@ -4,7 +4,7 @@ Configuration parameters provider.
 
 ## Behavior
 
-On first access to any parameter, a file with the executable name and the "rn" extension will be loaded from the current directory. Symlinks are not supported. The data will be kept in memory.
+On first access to any parameter, a file with the executable name and the "rn" extension will be loaded from the current directory. Symlinks are not supported.
 
 Keys and values must be separated by "=", while lines must end with "\r\n".
 

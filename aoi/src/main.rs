@@ -67,55 +67,51 @@ fn process() -> Result<(), Box<dyn Error>> {
 }
 
 fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    let (method, path) = request.method_and_path()
+    let endpoint = request.endpoint()
         .ok_or("Invalid request")?;
     
-    if method == b"GET" {
+    // -------------------- index --------------------
+    
+    if endpoint == b"GET /" {
         
-        // -------------------- index --------------------
+        request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
+            .and_then(|mut response| response.write_all(INDEX))?;
         
-        if path == b"/" {
-            
-            request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
-                .and_then(|mut response| response.write_all(INDEX))?;
-            
-            return Ok(());
-            
-        }
+        return Ok(());
         
-        // -------------------- styles --------------------
+    }
+    
+    // -------------------- styles --------------------
+    
+    if endpoint == b"GET /styles.css" {
         
-        if path == b"/styles.css" {
-            
-            request.start_response(StatusCode::Ok, ContentType::Css, CacheControl::Static)
-                .and_then(|mut response| response.write_all(STYLES))?;
-            
-            return Ok(());
-            
-        }
+        request.start_response(StatusCode::Ok, ContentType::Css, CacheControl::Static)
+            .and_then(|mut response| response.write_all(STYLES))?;
         
-        // -------------------- scripts --------------------
+        return Ok(());
         
-        if path == b"/scripts.js" {
-            
-            request.start_response(StatusCode::Ok, ContentType::Javascript, CacheControl::Static)
-                .and_then(|mut response| response.write_all(SCRIPTS))?;
-            
-            return Ok(());
-            
-        }
+    }
+    
+    // -------------------- scripts --------------------
+    
+    if endpoint == b"GET /scripts.js" {
         
-        // -------------------- commands --------------------
+        request.start_response(StatusCode::Ok, ContentType::Javascript, CacheControl::Static)
+            .and_then(|mut response| response.write_all(SCRIPTS))?;
         
-        if let Some(command) = get_command(path) {
-            
-            let pipe = rin::get(b"pipe")?;
-            write_to_named_pipe(pipe, command)?;
-            request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
-            
-            return Ok(());
-            
-        }
+        return Ok(());
+        
+    }
+    
+    // -------------------- command --------------------
+    
+    if let Some(command) = get_command(endpoint) {
+        
+        let pipe = rin::get(b"pipe")?;
+        write_to_named_pipe(pipe, command)?;
+        request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
+        
+        return Ok(());
         
     }
     
@@ -124,22 +120,22 @@ fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Err("Endpoint not found".into())
 }
 
-fn get_command(path: &[u8]) -> Option<&'static [u8]> {
-    let result: &[u8] = match path {
-        b"/play" => b"cycle pause\n",
-        b"/minuschapter" => b"cycle chapter down\n",
-        b"/pluschapter" => b"cycle chapter up\n",
-        b"/minusplaylist" => b"playlist-prev\n",
-        b"/plusplaylist" => b"playlist-next\n",
-        b"/minus5" => b"seek -5\n",
-        b"/plus5" => b"seek 5\n",
-        b"/minus75" => b"seek -75\n",
-        b"/plus75" => b"seek 75\n",
-        b"/fullscreen" => b"cycle fullscreen\n",
-        b"/subtitles" => b"cycle sub\n",
-        b"/title" => b"show-text ${media-title} 5000\n",
-        b"/time" => b"show-text \"${playback-time} (${time-remaining})\" 5000\n",
-        b"/quit" => b"quit\n",
+fn get_command(endpoint: &[u8]) -> Option<&'static [u8]> {
+    let result: &[u8] = match endpoint {
+        b"POST /play" => b"cycle pause\n",
+        b"POST /minuschapter" => b"cycle chapter down\n",
+        b"POST /pluschapter" => b"cycle chapter up\n",
+        b"POST /minusplaylist" => b"playlist-prev\n",
+        b"POST /plusplaylist" => b"playlist-next\n",
+        b"POST /minus5" => b"seek -5\n",
+        b"POST /plus5" => b"seek 5\n",
+        b"POST /minus75" => b"seek -75\n",
+        b"POST /plus75" => b"seek 75\n",
+        b"POST /fullscreen" => b"cycle fullscreen\n",
+        b"POST /subtitles" => b"cycle sub\n",
+        b"POST /title" => b"show-text ${media-title} 5000\n",
+        b"POST /time" => b"show-text \"${playback-time} (${time-remaining})\" 5000\n",
+        b"POST /quit" => b"quit\n",
         _ => return None,
     };
     

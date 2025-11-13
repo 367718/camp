@@ -14,10 +14,10 @@ The `Server` struct provides access to `Request` elements via the "Iterator" tra
 
 * `Server`
     * bind
-    * Iterator trait
+    * accept
 
 * `Request`
-    * method_and_path
+    * endpoint
     * get_header
     * body_len
     * query_string

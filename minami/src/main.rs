@@ -37,53 +37,53 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    let (method, path) = request.method_and_path()
+    let endpoint = request.endpoint()
         .ok_or("Invalid request")?;
     
-    match (method, path) {
+    match endpoint {
         
         // -------------------- general --------------------
         
-        (b"GET", b"/") => general::index(request),
-        (b"GET", b"/styles.css") => general::styles(request),
-        (b"GET", b"/scripts.js") => general::scripts(request),
+        b"GET /" => general::index(request),
+        b"GET /styles.css" => general::styles(request),
+        b"GET /scripts.js" => general::scripts(request),
         
         // -------------------- files --------------------
         
-        (b"GET", b"/files") => files::index(request),
-        (b"GET", b"/files/entries") => files::entries(request),
-        (b"POST", b"/files/play") => files::play(request),
-        (b"POST", b"/files/mark") => files::mark(request),
-        (b"POST", b"/files/folder") => files::folder(request),
-        (b"POST", b"/files/delete") => files::delete(request),
+        b"GET /files" => files::index(request),
+        b"GET /files/entries" => files::entries(request),
+        b"POST /files/play" => files::play(request),
+        b"POST /files/mark" => files::mark(request),
+        b"POST /files/folder" => files::folder(request),
+        b"POST /files/delete" => files::delete(request),
         
         // -------------------- watchlist --------------------
         
-        (b"GET", b"/watchlist") => watchlist::index(request),
-        (b"GET", b"/watchlist/entries") => watchlist::entries(request),
-        (b"POST", b"/watchlist/insert") => watchlist::insert(request),
-        (b"POST", b"/watchlist/update") => watchlist::update(request),
-        (b"POST", b"/watchlist/delete") => watchlist::delete(request),
+        b"GET /watchlist" => watchlist::index(request),
+        b"GET /watchlist/entries" => watchlist::entries(request),
+        b"POST /watchlist/insert" => watchlist::insert(request),
+        b"POST /watchlist/update" => watchlist::update(request),
+        b"POST /watchlist/delete" => watchlist::delete(request),
         
         // -------------------- rules --------------------
         
-        (b"GET", b"/rules") => rules::index(request),
-        (b"GET", b"/rules/entries") => rules::entries(request),
-        (b"POST", b"/rules/insert") => rules::insert(request),
-        (b"POST", b"/rules/update") => rules::update(request),
-        (b"POST", b"/rules/delete") => rules::delete(request),
+        b"GET /rules" => rules::index(request),
+        b"GET /rules/entries" => rules::entries(request),
+        b"POST /rules/insert" => rules::insert(request),
+        b"POST /rules/update" => rules::update(request),
+        b"POST /rules/delete" => rules::delete(request),
         
         // -------------------- feeds --------------------
         
-        (b"GET", b"/feeds") => feeds::index(request),
-        (b"GET", b"/feeds/entries") => feeds::entries(request),
-        (b"POST", b"/feeds/insert") => feeds::insert(request),
-        (b"POST", b"/feeds/delete") => feeds::delete(request),
+        b"GET /feeds" => feeds::index(request),
+        b"GET /feeds/entries" => feeds::entries(request),
+        b"POST /feeds/insert" => feeds::insert(request),
+        b"POST /feeds/delete" => feeds::delete(request),
         
         // -------------------- mobile --------------------
         
-        (b"GET", b"/mobile") => mobile::index(request),
-        (b"GET", b"/mobile/styles.css") => mobile::styles(request),
+        b"GET /mobile" => mobile::index(request),
+        b"GET /mobile/styles.css" => mobile::styles(request),
         
         // -------------------- not found --------------------
         
