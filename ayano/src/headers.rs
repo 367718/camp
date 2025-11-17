@@ -17,7 +17,9 @@ impl Headers {
     
     pub fn endpoint(&self) -> Option<&[u8]> {
         // GET /test/resource?fkey=fvalue HTTP/1.1
-        let (working, _) = chikuwa::split_slice_once(&self.content, b"\r");
+        let (working, _) = chikuwa::insensitive_split_once(&self.content, b"\r");
+        
+        // TODO: replace with slice::rsplit_once in the future (https://github.com/rust-lang/rust/issues/112811)
         let mut parts = working.rsplitn(2, |&curr| curr == b' ');
         
         // HTTP/1.1
@@ -47,7 +49,7 @@ impl Headers {
         let mut content: &[u8] = &[];
         
         // first line
-        let (working, _) = chikuwa::split_slice_once(&self.content, b"\r");
+        let (working, _) = chikuwa::insensitive_split_once(&self.content, b"\r");
         
         if let Some(range) = chikuwa::subslice_range(working, b"?", b" ") {
             content = &working[range];
@@ -72,8 +74,8 @@ impl Iterator for QueryString<'_, '_> {
         
         while ! self.content.is_empty() {
             
-            let (working, rest) = chikuwa::split_slice_once(self.content, b"&");
-            let (left, right) = chikuwa::split_slice_once(working, b"=");
+            let (working, rest) = chikuwa::insensitive_split_once(self.content, b"&");
+            let (left, right) = chikuwa::insensitive_split_once(working, b"=");
             
             self.content = rest;
             
@@ -153,7 +155,7 @@ mod tests {
             // setup
             
             let mut content = Vec::new();
-            content.extend_from_slice(b"GET  /test/resource HTTP/1.1\r\n");
+            content.extend_from_slice(b"GET /test/resource  HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
@@ -165,7 +167,7 @@ mod tests {
             
             // control
             
-            assert_eq!(output, Some(b"GET  /test/resource".as_slice()));
+            assert_eq!(output, Some(b"GET /test/resource ".as_slice()));
         }
         
         #[test]

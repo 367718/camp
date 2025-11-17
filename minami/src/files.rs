@@ -20,8 +20,8 @@ pub fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let root = rin::get(b"root")?;
-    let flag = rin::get(b"flag")?;
+    let root = rin::get::<&str>(b"root")?;
+    let flag = rin::get::<&str>(b"flag")?;
     
     let filter = request.query_string(b"filter")
         .next()
@@ -70,8 +70,8 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let root = rin::get(b"root")?;
-    let player = rin::get(b"player")?;
+    let root = rin::get::<&str>(b"root")?;
+    let player = rin::get::<&str>(b"player")?;
     
     let matchers = request.form_params(b"matcher")
         .filter_map(|matcher| String::from_utf8(matcher).ok())
@@ -105,8 +105,8 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let root = rin::get(b"root")?;
-    let flag = rin::get(b"flag")?;
+    let root = rin::get::<&str>(b"root")?;
+    let flag = rin::get::<&str>(b"flag")?;
     
     let matchers = request.form_params(b"matcher")
         .filter_map(|matcher| String::from_utf8(matcher).ok())
@@ -135,7 +135,7 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let root = rin::get(b"root")?;
+    let root = rin::get::<&str>(b"root")?;
     
     let matchers = request.form_params(b"matcher")
         .filter_map(|matcher| String::from_utf8(matcher).ok())
@@ -169,7 +169,7 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let root = rin::get(b"root")?;
+    let root = rin::get::<&str>(b"root")?;
     
     let matchers = request.form_params(b"matcher")
         .filter_map(|matcher| String::from_utf8(matcher).ok())

@@ -45,7 +45,7 @@ fn main() {
 }
 
 fn process() -> Result<(), Box<dyn Error>> {
-    let address = rin::get(b"address")?;
+    let address = rin::get::<&str>(b"address")?;
     let mut server = Server::bind(address)?;
     
     println!();
@@ -107,7 +107,7 @@ fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     if let Some(command) = get_command(endpoint) {
         
-        let pipe = rin::get(b"pipe")?;
+        let pipe = rin::get::<&str>(b"pipe")?;
         write_to_named_pipe(pipe, command)?;
         request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
         

@@ -38,7 +38,7 @@ impl Body {
             
             // Content-Type: multipart/form-data;boundary="9999999999999999999999999999"
             Some(content) if content.starts_with(b"multipart/form-data") => {
-                let (_, boundary) = chikuwa::split_slice_once(content, b"boundary=");
+                let (_, boundary) = chikuwa::insensitive_split_once(content, b"boundary=");
                 ContentType::FormData(boundary)
             },
             
@@ -69,8 +69,8 @@ impl Iterator for FormParams<'_, '_, '_> {
                 
                 while ! self.content.is_empty() {
                     
-                    let (working, rest) = chikuwa::split_slice_once(self.content, b"&");
-                    let (left, right) = chikuwa::split_slice_once(working, b"=");
+                    let (working, rest) = chikuwa::insensitive_split_once(self.content, b"&");
+                    let (left, right) = chikuwa::insensitive_split_once(working, b"=");
                     
                     self.content = rest;
                     

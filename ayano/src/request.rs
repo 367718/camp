@@ -99,6 +99,7 @@ fn extract_headers_and_body(reader: &mut impl Read) -> io::Result<(Headers, Body
     
     // -------------------- body --------------------
     
+    // TODO: replace with usize::from_ascii in the future (https://github.com/rust-lang/rust/issues/134821)
     // body will be empty unless the request specifies a content length
     let content_length = headers.get(b"Content-Length")
         .and_then(|value| str::from_utf8(value).ok())

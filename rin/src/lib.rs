@@ -1,3 +1,5 @@
+mod impls;
+
 use std::{
     env,
     fs::{ self, File },
@@ -7,12 +9,13 @@ use std::{
 
 const CONTENT_SIZE_LIMIT: u64 = 32 * 1024;
 
-pub fn get(key: &[u8]) -> io::Result<&'static str> {
+use impls::ParamFromValue;
+
+pub fn get<T: ParamFromValue<'static>>(key: &[u8]) -> io::Result<T> {
     let content = load_content();
     
     if let Some(value) = extract_value(content, key) {
-        return str::from_utf8(value)
-            .map_err(|error| Error::new(ErrorKind::InvalidData, error));
+        return T::param_from_value(value);
     }
     
     Err(Error::new(ErrorKind::NotFound, format!("Configuration key not found: '{}'", String::from_utf8_lossy(key))))
@@ -61,15 +64,14 @@ fn load_content() -> &'static [u8] {
     
     static CONTENT: OnceLock<Vec<u8>> = OnceLock::new();
     
-    // possible future alternative: https://doc.rust-lang.org/std/sync/struct.OnceLock.html#method.get_or_try_init
-    
+    // TODO: replace with OnceLock::get_or_try_init in the future (https://github.com/rust-lang/rust/issues/109737)
     CONTENT.get_or_init(|| read_file().unwrap_or_else(|_| panic!("Failed to load configuration file")))
     
 }
 
 fn extract_value(content: &'static [u8], key: &[u8]) -> Option<&'static [u8]> {
     let line = chikuwa::subslice_range(content, key, b"\r\n")?;
-    let (_, value) = chikuwa::split_slice_once(&content[line], b"=");
+    let (_, value) = chikuwa::insensitive_split_once(&content[line], b"=");
     
     Some(value.trim_ascii_start())
 }

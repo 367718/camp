@@ -35,7 +35,7 @@ fn main() {
 fn process() -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
-    let folder = rin::get(b"folder")?;
+    let folder = rin::get::<&str>(b"folder")?;
     let feeds = chiaki::List::load("feeds")?;
     let rules = chiaki::List::load("rules")?;
     
