@@ -22,6 +22,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let root = rin::get::<&str>(b"root")?;
     let flag = rin::get::<&str>(b"flag")?;
+    let max_directory_depth = rin::get::<u64>(b"max_directory_depth")?;
     
     let filter = request.query_string(b"filter")
         .next()
@@ -29,7 +30,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    let list = ena::Files::walk(root)?;
+    let list = ena::Files::walk(root, max_directory_depth)?;
     
     // -------------------- response --------------------
     
@@ -72,13 +73,14 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let root = rin::get::<&str>(b"root")?;
     let player = rin::get::<&str>(b"player")?;
+    let max_directory_depth = rin::get::<u64>(b"max_directory_depth")?;
     
     let matchers = request.form_params(b"matcher")
         .filter_map(|matcher| String::from_utf8(matcher).ok())
         .map(OsString::from)
         .collect::<Vec<OsString>>();
     
-    let mut selected = ena::Files::walk(root)?
+    let mut selected = ena::Files::walk(root, max_directory_depth)?
         .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
         .peekable();
     
@@ -107,13 +109,14 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let root = rin::get::<&str>(b"root")?;
     let flag = rin::get::<&str>(b"flag")?;
+    let max_directory_depth = rin::get::<u64>(b"max_directory_depth")?;
     
     let matchers = request.form_params(b"matcher")
         .filter_map(|matcher| String::from_utf8(matcher).ok())
         .map(OsString::from)
         .collect::<Vec<OsString>>();
     
-    let mut selected = ena::Files::walk(root)?
+    let mut selected = ena::Files::walk(root, max_directory_depth)?
         .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
         .peekable();
     
@@ -136,13 +139,14 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
     let root = rin::get::<&str>(b"root")?;
+    let max_directory_depth = rin::get::<u64>(b"max_directory_depth")?;
     
     let matchers = request.form_params(b"matcher")
         .filter_map(|matcher| String::from_utf8(matcher).ok())
         .map(OsString::from)
         .collect::<Vec<OsString>>();
     
-    let mut selected = ena::Files::walk(root)?
+    let mut selected = ena::Files::walk(root, max_directory_depth)?
         .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
         .peekable();
     
@@ -170,13 +174,14 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
     let root = rin::get::<&str>(b"root")?;
+    let max_directory_depth = rin::get::<u64>(b"max_directory_depth")?;
     
     let matchers = request.form_params(b"matcher")
         .filter_map(|matcher| String::from_utf8(matcher).ok())
         .map(OsString::from)
         .collect::<Vec<OsString>>();
     
-    let mut selected = ena::Files::walk(root)?
+    let mut selected = ena::Files::walk(root, max_directory_depth)?
         .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
         .peekable();
     

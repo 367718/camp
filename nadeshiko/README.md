@@ -12,11 +12,12 @@ An entry is considered relevant if:
 * An episode number can be extracted from the "title" field without considering the matched rule tag portion.
 * The extracted episode number is greater than the matched rule value.
 
-A limit of 1 MiB in size is enforced for both the RSS feed itself and each downloaded torrent file.
-
 ## Configuration parameters used
 
 * `folder`: destination for the downloaded torrents.
+* `max_list_size`: maximum allowed file size for rules and feeds lists, in bytes.
+* `max_feed_size`: maximum allowed download size for feeds, in bytes.
+* `max_torrent_size`: maximum allowed download size for torrents, in bytes.
 
 ## List files used
 

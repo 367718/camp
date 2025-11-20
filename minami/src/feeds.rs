@@ -17,13 +17,15 @@ pub fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
+    let max_list_size = rin::get::<u64>(b"max_list_size")?;
+    
     let filter = request.query_string(b"filter")
         .next()
         .unwrap_or_default();
     
     // -------------------- operation --------------------
     
-    let list = chiaki::List::load("feeds")?;
+    let list = chiaki::List::load("feeds", max_list_size)?;
     
     // -------------------- response --------------------
     
@@ -47,13 +49,15 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
+    let max_list_size = rin::get::<u64>(b"max_list_size")?;
+    
     let input = request.form_params(b"input")
         .next()
         .ok_or("Wrong input")?;
     
     // -------------------- operation --------------------
     
-    chiaki::List::load("feeds")
+    chiaki::List::load("feeds", max_list_size)
         .and_then(|list| list.set(&input, 0))?;
     
     // -------------------- response --------------------
@@ -66,13 +70,15 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
 pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
+    let max_list_size = rin::get::<u64>(b"max_list_size")?;
+    
     let matcher = request.form_params(b"matcher")
         .next()
         .ok_or("Wrong matcher")?;
     
     // -------------------- operation --------------------
     
-    chiaki::List::load("feeds")
+    chiaki::List::load("feeds", max_list_size)
         .and_then(|list| list.delete(&matcher))?;
     
     // -------------------- response --------------------

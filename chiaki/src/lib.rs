@@ -8,7 +8,6 @@ use std::{
 };
 
 const TAG_SIZE_LIMIT: usize = u16::MAX as usize;
-const CONTENT_SIZE_LIMIT: u64 = 1024 * 512;
 
 pub struct List {
     path: PathBuf,
@@ -31,7 +30,7 @@ impl List {
     // -------------------- constructors --------------------
     
     
-    pub fn load(name: &str) -> io::Result<Self> {
+    pub fn load(name: &str, max_size: u64) -> io::Result<Self> {
         // -------------------- path --------------------
         
         // prevent directory traversal
@@ -61,7 +60,7 @@ impl List {
         
         // -------------------- content --------------------
         
-        let size = metadata.len().min(CONTENT_SIZE_LIMIT);
+        let size = metadata.len().min(max_size);
         
         let mut reader = chikuwa::LimitedReader::new(file, size)?;
         let mut content = Vec::with_capacity(usize::try_from(size).expect("Unsupported platform"));

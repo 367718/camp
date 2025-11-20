@@ -2,6 +2,7 @@ use std::error::Error;
 
 pub struct Cache<'l> {
     inner: Vec<chiaki::ListEntry<'l>>,
+    max_size: u64,
 }
 
 pub struct RuleUpdate<'c, 'l> {
@@ -12,10 +13,10 @@ pub struct RuleUpdate<'c, 'l> {
 
 impl<'l> Cache<'l> {
     
-    pub fn new(content: &'l chiaki::List) -> Self {
+    pub fn new(content: &'l chiaki::List, max_size: u64) -> Self {
         Self {
-            inner: content.iter()
-                .collect(),
+            inner: content.iter().collect(),
+            max_size,
         }
     }
     
@@ -54,7 +55,7 @@ impl RuleUpdate<'_, '_> {
             .get_mut(self.index)
             .unwrap();
         
-        chiaki::List::load("rules")
+        chiaki::List::load("rules", self.cache.max_size)
             .and_then(|list| list.set(entry.tag, self.episode))?;
         
         entry.value = self.episode;

@@ -149,6 +149,30 @@ class List {
       return;
     }
     
+    // -------------------- bindings --------------------
+    
+    this.node.onclick = (event) => this.select(event.target, event.ctrlKey, event.shiftKey);
+    
+    this.node.ontouchstart = (event) => {
+      
+      let touchMove = false;
+      
+      this.node.ontouchmove = (_event) => (touchMove = true);
+      
+      this.node.ontouchend = (event) => {
+        
+        if (! touchMove) {
+          // handle tap as "control click"
+          this.select(event.target, true, false);
+        }
+        
+        // prevent click event from firing
+        event.preventDefault();
+        
+      };
+      
+    };
+    
     // -------------------- initial load --------------------
     
     this.refresh();
@@ -164,8 +188,21 @@ class List {
       .forEach((entry) => entry.toggle_select());
     
   };
-
-  select = (target, control, shift) => {
+  
+  select = (node, control, shift) => {
+    
+    let target_node = node;
+    
+    // container element
+    if (target_node.tagName === 'SPAN') {
+      target_node = target_node.parentNode;
+    }
+    
+    let target = this.entries.find((entry) => entry.node == target_node);
+    
+    if (! target) {
+      return;
+    }
     
     // -------------------- simple click --------------------
     
@@ -316,30 +353,6 @@ class Entry {
     if (this.node === null) {
       return;
     }
-    
-    // -------------------- bindings --------------------
-    
-    this.node.onclick = (event) => this.parent.select(this, event.ctrlKey, event.shiftKey);
-    
-    this.node.ontouchstart = (_event) => {
-      
-      let touchMove = false;
-      
-      this.node.ontouchmove = (_event) => (touchMove = true);
-      
-      this.node.ontouchend = (event) => {
-        
-        if (! touchMove) {
-          // handle tap as "control click"
-          this.parent.select(this, true, false);
-        }
-        
-        // prevent click event from firing
-        event.preventDefault();
-        
-      };
-      
-    };
     
   }
   

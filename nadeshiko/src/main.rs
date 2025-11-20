@@ -15,8 +15,6 @@ use feed::Feed;
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const CONTENT_SIZE_LIMIT: u64 = 1024 * 1024;
-
 fn main() {
     println!("{} v{}", APP_NAME, APP_VERSION);
     
@@ -36,12 +34,15 @@ fn process() -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
     let folder = rin::get::<&str>(b"folder")?;
-    let feeds = chiaki::List::load("feeds")?;
-    let rules = chiaki::List::load("rules")?;
+    let max_list_size = rin::get::<u64>(b"max_list_size")?;
+    let max_feed_size = rin::get::<u64>(b"max_feed_size")?;
+    let max_torrent_size = rin::get::<u64>(b"max_torrent_size")?;
+    let feeds = chiaki::List::load("feeds", max_list_size)?;
+    let rules = chiaki::List::load("rules", max_list_size)?;
     
     // -------------------- cache --------------------
     
-    let mut cache = Cache::new(&rules);
+    let mut cache = Cache::new(&rules, max_list_size);
     
     // -------------------- client --------------------
     
@@ -55,7 +56,7 @@ fn process() -> Result<(), Box<dyn Error>> {
         println!("{}", url);
         println!("--------------------");
         
-        let feed = Feed::new(&mut client, url)?;
+        let feed = Feed::new(&mut client, url, max_feed_size)?;
         
         for entry in &feed {
             
@@ -84,7 +85,7 @@ fn process() -> Result<(), Box<dyn Error>> {
             // rule update may fail, so torrent path is initially treated as ephemeral
             let destination = chikuwa::EphemeralPath::from(build_destination(folder, title)?);
             
-            download_torrent(&mut client, link, &destination)?;
+            download_torrent(&mut client, link, max_torrent_size, &destination)?;
             
             rule_update.execute()?;
             
@@ -114,14 +115,14 @@ fn build_destination(folder: &str, title: &str) -> Result<PathBuf, Box<dyn Error
     Ok(file_path)
 }
 
-fn download_torrent(client: &mut akari::Client, link: &str, destination: &Path) -> Result<(), Box<dyn Error>> {
+fn download_torrent(client: &mut akari::Client, link: &str, max_size: u64, destination: &Path) -> Result<(), Box<dyn Error>> {
     let response = client.get(link)?;
     let file = File::options()
         .create_new(true)
         .write(true)
         .open(destination)?;
     
-    let mut reader = chikuwa::LimitedReader::new(response, CONTENT_SIZE_LIMIT)?;
+    let mut reader = chikuwa::LimitedReader::new(response, max_size)?;
     let mut writer = BufWriter::new(file);
     
     io::copy(&mut reader, &mut writer)?;

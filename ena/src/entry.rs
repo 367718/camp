@@ -9,7 +9,7 @@ use std::{
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct FilesEntry {
     inner: PathBuf,
-    depth: u8,
+    depth: u64,
 }
 
 impl FilesEntry {
@@ -17,7 +17,7 @@ impl FilesEntry {
     // -------------------- constructors --------------------
     
     
-    pub(crate) fn new(inner: PathBuf, depth: u8) -> Self {
+    pub(crate) fn new(inner: PathBuf, depth: u64) -> Self {
         Self { inner, depth }
     }
     
@@ -51,7 +51,7 @@ impl FilesEntry {
     
     fn root(&self) -> &Path {
         self.inner.ancestors()
-            .nth(self.depth as usize)
+            .nth(usize::try_from(self.depth).expect("Unsupported platform"))
             .expect("Depth exceeded full path")
     }
     

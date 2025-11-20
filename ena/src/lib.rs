@@ -9,18 +9,16 @@ use std::{
 
 pub use entry::FilesEntry;
 
-const INITIAL_DIRECTORY_DEPTH: u8 = 1;
-const MAX_ALLOWED_DIRECTORY_DEPTH: u8 = 5;
-
 pub struct Files {
     current: fs::ReadDir,
     subdirectory: Option<Box<Files>>,
-    depth: u8,
+    max_depth: u64,
+    current_depth: u64,
 }
 
 impl Files {
     
-    pub fn walk<P: AsRef<Path>>(path: P) -> io::Result<Self> {
+    pub fn walk<P: AsRef<Path>>(path: P, max_depth: u64) -> io::Result<Self> {
         let path = path.as_ref();
         
         let metadata = fs::symlink_metadata(path)
@@ -30,18 +28,19 @@ impl Files {
             return Err(Error::new(ErrorKind::InvalidInput, format!("Invalid path: {}", path.display())));
         }
         
-        Self::with_depth(path, INITIAL_DIRECTORY_DEPTH)
+        Self::with_depth(path, max_depth, 1)
     }
     
-    fn with_depth(path: &Path, depth: u8) -> io::Result<Self> {
-        if depth > MAX_ALLOWED_DIRECTORY_DEPTH {
+    fn with_depth(path: &Path, max_depth: u64, current_depth: u64) -> io::Result<Self> {
+        if current_depth > max_depth {
             return Err(Error::new(ErrorKind::InvalidInput, "Maximum directory depth exceeded"));
         }
         
         Ok(Self {
             current: path.read_dir()?,
             subdirectory: None,
-            depth,
+            max_depth,
+            current_depth,
         })
     }
     
@@ -76,12 +75,12 @@ impl Iterator for Files {
                 // file
                 
                 if file_type.is_file() {
-                    return Some(FilesEntry::new(entry.path(), self.depth));
+                    return Some(FilesEntry::new(entry.path(), self.current_depth));
                 }
                 
                 // subdirectory
                 
-                if file_type.is_dir() && let Ok(subdirectory) = Self::with_depth(&entry.path(), self.depth + 1) {
+                if file_type.is_dir() && let Ok(subdirectory) = Self::with_depth(&entry.path(), self.max_depth, self.current_depth + 1) {
                     self.subdirectory = Some(Box::new(subdirectory));
                     continue 'outer;
                 }
