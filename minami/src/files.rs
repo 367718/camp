@@ -49,8 +49,9 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
         
         let file_name = entry.file_name().to_str().unwrap();
         let container = entry.container().to_str().unwrap();
+        let marked = ! entry.is_marked(flag).unwrap_or(false);
         
-        write!(&mut response, "<a data-value='{}'>", u8::from(! entry.is_marked(flag).unwrap_or(false)))?;
+        write!(&mut response, "<a data-value='{}'>", u8::from(marked))?;
         
         if ! container.is_empty() {
             response.write_all(b"<span>")?;

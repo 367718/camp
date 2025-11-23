@@ -73,13 +73,11 @@ impl Iterator for Files {
                 };
                 
                 // file
-                
                 if file_type.is_file() {
                     return Some(FilesEntry::new(entry.path(), self.current_depth));
                 }
                 
                 // subdirectory
-                
                 if file_type.is_dir() && let Ok(subdirectory) = Self::with_depth(&entry.path(), self.max_depth, self.current_depth + 1) {
                     self.subdirectory = Some(Box::new(subdirectory));
                     continue 'outer;
