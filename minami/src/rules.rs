@@ -19,13 +19,11 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let max_list_size = rin::get::<u64>(b"max_list_size")?;
     
+    let list = chiaki::List::load("rules", max_list_size)?;
+    
     let filter = request.query_string(b"filter")
         .next()
         .unwrap_or_default();
-    
-    // -------------------- operation --------------------
-    
-    let list = chiaki::List::load("rules", max_list_size)?;
     
     // -------------------- response --------------------
     
@@ -51,14 +49,15 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let max_list_size = rin::get::<u64>(b"max_list_size")?;
     
+    let list = chiaki::List::load("rules", max_list_size)?;
+    
     let input = request.form_params(b"input")
         .next()
         .ok_or("Wrong input")?;
     
     // -------------------- operation --------------------
     
-    chiaki::List::load("rules", max_list_size)
-        .and_then(|list| list.set(&input, 1))?;
+    list.set(&input, 1)?;
     
     // -------------------- response --------------------
     
@@ -71,6 +70,8 @@ pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
     let max_list_size = rin::get::<u64>(b"max_list_size")?;
+    
+    let list = chiaki::List::load("rules", max_list_size)?;
     
     let matcher = request.form_params(b"matcher")
         .next()
@@ -85,8 +86,7 @@ pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    chiaki::List::load("rules", max_list_size)
-        .and_then(|list| list.set(&matcher, input))?;
+    list.set(&matcher, input)?;
     
     // -------------------- response --------------------
     
@@ -100,14 +100,15 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let max_list_size = rin::get::<u64>(b"max_list_size")?;
     
+    let list = chiaki::List::load("rules", max_list_size)?;
+    
     let matcher = request.form_params(b"matcher")
         .next()
         .ok_or("Wrong matcher")?;
     
     // -------------------- operation --------------------
     
-    chiaki::List::load("rules", max_list_size)
-        .and_then(|list| list.delete(&matcher))?;
+    list.delete(&matcher)?;
     
     // -------------------- response --------------------
     

@@ -44,7 +44,7 @@ impl Feed {
     
 }
 
-impl <'c>IntoIterator for &'c Feed {
+impl<'c> IntoIterator for &'c Feed {
     
     type IntoIter = FeedIter<'c>;
     type Item = FeedEntry<'c>;

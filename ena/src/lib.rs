@@ -1,93 +1,104 @@
+mod directory;
 mod entry;
 mod mark;
 
-use std::{
-    fs,
-    io::{ self, Error, ErrorKind },
-    path::Path,
-};
+use std::path::{ Path, PathBuf };
 
+use directory::Directory;
 pub use entry::FilesEntry;
 
 pub struct Files {
-    current: fs::ReadDir,
-    subdirectory: Option<Box<Files>>,
+    root: PathBuf,
     max_depth: u64,
-    current_depth: u64,
+}
+
+pub struct FilesIter<'r> {
+    inner: Vec<Directory>,
+    root: &'r Path,
+    max_depth: u64,
 }
 
 impl Files {
     
-    pub fn walk<P: AsRef<Path>>(path: P, max_depth: u64) -> io::Result<Self> {
-        let path = path.as_ref();
-        
-        let metadata = fs::symlink_metadata(path)
-            .map_err(|error| Error::new(error.kind(), format!("Failed to query metadata for path '{}': {}", path.display(), error)))?;
-        
-        if ! metadata.is_dir() {
-            return Err(Error::new(ErrorKind::InvalidInput, format!("Invalid path: {}", path.display())));
+    pub fn new<P: AsRef<Path>>(path: P, max_depth: u64) -> Self {
+        Self {
+            root: path.as_ref().to_path_buf(),
+            max_depth,
         }
-        
-        Self::with_depth(path, max_depth, 1)
     }
     
-    fn with_depth(path: &Path, max_depth: u64, current_depth: u64) -> io::Result<Self> {
-        if current_depth > max_depth {
-            return Err(Error::new(ErrorKind::InvalidInput, "Maximum directory depth exceeded"));
+    pub fn iter(&self) -> FilesIter<'_> {
+        let mut directories = Vec::new();
+        
+        if let Ok(initial) = Directory::new(&self.root, 1) {
+            directories.push(initial);
         }
         
-        Ok(Self {
-            current: path.read_dir()?,
-            subdirectory: None,
-            max_depth,
-            current_depth,
-        })
+        FilesIter {
+            inner: directories,
+            root: &self.root,
+            max_depth: self.max_depth,
+        }
     }
     
 }
 
-impl Iterator for Files {
+impl<'r> IntoIterator for &'r Files {
     
-    type Item = FilesEntry;
+    type IntoIter = FilesIter<'r>;
+    type Item = FilesEntry<'r>;
+    
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+    
+}
+
+impl<'r> Iterator for FilesIter<'r> {
+    
+    type Item = FilesEntry<'r>;
     
     fn next(&mut self) -> Option<Self::Item> {
         
-        'outer: loop {
+        while let Some(current_dir) = self.inner.last_mut() {
+            
+            let Some(entry) = current_dir.next() else {
+                self.inner.pop();
+                continue;
+            };
+            
+            // does not traverse symlinks
+            let Ok(file_type) = entry.file_type() else {
+                continue;
+            };
+            
+            // -------------------- file --------------------
+            
+            if file_type.is_file() {
+                
+                let path = entry.path();
+                let root = self.root;
+                
+                return Some(FilesEntry::new(path, root));
+                
+            }
             
             // -------------------- subdirectory --------------------
             
-            if let Some(subdirectory) = self.subdirectory.as_mut() {
-                match subdirectory.next() {
-                    Some(entry) => return Some(entry),
-                    None => self.subdirectory = None,
-                }
-            }
-            
-            // -------------------- current directory --------------------
-            
-            for entry in self.current.by_ref().flatten() {
+            if file_type.is_dir() && current_dir.depth() < self.max_depth {
                 
-                // does not traverse symlinks
-                let Ok(file_type) = entry.file_type() else {
-                    continue;
-                };
+                let path = entry.path();
+                let depth = current_dir.depth() + 1;
                 
-                // file
-                if file_type.is_file() {
-                    return Some(FilesEntry::new(entry.path(), self.current_depth));
-                }
-                
-                // subdirectory
-                if file_type.is_dir() && let Ok(subdirectory) = Self::with_depth(&entry.path(), self.max_depth, self.current_depth + 1) {
-                    self.subdirectory = Some(Box::new(subdirectory));
-                    continue 'outer;
+                if let Ok(subdirectory) = Directory::new(&path, depth) {
+                    self.inner.push(subdirectory);
                 }
                 
             }
-            
-            return None;
             
         }
+        
+        None
         
     }
     

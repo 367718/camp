@@ -146,7 +146,7 @@ impl List {
     
 }
 
-impl <'c>IntoIterator for &'c List {
+impl<'c> IntoIterator for &'c List {
     
     type IntoIter = ListIter<'c>;
     type Item = ListEntry<'c>;
@@ -157,7 +157,7 @@ impl <'c>IntoIterator for &'c List {
     
 }
 
-impl <'c>Iterator for ListIter<'c> {
+impl<'c> Iterator for ListIter<'c> {
     
     type Item = ListEntry<'c>;
     

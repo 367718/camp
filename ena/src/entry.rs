@@ -7,18 +7,18 @@ use std::{
 
 #[derive(PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
-pub struct FilesEntry {
+pub struct FilesEntry<'r> {
     inner: PathBuf,
-    depth: u64,
+    root: &'r Path,
 }
 
-impl FilesEntry {
+impl<'r> FilesEntry<'r> {
     
     // -------------------- constructors --------------------
     
     
-    pub(crate) fn new(inner: PathBuf, depth: u64) -> Self {
-        Self { inner, depth }
+    pub(crate) fn new(inner: PathBuf, root: &'r Path) -> Self {
+        Self { inner, root }
     }
     
     
@@ -30,7 +30,7 @@ impl FilesEntry {
     }
     
     pub fn relative(&self) -> &Path {
-        self.inner.strip_prefix(self.root())
+        self.inner.strip_prefix(self.root)
             .expect("Discrepancy between full path and root")
     }
     
@@ -49,12 +49,6 @@ impl FilesEntry {
         crate::mark::is_marked(&self.inner, flag)
     }
     
-    fn root(&self) -> &Path {
-        self.inner.ancestors()
-            .nth(usize::try_from(self.depth).expect("Unsupported platform"))
-            .expect("Depth exceeded full path")
-    }
-    
     
     // -------------------- mutators --------------------
     
@@ -70,7 +64,7 @@ impl FilesEntry {
         let foldername = folder.file_name().unwrap_or(folder.as_os_str());
         let filename = self.file_name();
         
-        let directory = self.root().join(foldername);
+        let directory = self.root.join(foldername);
         let destination = directory.join(filename);
         
         if directory.try_exists()? {
@@ -90,7 +84,7 @@ impl FilesEntry {
     
 }
 
-impl AsRef<Path> for FilesEntry {
+impl AsRef<Path> for FilesEntry<'_> {
     
     fn as_ref(&self) -> &Path {
         &self.inner
@@ -98,7 +92,7 @@ impl AsRef<Path> for FilesEntry {
     
 }
 
-impl AsRef<OsStr> for FilesEntry {
+impl AsRef<OsStr> for FilesEntry<'_> {
     
     fn as_ref(&self) -> &OsStr {
         OsStr::new(&self.inner)

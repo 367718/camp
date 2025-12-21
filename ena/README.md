@@ -11,7 +11,7 @@ The "mark" functionality relies on NTFS's Alternate Data Streams feature.
 ## API
 
 * `Files`
-    * walk
+    * new
     * Iterator trait
 
 * `FilesEntry`
