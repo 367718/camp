@@ -1,10 +1,11 @@
-mod directory;
 mod entry;
 mod mark;
 
-use std::path::{ Path, PathBuf };
+use std::{
+    fs::ReadDir,
+    path::{ Path, PathBuf }
+};
 
-use directory::Directory;
 pub use entry::FilesEntry;
 
 pub struct Files {
@@ -13,7 +14,7 @@ pub struct Files {
 }
 
 pub struct FilesIter<'r> {
-    inner: Vec<Directory>,
+    inner: Vec<(ReadDir, u64)>,
     root: &'r Path,
     max_depth: u64,
 }
@@ -28,10 +29,15 @@ impl Files {
     }
     
     pub fn iter(&self) -> FilesIter<'_> {
-        let mut directories = Vec::new();
+        let capacity = usize::try_from(self.max_depth).expect("Unsupported platform");
+        let mut directories = Vec::with_capacity(capacity);
         
-        if let Ok(initial) = Directory::new(&self.root, 1) {
-            directories.push(initial);
+        if let Ok(initial) = self.root.read_dir() {
+            // the "ReadDir" struct, in Windows, holds a file handle, so:
+            // a) exhaustion is a possibility
+            // b) the directory it points to cannot be modified while the handle is held
+            // the "inner" vec length is not unbounded however, as it shouldn't hold more than "max_depth" entries at any given time
+            directories.push((initial, 1));
         }
         
         FilesIter {
@@ -60,15 +66,19 @@ impl<'r> Iterator for FilesIter<'r> {
     
     fn next(&mut self) -> Option<Self::Item> {
         
-        while let Some(current_dir) = self.inner.last_mut() {
+        while let Some((current_dir, current_depth)) = self.inner.last_mut() {
             
-            let Some(entry) = current_dir.next() else {
+            let Some(dir_entry) = current_dir.next() else {
                 self.inner.pop();
                 continue;
             };
             
+            let Ok(dir_entry) = dir_entry else {
+                continue;
+            };
+            
             // does not traverse symlinks
-            let Ok(file_type) = entry.file_type() else {
+            let Ok(file_type) = dir_entry.file_type() else {
                 continue;
             };
             
@@ -76,7 +86,7 @@ impl<'r> Iterator for FilesIter<'r> {
             
             if file_type.is_file() {
                 
-                let path = entry.path();
+                let path = dir_entry.path();
                 let root = self.root;
                 
                 return Some(FilesEntry::new(path, root));
@@ -85,13 +95,13 @@ impl<'r> Iterator for FilesIter<'r> {
             
             // -------------------- subdirectory --------------------
             
-            if file_type.is_dir() && current_dir.depth() < self.max_depth {
+            if file_type.is_dir() && *current_depth < self.max_depth {
                 
-                let path = entry.path();
-                let depth = current_dir.depth() + 1;
+                let path = dir_entry.path();
+                let depth = *current_depth + 1;
                 
-                if let Ok(subdirectory) = Directory::new(&path, depth) {
-                    self.inner.push(subdirectory);
+                if let Ok(subdirectory) = path.read_dir() {
+                    self.inner.push((subdirectory, depth));
                 }
                 
             }
