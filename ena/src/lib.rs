@@ -10,13 +10,13 @@ pub use entry::FilesEntry;
 
 pub struct Files {
     root: PathBuf,
-    max_depth: u64,
+    max_depth: usize,
 }
 
 pub struct FilesIter<'r> {
-    inner: Vec<(ReadDir, u64)>,
+    inner: Vec<(ReadDir, usize)>,
     root: &'r Path,
-    max_depth: u64,
+    max_depth: usize,
 }
 
 impl Files {
@@ -24,16 +24,15 @@ impl Files {
     pub fn new<P: AsRef<Path>>(path: P, max_depth: u64) -> Self {
         Self {
             root: path.as_ref().to_path_buf(),
-            max_depth,
+            max_depth: usize::try_from(max_depth).expect("Unsupported platform"),
         }
     }
     
     pub fn iter(&self) -> FilesIter<'_> {
-        let capacity = usize::try_from(self.max_depth).expect("Unsupported platform");
-        let mut directories = Vec::with_capacity(capacity);
+        let mut directories = Vec::with_capacity(self.max_depth);
         
         if let Ok(initial) = self.root.read_dir() {
-            // the "ReadDir" struct, in Windows, holds a file handle, so:
+            // the "ReadDir" struct holds a file handle in Windows, so:
             // a) exhaustion is a possibility
             // b) the directory it points to cannot be modified while the handle is held
             // the "inner" vec length is not unbounded however, as it shouldn't hold more than "max_depth" entries at any given time
