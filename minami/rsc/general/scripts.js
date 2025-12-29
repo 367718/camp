@@ -34,6 +34,8 @@ const TOGGLES_NODE_SELECTOR = ".toggles";
 const TOGGLES_VALUE_ATTRIBUTE = "data-value";
 const TOGGLES_ACTIVE_ATTRIBUTE = "data-active";
 
+const COLORS_CLASSES = ["rin", "nadeshiko", "aoi", "chiaki", "ena"];
+
 
 // -------------------- classes --------------------
 
@@ -56,6 +58,11 @@ class Current {
     if (this.node === null) {
       return;
     }
+    
+    // -------------------- styles --------------------
+    
+    const color = COLORS_CLASSES[Math.floor(Math.random() * COLORS_CLASSES.length)];
+    this.node.classList.add(color);
     
     // -------------------- bindings --------------------
     
@@ -302,10 +309,10 @@ class List {
           
           // children
           
-          const container = document.createElement("div");
-          container.innerHTML = text;
+          const parser = new DOMParser();
+          const parsed = parser.parseFromString(text, "text/html");
           
-          const children = Array.from(container.children);
+          const children = Array.from(parsed.body.childNodes);
           
           // sort
           

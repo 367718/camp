@@ -3,39 +3,14 @@
 
 :root {
     
-    --primary-color: rgb(23 23 23 / 1);
-    --secondary-color: rgb(38 38 38 / 1);
+    --primary-color: rgb(28 27 34 / 1);
+    --secondary-color: rgb(43 42 51 / 1);
     --accent-color: rgb(125 125 125 / 1);
     
     --text-primary-color: rgb(232 232 232 / 1);
     --text-secondary-color: rgb(232 232 232 / 0.5);
     
-    --entry-hovered-color: var(--secondary-color);
-    --entry-selected-color: var(--accent-color);
-    --entry-hovered-selected-color: color-mix(in srgb, var(--accent-color) 75%, var(--secondary-color));
-    --entry-unfocused-selected-color: color-mix(in srgb, var(--accent-color) 50%, var(--secondary-color));
-    
     --transition-duration: 0.25s;
-    
-    &.rin {
-        --accent-color: rgb(105 125 160 / 1);
-    }
-    
-    &.nadeshiko {
-        --accent-color: rgb(178 133 139 / 1);
-    }
-    
-    &.aoi {
-        --accent-color: rgb(174 153 96 / 1);
-    }
-    
-    &.chiaki {
-        --accent-color: rgb(121 115 154 / 1);
-    }
-    
-    &.ena {
-        --accent-color: rgb(66 138 162 / 1);
-    }
     
 }
 
@@ -47,7 +22,7 @@ body {
     height: 100vh;
     margin: 0rem;
     display: flex;
-    gap: 2px;
+    gap: 1px;
     background-color: var(--primary-color);
 }
 
@@ -73,6 +48,31 @@ iframe {
 
 
 .current {
+    
+    &.rin {
+        --accent-color: rgb(105 125 160 / 1);
+    }
+    
+    &.nadeshiko {
+        --accent-color: rgb(178 133 139 / 1);
+    }
+    
+    &.aoi {
+        --accent-color: rgb(174 153 96 / 1);
+    }
+    
+    &.chiaki {
+        --accent-color: rgb(121 115 154 / 1);
+    }
+    
+    &.ena {
+        --accent-color: rgb(66 138 162 / 1);
+    }
+    
+    --entry-hovered-color: var(--secondary-color);
+    --entry-selected-color: var(--accent-color);
+    --entry-hovered-selected-color: color-mix(in srgb, var(--accent-color) 75%, var(--secondary-color));
+    --entry-unfocused-selected-color: color-mix(in srgb, var(--accent-color) 50%, var(--secondary-color));
     
     width: 100%;
     display: flex;

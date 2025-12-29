@@ -11,13 +11,32 @@ pub fn subslice_range(content: &[u8], left: &[u8], right: &[u8]) -> Option<Range
 }
 
 fn find_subslice_ignore_case(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    // 'windows' function panics on 0 length
-    if needle.is_empty() {
+    let needle_len = needle.len();
+    let haystack_len = haystack.len();
+    
+    if needle_len == 0 || needle_len > haystack_len {
         return None;
     }
     
-    haystack.windows(needle.len())
-        .position(|window| window.eq_ignore_ascii_case(needle))
+    let needle_f = needle[0];
+    let needle_flo = needle_f.to_ascii_lowercase();
+    let needle_fup = needle_f.to_ascii_uppercase();
+    
+    // only consider sections of the haystack where the needle can fit
+    for index in 0..=(haystack_len - needle_len) {
+        
+        let current = haystack[index];
+        
+        // if the first character of the needle matches, perform full check
+        if current == needle_flo || current == needle_fup {
+            if haystack[index..index + needle_len].eq_ignore_ascii_case(needle) {
+                return Some(index);
+            }
+        }
+        
+    }
+    
+    None
 }
 
 #[cfg(test)]
