@@ -29,7 +29,7 @@ fn find_subslice_ignore_case(haystack: &[u8], needle: &[u8]) -> Option<usize> {
         
         // if the first character of the needle matches, perform full check
         if current == needle_flo || current == needle_fup {
-            if haystack[index..index + needle_len].eq_ignore_ascii_case(needle) {
+            if haystack[index..][..needle_len].eq_ignore_ascii_case(needle) {
                 return Some(index);
             }
         }
