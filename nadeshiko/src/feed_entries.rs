@@ -1,10 +1,10 @@
-use std::io;
+use std::io::{ self, Read };
 
-pub struct Feed {
+pub struct FeedEntries {
     content: Vec<u8>,
 }
 
-pub struct FeedIter<'c> {
+pub struct FeedEntriesIter<'c> {
     content: &'c [u8],
 }
 
@@ -21,7 +21,7 @@ const TITLE_CLOSE_TAG: &[u8] = b"</title>";
 const LINK_OPEN_TAG: &[u8] = b"<link>";
 const LINK_CLOSE_TAG: &[u8] = b"</link>";
 
-impl Feed {
+impl FeedEntries {
     
     pub fn new(client: &mut akari::Client, url: &str, max_size: u64) -> io::Result<Self> {
         let response = client.get(url)?;
@@ -30,7 +30,7 @@ impl Feed {
             .unwrap_or(0)
             .min(max_size);
         
-        let mut reader = chikuwa::LimitedReader::new(response, size)?;
+        let mut reader = response.take(size);
         let mut content = Vec::with_capacity(usize::try_from(size).expect("Unsupported platform"));
         
         io::copy(&mut reader, &mut content)?;
@@ -38,15 +38,15 @@ impl Feed {
         Ok(Self { content })
     }
     
-    pub fn iter(&self) -> FeedIter<'_> {
-        FeedIter { content: &self.content }
+    pub fn iter(&self) -> FeedEntriesIter<'_> {
+        FeedEntriesIter { content: &self.content }
     }
     
 }
 
-impl<'c> IntoIterator for &'c Feed {
+impl<'c> IntoIterator for &'c FeedEntries {
     
-    type IntoIter = FeedIter<'c>;
+    type IntoIter = FeedEntriesIter<'c>;
     type Item = FeedEntry<'c>;
     
     fn into_iter(self) -> Self::IntoIter {
@@ -55,7 +55,7 @@ impl<'c> IntoIterator for &'c Feed {
     
 }
 
-impl<'c> Iterator for FeedIter<'c> {
+impl<'c> Iterator for FeedEntriesIter<'c> {
     
     type Item = FeedEntry<'c>;
     
@@ -73,16 +73,16 @@ impl<'c> Iterator for FeedIter<'c> {
         // </item>
         // ...
         
-        while let Some(item) = chikuwa::subslice_range(self.content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
+        while let Some(item) = chikuwa::delimited_range(self.content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
             
             let current = &self.content[item.start..item.end];
             self.content = &self.content[item.end..][ITEM_CLOSE_TAG.len()..];
             
-            let Some(title) = chikuwa::subslice_range(current, TITLE_OPEN_TAG, TITLE_CLOSE_TAG) else {
+            let Some(title) = chikuwa::delimited_range(current, TITLE_OPEN_TAG, TITLE_CLOSE_TAG) else {
                 continue;
             };
             
-            let Some(link) = chikuwa::subslice_range(current, LINK_OPEN_TAG, LINK_CLOSE_TAG) else {
+            let Some(link) = chikuwa::delimited_range(current, LINK_OPEN_TAG, LINK_CLOSE_TAG) else {
                 continue;
             };
             
@@ -130,13 +130,13 @@ mod tests {
                 </rss>
             "#;
             
-            let feed = Feed {
+            let entries = FeedEntries {
                 content: content.to_vec(),
             };
             
             // operation
             
-            let mut output = feed.iter();
+            let mut output = entries.iter();
             
             // control
             
@@ -181,13 +181,13 @@ mod tests {
                 </rss>
             "#;
             
-            let feed = Feed {
+            let entries = FeedEntries {
                 content: content.to_vec(),
             };
             
             // operation
             
-            let mut output = feed.iter();
+            let mut output = entries.iter();
             
             // control
             
@@ -237,13 +237,13 @@ mod tests {
                 </rss>
             "#;
             
-            let feed = Feed {
+            let entries = FeedEntries {
                 content: content.to_vec(),
             };
             
             // operation
             
-            let mut output = feed.iter();
+            let mut output = entries.iter();
             
             // control
             
@@ -286,13 +286,13 @@ mod tests {
                 </rss>
             "#;
             
-            let feed = Feed {
+            let entries = FeedEntries {
                 content: content.to_vec(),
             };
             
             // operation
             
-            let mut output = feed.iter();
+            let mut output = entries.iter();
             
             // control
             
@@ -326,13 +326,13 @@ mod tests {
                 </rss>
             "#;
             
-            let feed = Feed {
+            let entries = FeedEntries {
                 content: content.to_vec(),
             };
             
             // operation
             
-            let mut output = feed.iter();
+            let mut output = entries.iter();
             
             // control
             
@@ -359,13 +359,13 @@ mod tests {
                 </rss>
             "#;
             
-            let feed = Feed {
+            let entries = FeedEntries {
                 content: content.to_vec(),
             };
             
             // operation
             
-            let mut output = feed.iter();
+            let mut output = entries.iter();
             
             // control
             
@@ -397,13 +397,13 @@ mod tests {
                 </item>
             "#;
             
-            let feed = Feed {
+            let entries = FeedEntries {
                 content: content.to_vec(),
             };
             
             // operation
             
-            let mut output = feed.iter();
+            let mut output = entries.iter();
             
             // control
             
@@ -452,13 +452,13 @@ mod tests {
                 </rss>
             "#;
             
-            let feed = Feed {
+            let entries = FeedEntries {
                 content: content.to_vec(),
             };
             
             // operation
             
-            let mut output = feed.iter();
+            let mut output = entries.iter();
             
             // control
             
@@ -503,13 +503,13 @@ mod tests {
                 </rss>
             "#;
             
-            let feed = Feed {
+            let entries = FeedEntries {
                 content: content.to_vec(),
             };
             
             // operation
             
-            let mut output = feed.iter();
+            let mut output = entries.iter();
             
             // control
             

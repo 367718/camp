@@ -41,15 +41,19 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
             continue;
         };
         
-        if ! filter.is_empty() && ! chikuwa::insensitive_contains(relative.as_bytes(), &filter) {
+        if ! filter.is_empty() && chikuwa::subslice_index(relative.as_bytes(), &filter).is_none() {
             continue;
         }
         
         let file_name = entry.file_name().to_str().unwrap();
         let container = entry.container().to_str().unwrap();
-        let marked = ! entry.is_marked(flag).unwrap_or(false);
         
-        write!(&mut response, "<a data-value='{}'>", u8::from(marked))?;
+        // false => 0
+        //  true => 1
+        // if marked, flip boolean to use "0" as value
+        let value = u8::from(! entry.is_marked(flag).unwrap_or(false));
+        
+        write!(&mut response, "<a data-value='{}'>", value)?;
         
         if ! container.is_empty() {
             response.write_all(b"<span>")?;

@@ -3,7 +3,7 @@ mod impls;
 use std::{
     env,
     fs::{ self, File },
-    io::{ self, Error, ErrorKind },
+    io::{ self, Read, Error, ErrorKind },
     sync::OnceLock,
 };
 
@@ -54,7 +54,7 @@ fn load_content() -> &'static [u8] {
         
         let size = metadata.len().min(CONTENT_SIZE_LIMIT);
         
-        let mut reader = chikuwa::LimitedReader::new(file, size)?;
+        let mut reader = file.take(size);
         let mut content = Vec::with_capacity(usize::try_from(size).expect("Unsupported platform"));
         
         io::copy(&mut reader, &mut content)?;
@@ -70,8 +70,8 @@ fn load_content() -> &'static [u8] {
 }
 
 fn extract_value(content: &'static [u8], key: &[u8]) -> Option<&'static [u8]> {
-    let line = chikuwa::subslice_range(content, key, b"\r\n")?;
-    let (_, value) = chikuwa::insensitive_split_once(&content[line], b"=");
+    let line = chikuwa::delimited_range(content, key, b"\r\n")?;
+    let (_, value) = chikuwa::split_once(&content[line], b"=");
     
     Some(value.trim_ascii_start())
 }

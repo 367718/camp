@@ -5,12 +5,24 @@
     
     --primary-color: rgb(28 27 34 / 1);
     --secondary-color: rgb(43 42 51 / 1);
-    --accent-color: rgb(125 125 125 / 1);
     
     --text-primary-color: rgb(232 232 232 / 1);
     --text-secondary-color: rgb(232 232 232 / 0.5);
     
+    --accent-color-rin: rgb(105 125 160 / 1);
+    --accent-color-nadeshiko: rgb(178 133 139 / 1);
+    --accent-color-aoi: rgb(174 153 96 / 1);
+    --accent-color-chiaki: rgb(121 115 154 / 1);
+    --accent-color-ena: rgb(66 138 162 / 1);
+    
     --transition-duration: 0.25s;
+    
+    /* redefined in ".current" */
+    --accent-color: rgb(125 125 125 / 1);
+    --entry-hovered-color: var(--secondary-color);
+    --entry-selected-color: var(--accent-color);
+    --entry-hovered-selected-color: color-mix(in srgb, var(--accent-color) 75%, var(--secondary-color));
+    --entry-unfocused-selected-color: color-mix(in srgb, var(--accent-color) 50%, var(--secondary-color));
     
 }
 
@@ -22,7 +34,6 @@ body {
     height: 100vh;
     margin: 0rem;
     display: flex;
-    gap: 1px;
     background-color: var(--primary-color);
 }
 
@@ -50,33 +61,29 @@ iframe {
 .current {
     
     &.rin {
-        --accent-color: rgb(105 125 160 / 1);
+        --accent-color: var(--accent-color-rin);
     }
     
     &.nadeshiko {
-        --accent-color: rgb(178 133 139 / 1);
+        --accent-color: var(--accent-color-nadeshiko);
     }
     
     &.aoi {
-        --accent-color: rgb(174 153 96 / 1);
+        --accent-color: var(--accent-color-aoi);
     }
     
     &.chiaki {
-        --accent-color: rgb(121 115 154 / 1);
+        --accent-color: var(--accent-color-chiaki);
     }
     
     &.ena {
-        --accent-color: rgb(66 138 162 / 1);
+        --accent-color: var(--accent-color-ena);
     }
     
     --entry-hovered-color: var(--secondary-color);
     --entry-selected-color: var(--accent-color);
     --entry-hovered-selected-color: color-mix(in srgb, var(--accent-color) 75%, var(--secondary-color));
     --entry-unfocused-selected-color: color-mix(in srgb, var(--accent-color) 50%, var(--secondary-color));
-    
-    width: 100%;
-    display: flex;
-    flex-direction: column;
     
     &:focus-within {
         --entry-selected-color: var(--accent-color);
@@ -86,44 +93,48 @@ iframe {
         --entry-selected-color: var(--entry-unfocused-selected-color);
     }
     
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    
 }
 
 
-/* -------------------- panel -------------------- */
+/* -------------------- header -------------------- */
 
 
-.panel {
-    
-    display: flex;
-    justify-content: space-between;
+.header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     background-color: var(--secondary-color);
-    
-    > div {
-        display: flex;
-    }
-    
 }
 
 
 /* -------------------- sections -------------------- */
 
 
-.sections a {
+.sections {
     
-    color: var(--text-secondary-color);
-    transition: background-color var(--transition-duration) ease;
-    text-decoration: none;
-    text-align: center;
-    padding: 0.75rem;
-    min-width: 4rem;
+    display: flex;
     
-    &:hover {
-        cursor: pointer;
-        background-color: var(--accent-color);
-    }
-    
-    &.active {
-        color: var(--text-primary-color);
+    a {
+        
+        color: var(--text-secondary-color);
+        transition: background-color var(--transition-duration) ease;
+        text-decoration: none;
+        text-align: center;
+        padding: 0.75rem;
+        min-width: 4rem;
+        
+        &:hover {
+            cursor: pointer;
+            background-color: var(--accent-color);
+        }
+        
+        &.active {
+            color: var(--text-primary-color);
+        }
+        
     }
     
 }
@@ -133,7 +144,6 @@ iframe {
 
 
 .filter {
-    width: 50%;
     border: none;
     background-color: var(--primary-color);
     color: var(--text-primary-color);
@@ -150,15 +160,15 @@ iframe {
     overflow-y: scroll;
     height: 100%;
     
-    &.show-value a[data-value]::after {
+    &[data-value="true"] a[data-value]::after {
         display: inline;
     }
     
-    &.show-primary a:not([data-value="0"]), &.show-secondary a[data-value="0"] {
+    &[data-primary="true"] a:not([data-value="0"]), &[data-secondary="true"] a[data-value="0"] {
         display: block;
     }
     
-    &.show-tertiary a span {
+    &[data-tertiary="true"] a span {
         display: inline;
     }
     
@@ -184,10 +194,6 @@ iframe {
     &:hover {
         cursor: pointer;
         background-color: var(--entry-hovered-color);
-    }
-    
-    &.filtered {
-        display: none !important;
     }
     
     &[data-value="0"] {
@@ -221,18 +227,24 @@ iframe {
 /* -------------------- actions -------------------- */
 
 
-.actions a {
+.actions {
     
-    color: var(--text-primary-color);
-    transition: background-color var(--transition-duration) ease;
-    text-decoration: none;
-    text-align: center;
-    padding: 0.75rem;
-    min-width: 4rem;
+    display: flex;
     
-    &:hover {
-        cursor: pointer;
-        background-color: var(--accent-color);
+    a {
+        
+        color: var(--text-primary-color);
+        transition: background-color var(--transition-duration) ease;
+        text-decoration: none;
+        text-align: center;
+        padding: 0.75rem;
+        min-width: 4rem;
+        
+        &:hover {
+            cursor: pointer;
+            background-color: var(--accent-color);
+        }
+        
     }
     
 }
@@ -241,21 +253,28 @@ iframe {
 /* -------------------- toggles -------------------- */
 
 
-.toggles label {
+.toggles {
     
-    color: var(--text-secondary-color);
-    transition: background-color var(--transition-duration) ease, color var(--transition-duration) ease;
-    padding: 0.75rem;
-    min-width: 4rem;
-    text-align: center;
+    display: flex;
+    justify-content: flex-end;
     
-    &:hover {
-        cursor: pointer;
-        background-color: var(--accent-color);
-    }
-    
-    &[data-active] {
-        color: var(--text-primary-color);
+    label {
+        
+        color: var(--text-secondary-color);
+        transition: background-color var(--transition-duration) ease, color var(--transition-duration) ease;
+        padding: 0.75rem;
+        min-width: 4rem;
+        text-align: center;
+        
+        &:hover {
+            cursor: pointer;
+            background-color: var(--accent-color);
+        }
+        
+        &[data-enabled="true"] {
+            color: var(--text-primary-color);
+        }
+        
     }
     
 }

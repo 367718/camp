@@ -15,7 +15,7 @@ members = [
 [workspace.package]
 edition = "2024"
 license = "0BSD"
-rust-version = "1.92.0"
+rust-version = "1.93.0"
 version = "2.0.0"
 
 [profile.release]

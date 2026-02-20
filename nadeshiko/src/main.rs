@@ -1,5 +1,5 @@
 mod cache;
-mod feed;
+mod feed_entries;
 
 use std::{
     error::Error,
@@ -10,7 +10,7 @@ use std::{
 };
 
 use cache::Cache;
-use feed::Feed;
+use feed_entries::FeedEntries;
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -25,8 +25,8 @@ fn main() {
     
     println!();
     print!("Press 'enter' key to exit...");
-    
     io::stdout().flush().ok();
+    
     let _ = io::stdin().read(&mut [0]).ok();
 }
 
@@ -50,15 +50,15 @@ fn process() -> Result<(), Box<dyn Error>> {
     
     // -------------------- entries --------------------
     
-    for url in feeds.iter().filter_map(|feed| str::from_utf8(feed.tag).ok()) {
+    for feed in &feeds {
+        
+        let url = str::from_utf8(feed.tag)?;
         
         println!();
         println!("{}", url);
         println!("--------------------");
         
-        let feed = Feed::new(&mut client, url, max_feed_size)?;
-        
-        for entry in &feed {
+        for entry in &FeedEntries::new(&mut client, url, max_feed_size)? {
             
             // -------------------- rule --------------------
             
@@ -122,7 +122,7 @@ fn download_torrent(client: &mut akari::Client, link: &str, max_size: u64, desti
         .write(true)
         .open(destination)?;
     
-    let mut reader = chikuwa::LimitedReader::new(response, max_size)?;
+    let mut reader = response.take(max_size);
     let mut writer = BufWriter::new(file);
     
     io::copy(&mut reader, &mut writer)?;

@@ -1,4 +1,4 @@
-pub fn insensitive_split_once<'c>(content: &'c [u8], separator: &[u8]) -> (&'c [u8], &'c [u8]) {
+pub fn split_once<'c>(content: &'c [u8], separator: &[u8]) -> (&'c [u8], &'c [u8]) {
     extract_pair(content, separator)
         .unwrap_or((content, &[]))
 }
@@ -32,7 +32,7 @@ mod tests {
         
         // operation
         
-        let output = insensitive_split_once(content, separator);
+        let output = split_once(content, separator);
         
         // control
         
@@ -48,7 +48,7 @@ mod tests {
         
         // operation
         
-        let output = insensitive_split_once(content, separator);
+        let output = split_once(content, separator);
         
         // control
         
@@ -64,7 +64,7 @@ mod tests {
         
         // operation
         
-        let output = insensitive_split_once(content, separator);
+        let output = split_once(content, separator);
         
         // control
         
@@ -80,7 +80,7 @@ mod tests {
         
         // operation
         
-        let output = insensitive_split_once(content, separator);
+        let output = split_once(content, separator);
         
         // control
         
@@ -96,7 +96,7 @@ mod tests {
         
         // operation
         
-        let output = insensitive_split_once(content, separator);
+        let output = split_once(content, separator);
         
         // control
         
@@ -112,7 +112,7 @@ mod tests {
         
         // operation
         
-        let output = insensitive_split_once(content, separator);
+        let output = split_once(content, separator);
         
         // control
         
@@ -128,7 +128,7 @@ mod tests {
         
         // operation
         
-        let output = insensitive_split_once(content, separator);
+        let output = split_once(content, separator);
         
         // control
         
@@ -144,7 +144,7 @@ mod tests {
         
         // operation
         
-        let output = insensitive_split_once(content, separator);
+        let output = split_once(content, separator);
         
         // control
         
@@ -160,7 +160,7 @@ mod tests {
         
         // operation
         
-        let output = insensitive_split_once(content.as_bytes(), separator.as_bytes());
+        let output = split_once(content.as_bytes(), separator.as_bytes());
         
         // control
         

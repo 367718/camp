@@ -31,7 +31,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in &list {
         
-        if ! filter.is_empty() && ! chikuwa::insensitive_contains(entry.tag, &filter) {
+        if ! filter.is_empty() && chikuwa::subslice_index(entry.tag, &filter).is_none() {
             continue;
         }
         

@@ -18,7 +18,6 @@ The following keyboard shortcuts are available:
 * `/watchlist`: entries present in the corresponding list file.
 * `/rules`: entries present in the corresponding list file.
 * `/feeds`: entries present in the corresponding list file.
-* `/mobile`: entries present in the configured directory, intented to be used by tablet devices.
 
 ## Configuration parameters used
 

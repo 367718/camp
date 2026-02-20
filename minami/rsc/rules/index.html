@@ -3,7 +3,6 @@
     
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Minami</title>
         <link rel="icon" type="image/x-icon" href="data:,">
         <link rel="stylesheet" type="text/css" href="/styles.css">
@@ -13,7 +12,7 @@
     <body>
         <div tabindex="0" class="current">
             
-            <div class="panel">
+            <div class="header">
                 
                 <div class="sections">
                     <a href="/files">Files</a>
@@ -24,19 +23,15 @@
                 
                 <input type="text" class="filter" placeholder="Filter">
                 
-            </div>
-            
-            <div class="panel">
-                
                 <div class="actions">
-                    <a data-url="/rules/insert" class="prompt refresh">Insert</a>
-                    <a data-url="/rules/update" class="prompt refresh">Update</a>
-                    <a data-url="/rules/delete" class="confirm refresh">Delete</a>
+                    <a data-url="/rules/insert" data-confirm="false" data-prompt="true" data-refresh="true">Insert</a>
+                    <a data-url="/rules/update" data-confirm="false" data-prompt="true" data-refresh="true">Update</a>
+                    <a data-url="/rules/delete" data-confirm="true" data-prompt="false" data-refresh="true">Delete</a>
                 </div>
                 
             </div>
             
-            <div data-refresh="/rules/entries" class="list sorted show-value show-primary show-secondary">
+            <div data-refresh="/rules/entries" data-sorted="true" data-value="true" data-primary="true" data-secondary="true" data-tertiary="false" class="list">
             </div>
             
         </div>

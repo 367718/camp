@@ -1,42 +1,13 @@
 use std::ops::Range;
 
-pub fn subslice_range(content: &[u8], left: &[u8], right: &[u8]) -> Option<Range<usize>> {
-    let start = find_subslice_ignore_case(content, left)
+pub fn delimited_range(content: &[u8], left: &[u8], right: &[u8]) -> Option<Range<usize>> {
+    let start = super::subslice_index(content, left)
         .and_then(|index| index.checked_add(left.len()))?;
     
-    let end = find_subslice_ignore_case(&content[start..], right)
+    let end = super::subslice_index(&content[start..], right)
         .and_then(|index| index.checked_add(start))?;
     
     Some(start..end)
-}
-
-fn find_subslice_ignore_case(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    let needle_len = needle.len();
-    let haystack_len = haystack.len();
-    
-    if needle_len == 0 || needle_len > haystack_len {
-        return None;
-    }
-    
-    let needle_f = needle[0];
-    let needle_flo = needle_f.to_ascii_lowercase();
-    let needle_fup = needle_f.to_ascii_uppercase();
-    
-    // only consider sections of the haystack where the needle can fit
-    for index in 0..=(haystack_len - needle_len) {
-        
-        let current = haystack[index];
-        
-        // if the first character of the needle matches, perform full check
-        if current == needle_flo || current == needle_fup {
-            if haystack[index..][..needle_len].eq_ignore_ascii_case(needle) {
-                return Some(index);
-            }
-        }
-        
-    }
-    
-    None
 }
 
 #[cfg(test)]
@@ -57,7 +28,7 @@ mod tests {
             
             // operation
             
-            let output = subslice_range(content, b"<a>", b"</a>");
+            let output = delimited_range(content, b"<a>", b"</a>");
             
             // control
             
@@ -79,7 +50,7 @@ mod tests {
             
             // operation
             
-            let output = subslice_range(content, b"<link>", b"</link>");
+            let output = delimited_range(content, b"<link>", b"</link>");
             
             // control
             
@@ -101,7 +72,7 @@ mod tests {
             
             // operation
             
-            let output = subslice_range(content, b"<comment>", b"</comment>");
+            let output = delimited_range(content, b"<comment>", b"</comment>");
             
             // control
             
@@ -123,7 +94,7 @@ mod tests {
             
             // operation
             
-            let output = subslice_range(content, b"<linkz>", b"</link>");
+            let output = delimited_range(content, b"<linkz>", b"</link>");
             
             // control
             
@@ -145,7 +116,7 @@ mod tests {
             
             // operation
             
-            let output = subslice_range(content, b"<link>", b"</linkz>");
+            let output = delimited_range(content, b"<link>", b"</linkz>");
             
             // control
             
@@ -167,7 +138,7 @@ mod tests {
             
             // operation
             
-            let output = subslice_range(content, b"", b"");
+            let output = delimited_range(content, b"", b"");
             
             // control
             
@@ -182,7 +153,7 @@ mod tests {
             
             // operation
             
-            let output = subslice_range(content, b"<a>", b"</a>");
+            let output = delimited_range(content, b"<a>", b"</a>");
             
             // control
             
@@ -197,7 +168,7 @@ mod tests {
             
             // operation
             
-            let output = subslice_range(content, b"", b"");
+            let output = delimited_range(content, b"", b"");
             
             // control
             
@@ -212,7 +183,7 @@ mod tests {
             
             // operation
             
-            let output = subslice_range(content, b"", b"</a>");
+            let output = delimited_range(content, b"", b"</a>");
             
             // control
             
@@ -227,7 +198,7 @@ mod tests {
             
             // operation
             
-            let output = subslice_range(content, b"<a>", b"");
+            let output = delimited_range(content, b"<a>", b"");
             
             // control
             

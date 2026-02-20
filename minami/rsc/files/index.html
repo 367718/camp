@@ -3,7 +3,6 @@
     
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Minami</title>
         <link rel="icon" type="image/x-icon" href="data:,">
         <link rel="stylesheet" type="text/css" href="/styles.css">
@@ -13,7 +12,7 @@
     <body>
         <div tabindex="0" class="current">
             
-            <div class="panel">
+            <div class="header">
                 
                 <div class="sections">
                     <a class="active">Files</a>
@@ -24,26 +23,22 @@
                 
                 <input type="text" class="filter" placeholder="Filter">
                 
-            </div>
-            
-            <div class="panel">
-                
                 <div class="actions">
-                    <a data-url="/files/play">Play</a>
-                    <a data-url="/files/mark" class="refresh">Mark</a>
-                    <a data-url="/files/folder" class="prompt refresh">Folder</a>
-                    <a data-url="/files/delete" class="confirm refresh">Delete</a>
+                    <a data-url="/files/play" data-confirm="false" data-prompt="false" data-refresh="false">Play</a>
+                    <a data-url="/files/mark" data-confirm="false" data-prompt="false" data-refresh="true">Mark</a>
+                    <a data-url="/files/folder" data-confirm="false" data-prompt="true" data-refresh="true">Folder</a>
+                    <a data-url="/files/delete" data-confirm="true" data-prompt="false" data-refresh="true">Delete</a>
                 </div>
                 
                 <div class="toggles">
-                    <label data-value="show-primary" data-active="">Unmarked</label>
-                    <label data-value="show-secondary">Marked</label>
-                    <label data-value="show-tertiary" data-active="">Containers</label>
+                    <label data-attr="data-primary" data-enabled="true">Unmarked</label>
+                    <label data-attr="data-secondary" data-enabled="false">Marked</label>
+                    <label data-attr="data-tertiary" data-enabled="true">Containers</label>
                 </div>
                 
             </div>
             
-            <div data-refresh="/files/entries" class="list sorted show-primary show-tertiary">
+            <div data-refresh="/files/entries" data-sorted="true" data-value="false" data-primary="true" data-secondary="false" data-tertiary="true" class="list">
             </div>
             
         </div>

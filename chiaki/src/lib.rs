@@ -3,7 +3,7 @@ mod serdes;
 use std::{
     env,
     fs::{ self, File },
-    io::{ self, Write, BufWriter, Error, ErrorKind },
+    io::{ self, Read, Write, BufWriter, Error, ErrorKind },
     path::{ Path, PathBuf },
 };
 
@@ -62,7 +62,7 @@ impl List {
         
         let size = metadata.len().min(max_size);
         
-        let mut reader = chikuwa::LimitedReader::new(file, size)?;
+        let mut reader = file.take(size);
         let mut content = Vec::with_capacity(usize::try_from(size).expect("Unsupported platform"));
         
         io::copy(&mut reader, &mut content)

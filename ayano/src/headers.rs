@@ -17,7 +17,7 @@ impl Headers {
     
     pub fn endpoint(&self) -> Option<&[u8]> {
         // GET /test/resource?fkey=fvalue HTTP/1.1
-        let (working, _) = chikuwa::insensitive_split_once(&self.content, b"\r");
+        let (working, _) = chikuwa::split_once(&self.content, b"\r");
         
         // TODO: replace with slice::rsplit_once in the future (https://github.com/rust-lang/rust/issues/112811)
         let mut parts = working.rsplitn(2, |&curr| curr == b' ');
@@ -33,7 +33,7 @@ impl Headers {
     }
     
     pub fn get(&self, key: &[u8]) -> Option<&[u8]> {
-        let range = chikuwa::subslice_range(&self.content, key, b"\r\n")?;
+        let range = chikuwa::delimited_range(&self.content, key, b"\r\n")?;
         
         let value = &self.content[range];
         let value = value.strip_prefix(b":").unwrap_or(value);
@@ -49,9 +49,9 @@ impl Headers {
         let mut content: &[u8] = &[];
         
         // first line
-        let (working, _) = chikuwa::insensitive_split_once(&self.content, b"\r");
+        let (working, _) = chikuwa::split_once(&self.content, b"\r");
         
-        if let Some(range) = chikuwa::subslice_range(working, b"?", b" ") {
+        if let Some(range) = chikuwa::delimited_range(working, b"?", b" ") {
             content = &working[range];
         }
         
@@ -74,8 +74,8 @@ impl Iterator for QueryString<'_, '_> {
         
         while ! self.content.is_empty() {
             
-            let (working, rest) = chikuwa::insensitive_split_once(self.content, b"&");
-            let (left, right) = chikuwa::insensitive_split_once(working, b"=");
+            let (working, rest) = chikuwa::split_once(self.content, b"&");
+            let (left, right) = chikuwa::split_once(working, b"=");
             
             self.content = rest;
             

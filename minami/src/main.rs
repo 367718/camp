@@ -5,7 +5,6 @@ mod files;
 mod watchlist;
 mod rules;
 mod feeds;
-mod mobile;
 
 use std::{
     error::Error,
@@ -80,11 +79,6 @@ fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
         b"GET /feeds/entries" => feeds::entries(request),
         b"POST /feeds/insert" => feeds::insert(request),
         b"POST /feeds/delete" => feeds::delete(request),
-        
-        // -------------------- mobile --------------------
-        
-        b"GET /mobile" => mobile::index(request),
-        b"GET /mobile/styles.css" => mobile::styles(request),
         
         // -------------------- not found --------------------
         

@@ -11,30 +11,29 @@ const HOTKEY_COPY_COMPLETE = "KeyC";
 const HOTKEY_COPY_CLEAN = "KeyX";
 
 const SECTIONS_NODE_SELECTOR = ".sections";
-const SECTIONS_ACTIVE_CLASS = "active";
+const SECTIONS_ACTIVE_CLASS = ".active";
 
 const FILTER_NODE_SELECTOR = ".filter";
 const FILTER_TIMEOUT_ATTRIBUTE = "data-timeout";
 const FILTER_TIMEOUT_VALUE = 500;
 
 const LIST_NODE_SELECTOR = ".list";
-const LIST_SORTED_CLASS = "sorted";
+const LIST_SORTED_ATTRIBUTE = "data-sorted";
 const LIST_REFRESH_ATTRIBUTE = "data-refresh";
 
 const ENTRY_SELECTED_ATTRIBUTE = "data-selected";
-const ENTRY_FILTERED_CLASS = "filtered";
 
 const ACTIONS_NODE_SELECTOR = ".actions";
 const ACTIONS_URL_ATTRIBUTE = "data-url";
-const ACTIONS_CONFIRM_CLASS = "confirm";
-const ACTIONS_PROMPT_CLASS = "prompt";
-const ACTIONS_REFRESH_CLASS = "refresh";
+const ACTIONS_CONFIRM_ATTRIBUTE = "data-confirm";
+const ACTIONS_PROMPT_ATTRIBUTE = "data-prompt";
+const ACTIONS_REFRESH_ATTRIBUTE = "data-refresh";
 
 const TOGGLES_NODE_SELECTOR = ".toggles";
-const TOGGLES_VALUE_ATTRIBUTE = "data-value";
-const TOGGLES_ACTIVE_ATTRIBUTE = "data-active";
+const TOGGLES_ATTR_ATTRIBUTE = "data-attr";
+const TOGGLES_ENABLED_ATTRIBUTE = "data-enabled";
 
-const COLORS_CLASSES = ["rin", "nadeshiko", "aoi", "chiaki", "ena"];
+const COLOR_CLASSES = ["rin", "nadeshiko", "aoi", "chiaki", "ena"];
 
 
 // -------------------- classes --------------------
@@ -61,7 +60,7 @@ class Current {
     
     // -------------------- styles --------------------
     
-    const color = COLORS_CLASSES[Math.floor(Math.random() * COLORS_CLASSES.length)];
+    const color = COLOR_CLASSES[Math.floor(Math.random() * COLOR_CLASSES.length)];
     this.node.classList.add(color);
     
     // -------------------- bindings --------------------
@@ -82,6 +81,7 @@ class Current {
     });
     
   }
+  
 }
 
 class Sections {
@@ -101,12 +101,11 @@ class Sections {
     
     // -------------------- bindings --------------------
     
-    let active = Array.from(this.node.children)
-      .find((current) => current.classList.contains(SECTIONS_ACTIVE_CLASS));
-    
+    const active = this.node.querySelector(SECTIONS_ACTIVE_CLASS);
     active.addEventListener("click", () => this.parent.list.refresh());
     
   }
+  
 }
 
 class Filter {
@@ -128,14 +127,11 @@ class Filter {
     
     this.node.addEventListener("input", () => {
       clearTimeout(this.node.getAttribute(FILTER_TIMEOUT_ATTRIBUTE));
-      this.node.setAttribute(FILTER_TIMEOUT_ATTRIBUTE, setTimeout(() => this.apply(), FILTER_TIMEOUT_VALUE));
+      const timeout = setTimeout(() => this.parent.list.refresh(), FILTER_TIMEOUT_VALUE);
+      this.node.setAttribute(FILTER_TIMEOUT_ATTRIBUTE, timeout);
     });
     
   }
-  
-  focus = () => this.node.focus();
-  
-  apply = () => this.parent.list.refresh();
   
 }
 
@@ -160,41 +156,11 @@ class List {
     
     this.node.onclick = (event) => this.select(event.target, event.ctrlKey, event.shiftKey);
     
-    this.node.ontouchstart = (event) => {
-      
-      let touchMove = false;
-      
-      this.node.ontouchmove = (_event) => (touchMove = true);
-      
-      this.node.ontouchend = (event) => {
-        
-        if (! touchMove) {
-          // handle tap as "control click"
-          this.select(event.target, true, false);
-        }
-        
-        // prevent click event from firing
-        event.preventDefault();
-        
-      };
-      
-    };
-    
     // -------------------- initial load --------------------
     
     this.refresh();
     
   }
-  
-  toggle = (criteria) => {
-    
-    this.node.classList.toggle(criteria);
-    
-    this.entries
-      .filter((entry) => entry.is_selected() && ! entry.is_visible())
-      .forEach((entry) => entry.toggle_select());
-    
-  };
   
   select = (node, control, shift) => {
     
@@ -307,16 +273,17 @@ class List {
         
         response.text().then((text) => {
           
-          // children
+          // parse
           
           const parser = new DOMParser();
           const parsed = parser.parseFromString(text, "text/html");
           
           const children = Array.from(parsed.body.childNodes);
+          const entries = children.map((child) => new Entry(child, this));
           
           // sort
           
-          if (this.node.classList.contains(LIST_SORTED_CLASS)) {
+          if (this.node.getAttribute(LIST_SORTED_ATTRIBUTE) == "true") {
             
             const collator = new Intl.Collator("en", {
               usage: "sort",
@@ -328,11 +295,7 @@ class List {
             
           }
           
-          // entries
-          
-          const entries = children.map((child) => new Entry(child, this));
-          
-          // refresh
+          // update
           
           this.node.replaceChildren(...children);
           this.entries = entries;
@@ -365,13 +328,9 @@ class Entry {
   
   is_selected = () => this.node.hasAttribute(ENTRY_SELECTED_ATTRIBUTE);
   
-  is_filtered = () => this.node.classList.contains(ENTRY_FILTERED_CLASS);
-  
   is_visible = () => this.node.offsetParent != null;
   
   toggle_select = () => this.node.toggleAttribute(ENTRY_SELECTED_ATTRIBUTE);
-  
-  toggle_filter = () => this.node.classList.toggle(ENTRY_FILTERED_CLASS);
   
   text = (clean) => {
     
@@ -379,36 +338,17 @@ class Entry {
     
     if (clean) {
       
-      // strip container
+      // container
       text = text.replace(/^.+\\/, "");
       
-      // strip format
+      // format
       text = text.replace(/\.[^.]+$/, "");
       
-      // strip leading square brackets and parens
+      // square brackets and parens
+      text = text.replace(/\[[^\]]*\]\s*|\([^\)]*\)\s*/g, "");
       
-      {
-        let previous = 0;
-        
-        do {
-          previous = text.length;
-          text = text.replace(/^\[[^\]]*\]\s*|^\([^\)]*\)\s*/, "");
-        } while (text.length != previous);
-      }
-      
-      // strip trailing square brackets and parens
-      
-      {
-        let previous = 0;
-        
-        do {
-          previous = text.length;
-          text = text.replace(/\s*\[[^\]]*\]$|\s*\([^\)]*\)$/, "");
-        } while (text.length != previous);
-      }
-      
-      // strip episode number
-      text = text.replace(/\s*-\s*\d+$/, "");
+      // episode number
+      text = text.replace(/\s*-*\s*\d+\s*$/, "");
       
     }
     
@@ -440,9 +380,9 @@ class Actions {
       child.addEventListener("click", () => {
         
         const url = child.getAttribute(ACTIONS_URL_ATTRIBUTE);
-        const confirm = child.classList.contains(ACTIONS_CONFIRM_CLASS);
-        const prompt = child.classList.contains(ACTIONS_PROMPT_CLASS);
-        const refresh = child.classList.contains(ACTIONS_REFRESH_CLASS);
+        const confirm = child.getAttribute(ACTIONS_CONFIRM_ATTRIBUTE) == "true";
+        const prompt = child.getAttribute(ACTIONS_PROMPT_ATTRIBUTE) == "true";
+        const refresh = child.getAttribute(ACTIONS_REFRESH_ATTRIBUTE) == "true";
         
         this.request(url, confirm, prompt, refresh);
         
@@ -525,8 +465,13 @@ class Toggles {
     for (const child of this.node.children) {
       
       child.addEventListener("click", (event) => {
-        child.toggleAttribute(TOGGLES_ACTIVE_ATTRIBUTE);
-        this.parent.list.toggle(event.target.getAttribute(TOGGLES_VALUE_ATTRIBUTE));
+        
+        const state = child.getAttribute(TOGGLES_ENABLED_ATTRIBUTE) == "true" ? "false" : "true";
+        const attr = child.getAttribute(TOGGLES_ATTR_ATTRIBUTE);
+        
+        child.setAttribute(TOGGLES_ENABLED_ATTRIBUTE, state);
+        this.parent.list.node.setAttribute(attr, state);
+        
       });
       
     }

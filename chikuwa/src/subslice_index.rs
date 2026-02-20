@@ -1,11 +1,30 @@
-pub fn insensitive_contains(haystack: &[u8], needle: &[u8]) -> bool {
-    // 'windows' function panics on 0 length
-    if needle.is_empty() {
-        return true;
+pub fn subslice_index(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    let needle_len = needle.len();
+    let haystack_len = haystack.len();
+    
+    if needle_len == 0 || needle_len > haystack_len {
+        return None;
     }
     
-    haystack.windows(needle.len())
-        .any(|curr| curr.eq_ignore_ascii_case(needle))
+    let needle_f = needle[0];
+    let needle_flo = needle_f.to_ascii_lowercase();
+    let needle_fup = needle_f.to_ascii_uppercase();
+    
+    // only consider sections of the haystack where the needle can fit
+    for index in 0..=(haystack_len - needle_len) {
+        
+        let current = haystack[index];
+        
+        // if the first character of the needle matches, perform full check
+        if current == needle_flo || current == needle_fup {
+            if haystack[index..][..needle_len].eq_ignore_ascii_case(needle) {
+                return Some(index);
+            }
+        }
+        
+    }
+    
+    None
 }
 
 #[cfg(test)]
@@ -18,31 +37,31 @@ mod tests {
         // setup
         
         let haystack = b"placeholder";
-        let needle = b"HOLDER";
-        
-        // operation
-        
-        let output = insensitive_contains(haystack, needle);
-        
-        // control
-        
-        assert!(output == true);
-    }
-    
-    #[test]
-    fn case_match() {
-        // setup
-        
-        let haystack = b"placeholder";
         let needle = b"holder";
         
         // operation
         
-        let output = insensitive_contains(haystack, needle);
+        let output = subslice_index(haystack, needle);
         
         // control
         
-        assert!(output == true);
+        assert_eq!(output, Some(5));
+    }
+    
+    #[test]
+    fn case_mismatch() {
+        // setup
+        
+        let haystack = b"placeholder";
+        let needle = b"HOLDER";
+        
+        // operation
+        
+        let output = subslice_index(haystack, needle);
+        
+        // control
+        
+        assert_eq!(output, Some(5));
     }
     
     #[test]
@@ -54,11 +73,11 @@ mod tests {
         
         // operation
         
-        let output = insensitive_contains(haystack, needle);
+        let output = subslice_index(haystack, needle);
         
         // control
         
-        assert!(output == true);
+        assert_eq!(output, Some(0));
     }
     
     #[test]
@@ -70,11 +89,11 @@ mod tests {
         
         // operation
         
-        let output = insensitive_contains(haystack.as_bytes(), needle);
+        let output = subslice_index(haystack.as_bytes(), needle);
         
         // control
         
-        assert!(output == true);
+        assert_eq!(output, Some(9));
     }
     
     #[test]
@@ -86,11 +105,11 @@ mod tests {
         
         // operation
         
-        let output = insensitive_contains(haystack, needle);
+        let output = subslice_index(haystack, needle);
         
         // control
         
-        assert!(output == false);
+        assert!(output.is_none());
     }
     
     #[test]
@@ -102,11 +121,11 @@ mod tests {
         
         // operation
         
-        let output = insensitive_contains(haystack, needle);
+        let output = subslice_index(haystack, needle);
         
         // control
         
-        assert!(output == true);
+        assert!(output.is_none());
     }
     
     #[test]
@@ -118,11 +137,11 @@ mod tests {
         
         // operation
         
-        let output = insensitive_contains(haystack, needle);
+        let output = subslice_index(haystack, needle);
         
         // control
         
-        assert!(output == false);
+        assert!(output.is_none());
     }
     
     #[test]
@@ -134,11 +153,11 @@ mod tests {
         
         // operation
         
-        let output = insensitive_contains(haystack, needle);
+        let output = subslice_index(haystack, needle);
         
         // control
         
-        assert!(output == true);
+        assert!(output.is_none());
     }
     
 }
