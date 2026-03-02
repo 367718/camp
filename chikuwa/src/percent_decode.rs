@@ -1,41 +1,66 @@
 // https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding
 
-use std::io::{ self, Write };
+use std::io::{ self, Error, ErrorKind, Write };
 
-pub fn percent_decode(content: &[u8], writer: &mut impl Write) -> io::Result<()> {
-    if ! content.iter().any(|byte| matches!(byte, b'%' | b'+')) {
-        return writer.write_all(content);
-    }
+pub fn percent_decode(content: &[u8], mut writer: impl Write) -> io::Result<()> {
+    let mut previous_position = 0;
     
-    let mut iter = content.iter();
+    let mut bytes = content.iter()
+        .copied()
+        .enumerate();
     
-    while let Some(byte) = iter.next() {
-        match *byte {
+    while let Some((current_position, byte)) = bytes.next() {
+        
+        if ! matches!(byte, b'%' | b'+') {
+            continue;
+        }
+        
+        // skipped chunk of unencoded characters
+        if previous_position < current_position {
+            writer.write_all(&content[previous_position..current_position])?;
+        }
+        
+        if byte == b'%' {
             
-            b'%' => {
-                
-                let Some(left) = iter.next().map(|left| char::from(*left)) else {
-                    break;
-                };
-                
-                let Some(right) = iter.next().map(|right| char::from(*right)) else {
-                    break;
-                };
-                
-                if let Ok(decoded) = u8::from_str_radix(&format!("{}{}", left, right), 16) {
-                    writer.write_all(&[decoded])?;
-                }
-                
-            },
+            let high = bytes.next()
+                .and_then(|(_, byte)| decode_hex(byte))
+                .ok_or(Error::from(ErrorKind::InvalidInput))?;
             
-            b'+' => writer.write_all(b" ")?,
+            let low = bytes.next()
+                .and_then(|(_, byte)| decode_hex(byte))
+                .ok_or(Error::from(ErrorKind::InvalidInput))?;
             
-            _ => writer.write_all(&[*byte])?,
+            // decoded character
+            writer.write_all(&[high << 4 | low])?;
+            
+            previous_position = current_position + 3;
+            
+        } else {
+            
+            // decoded '+' character
+            writer.write_all(b" ")?;
+            
+            previous_position = current_position + 1;
             
         }
+        
+    }
+    
+    // remaining unencoded characters
+    if previous_position < content.len() {
+        writer.write_all(&content[previous_position..])?;
     }
     
     Ok(())
+}
+
+fn decode_hex(byte: u8) -> Option<u8> {
+    match byte {
+        b'0' ..= b'9' => Some(byte - b'0'),
+        b'a' ..= b'f' => Some(byte - b'a' + 10),
+        b'A' ..= b'F' => Some(byte - b'A' + 10),
+        _ => None,
+    }
 }
 
 #[cfg(test)]

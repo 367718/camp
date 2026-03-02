@@ -36,7 +36,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
         }
         
         write!(&mut response, "<a data-value='{}'>", entry.value)?;
-        chikuwa::escape_html(&mut response, entry.tag)?;
+        chikuwa::escape_html(entry.tag, &mut response)?;
         response.write_all(b"</a>")?;
         
     }

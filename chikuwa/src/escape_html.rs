@@ -2,32 +2,33 @@
 
 use std::io::{ self, Write };
 
-pub fn escape_html(writer: &mut impl Write, content: &[u8]) -> io::Result<()> {
+pub fn escape_html(content: &[u8], mut writer: impl Write) -> io::Result<()> {
     let mut previous_position = 0;
     
     for (current_position, &byte) in content.iter().enumerate() {
-        if matches!(byte, b'&' | b'<' | b'>' | b'"' | b'\'') {
-            
-            if previous_position < current_position {
-                writer.write_all(&content[previous_position..current_position])?;
-            }
-            
-            let replacement: &[u8] = match byte {
-                b'&' => b"&amp;",
-                b'<' => b"&lt;",
-                b'>' => b"&gt;",
-                b'"' => b"&quot;",
-                b'\'' => b"&apos;",
-                _ => unreachable!(),
-            };
-            
-            writer.write_all(replacement)?;
-            
-            previous_position = current_position + 1;
-            
+        
+        let replacement: &[u8] = match byte {
+            b'&' => b"&amp;",
+            b'<' => b"&lt;",
+            b'>' => b"&gt;",
+            b'"' => b"&quot;",
+            b'\'' => b"&apos;",
+            _ => continue,
+        };
+        
+        // skipped chunk of unescaped characters
+        if previous_position < current_position {
+            writer.write_all(&content[previous_position..current_position])?;
         }
+        
+        // escaped character
+        writer.write_all(replacement)?;
+        
+        previous_position = current_position + 1;
+        
     }
     
+    // remaining unescaped characters
     if previous_position < content.len() {
         writer.write_all(&content[previous_position..])?;
     }
@@ -49,7 +50,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(&mut writer, content.as_bytes());
+        let output = escape_html(content.as_bytes(), &mut writer);
         
         // control
         
@@ -66,7 +67,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(&mut writer, content.as_bytes());
+        let output = escape_html(content.as_bytes(), &mut writer);
         
         // control
         
@@ -83,7 +84,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(&mut writer, content.as_bytes());
+        let output = escape_html(content.as_bytes(), &mut writer);
         
         // control
         
@@ -100,7 +101,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(&mut writer, content.as_bytes());
+        let output = escape_html(content.as_bytes(), &mut writer);
         
         // control
         
@@ -117,7 +118,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(&mut writer, content.as_bytes());
+        let output = escape_html(content.as_bytes(), &mut writer);
         
         // control
         
@@ -134,7 +135,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(&mut writer, content.as_bytes());
+        let output = escape_html(content.as_bytes(), &mut writer);
         
         // control
         
@@ -151,7 +152,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(&mut writer, content.as_bytes());
+        let output = escape_html(content.as_bytes(), &mut writer);
         
         // control
         
@@ -168,7 +169,7 @@ mod tests {
         
         // operation
         
-        let output = escape_html(&mut writer, content.as_bytes());
+        let output = escape_html(content.as_bytes(), &mut writer);
         
         // control
         

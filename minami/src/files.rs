@@ -50,19 +50,19 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
         
         // false => 0
         //  true => 1
-        // if marked, flip boolean to use "0" as value
+        // if marked, flip boolean to use 0 as true
         let value = u8::from(! entry.is_marked(flag).unwrap_or(false));
         
         write!(&mut response, "<a data-value='{}'>", value)?;
         
         if ! container.is_empty() {
             response.write_all(b"<span>")?;
-            chikuwa::escape_html(&mut response, container.as_bytes())?;
+            chikuwa::escape_html(container.as_bytes(), &mut response)?;
             response.write_all(MAIN_SEPARATOR_STR.as_bytes())?;
             response.write_all(b"</span>")?;
         }
         
-        chikuwa::escape_html(&mut response, file_name.as_bytes())?;
+        chikuwa::escape_html(file_name.as_bytes(), &mut response)?;
         
         response.write_all(b"</a>")?;
         
