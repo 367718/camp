@@ -6,7 +6,7 @@ use std::{
     },
 };
 
-use crate::{ HttpHandle, Session };
+use crate::{ HttpHandle, Session, Url };
 
 unsafe extern "system" {
     
@@ -26,13 +26,13 @@ pub struct Connection {
 
 impl Connection {
     
-    pub fn new(session: &Session, host: &str, port: u16) -> io::Result<Self> {
+    pub fn new(session: &Session, url: &Url) -> io::Result<Self> {
         let handle = unsafe {
             
             let result = WinHttpConnect(
                 session.handle.as_raw(),
-                chikuwa::win_string(host).as_ptr(),
-                port,
+                chikuwa::win_string(url.host()).as_ptr(),
+                url.port(),
                 0,
             );
             

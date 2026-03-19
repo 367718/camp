@@ -3,10 +3,10 @@ mod session;
 mod connection;
 mod request;
 mod response;
-mod extractor;
+mod url;
 
 use std::{
-    io::{ self, Error, ErrorKind },
+    io,
     os::raw::*,
 };
 
@@ -14,6 +14,7 @@ use handle::HttpHandle;
 use session::Session;
 use connection::Connection;
 use request::Request;
+use url::Url;
 
 pub use response::Response;
 
@@ -41,12 +42,11 @@ impl Client {
     // -------------------- mutators --------------------
     
     
-    pub fn get(&mut self, url: &str) -> io::Result<Response> {
-        let (host, port, path, secure) = extractor::get_params(url)
-            .ok_or(Error::new(ErrorKind::InvalidInput, "Invalid URL"))?;
+    pub fn get(&mut self, resource: &str) -> io::Result<Response> {
+        let url = Url::try_from(resource)?;
         
-        Connection::new(&self.session, host, port)
-            .and_then(|connection| Request::new(connection, path, secure))
+        Connection::new(&self.session, &url)
+            .and_then(|connection| Request::new(connection, &url))
             .and_then(Response::new)
     }
     
