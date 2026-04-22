@@ -1,10 +1,10 @@
 use std::io::{ self, Read };
 
-pub struct FeedEntries {
+pub struct Feed {
     content: Vec<u8>,
 }
 
-pub struct FeedEntriesIter<'c> {
+pub struct FeedEntries<'c> {
     content: &'c [u8],
 }
 
@@ -21,7 +21,7 @@ const TITLE_CLOSE_TAG: &[u8] = b"</title>";
 const LINK_OPEN_TAG: &[u8] = b"<link>";
 const LINK_CLOSE_TAG: &[u8] = b"</link>";
 
-impl FeedEntries {
+impl Feed {
     
     pub fn new(client: &mut akari::Client, url: &str, max_size: u64) -> io::Result<Self> {
         let response = client.get(url)?;
@@ -38,15 +38,15 @@ impl FeedEntries {
         Ok(Self { content })
     }
     
-    pub fn iter(&self) -> FeedEntriesIter<'_> {
-        FeedEntriesIter { content: &self.content }
+    pub fn iter(&self) -> FeedEntries<'_> {
+        FeedEntries { content: &self.content }
     }
     
 }
 
-impl<'c> IntoIterator for &'c FeedEntries {
+impl<'c> IntoIterator for &'c Feed {
     
-    type IntoIter = FeedEntriesIter<'c>;
+    type IntoIter = FeedEntries<'c>;
     type Item = FeedEntry<'c>;
     
     fn into_iter(self) -> Self::IntoIter {
@@ -55,7 +55,7 @@ impl<'c> IntoIterator for &'c FeedEntries {
     
 }
 
-impl<'c> Iterator for FeedEntriesIter<'c> {
+impl<'c> Iterator for FeedEntries<'c> {
     
     type Item = FeedEntry<'c>;
     
@@ -130,7 +130,7 @@ mod tests {
                 </rss>
             "#;
             
-            let entries = FeedEntries {
+            let entries = Feed {
                 content: content.to_vec(),
             };
             
@@ -181,7 +181,7 @@ mod tests {
                 </rss>
             "#;
             
-            let entries = FeedEntries {
+            let entries = Feed {
                 content: content.to_vec(),
             };
             
@@ -237,7 +237,7 @@ mod tests {
                 </rss>
             "#;
             
-            let entries = FeedEntries {
+            let entries = Feed {
                 content: content.to_vec(),
             };
             
@@ -286,7 +286,7 @@ mod tests {
                 </rss>
             "#;
             
-            let entries = FeedEntries {
+            let entries = Feed {
                 content: content.to_vec(),
             };
             
@@ -326,7 +326,7 @@ mod tests {
                 </rss>
             "#;
             
-            let entries = FeedEntries {
+            let entries = Feed {
                 content: content.to_vec(),
             };
             
@@ -359,7 +359,7 @@ mod tests {
                 </rss>
             "#;
             
-            let entries = FeedEntries {
+            let entries = Feed {
                 content: content.to_vec(),
             };
             
@@ -397,7 +397,7 @@ mod tests {
                 </item>
             "#;
             
-            let entries = FeedEntries {
+            let entries = Feed {
                 content: content.to_vec(),
             };
             
@@ -452,7 +452,7 @@ mod tests {
                 </rss>
             "#;
             
-            let entries = FeedEntries {
+            let entries = Feed {
                 content: content.to_vec(),
             };
             
@@ -503,7 +503,7 @@ mod tests {
                 </rss>
             "#;
             
-            let entries = FeedEntries {
+            let entries = Feed {
                 content: content.to_vec(),
             };
             

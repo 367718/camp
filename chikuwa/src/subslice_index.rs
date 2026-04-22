@@ -15,11 +15,13 @@ pub fn subslice_index(haystack: &[u8], needle: &[u8]) -> Option<usize> {
         
         let current = haystack[index];
         
-        // if the first character of the needle matches, perform full check
-        if current == needle_flo || current == needle_fup {
-            if haystack[index..][..needle_len].eq_ignore_ascii_case(needle) {
-                return Some(index);
-            }
+        // only perform full check if the first character of the needle matches
+        if current != needle_flo && current != needle_fup {
+            continue;
+        }
+        
+        if haystack[index..][..needle_len].eq_ignore_ascii_case(needle) {
+            return Some(index);
         }
         
     }

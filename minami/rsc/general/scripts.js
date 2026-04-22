@@ -6,7 +6,6 @@
 
 const CURRENT_NODE_SELECTOR = ".current";
 
-const HOTKEY_COPY_CONTROL = true;
 const HOTKEY_COPY_COMPLETE = "KeyC";
 const HOTKEY_COPY_CLEAN = "KeyX";
 
@@ -46,17 +45,16 @@ class Current {
     // -------------------- properties --------------------
     
     this.node = document.querySelector(CURRENT_NODE_SELECTOR);
+    
+    if (this.node === null) {
+      return;
+    }
+    
     this.sections = new Sections(this);
     this.filter = new Filter(this);
     this.list = new List(this);
     this.actions = new Actions(this);
     this.toggles = new Toggles(this);
-    
-    Object.freeze(this);
-    
-    if (this.node === null) {
-      return;
-    }
     
     // -------------------- styles --------------------
     
@@ -73,7 +71,7 @@ class Current {
       }
       
       // copy text to clipboard
-      if (event.ctrlKey === HOTKEY_COPY_CONTROL && (event.code === HOTKEY_COPY_COMPLETE || event.code === HOTKEY_COPY_CLEAN)) {
+      if (event.ctrlKey && (event.code === HOTKEY_COPY_COMPLETE || event.code === HOTKEY_COPY_CLEAN)) {
         this.list?.copy(event.code === HOTKEY_COPY_CLEAN);
         return event.preventDefault();
       }
@@ -91,13 +89,12 @@ class Sections {
     // -------------------- properties --------------------
     
     this.node = parent.node?.querySelector(SECTIONS_NODE_SELECTOR) ?? null;
-    this.parent = parent;
-    
-    Object.freeze(this);
     
     if (this.node === null) {
       return;
     }
+    
+    this.parent = parent;
     
     // -------------------- bindings --------------------
     
@@ -115,13 +112,12 @@ class Filter {
     // -------------------- properties --------------------
     
     this.node = parent.node?.querySelector(FILTER_NODE_SELECTOR) ?? null;
-    this.parent = parent;
-    
-    Object.freeze(this);
     
     if (this.node === null) {
       return;
     }
+    
+    this.parent = parent;
     
     // -------------------- bindings --------------------
     
@@ -142,15 +138,13 @@ class List {
     // -------------------- properties --------------------
     
     this.node = parent.node?.querySelector(LIST_NODE_SELECTOR) ?? null;
-    this.parent = parent;
-    this.entries = [];
-    
-    // freeze would prevent the refreshing of the entries array
-    Object.seal(this);
     
     if (this.node === null) {
       return;
     }
+    
+    this.parent = parent;
+    this.entries = [];
     
     // -------------------- bindings --------------------
     
@@ -316,13 +310,12 @@ class Entry {
     // -------------------- properties --------------------
     
     this.node = node;
-    this.parent = parent;
-    
-    Object.freeze(this);
     
     if (this.node === null) {
       return;
     }
+    
+    this.parent = parent;
     
   }
   
@@ -365,13 +358,12 @@ class Actions {
     // -------------------- properties --------------------
     
     this.node = parent.node?.querySelector(ACTIONS_NODE_SELECTOR) ?? null;
-    this.parent = parent;
-    
-    Object.freeze(this);
     
     if (this.node === null) {
       return;
     }
+    
+    this.parent = parent;
     
     // -------------------- bindings --------------------
     
@@ -452,13 +444,12 @@ class Toggles {
     // -------------------- properties --------------------
     
     this.node = parent.node?.querySelector(TOGGLES_NODE_SELECTOR) ?? null;
-    this.parent = parent;
-    
-    Object.freeze(this);
     
     if (this.node === null) {
       return;
     }
+    
+    this.parent = parent;
     
     // -------------------- bindings --------------------
     

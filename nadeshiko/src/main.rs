@@ -1,5 +1,4 @@
-mod cache;
-mod feed_entries;
+mod feed;
 
 use std::{
     error::Error,
@@ -9,8 +8,7 @@ use std::{
     path::{ Path, PathBuf },
 };
 
-use cache::Cache;
-use feed_entries::FeedEntries;
+use feed::Feed;
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -42,7 +40,7 @@ fn process() -> Result<(), Box<dyn Error>> {
     
     // -------------------- cache --------------------
     
-    let mut cache = Cache::new(&rules, max_list_size);
+    let mut cache = rules.iter().collect::<Vec<chiaki::ListEntry>>();
     
     // -------------------- client --------------------
     
@@ -58,15 +56,21 @@ fn process() -> Result<(), Box<dyn Error>> {
         println!("{}", url);
         println!("--------------------");
         
-        for entry in &FeedEntries::new(&mut client, url, max_feed_size)? {
+        for entry in &Feed::new(&mut client, url, max_feed_size)? {
             
-            // -------------------- rule --------------------
+            // -------------------- rule and episode --------------------
             
-            // an update means the current feed entry is relevant
-            // defer execution until torrent file has been downloaded
-            let Some(rule_update) = cache.get_rule_update(entry.title) else {
+            let Some(rule) = cache.iter_mut().find(|rule| entry.title.starts_with(rule.tag)) else {
                 continue;
             };
+            
+            let Some(episode) = chikuwa::first_number(&entry.title[rule.tag.len()..]) else {
+                continue;
+            };
+            
+            if rule.value >= episode {
+                continue;
+            }
             
             // -------------------- conversion --------------------
             
@@ -85,9 +89,8 @@ fn process() -> Result<(), Box<dyn Error>> {
             // rule update may fail, so torrent path is initially treated as ephemeral
             let destination = chikuwa::EphemeralPath::from(build_destination(folder, title)?);
             
-            download_torrent(&mut client, link, max_torrent_size, &destination)?;
-            
-            rule_update.execute()?;
+            download(&mut client, link, max_torrent_size, &destination)?;
+            update(rule, episode, max_list_size)?;
             
             destination.make_permanent();
             
@@ -115,7 +118,7 @@ fn build_destination(folder: &str, title: &str) -> Result<PathBuf, Box<dyn Error
     Ok(file_path)
 }
 
-fn download_torrent(client: &mut akari::Client, link: &str, max_size: u64, destination: &Path) -> Result<(), Box<dyn Error>> {
+fn download(client: &mut akari::Client, link: &str, max_size: u64, destination: &Path) -> Result<(), Box<dyn Error>> {
     let response = client.get(link)?;
     let file = File::options()
         .create_new(true)
@@ -128,6 +131,15 @@ fn download_torrent(client: &mut akari::Client, link: &str, max_size: u64, desti
     io::copy(&mut reader, &mut writer)?;
     
     writer.flush()?;
+    
+    Ok(())
+}
+
+fn update(rule: &mut chiaki::ListEntry, episode: u16, max_size: u64) -> Result<(), Box<dyn Error>> {
+    chiaki::List::load("rules", max_size)
+        .and_then(|list| list.set(rule.tag, episode))?;
+    
+    rule.value = episode;
     
     Ok(())
 }

@@ -123,6 +123,21 @@ mod tests {
             assert_eq!(output, None);
         }
         
+        #[test]
+        fn right_before_left() {
+            // setup
+            
+            let content = b"</a>test<a>";
+            
+            // operation
+            
+            let output = delimited_range(content, b"<a>", b"</a>");
+            
+            // control
+            
+            assert_eq!(output, None);
+        }
+        
     }
     
     #[cfg(test)]

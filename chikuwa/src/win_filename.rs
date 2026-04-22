@@ -64,10 +64,10 @@ pub fn win_filename(content: &str) -> Option<OsString> {
     //  Characters whose integer representations are in the range from 1 through 31, except for alternate data streams where these characters are allowed.
     //  Any other character that the target file system does not allow.
     
-    let mut second_stage: String = first_stage
+    let mut second_stage = first_stage
         .chars()
         .filter(|character| ! DISALLOWED_CHARACTERS.contains(character) && ! character.is_ascii_control())
-        .collect();
+        .collect::<String>();
     
     // -------------------- whitespace or dot at end --------------------
     
