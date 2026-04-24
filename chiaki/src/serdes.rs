@@ -5,40 +5,46 @@ use std::{
 
 use super::ListEntry;
 
+const VALUE_SIZE: usize = mem::size_of::<u16>();
+const TAG_SIZE_SIZE: usize = mem::size_of::<u16>();
+const HEADER_SIZE: usize = VALUE_SIZE + TAG_SIZE_SIZE;
+
 pub fn serialize(writer: &mut impl Write, entry: &ListEntry) -> io::Result<()> {
+    // -------------------- header --------------------
+    
     let tag_size = u16::try_from(entry.tag.len())
         .expect("Tag size exceeded the maximum value supported");
     
-    writer.write_all(&entry.value.to_le_bytes())?;
-    writer.write_all(&tag_size.to_le_bytes())?;
+    let mut header = [0; HEADER_SIZE];
+    header[0..VALUE_SIZE].copy_from_slice(&entry.value.to_le_bytes());
+    header[VALUE_SIZE..HEADER_SIZE].copy_from_slice(&tag_size.to_le_bytes());
+    
+    writer.write_all(&header)?;
+    
+    // -------------------- tag --------------------
+    
     writer.write_all(entry.tag)?;
+    
+    // -------------------- response --------------------
     
     Ok(())
 }
 
 pub fn deserialize(data: &[u8]) -> Option<(ListEntry<'_>, &[u8])> {
-    const NUMBER_SIZE: usize = mem::size_of::<u16>();
-    const NUMBERS_SIZE: usize = NUMBER_SIZE * 2;
+    // -------------------- header --------------------
     
-    // -------------------- value and tag size --------------------
-    
-    let (current, rest) = data.split_at_checked(NUMBERS_SIZE)?;
-    let value = u16::from_le_bytes(unsafe { *current[..NUMBER_SIZE].as_ptr().cast() });
-    let tag_size = usize::from(u16::from_le_bytes(unsafe { *current[NUMBER_SIZE..].as_ptr().cast() }));
+    let (current, rest) = data.split_at_checked(HEADER_SIZE)?;
+    let value = u16::from_le_bytes(current[0..VALUE_SIZE].try_into().unwrap());
+    let tag_size = u16::from_le_bytes(current[VALUE_SIZE..HEADER_SIZE].try_into().unwrap());
     
     // -------------------- tag --------------------
     
-    let (current, rest) = rest.split_at_checked(tag_size)?;
+    let (current, rest) = rest.split_at_checked(usize::from(tag_size))?;
     let tag = current;
     
-    // -------------------- entry --------------------
+    // -------------------- response --------------------
     
-    let entry = ListEntry {
-        tag,
-        value,
-    };
-    
-    Some((entry, rest))
+    Some((ListEntry { tag, value }, rest))
 }
 
 #[cfg(test)]

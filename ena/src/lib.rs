@@ -13,7 +13,7 @@ pub struct Files {
     max_depth: usize,
 }
 
-pub struct FilesIter<'r> {
+pub struct FilesEntries<'r> {
     inner: Vec<(ReadDir, usize)>,
     root: &'r Path,
     max_depth: usize,
@@ -28,7 +28,7 @@ impl Files {
         }
     }
     
-    pub fn iter(&self) -> FilesIter<'_> {
+    pub fn iter(&self) -> FilesEntries<'_> {
         let mut directories = Vec::with_capacity(self.max_depth);
         
         if let Ok(initial) = self.root.read_dir() {
@@ -39,7 +39,7 @@ impl Files {
             directories.push((initial, 1));
         }
         
-        FilesIter {
+        FilesEntries {
             inner: directories,
             root: &self.root,
             max_depth: self.max_depth,
@@ -50,7 +50,7 @@ impl Files {
 
 impl<'r> IntoIterator for &'r Files {
     
-    type IntoIter = FilesIter<'r>;
+    type IntoIter = FilesEntries<'r>;
     type Item = FilesEntry<'r>;
     
     fn into_iter(self) -> Self::IntoIter {
@@ -59,7 +59,7 @@ impl<'r> IntoIterator for &'r Files {
     
 }
 
-impl<'r> Iterator for FilesIter<'r> {
+impl<'r> Iterator for FilesEntries<'r> {
     
     type Item = FilesEntry<'r>;
     

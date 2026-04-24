@@ -3,7 +3,7 @@ mod serdes;
 use std::{
     env,
     fs::{ self, File },
-    io::{ self, Read, Write, BufWriter, Error, ErrorKind },
+    io::{ self, Read, BufWriter, Error, ErrorKind },
     path::{ Path, PathBuf },
 };
 
@@ -14,7 +14,7 @@ pub struct List {
     content: Vec<u8>,
 }
 
-pub struct ListIter<'c> {
+pub struct ListEntries<'c> {
     content: &'c [u8],
 }
 
@@ -78,8 +78,8 @@ impl List {
     // -------------------- accessors --------------------
     
     
-    pub fn iter(&self) -> ListIter<'_> {
-        ListIter { content: &self.content }
+    pub fn iter(&self) -> ListEntries<'_> {
+        ListEntries { content: &self.content }
     }
     
     
@@ -131,14 +131,16 @@ impl List {
             serdes::serialize(&mut writer, &entry)?;
         }
         
-        writer.flush()?;
+        // 'flush' is called internally, which may fail
+        let temp_file = writer.into_inner()?;
+        
+        // attempt to guarantee data is written to hardware before renaming
+        temp_file.sync_data()?;
         
         // attempt to update list file atomically
-        
         fs::rename(&temp_path, list_path)?;
         
         // temp file should no longer exist
-        
         temp_path.make_permanent();
         
         Ok(())
@@ -148,7 +150,7 @@ impl List {
 
 impl<'c> IntoIterator for &'c List {
     
-    type IntoIter = ListIter<'c>;
+    type IntoIter = ListEntries<'c>;
     type Item = ListEntry<'c>;
     
     fn into_iter(self) -> Self::IntoIter {
@@ -157,7 +159,7 @@ impl<'c> IntoIterator for &'c List {
     
 }
 
-impl<'c> Iterator for ListIter<'c> {
+impl<'c> Iterator for ListEntries<'c> {
     
     type Item = ListEntry<'c>;
     
