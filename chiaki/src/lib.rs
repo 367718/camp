@@ -68,6 +68,8 @@ impl List {
         io::copy(&mut reader, &mut content)
             .map_err(|error| Error::new(error.kind(), format!("Failed to read list file '{}': {}", file_path.display(), error)))?;
         
+        // -------------------- response --------------------
+        
         Ok(Self {
             path: file_path,
             content,

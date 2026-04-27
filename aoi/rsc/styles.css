@@ -20,7 +20,7 @@ button {
     border: 5px solid lightgray;
     border-radius: 10px;
     
-    /* play / pause */
+    /* play */
     
     &:nth-of-type(1) {
         grid-column-start: 1;

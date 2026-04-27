@@ -1,6 +1,5 @@
 use std::{
     error::Error,
-    ffi::OsString,
     io::Write,
     path::MAIN_SEPARATOR_STR,
     process::{ Command, Stdio },
@@ -82,8 +81,7 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let matchers = request.form_params(b"matcher")
         .filter_map(|matcher| String::from_utf8(matcher).ok())
-        .map(OsString::from)
-        .collect::<Vec<OsString>>();
+        .collect::<Vec<String>>();
     
     let mut selected = list.into_iter()
         .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
@@ -120,8 +118,7 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let matchers = request.form_params(b"matcher")
         .filter_map(|matcher| String::from_utf8(matcher).ok())
-        .map(OsString::from)
-        .collect::<Vec<OsString>>();
+        .collect::<Vec<String>>();
     
     let mut selected = list.into_iter()
         .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
@@ -152,8 +149,7 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let matchers = request.form_params(b"matcher")
         .filter_map(|matcher| String::from_utf8(matcher).ok())
-        .map(OsString::from)
-        .collect::<Vec<OsString>>();
+        .collect::<Vec<String>>();
     
     let mut selected = list.into_iter()
         .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
@@ -189,8 +185,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let matchers = request.form_params(b"matcher")
         .filter_map(|matcher| String::from_utf8(matcher).ok())
-        .map(OsString::from)
-        .collect::<Vec<OsString>>();
+        .collect::<Vec<String>>();
     
     let mut selected = list.into_iter()
         .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))

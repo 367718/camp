@@ -80,7 +80,7 @@ pub fn win_filename(content: &str) -> Option<OsString> {
     
     second_stage.truncate(trimmed_len);
     
-    // -------------------- result --------------------
+    // -------------------- response --------------------
     
     if second_stage.is_empty() {
         return None;
