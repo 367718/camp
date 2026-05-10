@@ -1,11 +1,11 @@
 use std::ops::Range;
 
 pub fn delimited_range(content: &[u8], left: &[u8], right: &[u8]) -> Option<Range<usize>> {
-    let start = super::subslice_index(content, left)
-        .and_then(|index| index.checked_add(left.len()))?;
+    let left_index = super::subslice_index(content, left)?;
+    let start = left_index + left.len();
     
-    let end = super::subslice_index(&content[start..], right)
-        .and_then(|index| index.checked_add(start))?;
+    let right_index = super::subslice_index(&content[start..], right)?;
+    let end = start + right_index;
     
     Some(start..end)
 }

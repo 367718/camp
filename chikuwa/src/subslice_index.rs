@@ -1,28 +1,46 @@
 pub fn subslice_index(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     let needle_len = needle.len();
-    let haystack_len = haystack.len();
     
-    if needle_len == 0 || needle_len > haystack_len {
+    if needle_len == 0 || needle_len > haystack.len() {
         return None;
     }
     
-    let needle_f = needle[0];
-    let needle_flo = needle_f.to_ascii_lowercase();
-    let needle_fup = needle_f.to_ascii_uppercase();
+    let first_byte = needle[0];
+    let first_lower = first_byte.to_ascii_lowercase();
+    let first_upper = first_byte.to_ascii_uppercase();
     
-    // only consider sections of the haystack where the needle can fit
-    for index in 0..=(haystack_len - needle_len) {
+    // avoid re-checking first byte
+    let needle_rest = &needle[1..];
+    
+    // first character might not be alphabetic (e.g. '<' or ' ')
+    let non_alphabetic = first_lower == first_upper;
+    
+    let mut index = 0;
+    let mut haystack_rest = haystack;
+    
+    while haystack_rest.len() >= needle_len {
         
-        let current = haystack[index];
+        let position = if non_alphabetic {
+            haystack_rest.iter().position(|&byte| byte == first_lower)
+        } else {
+            haystack_rest.iter().position(|&byte| byte == first_lower || byte == first_upper)
+        }?;
         
-        // only perform full check if the first character of the needle matches
-        if current != needle_flo && current != needle_fup {
-            continue;
+        index += position;
+        haystack_rest = &haystack_rest[position..];
+        
+        if haystack_rest.len() < needle_len {
+            return None;
         }
         
-        if haystack[index..][..needle_len].eq_ignore_ascii_case(needle) {
+        // first byte matches, compare rest
+        if haystack_rest[1..needle_len].eq_ignore_ascii_case(needle_rest) {
             return Some(index);
         }
+        
+        // skip over matched byte and continue search
+        index += 1;
+        haystack_rest = &haystack_rest[1..];
         
     }
     
