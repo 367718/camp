@@ -4,7 +4,7 @@ use std::{
 };
 
 use super::{
-    CONNECTION_BUFFER_SIZE, STREAM_TIMEOUT,
+    CONNECTION_BUFFER_SIZE,
     StatusCode, ContentType, CacheControl,
 };
 
@@ -16,8 +16,6 @@ pub struct Response {
 impl Response {
     
     pub(crate) fn new(mut stream: TcpStream, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Self> {
-        stream.set_write_timeout(STREAM_TIMEOUT)?;
-        
         let mut buffer = Vec::with_capacity(CONNECTION_BUFFER_SIZE);
         
         buffer.extend_from_slice(status.into_header());

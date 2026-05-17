@@ -4,7 +4,7 @@ use std::{
 };
 
 use super::{
-    REQUEST_SIZE_LIMIT, CONNECTION_BUFFER_SIZE, STREAM_TIMEOUT,
+    REQUEST_SIZE_LIMIT, CONNECTION_BUFFER_SIZE,
     StatusCode, ContentType, CacheControl,
     Headers, Body, QueryString, FormParams, Response,
 };
@@ -18,8 +18,6 @@ pub struct Request {
 impl Request {
     
     pub(crate) fn new(stream: TcpStream) -> io::Result<Self> {
-        stream.set_read_timeout(STREAM_TIMEOUT)?;
-        
         let mut reader = stream.take(REQUEST_SIZE_LIMIT);
         let (headers, body) = extract_headers_and_body(&mut reader)?;
         let stream = Some(reader.into_inner());

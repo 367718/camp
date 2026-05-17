@@ -19,7 +19,6 @@ pub use body::FormParams;
 
 const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;
 const REQUEST_SIZE_LIMIT: u64 = 64 * 1024;
-const STREAM_TIMEOUT: Option<Duration> = Some(Duration::from_secs(10));
 
 pub enum StatusCode {
     Ok,
@@ -30,7 +29,6 @@ pub enum StatusCode {
 pub enum ContentType {
     Plain,
     Html,
-    Icon,
     Css,
     Javascript,
 }
@@ -42,6 +40,8 @@ pub enum CacheControl {
 
 pub struct Server {
     listener: TcpListener,
+    read_timeout: Option<Duration>,
+    write_timeout: Option<Duration>,
 }
 
 impl StatusCode {
@@ -62,7 +62,6 @@ impl ContentType {
         match self {
             Self::Plain => b"Content-Type: text/plain; charset=utf-8\r\n",
             Self::Html => b"Content-Type: text/html; charset=utf-8\r\n",
-            Self::Icon => b"Content-Type: image/x-icon\r\n",
             Self::Css => b"Content-Type: text/css; charset=utf-8\r\n",
             Self::Javascript => b"Content-Type: text/javascript; charset=utf-8\r\n",
         }
@@ -83,15 +82,21 @@ impl CacheControl {
 
 impl Server {
     
-    pub fn bind(address: &str) -> io::Result<Self> {
+    pub fn bind(address: &str, read_timeout: u64, write_timeout: u64) -> io::Result<Self> {
         Ok(Self {
             listener: TcpListener::bind(address)?,
+            read_timeout: Some(Duration::from_secs(read_timeout)),
+            write_timeout: Some(Duration::from_secs(write_timeout)),
         })
     }
     
     pub fn accept(&mut self) -> io::Result<Request> {
-        self.listener.accept()
-            .and_then(|(stream, _)| Request::new(stream))
+        let (stream, _) = self.listener.accept()?;
+        
+        stream.set_read_timeout(self.read_timeout)?;
+        stream.set_write_timeout(self.write_timeout)?;
+        
+        Request::new(stream)
     }
     
 }
