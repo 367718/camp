@@ -4,11 +4,11 @@ Lists manager.
 
 ## Behavior
 
-The `List` struct provides access to `ListEntry` elements via the "iter" method.
+On construction, a file with the specified name and the "ck" extension will be loaded from the current directory.
 
-On construction, a file with the specified name and the "ck" extension will be loaded from the current directory. Symlinks are not supported.
-
-An invalid entry encountered during deserialization and/or concurrent access to the same list file may lead to data loss.
+* The `List` struct provides access to `ListEntry` structs via the "iter" method
+* An invalid entry encountered during deserialization or concurrent access to the same list file may lead to data loss
+* Symlinks are not supported
 
 ## API
 

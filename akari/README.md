@@ -4,7 +4,7 @@ HTTP/2 client.
 
 ## Behavior
 
-The `Client` struct provides access to `Response` elements via the "get" method.
+The `Client` struct provides access to `Response` structs via the "get" method.
 
 Only HTTPS is supported and connections will be pooled for reuse.
 

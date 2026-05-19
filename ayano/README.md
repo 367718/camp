@@ -4,11 +4,9 @@ Non-compliant HTTP/1.1 server.
 
 ## Behavior
 
-The `Server` struct provides access to `Request` structs via the "Iterator" trait, blocking the execution thread. A single `Response` struct may be generated from each `Request`.
-
-* `Server`: "Connection: Keep-Alive" is not supported
-* `Request`: has a size limit of 64 KiB
-* `Response`: "Transfer-Encoding: chunked" is always used
+* `Server`: provides access to `Request` structs via the "accept" method, blocking the execution thread
+* `Request`: has a size limit of 64 KiB and each can generate only a single `Response` via the "start_response" method
+* `Response`: "Transfer-Encoding: chunked" is always used a will signal EOF on drop
 
 ## API
 

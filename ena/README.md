@@ -4,7 +4,7 @@ Files manager.
 
 ## Behavior
 
-The `Files` struct provides access to `FilesEntry` elements in an unspecified order via the "Iterator" trait.
+The `Files` struct provides access to `FilesEntry` structs in an unspecified order via the "Iterator" trait.
 
 The "mark" functionality relies on NTFS's Alternate Data Streams feature.
 

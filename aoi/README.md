@@ -10,9 +10,9 @@ The parameter "input-ipc-server" of mpv must be configured with the name of the 
 
 ## Routes available
 
-* `/`: all the controls available, intended to be used by a tablet device.
+* `/`: all the controls available, intended to be used by a tablet device
 
 ## Configuration parameters used
 
-* `address`: listening address for the web interface.
-* `pipe`: path to the named pipe used by mpv.
+* `address`: listening address for the web interface
+* `pipe`: path to the named pipe used by mpv
