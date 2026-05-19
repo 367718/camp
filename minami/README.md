@@ -14,7 +14,7 @@ An HTTP interface allows the access and manipulation of files and lists entries.
 * `/rules`: entries present in the corresponding list file
 * `/feeds`: entries present in the corresponding list file
 
-## Leyboard shortcuts available
+## Keyboard shortcuts available
 
 * `Control + C`: copy selected entries to clipboard, inserting linebreaks
 * `Control + X`: copy selected entries to clipboard, performing a cleanup and inserting linebreaks
