@@ -3,6 +3,8 @@ pub fn first_number(content: &[u8]) -> Option<u16> {
     
     let first_digit = bytes.find(|byte| byte.is_ascii_digit())?;
     
+    // (b'0'..b'9') equals to (48..57)
+    // b'5' (53) minus b'0' (48) equals to 5
     let mut result = u16::from(first_digit - b'0');
     
     for byte in bytes {
@@ -13,7 +15,8 @@ pub fn first_number(content: &[u8]) -> Option<u16> {
         
         let current_digit = u16::from(byte - b'0');
         
-        result = result.checked_mul(10)?.checked_add(current_digit)?;
+        result = result.checked_mul(10)?
+            .checked_add(current_digit)?;
         
     }
     
