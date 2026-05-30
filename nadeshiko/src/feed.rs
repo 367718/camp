@@ -75,7 +75,7 @@ impl<'c> Iterator for FeedEntries<'c> {
         
         while let Some(item) = chikuwa::delimited_range(self.content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
             
-            let current = &self.content[item.start..item.end];
+            let current = &self.content[item];
             self.content = &self.content[item.end..][ITEM_CLOSE_TAG.len()..];
             
             let Some(title) = chikuwa::delimited_range(current, TITLE_OPEN_TAG, TITLE_CLOSE_TAG) else {

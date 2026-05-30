@@ -107,7 +107,7 @@ impl Iterator for FormParams<'_, '_, '_> {
                 
                 while let Some(param) = chikuwa::delimited_range(self.content, boundary, boundary) {
                     
-                    let (key, value) = build_form_data_pair(&self.content[param.start..param.end])?;
+                    let (key, value) = build_form_data_pair(&self.content[param])?;
                     self.content = &self.content[param.end..];
                     
                     if key.is_empty() || value.is_empty() {
@@ -141,7 +141,7 @@ fn build_form_data_pair(param: &[u8]) -> Option<(&[u8], &[u8])> {
     
     let data = chikuwa::delimited_range(param, b"Content-Disposition: form-data; name=\"", b"\"\r\n\r\n")?;
     
-    let key = &param[data.start..data.end];
+    let key = &param[data];
     let value = param[data.end..][5..].strip_suffix(b"\r\n--")?;
     
     Some((key, value))

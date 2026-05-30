@@ -1,4 +1,4 @@
-use std::ops::Range;
+use core::range::Range;
 
 pub fn delimited_range(content: &[u8], left: &[u8], right: &[u8]) -> Option<Range<usize>> {
     let left_index = super::subslice_index(content, left)?;
@@ -7,7 +7,7 @@ pub fn delimited_range(content: &[u8], left: &[u8], right: &[u8]) -> Option<Rang
     let right_index = super::subslice_index(&content[start..], right)?;
     let end = start + right_index;
     
-    Some(start..end)
+    Some(Range { start, end })
 }
 
 #[cfg(test)]
