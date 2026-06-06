@@ -26,8 +26,7 @@ impl Feed {
     pub fn new(client: &mut akari::Client, url: &str, max_size: u64) -> io::Result<Self> {
         let response = client.get(url)?;
         
-        let size = response.content_length()
-            .unwrap_or(0)
+        let size = response.content_length()?
             .min(max_size);
         
         let mut reader = response.take(size);
