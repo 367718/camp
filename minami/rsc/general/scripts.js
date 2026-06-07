@@ -88,12 +88,7 @@ class Sections {
     
     // -------------------- properties --------------------
     
-    this.node = parent.node?.querySelector(SECTIONS_NODE_SELECTOR) ?? null;
-    
-    if (this.node === null) {
-      return;
-    }
-    
+    this.node = parent.node.querySelector(SECTIONS_NODE_SELECTOR);
     this.parent = parent;
     
     // -------------------- bindings --------------------
@@ -111,12 +106,7 @@ class Filter {
     
     // -------------------- properties --------------------
     
-    this.node = parent.node?.querySelector(FILTER_NODE_SELECTOR) ?? null;
-    
-    if (this.node === null) {
-      return;
-    }
-    
+    this.node = parent.node.querySelector(FILTER_NODE_SELECTOR);
     this.parent = parent;
     
     // -------------------- bindings --------------------
@@ -137,12 +127,7 @@ class List {
     
     // -------------------- properties --------------------
     
-    this.node = parent.node?.querySelector(LIST_NODE_SELECTOR) ?? null;
-    
-    if (this.node === null) {
-      return;
-    }
-    
+    this.node = parent.node.querySelector(LIST_NODE_SELECTOR);
     this.parent = parent;
     this.entries = [];
     
@@ -273,7 +258,6 @@ class List {
           const parsed = parser.parseFromString(text, "text/html");
           
           const children = Array.from(parsed.body.childNodes);
-          const entries = children.map((child) => new Entry(child, this));
           
           // sort
           
@@ -292,60 +276,12 @@ class List {
           // update
           
           this.node.replaceChildren(...children);
-          this.entries = entries;
+          this.entries = children.map((child) => new Entry(child));
           
         });
         
       })
       .catch((error) => window.alert(error));
-    
-  };
-  
-}
-
-class Entry {
-  
-  constructor(node, parent) {
-    
-    // -------------------- properties --------------------
-    
-    this.node = node;
-    
-    if (this.node === null) {
-      return;
-    }
-    
-    this.parent = parent;
-    
-  }
-  
-  is_selected = () => this.node.hasAttribute(ENTRY_SELECTED_ATTRIBUTE);
-  
-  is_visible = () => this.node.offsetParent != null;
-  
-  toggle_select = () => this.node.toggleAttribute(ENTRY_SELECTED_ATTRIBUTE);
-  
-  text = (clean) => {
-    
-    let text = this.node.textContent;
-    
-    if (clean) {
-      
-      // container
-      text = text.replace(/^.+\\/, "");
-      
-      // format
-      text = text.replace(/\.[^.]+$/, "");
-      
-      // square brackets and parens
-      text = text.replace(/\[[^\]]*\]\s*|\([^\)]*\)\s*/g, "");
-      
-      // episode number
-      text = text.replace(/\s*-*\s*\d+\s*$/, "");
-      
-    }
-    
-    return text;
     
   };
   
@@ -357,12 +293,7 @@ class Actions {
     
     // -------------------- properties --------------------
     
-    this.node = parent.node?.querySelector(ACTIONS_NODE_SELECTOR) ?? null;
-    
-    if (this.node === null) {
-      return;
-    }
-    
+    this.node = parent.node.querySelector(ACTIONS_NODE_SELECTOR);
     this.parent = parent;
     
     // -------------------- bindings --------------------
@@ -443,12 +374,7 @@ class Toggles {
     
     // -------------------- properties --------------------
     
-    this.node = parent.node?.querySelector(TOGGLES_NODE_SELECTOR) ?? null;
-    
-    if (this.node === null) {
-      return;
-    }
-    
+    this.node = parent.node.querySelector(TOGGLES_NODE_SELECTOR);
     this.parent = parent;
     
     // -------------------- bindings --------------------
@@ -461,13 +387,60 @@ class Toggles {
         const attr = child.getAttribute(TOGGLES_ATTR_ATTRIBUTE);
         
         child.setAttribute(TOGGLES_ENABLED_ATTRIBUTE, state);
+        
         this.parent.list.node.setAttribute(attr, state);
+        
+        this.parent.list.entries
+          .filter((entry) => entry.is_selected() && ! entry.is_visible())
+          .forEach((entry) => entry.toggle_select());
         
       });
       
     }
     
   }
+  
+}
+
+class Entry {
+  
+  constructor(node) {
+    
+    // -------------------- properties --------------------
+    
+    this.node = node;
+    
+  }
+  
+  is_selected = () => this.node.hasAttribute(ENTRY_SELECTED_ATTRIBUTE);
+  
+  is_visible = () => this.node.offsetParent != null;
+  
+  toggle_select = () => this.node.toggleAttribute(ENTRY_SELECTED_ATTRIBUTE);
+  
+  text = (clean) => {
+    
+    let text = this.node.textContent;
+    
+    if (clean) {
+      
+      // container
+      text = text.replace(/^.+\\/, "");
+      
+      // format
+      text = text.replace(/\.[^.]+$/, "");
+      
+      // square brackets and parens
+      text = text.replace(/\[[^\]]*\]\s*|\([^\)]*\)\s*/g, "");
+      
+      // episode number
+      text = text.replace(/\s*-*\s*\d+\s*$/, "");
+      
+    }
+    
+    return text;
+    
+  };
   
 }
 
