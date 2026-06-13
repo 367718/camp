@@ -13,8 +13,11 @@ pub struct Files {
     max_depth: usize,
 }
 
+// the "ReadDir" struct holds a file handle in Windows, so:
+// a) exhaustion is a possibility
+// b) the directory it points to cannot be modified while the handle is held
 pub struct FilesEntries<'r> {
-    inner: Vec<(ReadDir, usize)>,
+    inner: Vec<ReadDir>,
     root: &'r Path,
     max_depth: usize,
 }
@@ -32,11 +35,7 @@ impl Files {
         let mut directories = Vec::with_capacity(self.max_depth);
         
         if let Ok(initial) = self.root.read_dir() {
-            // the "ReadDir" struct holds a file handle in Windows, so:
-            // a) exhaustion is a possibility
-            // b) the directory it points to cannot be modified while the handle is held
-            // the "inner" vec length is not unbounded however, as it shouldn't hold more than "max_depth" entries at any given time
-            directories.push((initial, 1));
+            directories.push(initial);
         }
         
         FilesEntries {
@@ -65,7 +64,7 @@ impl<'r> Iterator for FilesEntries<'r> {
     
     fn next(&mut self) -> Option<Self::Item> {
         
-        while let Some((current_dir, current_depth)) = self.inner.last_mut() {
+        while let Some(current_dir) = self.inner.last_mut() {
             
             let Some(dir_entry) = current_dir.next() else {
                 self.inner.pop();
@@ -86,21 +85,19 @@ impl<'r> Iterator for FilesEntries<'r> {
             if file_type.is_file() {
                 
                 let path = dir_entry.path();
-                let root = self.root;
                 
-                return Some(FilesEntry::new(path, root));
+                return Some(FilesEntry::new(path, self.root));
                 
             }
             
             // -------------------- subdirectory --------------------
             
-            if file_type.is_dir() && *current_depth < self.max_depth {
+            if file_type.is_dir() && self.inner.len() < self.max_depth {
                 
                 let path = dir_entry.path();
-                let depth = *current_depth + 1;
                 
                 if let Ok(subdirectory) = path.read_dir() {
-                    self.inner.push((subdirectory, depth));
+                    self.inner.push(subdirectory);
                 }
                 
             }
