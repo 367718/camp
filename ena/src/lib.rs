@@ -92,6 +92,7 @@ impl<'r> Iterator for FilesEntries<'r> {
             
             // -------------------- subdirectory --------------------
             
+            // the root directory is considered "depth 1"
             if file_type.is_dir() && self.inner.len() < self.max_depth {
                 
                 let path = dir_entry.path();

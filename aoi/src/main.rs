@@ -27,7 +27,22 @@ const INDEX: &[u8] = include_bytes!("../rsc/index.html");
 const STYLES: &[u8] = include_bytes!("../rsc/styles.css");
 const SCRIPTS: &[u8] = include_bytes!("../rsc/scripts.js");
 
-const PIPE_MAX_WAIT: c_ulong = 5000; // milliseconds
+const COMMAND_PLAY: &[u8] = b"cycle pause\n";
+const COMMAND_MINUSCHAPTER: &[u8] = b"cycle chapter down\n";
+const COMMAND_PLUSCHAPTER: &[u8] = b"cycle chapter up\n";
+const COMMAND_MINUSPLAYLIST: &[u8] = b"playlist-prev\n";
+const COMMAND_PLUSPLAYLIST: &[u8] = b"playlist-next\n";
+const COMMAND_MINUS5: &[u8] = b"seek -5\n";
+const COMMAND_PLUS5: &[u8] = b"seek 5\n";
+const COMMAND_MINUS75: &[u8] = b"seek -75\n";
+const COMMAND_PLUS75: &[u8] = b"seek 75\n";
+const COMMAND_FULLSCREEN: &[u8] = b"cycle fullscreen\n";
+const COMMAND_SUBTITLES: &[u8] = b"cycle sub\n";
+const COMMAND_TITLE: &[u8] = b"show-text ${media-title} 5000\n";
+const COMMAND_TIME: &[u8] = b"show-text \"${playback-time} (${time-remaining})\" 5000\n";
+const COMMAND_QUIT: &[u8] = b"quit\n";
+
+const PIPE_MAX_WAIT_AS_MILLIS: c_ulong = 5_000;
 
 fn main() {
     println!("{} v{}", APP_NAME, APP_VERSION);
@@ -122,20 +137,20 @@ fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
 
 fn get_command(endpoint: &[u8]) -> Option<&'static [u8]> {
     let result: &[u8] = match endpoint {
-        b"POST /play" => b"cycle pause\n",
-        b"POST /minuschapter" => b"cycle chapter down\n",
-        b"POST /pluschapter" => b"cycle chapter up\n",
-        b"POST /minusplaylist" => b"playlist-prev\n",
-        b"POST /plusplaylist" => b"playlist-next\n",
-        b"POST /minus5" => b"seek -5\n",
-        b"POST /plus5" => b"seek 5\n",
-        b"POST /minus75" => b"seek -75\n",
-        b"POST /plus75" => b"seek 75\n",
-        b"POST /fullscreen" => b"cycle fullscreen\n",
-        b"POST /subtitles" => b"cycle sub\n",
-        b"POST /title" => b"show-text ${media-title} 5000\n",
-        b"POST /time" => b"show-text \"${playback-time} (${time-remaining})\" 5000\n",
-        b"POST /quit" => b"quit\n",
+        b"POST /play" => COMMAND_PLAY,
+        b"POST /minuschapter" => COMMAND_MINUSCHAPTER,
+        b"POST /pluschapter" => COMMAND_PLUSCHAPTER,
+        b"POST /minusplaylist" => COMMAND_MINUSPLAYLIST,
+        b"POST /plusplaylist" => COMMAND_PLUSPLAYLIST,
+        b"POST /minus5" => COMMAND_MINUS5,
+        b"POST /plus5" => COMMAND_PLUS5,
+        b"POST /minus75" => COMMAND_MINUS75,
+        b"POST /plus75" => COMMAND_PLUS75,
+        b"POST /fullscreen" => COMMAND_FULLSCREEN,
+        b"POST /subtitles" => COMMAND_SUBTITLES,
+        b"POST /title" => COMMAND_TITLE,
+        b"POST /time" => COMMAND_TIME,
+        b"POST /quit" => COMMAND_QUIT,
         _ => return None,
     };
     
@@ -147,7 +162,7 @@ fn write_to_named_pipe(path: &str, data: &[u8]) -> io::Result<()> {
         
         let result = WaitNamedPipeW(
             chikuwa::win_string(path).as_ptr(),
-            PIPE_MAX_WAIT,
+            PIPE_MAX_WAIT_AS_MILLIS,
         );
         
         if result == 0 {
