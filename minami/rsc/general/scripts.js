@@ -4,13 +4,11 @@
 // -------------------- constants --------------------
 
 
-const CURRENT_NODE_SELECTOR = ".current";
+const CURRENT_SECTION_NODE_SELECTOR = ".current-section";
+const CURRENT_SECTION_BUTTON_SELECTOR = ".sections a:not([href])";
 
 const HOTKEY_COPY_COMPLETE = "KeyC";
 const HOTKEY_COPY_CLEAN = "KeyX";
-
-const SECTIONS_NODE_SELECTOR = ".sections";
-const SECTIONS_ACTIVE_CLASS = ".active";
 
 const FILTER_NODE_SELECTOR = ".filter";
 const FILTER_TIMEOUT_ATTRIBUTE = "data-timeout";
@@ -38,19 +36,18 @@ const COLOR_CLASSES = ["rin", "nadeshiko", "aoi", "chiaki", "ena"];
 // -------------------- classes --------------------
 
 
-class Current {
+class CurrentSection {
   
   constructor() {
     
     // -------------------- properties --------------------
     
-    this.node = document.querySelector(CURRENT_NODE_SELECTOR);
+    this.node = document.querySelector(CURRENT_SECTION_NODE_SELECTOR);
     
     if (this.node === null) {
       return;
     }
     
-    this.sections = new Sections(this);
     this.filter = new Filter(this);
     this.list = new List(this);
     this.actions = new Actions(this);
@@ -63,6 +60,10 @@ class Current {
     
     // -------------------- bindings --------------------
     
+    // refresh list on current section button click
+    const button = this.node.querySelector(CURRENT_SECTION_BUTTON_SELECTOR);
+    button.addEventListener("click", () => this.list.refresh());
+    
     this.node.addEventListener("keydown", (event) => {
       
       // bail if filter input is involved
@@ -72,29 +73,15 @@ class Current {
       
       // copy text to clipboard
       if (event.ctrlKey && (event.code === HOTKEY_COPY_COMPLETE || event.code === HOTKEY_COPY_CLEAN)) {
-        this.list?.copy(event.code === HOTKEY_COPY_CLEAN);
+        this.list.copy(event.code === HOTKEY_COPY_CLEAN);
         return event.preventDefault();
       }
       
     });
     
-  }
-  
-}
-
-class Sections {
-  
-  constructor(parent) {
+    // -------------------- initial load --------------------
     
-    // -------------------- properties --------------------
-    
-    this.node = parent.node.querySelector(SECTIONS_NODE_SELECTOR);
-    this.parent = parent;
-    
-    // -------------------- bindings --------------------
-    
-    const active = this.node.querySelector(SECTIONS_ACTIVE_CLASS);
-    active.addEventListener("click", () => this.parent.list.refresh());
+    this.list.refresh();
     
   }
   
@@ -130,14 +117,12 @@ class List {
     this.node = parent.node.querySelector(LIST_NODE_SELECTOR);
     this.parent = parent;
     this.entries = [];
+    this.parser = new DOMParser();
+    this.collator = new Intl.Collator("en", { numeric: true });
     
     // -------------------- bindings --------------------
     
     this.node.onclick = (event) => this.select(event.target, event.ctrlKey, event.shiftKey);
-    
-    // -------------------- initial load --------------------
-    
-    this.refresh();
     
   }
   
@@ -254,23 +239,13 @@ class List {
           
           // parse
           
-          const parser = new DOMParser();
-          const parsed = parser.parseFromString(text, "text/html");
-          
+          const parsed = this.parser.parseFromString(text, "text/html");
           const children = Array.from(parsed.body.childNodes);
           
           // sort
           
           if (this.node.getAttribute(LIST_SORTED_ATTRIBUTE) == "true") {
-            
-            const collator = new Intl.Collator("en", {
-              usage: "sort",
-              sensitivity: "base",
-              numeric: true,
-            });
-            
-            children.sort((a, b) => a.children.length - b.children.length || collator.compare(a.textContent, b.textContent));
-            
+            children.sort((a, b) => a.children.length - b.children.length || this.collator.compare(a.textContent, b.textContent));
           }
           
           // update
@@ -406,8 +381,6 @@ class Entry {
   
   constructor(node) {
     
-    // -------------------- properties --------------------
-    
     this.node = node;
     
   }
@@ -444,6 +417,8 @@ class Entry {
   
 }
 
+
 // -------------------- initialization --------------------
 
-document.addEventListener("DOMContentLoaded", () => new Current());
+
+document.addEventListener("DOMContentLoaded", () => new CurrentSection());

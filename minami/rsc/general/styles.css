@@ -58,7 +58,7 @@ iframe {
 /* -------------------- current -------------------- */
 
 
-.current {
+.current-section {
     
     &.rin {
         --accent-color: var(--accent-color-rin);
@@ -131,7 +131,7 @@ iframe {
             background-color: var(--accent-color);
         }
         
-        &.active {
+        &:not([href]) {
             color: var(--text-primary-color);
         }
         
