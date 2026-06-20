@@ -35,7 +35,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in &list {
         
-        // skip entries whose relative path cannot be represented in UTF-8
+        // skip entries whose relative path cannot be represented in utf8
         let Some(relative) = entry.relative().to_str() else {
             continue;
         };
@@ -44,8 +44,8 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
             continue;
         }
         
-        let file_name = entry.file_name().to_str().unwrap();
-        let container = entry.container().to_str().unwrap();
+        let (container, file_name) = relative.rsplit_once(MAIN_SEPARATOR_STR)
+            .unwrap_or(("", relative));
         
         // false => 0
         //  true => 1

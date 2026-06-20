@@ -77,7 +77,7 @@ impl Session {
             
         };
         
-        // -------------------- timeout for DNS resolution, connection, send and receive --------------------
+        // -------------------- timeouts --------------------
         
         unsafe {
             
@@ -95,12 +95,12 @@ impl Session {
             
         }
         
-        // -------------------- HTTP/2 usage --------------------
+        // -------------------- http2 --------------------
         
         let mut version = WINHTTP_PROTOCOL_FLAG_HTTP2;
         
         #[allow(clippy::cast_possible_truncation)]
-        let bytes = size_of::<c_ulong>() as c_ulong;
+        let bytes = size_of_val(&version) as c_ulong;
         
         unsafe {
             

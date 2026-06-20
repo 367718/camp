@@ -71,7 +71,7 @@ impl Response {
         let mut content_length: c_ulong = 0;
         
         #[allow(clippy::cast_possible_truncation)]
-        let mut bytes = size_of::<c_ulong>() as c_ulong;
+        let mut bytes = size_of_val(&content_length) as c_ulong;
         
         unsafe {
             

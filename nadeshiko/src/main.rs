@@ -35,6 +35,7 @@ fn process() -> Result<(), Box<dyn Error>> {
     let max_list_size = rin::get::<u64>(b"max_list_size")?;
     let max_feed_size = rin::get::<u64>(b"max_feed_size")?;
     let max_torrent_size = rin::get::<u64>(b"max_torrent_size")?;
+    
     let feeds = chiaki::List::load("feeds", max_list_size)?;
     let rules = chiaki::List::load("rules", max_list_size)?;
     

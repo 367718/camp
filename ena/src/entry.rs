@@ -34,17 +34,6 @@ impl<'r> FilesEntry<'r> {
             .expect("Discrepancy between full path and root")
     }
     
-    pub fn container(&self) -> &OsStr {
-        self.relative()
-            .parent()
-            .map_or_else(|| OsStr::new(""), Path::as_os_str)
-    }
-    
-    pub fn file_name(&self) -> &OsStr {
-        self.inner.file_name()
-            .unwrap_or_else(|| OsStr::new(""))
-    }
-    
     pub fn is_marked<F: AsRef<OsStr>>(&self, flag: F) -> io::Result<bool> {
         crate::mark::is_marked(&self.inner, flag)
     }
@@ -58,24 +47,26 @@ impl<'r> FilesEntry<'r> {
     }
     
     pub fn move_to_folder<F: AsRef<Path>>(self, folder: F) -> io::Result<()> {
-        let folder = folder.as_ref();
-        
         // disallow the creation of additional directories
-        let foldername = folder.file_name().unwrap_or(folder.as_os_str());
-        let filename = self.file_name();
+        let container_name = folder.as_ref().file_name()
+            .ok_or(Error::new(ErrorKind::InvalidInput, "Invalid folder name"))?;
         
-        let directory = self.root.join(foldername);
-        let destination = directory.join(filename);
+        let container_path = self.root.join(container_name);
         
-        if directory.try_exists()? {
-            if destination.try_exists()? {
+        let file_name = self.inner.file_name()
+            .ok_or(Error::new(ErrorKind::InvalidFilename, "Invalid file name"))?;
+        
+        let file_path = container_path.join(file_name);
+        
+        if container_path.try_exists()? {
+            if file_path.try_exists()? {
                 return Err(Error::from(ErrorKind::AlreadyExists));
             }
         } else {
-            fs::create_dir(&directory)?;
+            fs::create_dir(&container_path)?;
         }
         
-        fs::rename(self.inner, &destination)
+        fs::rename(self.inner, &file_path)
     }
     
     pub fn delete(self) -> io::Result<()> {

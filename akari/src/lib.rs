@@ -23,6 +23,8 @@ const CONNECTION_TIMEOUT_AS_MILLIS: c_int = 15_000;
 const SEND_TIMEOUT_AS_MILLIS: c_int = 15_000;
 const RECEIVE_TIMEOUT_AS_MILLIS: c_int = 15_000;
 
+const USER_AGENT: &str = env!("CARGO_PKG_NAME");
+
 pub struct Client {
     session: Session,
 }
@@ -34,7 +36,7 @@ impl Client {
     
     pub fn new() -> io::Result<Self> {
         Ok(Self {
-            session: Session::new(env!("CARGO_PKG_NAME"))?,
+            session: Session::new(USER_AGENT)?,
         })
     }
     

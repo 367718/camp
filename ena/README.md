@@ -17,8 +17,6 @@ The "mark" functionality relies on NTFS's Alternate Data Streams feature.
 * `FilesEntry`
     * path
     * relative
-    * container
-    * file_name
     * is_marked
     * toggle_mark
     * move_to_folder
