@@ -7,7 +7,7 @@ use std::{
 
 use ayano::{ Request, StatusCode, ContentType, CacheControl };
 
-const INDEX: &[u8] = include_bytes!("../rsc/files/index.html");
+const INDEX: &[u8] = include_bytes!("../rsc/files.html");
 
 pub fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
