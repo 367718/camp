@@ -47,16 +47,20 @@ impl<'r> FilesEntry<'r> {
     }
     
     pub fn move_to_folder<F: AsRef<Path>>(self, folder: F) -> io::Result<()> {
-        // disallow the creation of additional directories
+        // if folder is empty or its 'file_name' cannot be extracted, entry will be moved to root
         let container_name = folder.as_ref().file_name()
-            .ok_or(Error::new(ErrorKind::InvalidInput, "Invalid folder name"))?;
+            .unwrap_or_else(|| OsStr::new(""));
         
         let container_path = self.root.join(container_name);
         
         let file_name = self.inner.file_name()
-            .ok_or(Error::new(ErrorKind::InvalidFilename, "Invalid file name"))?;
+            .expect("Invalid entry file name");
         
         let file_path = container_path.join(file_name);
+        
+        if self.inner == file_path {
+            return Ok(());
+        }
         
         if container_path.try_exists()? {
             if file_path.try_exists()? {
