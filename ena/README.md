@@ -6,7 +6,7 @@ Files manager.
 
 The `Files` struct provides access to `FilesEntry` structs in an unspecified order via the "Iterator" trait.
 
-The "mark" functionality relies on NTFS's Alternate Data Streams feature.
+The "mark" functionality relies on the Alternate Data Streams (ADS) feature of the NT File System.
 
 ## API
 
