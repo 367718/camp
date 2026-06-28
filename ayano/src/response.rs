@@ -41,7 +41,7 @@ impl Write for Response {
     
     fn write(&mut self, content: &[u8]) -> io::Result<usize> {
         let size = content.len()
-            .min(CONNECTION_BUFFER_SIZE - self.buffer.len());
+            .min(CONNECTION_BUFFER_SIZE.saturating_sub(self.buffer.len()));
         
         self.buffer.extend_from_slice(&content[..size]);
         
