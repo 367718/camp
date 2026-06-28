@@ -59,9 +59,7 @@ fn extract_headers_and_body(reader: &mut impl Read) -> io::Result<(Headers, Body
     let mut search_start_index = 0;
     
     let mut headers_content = Vec::new();
-    
-    #[allow(unused_assignments)]
-    let mut body_content = Vec::new();
+    let mut body_content;
     
     // -------------------- headers --------------------
     

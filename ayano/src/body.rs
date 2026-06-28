@@ -23,6 +23,7 @@ impl Body {
     }
     
     pub fn form_data<'r, 'h, 'k>(&'r self, headers: &'h Headers, key: &'k [u8]) -> FormData<'r, 'h, 'k> {
+        // Content-Type: multipart/form-data; boundary=9999999999999999999999999999
         let boundary = headers.get(b"Content-Type")
             .filter(|value| value.starts_with(b"multipart/form-data"))
             .map_or(&[] as &[u8], |value| chikuwa::split_once(value, b"boundary=").1);

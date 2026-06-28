@@ -23,15 +23,21 @@ impl Headers {
         // GET /test/resource?fkey=fvalue
         let endpoint = parts.next()?;
         
-        // strip query component, if any
+        // GET /test/resource
         endpoint.split(|&curr| curr == b'?').next()
     }
     
     pub fn get(&self, key: &[u8]) -> Option<&[u8]> {
+        // Host: placeholder
         let range = chikuwa::delimited_range(&self.content, key, b"\r\n")?;
         
+        // : placeholder
         let value = &self.content[range];
+        
+        //  placeholder
         let value = value.strip_prefix(b":").unwrap_or(value);
+        
+        // placeholder
         let value = value.trim_ascii_start();
         
         Some(value)
