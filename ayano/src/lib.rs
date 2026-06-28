@@ -14,8 +14,7 @@ use body::Body;
 
 pub use request::Request;
 pub use response::Response;
-pub use headers::QueryString;
-pub use body::FormParams;
+pub use body::FormData;
 
 const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;
 const REQUEST_SIZE_LIMIT: u64 = 64 * 1024;

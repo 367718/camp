@@ -1,13 +1,62 @@
 use core::range::Range;
 
 pub fn delimited_range(content: &[u8], left: &[u8], right: &[u8]) -> Option<Range<usize>> {
-    let left_index = super::subslice_index(content, left)?;
+    let left_index = subslice_index(content, left)?;
     let start = left_index + left.len();
     
-    let right_index = super::subslice_index(&content[start..], right)?;
+    let right_index = subslice_index(&content[start..], right)?;
     let end = start + right_index;
     
     Some(Range { start, end })
+}
+
+fn subslice_index(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    let needle_len = needle.len();
+    
+    if needle_len == 0 || needle_len > haystack.len() {
+        return None;
+    }
+    
+    let first_byte = needle[0];
+    let first_lower = first_byte.to_ascii_lowercase();
+    let first_upper = first_byte.to_ascii_uppercase();
+    
+    // avoid re-checking first byte
+    let needle_rest = &needle[1..];
+    
+    // first character might not be alphabetic (e.g. '<' or ' ')
+    let non_alphabetic = first_lower == first_upper;
+    
+    let mut index = 0;
+    let mut haystack_rest = haystack;
+    
+    while haystack_rest.len() >= needle_len {
+        
+        let position = if non_alphabetic {
+            haystack_rest.iter().position(|&byte| byte == first_lower)
+        } else {
+            haystack_rest.iter().position(|&byte| byte == first_lower || byte == first_upper)
+        }?;
+        
+        index += position;
+        haystack_rest = &haystack_rest[position..];
+        
+        if haystack_rest.len() < needle_len {
+            return None;
+        }
+        
+        // first byte matches, compare rest
+        if haystack_rest[1..needle_len].eq_ignore_ascii_case(needle_rest) {
+            return Some(index);
+        }
+        
+        // skip over matched byte and continue search
+        index += 1;
+        haystack_rest = &haystack_rest[1..];
+        
+    }
+    
+    None
 }
 
 #[cfg(test)]
@@ -16,7 +65,7 @@ mod tests {
     use super::*;
     
     #[cfg(test)]
-    mod lookup {
+    mod subslice_index {
         
         use super::*;
         
@@ -24,200 +73,342 @@ mod tests {
         fn simple() {
             // setup
             
-            let content = b"<a>test</a>";
+            let haystack = b"placeholder";
+            let needle = b"holder";
             
             // operation
             
-            let output = delimited_range(content, b"<a>", b"</a>");
+            let output = subslice_index(haystack, needle);
             
             // control
             
-            assert_eq!(output, Some(3..7));
+            assert_eq!(output, Some(5));
         }
         
         #[test]
-        fn complex() {
+        fn case_mismatch() {
             // setup
             
-            let content = br#"
-                <item>
-                    <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
-                    <link>http://localhost/download/123456.torrent</link>
-                    <guid isPermaLink="true">http://localhost/view/123456</guid>
-                    <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
-                </item>
-            "#;
+            let haystack = b"placeholder";
+            let needle = b"HOLDER";
             
             // operation
             
-            let output = delimited_range(content, b"<link>", b"</link>");
+            let output = subslice_index(haystack, needle);
             
             // control
             
-            assert_eq!(output, Some(134..174));
+            assert_eq!(output, Some(5));
         }
         
         #[test]
-        fn left_and_right_not_present() {
+        fn content_match() {
             // setup
             
-            let content = br#"
-                <item>
-                    <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
-                    <link>http://localhost/download/123456.torrent</link>
-                    <guid isPermaLink="true">http://localhost/view/123456</guid>
-                    <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
-                </item>
-            "#;
+            let haystack = b"placeholder";
+            let needle = b"placeholder";
             
             // operation
             
-            let output = delimited_range(content, b"<comment>", b"</comment>");
+            let output = subslice_index(haystack, needle);
             
             // control
             
-            assert_eq!(output, None);
+            assert_eq!(output, Some(0));
         }
         
         #[test]
-        fn left_not_present() {
+        fn emoji() {
             // setup
             
-            let content = br#"
-                <item>
-                    <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
-                    <link>http://localhost/download/123456.torrent</link>
-                    <guid isPermaLink="true">http://localhost/view/123456</guid>
-                    <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
-                </item>
-            "#;
+            let haystack = "pla🔌ceholder🔌";
+            let needle = b"HOLDER";
             
             // operation
             
-            let output = delimited_range(content, b"<linkz>", b"</link>");
+            let output = subslice_index(haystack.as_bytes(), needle);
             
             // control
             
-            assert_eq!(output, None);
+            assert_eq!(output, Some(9));
         }
         
         #[test]
-        fn right_not_present() {
+        fn not_contained() {
             // setup
             
-            let content = br#"
-                <item>
-                    <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
-                    <link>http://localhost/download/123456.torrent</link>
-                    <guid isPermaLink="true">http://localhost/view/123456</guid>
-                    <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
-                </item>
-            "#;
+            let haystack = b"placeholder";
+            let needle = b"HODLER";
             
             // operation
             
-            let output = delimited_range(content, b"<link>", b"</linkz>");
+            let output = subslice_index(haystack, needle);
             
             // control
             
-            assert_eq!(output, None);
+            assert!(output.is_none());
         }
-        
-        #[test]
-        fn right_before_left() {
-            // setup
-            
-            let content = b"</a>test<a>";
-            
-            // operation
-            
-            let output = delimited_range(content, b"<a>", b"</a>");
-            
-            // control
-            
-            assert_eq!(output, None);
-        }
-        
-    }
-    
-    #[cfg(test)]
-    mod arguments {
-        
-        use super::*;
         
         #[test]
         fn empty() {
             // setup
             
-            let content = b"";
+            let haystack = b"";
+            let needle = b"";
             
             // operation
             
-            let output = delimited_range(content, b"", b"");
+            let output = subslice_index(haystack, needle);
             
             // control
             
-            assert_eq!(output, None);
+            assert!(output.is_none());
         }
         
         #[test]
-        fn empty_content() {
+        fn haystack_empty() {
             // setup
             
-            let content = b"";
+            let haystack = b"";
+            let needle = b"HOLDER";
             
             // operation
             
-            let output = delimited_range(content, b"<a>", b"</a>");
+            let output = subslice_index(haystack, needle);
             
             // control
             
-            assert_eq!(output, None);
+            assert!(output.is_none());
         }
         
         #[test]
-        fn empty_left_and_right() {
+        fn needle_empty() {
             // setup
             
-            let content = b"<a>test</a>";
+            let haystack = b"placeholder";
+            let needle = b"";
             
             // operation
             
-            let output = delimited_range(content, b"", b"");
+            let output = subslice_index(haystack, needle);
             
             // control
             
-            assert_eq!(output, None);
+            assert!(output.is_none());
         }
         
-        #[test]
-        fn empty_left() {
-            // setup
+    }
+    
+    #[cfg(test)]
+    mod delimited_range {
+        
+        use super::*;
+        
+        #[cfg(test)]
+        mod lookup {
             
-            let content = b"<a>test</a>";
+            use super::*;
             
-            // operation
+            #[test]
+            fn simple() {
+                // setup
+                
+                let content = b"<a>test</a>";
+                
+                // operation
+                
+                let output = delimited_range(content, b"<a>", b"</a>");
+                
+                // control
+                
+                assert_eq!(output, Some(Range { start: 3, end: 7 }));
+            }
             
-            let output = delimited_range(content, b"", b"</a>");
+            #[test]
+            fn complex() {
+                // setup
+                
+                let content = br#"
+                    <item>
+                        <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
+                        <link>http://localhost/download/123456.torrent</link>
+                        <guid isPermaLink="true">http://localhost/view/123456</guid>
+                        <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                    </item>
+                "#;
+                
+                // operation
+                
+                let output = delimited_range(content, b"<link>", b"</link>");
+                
+                // control
+                
+                assert_eq!(output, Some(Range { start: 146, end: 186 }));
+            }
             
-            // control
+            #[test]
+            fn left_and_right_not_present() {
+                // setup
+                
+                let content = br#"
+                    <item>
+                        <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
+                        <link>http://localhost/download/123456.torrent</link>
+                        <guid isPermaLink="true">http://localhost/view/123456</guid>
+                        <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                    </item>
+                "#;
+                
+                // operation
+                
+                let output = delimited_range(content, b"<comment>", b"</comment>");
+                
+                // control
+                
+                assert_eq!(output, None);
+            }
             
-            assert_eq!(output, None);
+            #[test]
+            fn left_not_present() {
+                // setup
+                
+                let content = br#"
+                    <item>
+                        <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
+                        <link>http://localhost/download/123456.torrent</link>
+                        <guid isPermaLink="true">http://localhost/view/123456</guid>
+                        <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                    </item>
+                "#;
+                
+                // operation
+                
+                let output = delimited_range(content, b"<linkz>", b"</link>");
+                
+                // control
+                
+                assert_eq!(output, None);
+            }
+            
+            #[test]
+            fn right_not_present() {
+                // setup
+                
+                let content = br#"
+                    <item>
+                        <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
+                        <link>http://localhost/download/123456.torrent</link>
+                        <guid isPermaLink="true">http://localhost/view/123456</guid>
+                        <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                    </item>
+                "#;
+                
+                // operation
+                
+                let output = delimited_range(content, b"<link>", b"</linkz>");
+                
+                // control
+                
+                assert_eq!(output, None);
+            }
+            
+            #[test]
+            fn right_before_left() {
+                // setup
+                
+                let content = b"</a>test<a>";
+                
+                // operation
+                
+                let output = delimited_range(content, b"<a>", b"</a>");
+                
+                // control
+                
+                assert_eq!(output, None);
+            }
+            
         }
         
-        #[test]
-        fn empty_right() {
-            // setup
+        #[cfg(test)]
+        mod arguments {
             
-            let content = b"<a>test</a>";
+            use super::*;
             
-            // operation
+            #[test]
+            fn empty() {
+                // setup
+                
+                let content = b"";
+                
+                // operation
+                
+                let output = delimited_range(content, b"", b"");
+                
+                // control
+                
+                assert_eq!(output, None);
+            }
             
-            let output = delimited_range(content, b"<a>", b"");
+            #[test]
+            fn empty_content() {
+                // setup
+                
+                let content = b"";
+                
+                // operation
+                
+                let output = delimited_range(content, b"<a>", b"</a>");
+                
+                // control
+                
+                assert_eq!(output, None);
+            }
             
-            // control
+            #[test]
+            fn empty_left_and_right() {
+                // setup
+                
+                let content = b"<a>test</a>";
+                
+                // operation
+                
+                let output = delimited_range(content, b"", b"");
+                
+                // control
+                
+                assert_eq!(output, None);
+            }
             
-            assert_eq!(output, None);
+            #[test]
+            fn empty_left() {
+                // setup
+                
+                let content = b"<a>test</a>";
+                
+                // operation
+                
+                let output = delimited_range(content, b"", b"</a>");
+                
+                // control
+                
+                assert_eq!(output, None);
+            }
+            
+            #[test]
+            fn empty_right() {
+                // setup
+                
+                let content = b"<a>test</a>";
+                
+                // operation
+                
+                let output = delimited_range(content, b"<a>", b"");
+                
+                // control
+                
+                assert_eq!(output, None);
+            }
+            
         }
         
     }

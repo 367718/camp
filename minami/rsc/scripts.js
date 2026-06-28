@@ -19,6 +19,7 @@ const LIST_SORTED_ATTRIBUTE = "data-sorted";
 const LIST_REFRESH_ATTRIBUTE = "data-refresh";
 
 const ENTRY_SELECTED_ATTRIBUTE = "data-selected";
+const ENTRY_FILTERED_ATTRIBUTE = "data-filtered";
 
 const ACTIONS_NODE_SELECTOR = ".actions";
 const ACTIONS_URL_ATTRIBUTE = "data-url";
@@ -95,16 +96,49 @@ class Filter {
     
     this.node = parent.node.querySelector(FILTER_NODE_SELECTOR);
     this.parent = parent;
+    this.collator = new Intl.Collator("en", { usage: "search", sensitivity: "base" });
     
     // -------------------- bindings --------------------
     
     this.node.addEventListener("input", () => {
       clearTimeout(this.node.getAttribute(FILTER_TIMEOUT_ATTRIBUTE));
-      const timeout = setTimeout(() => this.parent.list.refresh(), FILTER_TIMEOUT_VALUE);
+      const timeout = setTimeout(() => this.apply(), FILTER_TIMEOUT_VALUE);
       this.node.setAttribute(FILTER_TIMEOUT_ATTRIBUTE, timeout);
     });
     
   }
+  
+  apply = () => {
+    
+    this.parent.list.entries
+      .filter((entry) => entry.is_filtered())
+      .forEach((entry) => entry.toggle_filter());
+    
+    if (this.node.value === "") {
+      return;
+    }
+    
+    const criteria = this.node.value.normalize("NFC");
+    
+    outer: for (let entry of this.parent.list.entries) {
+      
+      const current = entry.text(false).normalize("NFC");
+      
+      for (let start = 0, end = criteria.length; end <= current.length; start++, end++) {
+        if (this.collator.compare(criteria, current.slice(start, end)) === 0) {
+          continue outer;
+        }
+      }
+      
+      entry.toggle_filter();
+      
+    }
+    
+    this.parent.list.entries
+      .filter((entry) => entry.is_selected() && entry.is_filtered())
+      .forEach((entry) => entry.toggle_select());
+    
+  };
   
 }
 
@@ -219,13 +253,8 @@ class List {
   refresh = () => {
     
     const resource = this.node.getAttribute(LIST_REFRESH_ATTRIBUTE);
-    const base = window.location.origin;
-    const filter = this.parent.filter.node.value;
     
-    const url = new URL(resource, base);
-    url.searchParams.set("filter", filter);
-    
-    fetch(url)
+    fetch(resource)
       .then((response) => {
         
         if (response.status != 200) {
@@ -252,6 +281,10 @@ class List {
           
           this.node.replaceChildren(...children);
           this.entries = children.map((child) => new Entry(child));
+          
+          // filter
+          
+          this.parent.filter.apply();
           
         });
         
@@ -300,7 +333,7 @@ class Actions {
     
     // -------------------- form data --------------------
     
-    const form_data = new URLSearchParams();
+    const form_data = new FormData();
     
     // -------------------- prompt --------------------
     
@@ -385,11 +418,15 @@ class Entry {
     
   }
   
-  is_selected = () => this.node.hasAttribute(ENTRY_SELECTED_ATTRIBUTE);
-  
   is_visible = () => this.node.offsetParent != null;
   
+  is_selected = () => this.node.hasAttribute(ENTRY_SELECTED_ATTRIBUTE);
+  
+  is_filtered = () => this.node.hasAttribute(ENTRY_FILTERED_ATTRIBUTE);
+  
   toggle_select = () => this.node.toggleAttribute(ENTRY_SELECTED_ATTRIBUTE);
+  
+  toggle_filter = () => this.node.toggleAttribute(ENTRY_FILTERED_ATTRIBUTE);
   
   text = (clean) => {
     

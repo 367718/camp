@@ -171,6 +171,10 @@ iframe {
         display: inline;
     }
     
+    a[data-filtered] {
+        display: none !important;
+    }
+    
 }
 
 

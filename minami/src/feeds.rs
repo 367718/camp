@@ -21,19 +21,11 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let list = chiaki::List::load("feeds", max_list_size)?;
     
-    let filter = request.query_string(b"filter")
-        .next()
-        .unwrap_or_default();
-    
     // -------------------- response --------------------
     
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
     
     for entry in &list {
-        
-        if ! filter.is_empty() && chikuwa::subslice_index(entry.tag, &filter).is_none() {
-            continue;
-        }
         
         response.write_all(b"<a>")?;
         chikuwa::escape_html(entry.tag, &mut response)?;
@@ -51,13 +43,13 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let list = chiaki::List::load("feeds", max_list_size)?;
     
-    let input = request.form_params(b"input")
+    let input = request.form_data(b"input")
         .next()
         .ok_or("Wrong input")?;
     
     // -------------------- operation --------------------
     
-    list.set(&input, 0)?;
+    list.set(input, 0)?;
     
     // -------------------- response --------------------
     
@@ -73,13 +65,13 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let list = chiaki::List::load("feeds", max_list_size)?;
     
-    let matcher = request.form_params(b"matcher")
+    let matcher = request.form_data(b"matcher")
         .next()
         .ok_or("Wrong matcher")?;
     
     // -------------------- operation --------------------
     
-    list.delete(&matcher)?;
+    list.delete(matcher)?;
     
     // -------------------- response --------------------
     

@@ -17,7 +17,7 @@ pub struct Files {
 // a) exhaustion is a possibility
 // b) the directory it points to cannot be modified while the handle is held
 pub struct FilesEntries<'r> {
-    inner: Vec<ReadDir>,
+    directories: Vec<ReadDir>,
     root: &'r Path,
     max_depth: usize,
 }
@@ -39,7 +39,7 @@ impl Files {
         }
         
         FilesEntries {
-            inner: directories,
+            directories,
             root: &self.root,
             max_depth: self.max_depth,
         }
@@ -64,10 +64,10 @@ impl<'r> Iterator for FilesEntries<'r> {
     
     fn next(&mut self) -> Option<Self::Item> {
         
-        while let Some(current_dir) = self.inner.last_mut() {
+        while let Some(current_dir) = self.directories.last_mut() {
             
             let Some(dir_entry) = current_dir.next() else {
-                self.inner.pop();
+                self.directories.pop();
                 continue;
             };
             
@@ -93,12 +93,12 @@ impl<'r> Iterator for FilesEntries<'r> {
             // -------------------- subdirectory --------------------
             
             // the root directory is considered "depth 1"
-            if file_type.is_dir() && self.inner.len() < self.max_depth {
+            if file_type.is_dir() && self.directories.len() < self.max_depth {
                 
                 let path = dir_entry.path();
                 
                 if let Ok(subdirectory) = path.read_dir() {
-                    self.inner.push(subdirectory);
+                    self.directories.push(subdirectory);
                 }
                 
             }

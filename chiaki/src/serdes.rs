@@ -16,7 +16,7 @@ pub fn serialize(writer: &mut impl Write, entry: &ListEntry) -> io::Result<()> {
         .expect("Tag size exceeded the maximum value supported");
     
     let mut header = [0; HEADER_SIZE];
-    header[0..VALUE_SIZE].copy_from_slice(&entry.value.to_le_bytes());
+    header[..VALUE_SIZE].copy_from_slice(&entry.value.to_le_bytes());
     header[VALUE_SIZE..HEADER_SIZE].copy_from_slice(&tag_size.to_le_bytes());
     
     writer.write_all(&header)?;
@@ -34,7 +34,7 @@ pub fn deserialize(data: &[u8]) -> Option<(ListEntry<'_>, &[u8])> {
     // -------------------- header --------------------
     
     let (current, rest) = data.split_at_checked(HEADER_SIZE)?;
-    let value = u16::from_le_bytes(current[0..VALUE_SIZE].try_into().unwrap());
+    let value = u16::from_le_bytes(current[..VALUE_SIZE].try_into().unwrap());
     let tag_size = u16::from_le_bytes(current[VALUE_SIZE..HEADER_SIZE].try_into().unwrap());
     
     // -------------------- tag --------------------

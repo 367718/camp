@@ -18,8 +18,7 @@ Non-compliant HTTP/1.1 server.
     * endpoint
     * get_header
     * body_len
-    * query_string
-    * form_params
+    * form_data
     * start_response
 
 * `Response`

@@ -25,10 +25,6 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let list = ena::Files::new(root, max_directory_depth);
     
-    let filter = request.query_string(b"filter")
-        .next()
-        .unwrap_or_default();
-    
     // -------------------- response --------------------
     
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
@@ -40,16 +36,12 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
             continue;
         };
         
-        if ! filter.is_empty() && chikuwa::subslice_index(relative.as_bytes(), &filter).is_none() {
-            continue;
-        }
-        
         let (container, file_name) = relative.rsplit_once(MAIN_SEPARATOR_STR)
             .unwrap_or(("", relative));
         
         // false => 0
         //  true => 1
-        // if marked, flip boolean to use 0 as true
+        // if marked, flip boolean to use true as 0
         let value = u8::from(! entry.is_marked(flag).unwrap_or(false));
         
         write!(&mut response, "<a data-value='{}'>", value)?;
@@ -79,12 +71,12 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let list = ena::Files::new(root, max_directory_depth);
     
-    let matchers = request.form_params(b"matcher")
-        .filter_map(|matcher| String::from_utf8(matcher).ok())
-        .collect::<Vec<String>>();
+    let matchers = request.form_data(b"matcher")
+        .filter_map(|matcher| str::from_utf8(matcher).ok())
+        .collect::<Vec<&str>>();
     
     let mut selected = list.into_iter()
-        .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
+        .filter(|entry| matchers.iter().any(|&matcher| matcher == entry.relative()))
         .peekable();
     
     if selected.peek().is_none() {
@@ -116,12 +108,12 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let list = ena::Files::new(root, max_directory_depth);
     
-    let matchers = request.form_params(b"matcher")
-        .filter_map(|matcher| String::from_utf8(matcher).ok())
-        .collect::<Vec<String>>();
+    let matchers = request.form_data(b"matcher")
+        .filter_map(|matcher| str::from_utf8(matcher).ok())
+        .collect::<Vec<&str>>();
     
     let mut selected = list.into_iter()
-        .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
+        .filter(|entry| matchers.iter().any(|&matcher| matcher == entry.relative()))
         .peekable();
     
     if selected.peek().is_none() {
@@ -147,26 +139,26 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let list = ena::Files::new(root, max_directory_depth);
     
-    let matchers = request.form_params(b"matcher")
-        .filter_map(|matcher| String::from_utf8(matcher).ok())
-        .collect::<Vec<String>>();
+    let matchers = request.form_data(b"matcher")
+        .filter_map(|matcher| str::from_utf8(matcher).ok())
+        .collect::<Vec<&str>>();
     
     let mut selected = list.into_iter()
-        .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
+        .filter(|entry| matchers.iter().any(|&matcher| matcher == entry.relative()))
         .peekable();
     
     if selected.peek().is_none() {
         return Err("No relevant file found".into());
     }
     
-    let folder = match request.form_params(b"input").next() {
-        Some(input) => String::from_utf8(input).map_err(|_| "Invalid input")?,
-        None => String::new(),
+    let folder = match request.form_data(b"input").next() {
+        Some(input) => str::from_utf8(input).map_err(|_| "Invalid input")?,
+        None => "",
     };
     
     // -------------------- operation --------------------
     
-    selected.try_for_each(|entry| entry.move_to_folder(&folder))?;
+    selected.try_for_each(|entry| entry.move_to_folder(folder))?;
     
     // -------------------- response --------------------
     
@@ -183,12 +175,12 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let list = ena::Files::new(root, max_directory_depth);
     
-    let matchers = request.form_params(b"matcher")
-        .filter_map(|matcher| String::from_utf8(matcher).ok())
-        .collect::<Vec<String>>();
+    let matchers = request.form_data(b"matcher")
+        .filter_map(|matcher| str::from_utf8(matcher).ok())
+        .collect::<Vec<&str>>();
     
     let mut selected = list.into_iter()
-        .filter(|entry| matchers.iter().any(|matcher| matcher == entry.relative()))
+        .filter(|entry| matchers.iter().any(|&matcher| matcher == entry.relative()))
         .peekable();
     
     if selected.peek().is_none() {
