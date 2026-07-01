@@ -29,10 +29,9 @@ impl Feed {
         let size = response.content_length()?
             .min(max_size);
         
-        let mut reader = response.take(size);
         let mut content = Vec::with_capacity(usize::try_from(size).expect("Unsupported platform"));
         
-        io::copy(&mut reader, &mut content)?;
+        response.take(size).read_to_end(&mut content)?;
         
         Ok(Self { content })
     }
@@ -60,17 +59,10 @@ impl<'c> Iterator for FeedEntries<'c> {
     
     fn next(&mut self) -> Option<Self::Item> {
         
-        // expected structure
-        
-        // ...
         // <item>
-        // ...
         // <title>...</title>
-        // ...
         // <link>...</link>
-        // ...
         // </item>
-        // ...
         
         while let Some(item) = chikuwa::delimited_range(self.content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
             
@@ -207,7 +199,7 @@ mod tests {
             
             assert_eq!(output.next(), None);
         }
-            
+        
     }
     
     #[cfg(test)]
@@ -419,6 +411,45 @@ mod tests {
             assert_eq!(output.next(), Some(FeedEntry {
                 title: b"[Example] Placeholder - 19 (720p) [83538700].mkv",
                 link: b"http://localhost/download/123123.torrent",
+            }));
+            
+            assert_eq!(output.next(), None);
+        }
+        
+        #[test]
+        fn disordered() {
+            // setup
+            
+            let content = br#"
+                <rss version="2.0">
+                    <channel>
+                        <title>Example RSS</title>
+                        <description>Example RSS Feed</description>
+                        <link>http://localhost/</link>
+                        <atom:link href="http://localhost/rss" rel="self" type="application/rss+xml"/>
+                        <item>
+                            <link>http://localhost/download/123456.torrent</link>
+                            <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
+                            <guid isPermaLink="true">http://localhost/view/123456</guid>
+                            <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                        </item>
+                    </channel>
+                </rss>
+            "#;
+            
+            let entries = Feed {
+                content: content.to_vec(),
+            };
+            
+            // operation
+            
+            let mut output = entries.iter();
+            
+            // control
+            
+            assert_eq!(output.next(), Some(FeedEntry {
+                title: b"[Example] Placeholder - 17 (720p) [83538700].mkv",
+                link: b"http://localhost/download/123456.torrent",
             }));
             
             assert_eq!(output.next(), None);
