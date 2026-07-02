@@ -13,7 +13,7 @@ fn extract_pair<'c>(content: &'c [u8], separator: &[u8]) -> Option<(&'c [u8], &'
         .position(|window| window.eq_ignore_ascii_case(separator))?;
     
     let left = &content[..position];
-    let right = &content[position..][separator.len()..];
+    let right = &content[position + separator.len()..];
     
     Some((left, right))
 }

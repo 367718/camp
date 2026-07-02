@@ -121,6 +121,7 @@ fn build_destination(folder: &str, title: &str) -> Result<PathBuf, Box<dyn Error
 
 fn download(client: &mut akari::Client, link: &str, max_size: u64, destination: &Path) -> Result<(), Box<dyn Error>> {
     let response = client.get(link)?;
+    
     let file = File::options()
         .create_new(true)
         .write(true)

@@ -29,7 +29,7 @@ impl Feed {
         let size = response.content_length()?
             .min(max_size);
         
-        let mut content = Vec::with_capacity(usize::try_from(size).expect("Unsupported platform"));
+        let mut content = Vec::with_capacity(usize::try_from(size).expect("Unsupported platform") + 1);
         
         response.take(size).read_to_end(&mut content)?;
         
@@ -67,7 +67,7 @@ impl<'c> Iterator for FeedEntries<'c> {
         while let Some(item) = chikuwa::delimited_range(self.content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
             
             let current = &self.content[item];
-            self.content = &self.content[item.end..][ITEM_CLOSE_TAG.len()..];
+            self.content = &self.content[item.end + ITEM_CLOSE_TAG.len()..];
             
             let Some(title) = chikuwa::delimited_range(current, TITLE_OPEN_TAG, TITLE_CLOSE_TAG) else {
                 continue;

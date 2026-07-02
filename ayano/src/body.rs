@@ -84,7 +84,7 @@ fn build_pair(param: &[u8]) -> Option<(&[u8], &[u8])> {
     let data = chikuwa::delimited_range(param, b"Content-Disposition: form-data; name=\"", b"\"\r\n\r\n")?;
     
     let key = &param[data];
-    let value = param[data.end..][5..].strip_suffix(b"\r\n--")?;
+    let value = param[data.end + 5..].strip_suffix(b"\r\n--")?;
     
     Some((key, value))
     

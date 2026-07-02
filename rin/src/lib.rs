@@ -54,7 +54,7 @@ fn load_content() -> &'static [u8] {
         
         let size = metadata.len().min(CONTENT_SIZE_LIMIT);
         
-        let mut content = Vec::with_capacity(usize::try_from(size).expect("Unsupported platform"));
+        let mut content = Vec::with_capacity(usize::try_from(size).expect("Unsupported platform") + 1);
         
         file.take(size).read_to_end(&mut content)?;
         
