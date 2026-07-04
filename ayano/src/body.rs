@@ -23,16 +23,27 @@ impl Body {
     }
     
     pub fn form_data<'r, 'h, 'k>(&'r self, headers: &'h Headers, key: &'k [u8]) -> FormData<'r, 'h, 'k> {
+        
+        fn get_boundary(headers: &Headers) -> Option<&[u8]> {
+            let content_type = headers.get(b"Content-Type")
+                .filter(|value| value.starts_with(b"multipart/form-data"))?;
+            
+            let separator = b"boundary=";
+            
+            content_type.windows(separator.len())
+                .position(|window| window.eq_ignore_ascii_case(separator))
+                .map(|position| &content_type[position + separator.len()..])
+        }
+        
         // Content-Type: multipart/form-data; boundary=9999999999999999999999999999
-        let boundary = headers.get(b"Content-Type")
-            .filter(|value| value.starts_with(b"multipart/form-data"))
-            .map_or(&[] as &[u8], |value| chikuwa::split_once(value, b"boundary=").1);
+        let boundary = get_boundary(headers).unwrap_or(&[]);
         
         FormData {
             content: &self.content,
             boundary,
             key,
         }
+        
     }
     
 }

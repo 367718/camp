@@ -11,36 +11,36 @@ impl Headers {
     }
     
     pub fn endpoint(&self) -> Option<&[u8]> {
-        // GET /test/resource?fkey=fvalue HTTP/1.1
-        let (working, _) = chikuwa::split_once(&self.content, b"\r");
+        // GET /test/resource?fkey=fvalue HTTP/1.1\r\n
+        // Host: placeholder\r\n
+        
+        // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
+        let mut components = self.content.splitn(2, |&curr| curr == b'\r');
+        
+        // to the left of '\r' => GET /test/resource?fkey=fvalue HTTP/1.1
+        let first_line = components.next()?;
         
         // TODO: replace with slice::rsplit_once in the future (https://github.com/rust-lang/rust/issues/112811)
-        let mut parts = working.rsplitn(2, |&curr| curr == b' ');
+        let mut components = first_line.rsplitn(2, |&curr| curr == b' ');
         
-        // HTTP/1.1
-        parts.next()?;
+        // to the left of ' ' => GET /test/resource?fkey=fvalue
+        let endpoint = components.nth(1)?;
         
-        // GET /test/resource?fkey=fvalue
-        let endpoint = parts.next()?;
-        
-        // GET /test/resource
+        // strip '?', if any => GET /test/resource
         endpoint.split(|&curr| curr == b'?').next()
     }
     
     pub fn get(&self, key: &[u8]) -> Option<&[u8]> {
-        // Host: placeholder
+        // GET /test/resource?fkey=fvalue HTTP/1.1\r\n
+        // Host: placeholder\r\n
+        
         let range = chikuwa::delimited_range(&self.content, key, b"\r\n")?;
         
-        // : placeholder
-        let value = &self.content[range];
+        // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
+        let mut components = self.content[range].splitn(2, |&curr| curr == b':');
         
-        //  placeholder
-        let value = value.strip_prefix(b":").unwrap_or(value);
-        
-        // placeholder
-        let value = value.trim_ascii_start();
-        
-        Some(value)
+        // to the right of ':' =>  placeholder
+        components.nth(1).map(<[u8]>::trim_ascii_start)
     }
     
 }
