@@ -2,7 +2,7 @@
 
 use std::{
     ffi::OsString,
-    path::Path,
+    path::MAIN_SEPARATOR,
 };
 
 const DISALLOWED_NAMES: &[&str] = &[
@@ -29,19 +29,20 @@ pub fn win_filename(content: &str) -> Option<OsString> {
     // -------------------- forbidden names --------------------
     
     // Do not use the following reserved names for the name of a file:
-    //  CON, PRN, AUX, NUL,
-    //  COM1, COM2, COM3, COM4, COM5, COM6, COM7, COM8, COM9,
-    //  COM¹, COM², COM³,
-    //  LPT1, LPT2, LPT3, LPT4, LPT5, LPT6, LPT7, LPT8, LPT9,
-    //  LPT¹, LPT², and LPT³.
-    //  Also avoid these names followed immediately by an extension; for example, NUL.txt and NUL.tar.gz are both equivalent to NUL.
+    // CON, PRN, AUX, NUL,
+    // COM1, COM2, COM3, COM4, COM5, COM6, COM7, COM8, COM9,
+    // COM¹, COM², COM³,
+    // LPT1, LPT2, LPT3, LPT4, LPT5, LPT6, LPT7, LPT8, LPT9,
+    // LPT¹, LPT², and LPT³.
+    // Also avoid these names followed immediately by an extension; for example, NUL.txt and NUL.tar.gz are both equivalent to NUL.
     
     let mut first_stage = content;
     
-    let file_stem = Path::new(&first_stage)
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .unwrap_or(first_stage);
+    let (_, file_name) = first_stage.rsplit_once(MAIN_SEPARATOR)
+        .unwrap_or(("", first_stage));
+    
+    let (file_stem, _) = file_name.split_once('.')
+        .unwrap_or((file_name, ""));
     
     if DISALLOWED_NAMES.iter().any(|name| name.eq_ignore_ascii_case(file_stem)) {
         first_stage = &first_stage[file_stem.len()..];
@@ -50,21 +51,21 @@ pub fn win_filename(content: &str) -> Option<OsString> {
     // -------------------- forbidden characters --------------------
     
     // Use any character in the current code page for a name, including Unicode characters and characters in the extended character set (128–255), except for the following:
-    //  The following reserved characters:
-    //      < (less than)
-    //      > (greater than)
-    //      : (colon)
-    //      " (double quote)
-    //      / (forward slash)
-    //      \ (backslash)
-    //      | (vertical bar or pipe)
-    //      ? (question mark)
-    //      * (asterisk)
-    //  Integer value zero, sometimes referred to as the ASCII NUL character.
-    //  Characters whose integer representations are in the range from 1 through 31, except for alternate data streams where these characters are allowed.
-    //  Any other character that the target file system does not allow.
+    // The following reserved characters:
+    // < (less than)
+    // > (greater than)
+    // : (colon)
+    // " (double quote)
+    // / (forward slash)
+    // \ (backslash)
+    // | (vertical bar or pipe)
+    // ? (question mark)
+    // * (asterisk)
+    // Integer value zero, sometimes referred to as the ASCII NUL character.
+    // Characters whose integer representations are in the range from 1 through 31, except for alternate data streams where these characters are allowed.
+    // Any other character that the target file system does not allow.
     
-    let mut second_stage = first_stage
+    let second_stage = first_stage
         .chars()
         .filter(|character| ! DISALLOWED_CHARACTERS.contains(character) && ! character.is_ascii_control())
         .collect::<String>();
@@ -78,15 +79,15 @@ pub fn win_filename(content: &str) -> Option<OsString> {
         .trim_end_matches(|character: char| character.is_whitespace() || character == '.')
         .len();
     
-    second_stage.truncate(trimmed_len);
+    let third_stage = &second_stage[..trimmed_len];
     
     // -------------------- response --------------------
     
-    if second_stage.is_empty() {
+    if third_stage.is_empty() {
         return None;
     }
     
-    Some(OsString::from(second_stage))
+    Some(OsString::from(third_stage))
 }
 
 #[cfg(test)]
@@ -192,6 +193,23 @@ mod tests {
         // control
         
         let control = Some(OsString::from(".txt"));
+        
+        assert_eq!(output, control);
+    }
+    
+    #[test]
+    fn name_invalid_double_format() {
+        // setup
+        
+        let content = "CoM4.tar.gz";
+        
+        // operation
+        
+        let output = win_filename(content);
+        
+        // control
+        
+        let control = Some(OsString::from(".tar.gz"));
         
         assert_eq!(output, control);
     }
