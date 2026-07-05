@@ -79,10 +79,12 @@ fn extract_headers_and_body(reader: &mut impl Read) -> io::Result<(Headers, Body
             .position(|window| window == b"\r\n\r\n");
         
         if let Some(headers_end) = headers_end {
+            // consider "\r\n\r\n" as part of header
             body_content = headers_content.split_off(search_start_index + headers_end + 4);
             break;
         }
         
+        // previous read might have included "\r\n\r"
         search_start_index = headers_content.len().saturating_sub(3);
         
     };

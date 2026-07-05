@@ -56,6 +56,8 @@ class CurrentSection {
     
     // -------------------- styles --------------------
     
+    // Math.random() generates a floating-point number between 0 (inclusive) and 1 (exclusive)
+    // Math.floor() rounds number down to the nearest whole integer
     const color = COLOR_CLASSES[Math.floor(Math.random() * COLOR_CLASSES.length)];
     this.node.classList.add(color);
     
@@ -96,7 +98,6 @@ class Filter {
     
     this.node = parent.node.querySelector(FILTER_NODE_SELECTOR);
     this.parent = parent;
-    this.collator = new Intl.Collator("en", { usage: "search", sensitivity: "base" });
     
     // -------------------- bindings --------------------
     
@@ -110,33 +111,37 @@ class Filter {
   
   apply = () => {
     
+    const sanitize = (text) => {
+      // decompose combined characters (é => e + ´)
+      return text.normalize("NFD")
+        // remove diacritical marks (https://www.unicode.org/charts/PDF/U0300.pdf)
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLocaleLowerCase("en");
+    };
+    
     this.parent.list.entries
-      .filter((entry) => entry.is_filtered())
-      .forEach((entry) => entry.toggle_filter());
+      .filter(entry => entry.is_filtered())
+      .forEach(entry => entry.toggle_filter());
     
     if (this.node.value === "") {
       return;
     }
     
-    const criteria = this.node.value.normalize("NFC");
+    const criteria = sanitize(this.node.value);
     
-    outer: for (let entry of this.parent.list.entries) {
+    for (let entry of this.parent.list.entries) {
       
-      const current = entry.text(false).normalize("NFC");
+      const current = sanitize(entry.text(false));
       
-      for (let start = 0, end = criteria.length; end <= current.length; start++, end++) {
-        if (this.collator.compare(criteria, current.slice(start, end)) === 0) {
-          continue outer;
-        }
+      if (! current.includes(criteria)) {
+        entry.toggle_filter();
       }
-      
-      entry.toggle_filter();
       
     }
     
     this.parent.list.entries
-      .filter((entry) => entry.is_selected() && entry.is_filtered())
-      .forEach((entry) => entry.toggle_select());
+      .filter(entry => entry.is_selected() && entry.is_filtered())
+      .forEach(entry => entry.toggle_select());
     
   };
   
@@ -152,7 +157,7 @@ class List {
     this.parent = parent;
     this.entries = [];
     this.parser = new DOMParser();
-    this.collator = new Intl.Collator("en", { numeric: true });
+    this.collator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
     
     // -------------------- bindings --------------------
     
@@ -169,7 +174,7 @@ class List {
       target_node = target_node.parentNode;
     }
     
-    let target = this.entries.find((entry) => entry.node == target_node);
+    let target = this.entries.find(entry => entry.node == target_node);
     
     if (! target) {
       return;
@@ -182,8 +187,8 @@ class List {
     if (! control && ! shift) {
       
       this.entries
-        .filter((entry) => entry.is_selected())
-        .forEach((entry) => entry.toggle_select());
+        .filter(entry => entry.is_selected())
+        .forEach(entry => entry.toggle_select());
       
       target.toggle_select();
       
@@ -209,26 +214,26 @@ class List {
     
     if (shift) {
       
-      let start = this.entries.findIndex((entry) => entry.is_selected());
+      let start = this.entries.findIndex(entry => entry.is_selected());
       let end = this.entries.indexOf(target);
       
       if (start == -1) {
-        start = this.entries.findIndex((entry) => entry.is_visible());
+        start = this.entries.findIndex(entry => entry.is_visible());
       }
       
       if (start > end) {
         start = end;
-        end = this.entries.findLastIndex((entry) => entry.is_selected());
+        end = this.entries.findLastIndex(entry => entry.is_selected());
       }
       
       this.entries
-        .filter((entry) => entry.is_selected())
-        .forEach((entry) => entry.toggle_select());
+        .filter(entry => entry.is_selected())
+        .forEach(entry => entry.toggle_select());
       
       this.entries
         .slice(start, end + 1)
-        .filter((entry) => entry.is_visible())
-        .forEach((entry) => entry.toggle_select());
+        .filter(entry => entry.is_visible())
+        .forEach(entry => entry.toggle_select());
       
     }
     
@@ -242,8 +247,8 @@ class List {
     }
     
     const text = this.entries
-      .filter((entry) => entry.is_selected())
-      .map((entry) => entry.text(clean))
+      .filter(entry => entry.is_selected())
+      .map(entry => entry.text(clean))
       .join("\n");
     
     navigator.clipboard.writeText(text);
@@ -255,32 +260,39 @@ class List {
     const resource = this.node.getAttribute(LIST_REFRESH_ATTRIBUTE);
     
     fetch(resource)
-      .then((response) => {
+      .then(response => {
         
         if (response.status != 200) {
           this.node.replaceChildren();
           this.entries = [];
-          response.text().then((error) => window.alert(error));
+          response.text().then(error => window.alert(error));
           return;
         }
         
-        response.text().then((text) => {
+        response.text().then(text => {
           
           // parse
           
           const parsed = this.parser.parseFromString(text, "text/html");
-          const children = Array.from(parsed.body.childNodes);
+          let children = Array.from(parsed.body.children);
           
           // sort
           
           if (this.node.getAttribute(LIST_SORTED_ATTRIBUTE) == "true") {
-            children.sort((a, b) => a.children.length - b.children.length || this.collator.compare(a.textContent, b.textContent));
+            children = children
+              .map(child => ({
+                child,
+                childrenLength: child.children.length,
+                textContent: child.textContent,
+              }))
+              .sort((a, b) => a.childrenLength - b.childrenLength || this.collator.compare(a.textContent, b.textContent))
+              .map(record => record.child);
           }
           
           // update
           
           this.node.replaceChildren(...children);
-          this.entries = children.map((child) => new Entry(child));
+          this.entries = children.map(child => new Entry(child));
           
           // filter
           
@@ -289,7 +301,7 @@ class List {
         });
         
       })
-      .catch((error) => window.alert(error));
+      .catch(error => window.alert(error));
     
   };
   
@@ -352,16 +364,16 @@ class Actions {
     // -------------------- matcher --------------------
     
     this.parent.list.entries
-      .filter((entry) => entry.is_selected())
-      .forEach((entry) => form_data.append("matcher", entry.text()));
+      .filter(entry => entry.is_selected())
+      .forEach(entry => form_data.append("matcher", entry.text()));
     
     // -------------------- request --------------------
     
     fetch(url, { method: "POST", body: form_data })
-      .then((response) => {
+      .then(response => {
         
         if (response.status != 200) {
-          response.text().then((error) => window.alert(error));
+          response.text().then(error => window.alert(error));
           return;
         }
         
@@ -370,7 +382,7 @@ class Actions {
         }
         
       })
-      .catch((error) => window.alert(error));
+      .catch(error => window.alert(error));
     
   };
   
@@ -399,8 +411,8 @@ class Toggles {
         this.parent.list.node.setAttribute(attr, state);
         
         this.parent.list.entries
-          .filter((entry) => entry.is_selected() && ! entry.is_visible())
-          .forEach((entry) => entry.toggle_select());
+          .filter(entry => entry.is_selected() && ! entry.is_visible())
+          .forEach(entry => entry.toggle_select());
         
       });
       
