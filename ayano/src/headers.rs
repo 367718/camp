@@ -199,8 +199,6 @@ mod tests {
             
             // control
             
-            assert!(output.is_some());
-            
             let value = output.unwrap();
             
             assert_eq!(value, b"placeholder");
@@ -238,8 +236,6 @@ mod tests {
             
             // control
             
-            assert!(output.is_some());
-            
             let value = output.unwrap();
             
             assert_eq!(value, b"1");
@@ -264,8 +260,6 @@ mod tests {
             
             // control
             
-            assert!(output.is_some());
-            
             let value = output.unwrap();
             
             assert_eq!(value, b"placeholder");
@@ -288,8 +282,6 @@ mod tests {
             let output = headers.get(key);
             
             // control
-            
-            assert!(output.is_some());
             
             let value = output.unwrap();
             
@@ -316,8 +308,6 @@ mod tests {
             
             // control
             
-            assert!(output.is_some());
-            
             let value = output.unwrap();
             
             assert_eq!(value, b"*/*");
@@ -342,8 +332,6 @@ mod tests {
             let output = headers.get(key);
             
             // control
-            
-            assert!(output.is_some());
             
             let value = output.unwrap();
             

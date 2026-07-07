@@ -77,8 +77,6 @@ mod tests {
         
         // control
         
-        assert!(output.is_ok());
-        
         let output = output.unwrap();
         
         assert_eq!(output.host(), "example.com");
@@ -97,8 +95,6 @@ mod tests {
         let output = Url::try_from(resource);
         
         // control
-        
-        assert!(output.is_ok());
         
         let output = output.unwrap();
         
@@ -119,8 +115,6 @@ mod tests {
         
         // control
         
-        assert!(output.is_ok());
-        
         let output = output.unwrap();
         
         assert_eq!(output.host(), "192.168.150.10");
@@ -139,8 +133,6 @@ mod tests {
         let output = Url::try_from(resource);
         
         // control
-        
-        assert!(output.is_ok());
         
         let output = output.unwrap();
         
@@ -161,8 +153,6 @@ mod tests {
         
         // control
         
-        assert!(output.is_ok());
-        
         let output = output.unwrap();
         
         assert_eq!(output.host(), "example.com");
@@ -181,8 +171,6 @@ mod tests {
         let output = Url::try_from(resource);
         
         // control
-        
-        assert!(output.is_ok());
         
         let output = output.unwrap();
         

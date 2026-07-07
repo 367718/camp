@@ -52,8 +52,6 @@ mod tests {
             
             // control
             
-            assert!(output.is_ok());
-            
             let output = output.unwrap();
             
             assert_eq!(output, "placeholder");
@@ -70,8 +68,6 @@ mod tests {
             let output = <&str>::param_from_value(value);
             
             // control
-            
-            assert!(output.is_ok());
             
             let output = output.unwrap();
             
@@ -90,8 +86,6 @@ mod tests {
             
             // control
             
-            assert!(output.is_ok());
-            
             let output = output.unwrap();
             
             assert_eq!(output, "te🔌st");
@@ -108,8 +102,6 @@ mod tests {
             let output = <&str>::param_from_value(value);
             
             // control
-            
-            assert!(output.is_ok());
             
             let output = output.unwrap();
             
@@ -166,8 +158,6 @@ mod tests {
             let output = u64::param_from_value(value);
             
             // control
-            
-            assert!(output.is_ok());
             
             let output = output.unwrap();
             

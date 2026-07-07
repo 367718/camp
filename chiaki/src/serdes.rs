@@ -71,8 +71,6 @@ mod tests {
         
         // control
         
-        assert!(output.is_some());
-        
         let (output, _) = output.unwrap();
         
         assert_eq!(output, entry);
@@ -159,8 +157,6 @@ mod tests {
         
         // control
         
-        assert!(output.is_some());
-        
         let (output, _) = output.unwrap();
         
         assert_eq!(output, ListEntry {
@@ -189,8 +185,6 @@ mod tests {
         let output = deserialize(&content);
         
         // control
-        
-        assert!(output.is_some());
         
         let (output, _) = output.unwrap();
         

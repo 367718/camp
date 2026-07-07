@@ -147,8 +147,6 @@ mod tests {
             
             // control
             
-            assert!(output.is_ok());
-            
             let (headers, body) = output.unwrap();
             
             assert_eq!(headers.get(b"Host"), Some(b"placeholder".as_slice()));
@@ -183,8 +181,6 @@ mod tests {
             let output = extract_headers_and_body(&mut &content[..]);
             
             // control
-            
-            assert!(output.is_ok());
             
             let (headers, body) = output.unwrap();
             
@@ -226,8 +222,6 @@ mod tests {
             
             // control
             
-            assert!(output.is_ok());
-            
             let (headers, body) = output.unwrap();
             
             assert_eq!(headers.get(b"Content-Length"), Some(b"4".as_slice()));
@@ -250,8 +244,6 @@ mod tests {
             let output = extract_headers_and_body(&mut &content[..]);
             
             // control
-            
-            assert!(output.is_ok());
             
             let (headers, body) = output.unwrap();
             
@@ -296,8 +288,6 @@ mod tests {
             
             // control
             
-            assert!(output.is_ok());
-            
             let (headers, body) = output.unwrap();
             
             assert_eq!(headers.get(b"Content-Length"), Some(b"4".as_slice()));
@@ -319,8 +309,6 @@ mod tests {
             let output = extract_headers_and_body(&mut &content[..]);
             
             // control
-            
-            assert!(output.is_ok());
             
             let (headers, body) = output.unwrap();
             
@@ -346,8 +334,6 @@ mod tests {
             let output = extract_headers_and_body(&mut &content[..]);
             
             // control
-            
-            assert!(output.is_ok());
             
             let (headers, body) = output.unwrap();
             

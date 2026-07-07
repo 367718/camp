@@ -10,8 +10,7 @@ pub struct FeedEntries<'c> {
 
 #[cfg_attr(debug_assertions, derive(PartialEq, Debug))]
 pub struct FeedEntry<'c> {
-    pub title: &'c [u8],
-    pub link: &'c [u8],
+    pub content: &'c [u8],
 }
 
 const ITEM_OPEN_TAG: &[u8] = b"<item>";
@@ -58,34 +57,26 @@ impl<'c> Iterator for FeedEntries<'c> {
     type Item = FeedEntry<'c>;
     
     fn next(&mut self) -> Option<Self::Item> {
+        let range = chikuwa::delimited_range(self.content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG)?;
+        let content = &self.content[range];
         
-        // <item>
-        // <title>...</title>
-        // <link>...</link>
-        // </item>
+        self.content = &self.content[range.end + ITEM_CLOSE_TAG.len()..];
         
-        while let Some(item) = chikuwa::delimited_range(self.content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG) {
-            
-            let current = &self.content[item];
-            self.content = &self.content[item.end + ITEM_CLOSE_TAG.len()..];
-            
-            let Some(title) = chikuwa::delimited_range(current, TITLE_OPEN_TAG, TITLE_CLOSE_TAG) else {
-                continue;
-            };
-            
-            let Some(link) = chikuwa::delimited_range(current, LINK_OPEN_TAG, LINK_CLOSE_TAG) else {
-                continue;
-            };
-            
-            return Some(Self::Item {
-                title: &current[title],
-                link: &current[link],
-            });
-            
-        }
-        
-        None
-        
+        Some(FeedEntry { content })
+    }
+    
+}
+
+impl FeedEntry<'_> {
+    
+    pub fn title(&self) -> Option<&[u8]> {
+        chikuwa::delimited_range(self.content, TITLE_OPEN_TAG, TITLE_CLOSE_TAG)
+            .map(|range| &self.content[range])
+    }
+    
+    pub fn link(&self) -> Option<&[u8]> {
+        chikuwa::delimited_range(self.content, LINK_OPEN_TAG, LINK_CLOSE_TAG)
+            .map(|range| &self.content[range])
     }
     
 }
@@ -131,12 +122,12 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next(), Some(FeedEntry {
-                title: b"[Example] Placeholder - 17 (720p) [83538700].mkv",
-                link: b"http://localhost/download/123456.torrent",
-            }));
+            let item = output.next().unwrap();
             
-            assert_eq!(output.next(), None);
+            assert_eq!(item.title(), Some(b"[Example] Placeholder - 17 (720p) [83538700].mkv".as_slice()));
+            assert_eq!(item.link(), Some(b"http://localhost/download/123456.torrent".as_slice()));
+            
+            assert!(output.next().is_none());
         }
         
         #[test]
@@ -182,22 +173,22 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next(), Some(FeedEntry {
-                title: b"[Example] Placeholder - 17 (720p) [83538700].mkv",
-                link: b"http://localhost/download/123456.torrent",
-            }));
+            let item = output.next().unwrap();
             
-            assert_eq!(output.next(), Some(FeedEntry {
-                title: b"[Example] Placeholder - 18 (720p) [83538700].mkv",
-                link: b"http://localhost/download/654321.torrent",
-            }));
+            assert_eq!(item.title(), Some(b"[Example] Placeholder - 17 (720p) [83538700].mkv".as_slice()));
+            assert_eq!(item.link(), Some(b"http://localhost/download/123456.torrent".as_slice()));
             
-            assert_eq!(output.next(), Some(FeedEntry {
-                title: b"[Example] Placeholder - 19 (720p) [83538700].mkv",
-                link: b"http://localhost/download/123123.torrent",
-            }));
+            let item = output.next().unwrap();
             
-            assert_eq!(output.next(), None);
+            assert_eq!(item.title(), Some(b"[Example] Placeholder - 18 (720p) [83538700].mkv".as_slice()));
+            assert_eq!(item.link(), Some(b"http://localhost/download/654321.torrent".as_slice()));
+            
+            let item = output.next().unwrap();
+            
+            assert_eq!(item.title(), Some(b"[Example] Placeholder - 19 (720p) [83538700].mkv".as_slice()));
+            assert_eq!(item.link(), Some(b"http://localhost/download/123123.torrent".as_slice()));
+            
+            assert!(output.next().is_none());
         }
         
     }
@@ -238,12 +229,12 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next(), Some(FeedEntry {
-                title: b"[Example] Placeholder - 17 (720p) [83538700].mkv",
-                link: b"",
-            }));
+            let item = output.next().unwrap();
             
-            assert_eq!(output.next(), None);
+            assert_eq!(item.title(), Some(b"[Example] Placeholder - 17 (720p) [83538700].mkv".as_slice()));
+            assert_eq!(item.link(), Some(b"".as_slice()));
+            
+            assert!(output.next().is_none());
         }
         
         #[test]
@@ -287,12 +278,17 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next(), Some(FeedEntry {
-                title: b"[Example] Placeholder - 16 (720p) [83538700].mkv",
-                link: b"http://localhost/download/321321.torrent",
-            }));
+            let item = output.next().unwrap();
             
-            assert_eq!(output.next(), None);
+            assert_eq!(item.title(), Some(b"[Example] Placeholder - 16 (720p) [83538700].mkv".as_slice()));
+            assert_eq!(item.link(), Some(b"http://localhost/download/321321.torrent".as_slice()));
+            
+            let item = output.next().unwrap();
+            
+            assert!(item.title().is_none());
+            assert_eq!(item.link(), Some(b"http://localhost/download/321321.torrent".as_slice()));
+            
+            assert!(output.next().is_none());
         }
         
         #[test]
@@ -327,12 +323,12 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next(), Some(FeedEntry {
-                title: b"[Example] Placeholder - 17 (720p) [83538700].mkv",
-                link: b"http://localhost/download/123456.torrent",
-            }));
+            let item = output.next().unwrap();
             
-            assert_eq!(output.next(), None);
+            assert_eq!(item.title(), Some(b"[Example] Placeholder - 17 (720p) [83538700].mkv".as_slice()));
+            assert_eq!(item.link(), Some(b"http://localhost/download/123456.torrent".as_slice()));
+            
+            assert!(output.next().is_none());
         }
         
         #[test]
@@ -360,7 +356,7 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next(), None);
+            assert!(output.next().is_none());
         }
         
         #[test]
@@ -398,22 +394,22 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next(), Some(FeedEntry {
-                title: b"[Example] Placeholder - 17 (720p) [83538700].mkv",
-                link: b"http://localhost/download/123456.torrent",
-            }));
+            let item = output.next().unwrap();
             
-            assert_eq!(output.next(), Some(FeedEntry {
-                title: b"[Example] Placeholder - 18 (720p) [83538700].mkv",
-                link: b"http://localhost/download/654321.torrent",
-            }));
+            assert_eq!(item.title(), Some(b"[Example] Placeholder - 17 (720p) [83538700].mkv".as_slice()));
+            assert_eq!(item.link(), Some(b"http://localhost/download/123456.torrent".as_slice()));
             
-            assert_eq!(output.next(), Some(FeedEntry {
-                title: b"[Example] Placeholder - 19 (720p) [83538700].mkv",
-                link: b"http://localhost/download/123123.torrent",
-            }));
+            let item = output.next().unwrap();
             
-            assert_eq!(output.next(), None);
+            assert_eq!(item.title(), Some(b"[Example] Placeholder - 18 (720p) [83538700].mkv".as_slice()));
+            assert_eq!(item.link(), Some(b"http://localhost/download/654321.torrent".as_slice()));
+            
+            let item = output.next().unwrap();
+            
+            assert_eq!(item.title(), Some(b"[Example] Placeholder - 19 (720p) [83538700].mkv".as_slice()));
+            assert_eq!(item.link(), Some(b"http://localhost/download/123123.torrent".as_slice()));
+            
+            assert!(output.next().is_none());
         }
         
         #[test]
@@ -447,12 +443,12 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next(), Some(FeedEntry {
-                title: b"[Example] Placeholder - 17 (720p) [83538700].mkv",
-                link: b"http://localhost/download/123456.torrent",
-            }));
+            let item = output.next().unwrap();
             
-            assert_eq!(output.next(), None);
+            assert_eq!(item.title(), Some(b"[Example] Placeholder - 17 (720p) [83538700].mkv".as_slice()));
+            assert_eq!(item.link(), Some(b"http://localhost/download/123456.torrent".as_slice()));
+            
+            assert!(output.next().is_none());
         }
         
     }
@@ -492,7 +488,7 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next(), None);
+            assert!(output.next().is_none());
         }
         
         #[test]
@@ -543,22 +539,27 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next(), Some(FeedEntry {
-                title: b"[Example] Placeholder - 17 (720p) [83538700].mkv",
-                link: b"http://localhost/download/123456.torrent",
-            }));
+            let item = output.next().unwrap();
             
-            assert_eq!(output.next(), Some(FeedEntry {
-                title: b"[Example] Placeholder - 18 (720p) [83538700].mkv",
-                link: b"",
-            }));
+            assert_eq!(item.title(), Some(b"[Example] Placeholder - 17 (720p) [83538700].mkv".as_slice()));
+            assert_eq!(item.link(), Some(b"http://localhost/download/123456.torrent".as_slice()));
             
-            assert_eq!(output.next(), Some(FeedEntry {
-                title: b"[Example] Placeholder - 20 (720p) [83538700].mkv",
-                link: b"http://localhost/download/123123.torrent",
-            }));
+            let item = output.next().unwrap();
             
-            assert_eq!(output.next(), None);
+            assert_eq!(item.title(), Some(b"[Example] Placeholder - 18 (720p) [83538700].mkv".as_slice()));
+            assert_eq!(item.link(), Some(b"".as_slice()));
+            
+            let item = output.next().unwrap();
+            
+            assert_eq!(item.title(), Some(b"[Example] Placeholder - 19 (720p) [83538700].mkv".as_slice()));
+            assert!(item.link().is_none());
+            
+            let item = output.next().unwrap();
+            
+            assert_eq!(item.title(), Some(b"[Example] Placeholder - 20 (720p) [83538700].mkv".as_slice()));
+            assert_eq!(item.link(), Some(b"http://localhost/download/123123.torrent".as_slice()));
+            
+            assert!(output.next().is_none());
         }
         
     }

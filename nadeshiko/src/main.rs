@@ -59,13 +59,19 @@ fn process() -> Result<(), Box<dyn Error>> {
         
         for entry in &Feed::new(&mut client, url, max_feed_size)? {
             
-            // -------------------- rule and episode --------------------
+            // -------------------- title --------------------
             
-            let Some(rule) = cache.iter_mut().find(|rule| entry.title.starts_with(rule.tag)) else {
+            let Some(title) = entry.title() else {
                 continue;
             };
             
-            let Some(episode) = chikuwa::first_number(&entry.title[rule.tag.len()..]) else {
+            // -------------------- rule and episode --------------------
+            
+            let Some(rule) = cache.iter_mut().find(|rule| title.starts_with(rule.tag)) else {
+                continue;
+            };
+            
+            let Some(episode) = chikuwa::first_number(&title[rule.tag.len()..]) else {
                 continue;
             };
             
@@ -73,24 +79,30 @@ fn process() -> Result<(), Box<dyn Error>> {
                 continue;
             }
             
-            // -------------------- conversion --------------------
+            // -------------------- link --------------------
             
-            let Ok(title) = str::from_utf8(entry.title) else {
+            let Some(link) = entry.link() else {
                 continue;
             };
             
-            let Ok(link) = str::from_utf8(entry.link) else {
+            // -------------------- conversion --------------------
+            
+            let Ok(title_str) = str::from_utf8(title) else {
+                continue;
+            };
+            
+            let Ok(link_str) = str::from_utf8(link) else {
                 continue;
             };
             
             // -------------------- download and update --------------------
             
-            println!("{}", title);
+            println!("{}", title_str);
             
             // rule update may fail, so torrent path is initially treated as ephemeral
-            let destination = chikuwa::EphemeralPath::from(build_destination(folder, title)?);
+            let destination = chikuwa::EphemeralPath::from(build_destination(folder, title_str)?);
             
-            download(&mut client, link, max_torrent_size, &destination)?;
+            download(&mut client, link_str, max_torrent_size, &destination)?;
             update(rule, episode, max_list_size)?;
             
             destination.make_permanent();
