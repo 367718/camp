@@ -1,13 +1,6 @@
-use std::{
-    io::{ self, Write },
-    mem,
-};
+use std::io::{ self, Write };
 
 use super::ListEntry;
-
-const VALUE_SIZE: usize = mem::size_of::<u16>();
-const TAG_SIZE_SIZE: usize = mem::size_of::<u16>();
-const HEADER_SIZE: usize = VALUE_SIZE + TAG_SIZE_SIZE;
 
 pub fn serialize(writer: &mut impl Write, entry: &ListEntry) -> io::Result<()> {
     // -------------------- header --------------------
@@ -15,9 +8,15 @@ pub fn serialize(writer: &mut impl Write, entry: &ListEntry) -> io::Result<()> {
     let tag_size = u16::try_from(entry.tag.len())
         .expect("Tag size exceeded the maximum value supported");
     
-    let mut header = [0; HEADER_SIZE];
-    header[..VALUE_SIZE].copy_from_slice(&entry.value.to_le_bytes());
-    header[VALUE_SIZE..HEADER_SIZE].copy_from_slice(&tag_size.to_le_bytes());
+    let value_bytes = entry.value.to_le_bytes();
+    let tag_size_bytes = tag_size.to_le_bytes();
+    
+    let header = [
+        value_bytes[0],
+        value_bytes[1],
+        tag_size_bytes[0],
+        tag_size_bytes[1],
+    ];
     
     writer.write_all(&header)?;
     
@@ -33,14 +32,14 @@ pub fn serialize(writer: &mut impl Write, entry: &ListEntry) -> io::Result<()> {
 pub fn deserialize(data: &[u8]) -> Option<(ListEntry<'_>, &[u8])> {
     // -------------------- header --------------------
     
-    let (current, rest) = data.split_at_checked(HEADER_SIZE)?;
-    let value = u16::from_le_bytes(current[..VALUE_SIZE].try_into().unwrap());
-    let tag_size = u16::from_le_bytes(current[VALUE_SIZE..HEADER_SIZE].try_into().unwrap());
+    let (header, rest) = data.split_first_chunk::<4>()?;
+    
+    let value = u16::from_le_bytes([header[0], header[1]]);
+    let tag_size = u16::from_le_bytes([header[2], header[3]]);
     
     // -------------------- tag --------------------
     
-    let (current, rest) = rest.split_at_checked(usize::from(tag_size))?;
-    let tag = current;
+    let (tag, rest) = rest.split_at_checked(usize::from(tag_size))?;
     
     // -------------------- response --------------------
     
@@ -77,7 +76,7 @@ mod tests {
     }
     
     #[test]
-    fn deserialize_empty() {
+    fn no_content() {
         // setup
         
         let content = Vec::new();
@@ -92,7 +91,31 @@ mod tests {
     }
     
     #[test]
-    fn deserialize_no_tag_size() {
+    fn empty_tag() {
+        // setup
+        
+        let mut content = Vec::new();
+        
+        let entry = ListEntry {
+            tag: b"",
+            value: 89,
+        };
+        
+        // operation
+        
+        serialize(&mut content, &entry).unwrap();
+        
+        let output = deserialize(&content);
+        
+        // control
+        
+        let (output, _) = output.unwrap();
+        
+        assert_eq!(output, entry);
+    }
+    
+    #[test]
+    fn no_tag_size() {
         // setup
         
         let mut content = Vec::new();
@@ -115,7 +138,7 @@ mod tests {
     }
     
     #[test]
-    fn deserialize_no_tag() {
+    fn no_tag() {
         // setup
         
         let mut content = Vec::new();
@@ -138,7 +161,7 @@ mod tests {
     }
     
     #[test]
-    fn deserialize_no_value() {
+    fn no_value() {
         // setup
         
         let mut content = Vec::new();
@@ -166,7 +189,7 @@ mod tests {
     }
     
     #[test]
-    fn deserialize_low_tag_size() {
+    fn low_tag_size() {
         // setup
         
         let mut content = Vec::new();
@@ -195,7 +218,7 @@ mod tests {
     }
     
     #[test]
-    fn deserialize_high_tag_size() {
+    fn high_tag_size() {
         // setup
         
         let mut content = Vec::new();
