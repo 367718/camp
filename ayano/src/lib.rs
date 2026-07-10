@@ -92,6 +92,7 @@ impl Server {
     pub fn accept(&mut self) -> io::Result<Request> {
         let (stream, _) = self.listener.accept()?;
         
+        stream.set_nodelay(true)?;
         stream.set_read_timeout(self.read_timeout)?;
         stream.set_write_timeout(self.write_timeout)?;
         
