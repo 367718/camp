@@ -5,22 +5,20 @@ pub fn first_number(content: &[u8]) -> Option<u16> {
     
     // (b'0'..b'9') equals to (48..57)
     // b'5' (53) minus b'0' (48) equals to 5
-    let mut result = u16::from(first_digit - b'0');
+    let mut result = u32::from(first_digit - b'0');
     
-    for byte in bytes {
+    for byte in bytes.take_while(|byte| byte.is_ascii_digit()) {
         
-        if ! byte.is_ascii_digit() {
-            break;
+        result = result * 10 + u32::from(byte - b'0');
+        
+        if result > u32::from(u16::MAX) {
+            return None;
         }
-        
-        let current_digit = u16::from(byte - b'0');
-        
-        result = result.checked_mul(10)?
-            .checked_add(current_digit)?;
         
     }
     
-    Some(result)
+    #[allow(clippy::cast_possible_truncation)]
+    Some(result as u16)
 }
 
 #[cfg(test)]

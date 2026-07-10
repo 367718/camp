@@ -2,35 +2,33 @@
 
 use std::io::{ self, Write };
 
-pub fn escape_html(content: &[u8], mut writer: impl Write) -> io::Result<()> {
-    let mut previous_position = 0;
-    
-    for (current_position, &byte) in content.iter().enumerate() {
+pub fn escape_html(mut content: &[u8], mut writer: impl Write) -> io::Result<()> {
+    while let Some(position) = content.iter().position(|&byte| matches!(byte, b'&' | b'<' | b'>' | b'"' | b'\'')) {
         
-        let replacement: &[u8] = match byte {
+        // skipped chunk of unescaped characters
+        if position > 0 {
+            writer.write_all(&content[..position])?;
+        }
+        
+        let replacement: &[u8] = match content[position] {
             b'&' => b"&amp;",
             b'<' => b"&lt;",
             b'>' => b"&gt;",
             b'"' => b"&quot;",
             b'\'' => b"&apos;",
-            _ => continue,
+            _ => unreachable!(),
         };
-        
-        // skipped chunk of unescaped characters
-        if previous_position < current_position {
-            writer.write_all(&content[previous_position..current_position])?;
-        }
         
         // escaped character
         writer.write_all(replacement)?;
         
-        previous_position = current_position + 1;
+        content = &content[position + 1..];
         
     }
     
     // remaining unescaped characters
-    if previous_position < content.len() {
-        writer.write_all(&content[previous_position..])?;
+    if ! content.is_empty() {
+        writer.write_all(content)?;
     }
     
     Ok(())
