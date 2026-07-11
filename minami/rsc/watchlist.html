@@ -10,36 +10,33 @@
     </head>
     
     <body>
-        <div tabindex="0" class="current-section">
+        
+        <div class="header">
             
-            <div class="header">
-                
-                <div class="sections">
-                    <a href="/files">Files</a>
-                    <a>Watchlist</a>
-                    <a href="/rules">Rules</a>
-                    <a href="/feeds">Feeds</a>
-                </div>
-                
-                <input type="text" class="filter" placeholder="Filter">
-                
-                <div class="actions">
-                    <a data-url="/watchlist/insert" data-confirm="false" data-prompt="true" data-refresh="true">Insert</a>
-                    <a data-url="/watchlist/update" data-confirm="false" data-prompt="true" data-refresh="true">Update</a>
-                    <a data-url="/watchlist/delete" data-confirm="true" data-prompt="false" data-refresh="true">Delete</a>
-                </div>
-                
-                <div class="toggles">
-                    <label data-attr="data-primary" data-enabled="true">Watched</label>
-                    <label data-attr="data-secondary" data-enabled="true">Unwatched</label>
-                </div>
-                
+            <div class="sections">
+                <a href="/files">Files</a>
+                <a>Watchlist</a>
+                <a href="/rules">Rules</a>
+                <a href="/feeds">Feeds</a>
             </div>
             
-            <div data-refresh="/watchlist/entries" data-sorted="true" data-value="true" data-primary="true" data-secondary="true" data-tertiary="false" class="list">
+            <input type="text" class="filter" placeholder="Filter">
+            
+            <div class="actions">
+                <a data-url="/watchlist/insert" data-confirm="false" data-prompt="true" data-refresh="true">Insert</a>
+                <a data-url="/watchlist/update" data-confirm="false" data-prompt="true" data-refresh="true">Update</a>
+                <a data-url="/watchlist/delete" data-confirm="true" data-prompt="false" data-refresh="true">Delete</a>
+            </div>
+            
+            <div class="toggles">
+                <label data-attr="data-primary" data-enabled="true">Watched</label>
+                <label data-attr="data-secondary" data-enabled="true">Unwatched</label>
             </div>
             
         </div>
+        
+        <div data-refresh="/watchlist/entries" data-sorted="true" data-value="true" data-primary="true" data-secondary="true" data-tertiary="false" class="list"></div>
+        
     </body>
     
 </html>

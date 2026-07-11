@@ -17,7 +17,7 @@
     
     --transition-duration: 0.25s;
     
-    /* redefined in ".current" */
+    /* redefined in body */
     --accent-color: rgb(125 125 125 / 1);
     --entry-hovered-color: var(--secondary-color);
     --entry-selected-color: var(--accent-color);
@@ -27,38 +27,10 @@
 }
 
 
-/* -------------------- body -------------------- */
+/* -------------------- current section -------------------- */
 
 
 body {
-    height: 100vh;
-    margin: 0rem;
-    display: flex;
-    background-color: var(--primary-color);
-}
-
-
-/* -------------------- iframes -------------------- */
-
-
-iframe {
-    
-    flex: 1;
-    border: none;
-    
-    &:nth-of-type(2) {
-        @media screen and (width < 1600px) {
-            display: none;
-        }
-    }
-    
-}
-
-
-/* -------------------- current -------------------- */
-
-
-.current-section {
     
     &.rin {
         --accent-color: var(--accent-color-rin);
@@ -94,8 +66,11 @@ iframe {
     }
     
     width: 100%;
+    height: 100vh;
+    margin: 0rem;
     display: flex;
     flex-direction: column;
+    background-color: var(--primary-color);
     
 }
 
@@ -148,6 +123,62 @@ iframe {
     background-color: var(--primary-color);
     color: var(--text-primary-color);
     margin: 0.25rem;
+}
+
+
+/* -------------------- actions -------------------- */
+
+
+.actions {
+    
+    display: flex;
+    
+    a {
+        
+        color: var(--text-primary-color);
+        transition: background-color var(--transition-duration) ease;
+        text-decoration: none;
+        text-align: center;
+        padding: 0.75rem;
+        min-width: 4rem;
+        
+        &:hover {
+            cursor: pointer;
+            background-color: var(--accent-color);
+        }
+        
+    }
+    
+}
+
+
+/* -------------------- toggles -------------------- */
+
+
+.toggles {
+    
+    display: flex;
+    justify-content: flex-end;
+    
+    label {
+        
+        color: var(--text-secondary-color);
+        transition: background-color var(--transition-duration) ease, color var(--transition-duration) ease;
+        padding: 0.75rem;
+        min-width: 4rem;
+        text-align: center;
+        
+        &:hover {
+            cursor: pointer;
+            background-color: var(--accent-color);
+        }
+        
+        &[data-enabled="true"] {
+            color: var(--text-primary-color);
+        }
+        
+    }
+    
 }
 
 
@@ -222,62 +253,6 @@ iframe {
     span {
         display: none;
         color: var(--text-secondary-color);
-    }
-    
-}
-
-
-/* -------------------- actions -------------------- */
-
-
-.actions {
-    
-    display: flex;
-    
-    a {
-        
-        color: var(--text-primary-color);
-        transition: background-color var(--transition-duration) ease;
-        text-decoration: none;
-        text-align: center;
-        padding: 0.75rem;
-        min-width: 4rem;
-        
-        &:hover {
-            cursor: pointer;
-            background-color: var(--accent-color);
-        }
-        
-    }
-    
-}
-
-
-/* -------------------- toggles -------------------- */
-
-
-.toggles {
-    
-    display: flex;
-    justify-content: flex-end;
-    
-    label {
-        
-        color: var(--text-secondary-color);
-        transition: background-color var(--transition-duration) ease, color var(--transition-duration) ease;
-        padding: 0.75rem;
-        min-width: 4rem;
-        text-align: center;
-        
-        &:hover {
-            cursor: pointer;
-            background-color: var(--accent-color);
-        }
-        
-        &[data-enabled="true"] {
-            color: var(--text-primary-color);
-        }
-        
     }
     
 }

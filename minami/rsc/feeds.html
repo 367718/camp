@@ -10,33 +10,29 @@
     </head>
     
     <body>
-        <div tabindex="0" class="current-section">
+        
+        <div class="header">
             
-            <div class="header">
-                
-                <div class="sections">
-                    <a href="/files">Files</a>
-                    <a href="/watchlist">Watchlist</a>
-                    <a href="/rules">Rules</a>
-                    <a>Feeds</a>
-                </div>
-                
-                <input type="text" class="filter" placeholder="Filter">
-                
-                <div class="actions">
-                    <a data-url="/feeds/insert" data-confirm="false" data-prompt="true" data-refresh="true">Insert</a>
-                    <a data-url="/feeds/delete" data-confirm="true" data-prompt="false" data-refresh="true">Delete</a>
-                </div>
-                
-                <div class="toggles">
-                </div>
-                
+            <div class="sections">
+                <a href="/files">Files</a>
+                <a href="/watchlist">Watchlist</a>
+                <a href="/rules">Rules</a>
+                <a>Feeds</a>
             </div>
             
-            <div data-refresh="/feeds/entries" data-sorted="false" data-value="false" data-primary="true" data-secondary="false" data-tertiary="false" class="list">
+            <input type="text" class="filter" placeholder="Filter">
+            
+            <div class="actions">
+                <a data-url="/feeds/insert" data-confirm="false" data-prompt="true" data-refresh="true">Insert</a>
+                <a data-url="/feeds/delete" data-confirm="true" data-prompt="false" data-refresh="true">Delete</a>
             </div>
+            
+            <div class="toggles"></div>
             
         </div>
+        
+        <div data-refresh="/feeds/entries" data-sorted="false" data-value="false" data-primary="true" data-secondary="false" data-tertiary="false" class="list"></div>
+        
     </body>
     
 </html>

@@ -44,7 +44,6 @@ fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
         
         // -------------------- general --------------------
         
-        b"GET /" => general::index(request),
         b"GET /styles.css" => general::styles(request),
         b"GET /scripts.js" => general::scripts(request),
         

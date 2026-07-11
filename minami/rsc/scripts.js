@@ -4,7 +4,7 @@
 // -------------------- constants --------------------
 
 
-const CURRENT_SECTION_NODE_SELECTOR = ".current-section";
+const CURRENT_SECTION_NODE_SELECTOR = "body";
 const CURRENT_SECTION_BUTTON_SELECTOR = ".sections a:not([href])";
 
 const HOTKEY_COPY_COMPLETE = "KeyC";
@@ -44,11 +44,6 @@ class CurrentSection {
     // -------------------- properties --------------------
     
     this.node = document.querySelector(CURRENT_SECTION_NODE_SELECTOR);
-    
-    if (this.node === null) {
-      return;
-    }
-    
     this.filter = new Filter(this);
     this.list = new List(this);
     this.actions = new Actions(this);

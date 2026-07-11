@@ -10,34 +10,30 @@
     </head>
     
     <body>
-        <div tabindex="0" class="current-section">
             
-            <div class="header">
-                
-                <div class="sections">
-                    <a href="/files">Files</a>
-                    <a href="/watchlist">Watchlist</a>
-                    <a>Rules</a>
-                    <a href="/feeds">Feeds</a>
-                </div>
-                
-                <input type="text" class="filter" placeholder="Filter">
-                
-                <div class="actions">
-                    <a data-url="/rules/insert" data-confirm="false" data-prompt="true" data-refresh="true">Insert</a>
-                    <a data-url="/rules/update" data-confirm="false" data-prompt="true" data-refresh="true">Update</a>
-                    <a data-url="/rules/delete" data-confirm="true" data-prompt="false" data-refresh="true">Delete</a>
-                </div>
-                
-                <div class="toggles">
-                </div>
-                
+        <div class="header">
+            
+            <div class="sections">
+                <a href="/files">Files</a>
+                <a href="/watchlist">Watchlist</a>
+                <a>Rules</a>
+                <a href="/feeds">Feeds</a>
             </div>
             
-            <div data-refresh="/rules/entries" data-sorted="true" data-value="true" data-primary="true" data-secondary="true" data-tertiary="false" class="list">
+            <input type="text" class="filter" placeholder="Filter">
+            
+            <div class="actions">
+                <a data-url="/rules/insert" data-confirm="false" data-prompt="true" data-refresh="true">Insert</a>
+                <a data-url="/rules/update" data-confirm="false" data-prompt="true" data-refresh="true">Update</a>
+                <a data-url="/rules/delete" data-confirm="true" data-prompt="false" data-refresh="true">Delete</a>
             </div>
+            
+            <div class="toggles"></div>
             
         </div>
+        
+        <div data-refresh="/rules/entries" data-sorted="true" data-value="true" data-primary="true" data-secondary="true" data-tertiary="false" class="list"></div>
+        
     </body>
     
 </html>

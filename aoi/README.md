@@ -10,7 +10,7 @@ The parameter "input-ipc-server" of mpv must be configured with the name of the 
 
 ## Routes available
 
-* `/`: all the controls available, intended to be used by a tablet device
+* `/`
 
 ## Configuration parameters used
 

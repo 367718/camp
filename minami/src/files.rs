@@ -80,7 +80,7 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if selected.peek().is_none() {
-        return Err("No relevant file found".into());
+        return Err("File not found".into());
     }
     
     // -------------------- operation --------------------
@@ -117,7 +117,7 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if selected.peek().is_none() {
-        return Err("No relevant file found".into());
+        return Err("File not found".into());
     }
     
     // -------------------- operation --------------------
@@ -148,7 +148,7 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if selected.peek().is_none() {
-        return Err("No relevant file found".into());
+        return Err("File not found".into());
     }
     
     let folder = match request.form_data(b"input").next() {
@@ -184,12 +184,12 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if selected.peek().is_none() {
-        return Err("No relevant file found".into());
+        return Err("File not found".into());
     }
     
     // -------------------- operation --------------------
     
-    selected.try_for_each(ena::FilesEntry::delete)?;
+    selected.try_for_each(|entry| entry.delete())?;
     
     // -------------------- response --------------------
     
