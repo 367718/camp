@@ -189,7 +189,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    selected.try_for_each(|entry| entry.delete())?;
+    selected.try_for_each(ena::FilesEntry::delete)?;
     
     // -------------------- response --------------------
     

@@ -16,6 +16,7 @@ fn subslice_index(mut haystack: &[u8], needle: &[u8]) -> Option<usize> {
     let mut index = 0;
     
     while haystack.len() >= needle.len() {
+        
         // limit search to where a full match is still possible
         let haystack_limit = haystack.len() - needle.len() + 1;
         
@@ -34,6 +35,7 @@ fn subslice_index(mut haystack: &[u8], needle: &[u8]) -> Option<usize> {
         // skip over matched byte and continue search
         index += 1;
         haystack = &haystack[1..];
+        
     }
     
     None
