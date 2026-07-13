@@ -1,5 +1,3 @@
-mod headers;
-mod body;
 mod request;
 mod response;
 
@@ -9,12 +7,8 @@ use std::{
     time::Duration,
 };
 
-use headers::Headers;
-use body::Body;
-
-pub use request::Request;
+pub use request::{ Request, FormData };
 pub use response::Response;
-pub use body::FormData;
 
 const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;
 const REQUEST_SIZE_LIMIT: u64 = 64 * 1024;

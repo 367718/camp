@@ -58,11 +58,11 @@ impl<'c> Iterator for FeedEntries<'c> {
     
     fn next(&mut self) -> Option<Self::Item> {
         let range = chikuwa::delimited_range(self.content, ITEM_OPEN_TAG, ITEM_CLOSE_TAG)?;
-        let content = &self.content[range];
         
+        let current = &self.content[range];
         self.content = &self.content[range.end + ITEM_CLOSE_TAG.len()..];
         
-        Some(FeedEntry { content })
+        Some(FeedEntry { content: current })
     }
     
 }
