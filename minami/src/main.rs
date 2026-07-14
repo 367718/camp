@@ -12,7 +12,7 @@ use std::{
 };
 
 use ayano::{
-    Server, Request,
+    Server, ServerRequest,
     StatusCode, ContentType, CacheControl,
 };
 
@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
+fn handle_request(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     let endpoint = request.endpoint()
         .ok_or("Invalid request")?;
     

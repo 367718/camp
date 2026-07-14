@@ -6,7 +6,7 @@ use std::{
 };
 
 use ayano::{
-    Server, Request,
+    Server, ServerRequest,
     StatusCode, ContentType, CacheControl,
 };
 
@@ -81,7 +81,7 @@ fn process() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
+fn handle_request(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     let endpoint = request.endpoint()
         .ok_or("Invalid request")?;
     
@@ -117,28 +117,28 @@ fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
+fn index(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
         .and_then(|mut response| response.write_all(INDEX))?;
     
     Ok(())
 }
 
-fn styles(request: &mut Request) -> Result<(), Box<dyn Error>> {
+fn styles(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     request.start_response(StatusCode::Ok, ContentType::Css, CacheControl::Static)
         .and_then(|mut response| response.write_all(STYLES))?;
     
     Ok(())
 }
 
-fn scripts(request: &mut Request) -> Result<(), Box<dyn Error>> {
+fn scripts(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     request.start_response(StatusCode::Ok, ContentType::Javascript, CacheControl::Static)
         .and_then(|mut response| response.write_all(SCRIPTS))?;
     
     Ok(())
 }
 
-fn send_command(request: &mut Request, command: &[u8]) -> Result<(), Box<dyn Error>> {
+fn send_command(request: &mut ServerRequest, command: &[u8]) -> Result<(), Box<dyn Error>> {
     let pipe = rin::get::<&str>(b"pipe")?;
     
     unsafe {

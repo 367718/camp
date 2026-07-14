@@ -1,7 +1,4 @@
-use std::{
-    io::{ self, Read, Error, ErrorKind },
-    net::TcpStream,
-};
+use std::io::{ self, Read, Write, Error, ErrorKind };
 
 use super::{
     REQUEST_SIZE_LIMIT, CONNECTION_BUFFER_SIZE,
@@ -9,10 +6,10 @@ use super::{
     Response,
 };
 
-pub struct Request {
+pub struct Request<S: Read + Write> {
     headers: Vec<u8>,
     body: Vec<u8>,
-    stream: Option<TcpStream>,
+    stream: Option<S>,
 }
 
 pub struct FormData<'r, 'h, 'k> {
@@ -21,89 +18,13 @@ pub struct FormData<'r, 'h, 'k> {
     key: &'k [u8],
 }
 
-impl Request {
+impl<S: Read + Write> Request<S> {
     
     // -------------------- constructors --------------------
     
     
-    pub(crate) fn new(mut stream: TcpStream) -> io::Result<Self> {
-        let (headers, body) = Self::get_headers_and_body(&mut stream)?;
-        let stream = Some(stream);
-        
-        Ok(Self {
-            headers,
-            body,
-            stream,
-        })
-    }
-    
-    
-    // -------------------- accessors --------------------
-    
-    
-    pub fn endpoint(&self) -> Option<&[u8]> {
-        // GET /test/resource?fkey=fvalue HTTP/1.1\r\n
-        
-        // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
-        // to the left of '\r' => GET /test/resource?fkey=fvalue HTTP/1.1
-        let first_line = self.headers.splitn(2, |&curr| curr == b'\r').next()?;
-        
-        // TODO: replace with slice::rsplit_once in the future (https://github.com/rust-lang/rust/issues/112811)
-        // to the left of ' ' => GET /test/resource?fkey=fvalue
-        let endpoint = first_line.rsplitn(2, |&curr| curr == b' ').nth(1)?;
-        
-        // strip '?', if any => GET /test/resource
-        endpoint.split(|&curr| curr == b'?').next()
-    }
-    
-    pub fn get_header(&self, key: &[u8]) -> Option<&[u8]> {
-        // Host: placeholder\r\n
-        
-        // : placeholder
-        chikuwa::delimited_range(&self.headers, key, b"\r\n")
-            //  placeholder
-            .and_then(|range| self.headers[range].strip_prefix(b":"))
-            // placeholder
-            .map(<[u8]>::trim_ascii_start)
-    }
-    
-    pub fn form_data<'r: 'h, 'h, 'k>(&'r self, key: &'k [u8]) -> FormData<'r, 'h, 'k> {
-        // Content-Type: multipart/form-data; boundary=9999999999999999999999999999
-        
-        // multipart/form-data; boundary=9999999999999999999999999999
-        let boundary = self.get_header(b"Content-Type")
-            //  boundary=9999999999999999999999999999
-            .and_then(|value| value.strip_prefix(b"multipart/form-data;"))
-            // boundary=9999999999999999999999999999
-            .map(<[u8]>::trim_ascii_start)
-            // 9999999999999999999999999999
-            .and_then(|value| value.strip_prefix(b"boundary="))
-            .unwrap_or(&[]);
-        
-        FormData {
-            content: &self.body,
-            boundary,
-            key,
-        }
-    }
-    
-    
-    // -------------------- mutators --------------------
-    
-    
-    pub fn start_response(&mut self, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Response> {
-        let stream = self.stream.take()
-            .ok_or(Error::other("Response already sent"))?;
-        
-        Response::new(stream, status, content, cache)
-    }
-    
-    
-    // -------------------- helpers --------------------
-    
-    
-    fn get_headers_and_body(reader: &mut impl Read) -> io::Result<(Vec<u8>, Vec<u8>)> {
-        let mut reader = reader.take(REQUEST_SIZE_LIMIT);
+    pub(crate) fn new(stream: S) -> io::Result<Self> {
+        let mut reader = stream.take(REQUEST_SIZE_LIMIT);
         let mut buffer = [0; CONNECTION_BUFFER_SIZE];
         let mut search_start_index = 0;
         
@@ -166,9 +87,79 @@ impl Request {
         
         body.truncate(content_length);
         
+        // -------------------- stream --------------------
+        
+        let stream = Some(reader.into_inner());
+        
         // -------------------- response --------------------
         
-        Ok((headers, body))
+        Ok(Self {
+            headers,
+            body,
+            stream,
+        })
+        
+    }
+    
+    
+    // -------------------- accessors --------------------
+    
+    
+    pub fn endpoint(&self) -> Option<&[u8]> {
+        // GET /test/resource?fkey=fvalue HTTP/1.1\r\n
+        
+        // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
+        // to the left of '\r' => GET /test/resource?fkey=fvalue HTTP/1.1
+        let first_line = self.headers.splitn(2, |&curr| curr == b'\r').next()?;
+        
+        // TODO: replace with slice::rsplit_once in the future (https://github.com/rust-lang/rust/issues/112811)
+        // to the left of ' ' => GET /test/resource?fkey=fvalue
+        let endpoint = first_line.rsplitn(2, |&curr| curr == b' ').nth(1)?;
+        
+        // strip '?', if any => GET /test/resource
+        endpoint.split(|&curr| curr == b'?').next()
+    }
+    
+    pub fn get_header(&self, key: &[u8]) -> Option<&[u8]> {
+        // Host: placeholder\r\n
+        
+        // : placeholder
+        chikuwa::delimited_range(&self.headers, key, b"\r\n")
+            //  placeholder
+            .and_then(|range| self.headers[range].strip_prefix(b":"))
+            // placeholder
+            .map(<[u8]>::trim_ascii_start)
+    }
+    
+    pub fn form_data<'r: 'h, 'h, 'k>(&'r self, key: &'k [u8]) -> FormData<'r, 'h, 'k> {
+        // Content-Type: multipart/form-data; boundary=9999999999999999999999999999
+        
+        // multipart/form-data; boundary=9999999999999999999999999999
+        let boundary = self.get_header(b"Content-Type")
+            //  boundary=9999999999999999999999999999
+            .and_then(|value| value.strip_prefix(b"multipart/form-data;"))
+            // boundary=9999999999999999999999999999
+            .map(<[u8]>::trim_ascii_start)
+            // 9999999999999999999999999999
+            .and_then(|value| value.strip_prefix(b"boundary="))
+            .unwrap_or(&[]);
+        
+        FormData {
+            content: &self.body,
+            boundary,
+            key,
+        }
+    }
+    
+    
+    // -------------------- mutators --------------------
+    
+    
+    pub fn start_response(&mut self, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Response<S>> {
+        let stream = self.stream.take()
+            .ok_or(Error::other("Response already sent"))?;
+        
+        Response::new(stream, status, content, cache)
     }
     
 }
@@ -226,12 +217,14 @@ mod tests {
     use super::*;
     
     #[cfg(test)]
-    mod get_headers_and_body {
+    mod new {
         
         use super::*;
         
         #[test]
         fn simple() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -241,15 +234,15 @@ mod tests {
             
             // operation
             
-            let output = Request::get_headers_and_body(&mut content.as_slice());
+            let output = Request::new(Cursor::new(content.clone()));
             
             // control
             
-            let (headers, body) = output.unwrap();
+            let request = output.unwrap();
             
-            let control = headers
+            let control = request.headers
                 .into_iter()
-                .chain(body)
+                .chain(request.body)
                 .collect::<Vec<u8>>();
             
             assert_eq!(content, control);
@@ -257,6 +250,8 @@ mod tests {
         
         #[test]
         fn headers_complex() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -280,15 +275,15 @@ mod tests {
             
             // operation
             
-            let output = Request::get_headers_and_body(&mut &content[..]);
+            let output = Request::new(Cursor::new(content.clone()));
             
             // control
             
-            let (headers, body) = output.unwrap();
+            let request = output.unwrap();
             
-            let control = headers
+            let control = request.headers
                 .into_iter()
-                .chain(body)
+                .chain(request.body)
                 .collect::<Vec<u8>>();
             
             assert_eq!(content, control);
@@ -296,6 +291,8 @@ mod tests {
         
         #[test]
         fn body_not_signaled() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -304,7 +301,7 @@ mod tests {
             
             // operation
             
-            let output = Request::get_headers_and_body(&mut &content[..]);
+            let output = Request::new(Cursor::new(content.clone()));
             
             // control
             
@@ -313,6 +310,8 @@ mod tests {
         
         #[test]
         fn body_non_empty() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -324,15 +323,15 @@ mod tests {
             
             // operation
             
-            let output = Request::get_headers_and_body(&mut &content[..]);
+            let output = Request::new(Cursor::new(content.clone()));
             
             // control
             
-            let (headers, body) = output.unwrap();
+            let request = output.unwrap();
             
-            let control = headers
+            let control = request.headers
                 .into_iter()
-                .chain(body)
+                .chain(request.body)
                 .collect::<Vec<u8>>();
             
             assert_eq!(content, control);
@@ -340,6 +339,8 @@ mod tests {
         
         #[test]
         fn body_with_less_content_length() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -351,17 +352,19 @@ mod tests {
             
             // operation
             
-            let output = Request::get_headers_and_body(&mut &content[..]);
+            let output = Request::new(Cursor::new(content.clone()));
             
             // control
             
-            let (_, body) = output.unwrap();
+            let request = output.unwrap();
             
-            assert_eq!(b"123".as_slice(), body);
+            assert_eq!(b"123".as_slice(), request.body);
         }
         
         #[test]
         fn body_with_more_content_length() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -373,7 +376,7 @@ mod tests {
             
             // operation
             
-            let output = Request::get_headers_and_body(&mut &content[..]);
+            let output = Request::new(Cursor::new(content.clone()));
             
             // control
             
@@ -382,6 +385,8 @@ mod tests {
         
         #[test]
         fn body_with_excess_data() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -393,17 +398,19 @@ mod tests {
             
             // operation
             
-            let output = Request::get_headers_and_body(&mut &content[..]);
+            let output = Request::new(Cursor::new(content.clone()));
             
             // control
             
-            let (_, body) = output.unwrap();
+            let request = output.unwrap();
             
-            assert_eq!(b"1234".as_slice(), body);
+            assert_eq!(b"1234".as_slice(), request.body);
         }
         
         #[test]
         fn body_without_content_length() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -414,18 +421,42 @@ mod tests {
             
             // operation
             
-            let output = Request::get_headers_and_body(&mut &content[..]);
+            let output = Request::new(Cursor::new(content.clone()));
             
             // control
             
-            let (_, body) = output.unwrap();
+            let request = output.unwrap();
             
-            assert!(body.is_empty());
+            assert!(request.body.is_empty());
         }
         
         #[test]
-        fn limit_exceeded() {
-            use std::io::Write;
+        fn limit_exceeded_by_headers() {
+            use std::io::Cursor;
+            
+            // setup
+            
+            let mut content = Vec::with_capacity(REQUEST_SIZE_LIMIT as usize);
+            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
+            
+            for _ in 0..REQUEST_SIZE_LIMIT {
+                content.push(b'a');
+            }
+            
+            content.extend_from_slice(b"\r\n\r\n");
+            
+            // operation
+            
+            let output = Request::new(Cursor::new(content.clone()));
+            
+            // control
+            
+            assert!(output.is_err());
+        }
+        
+        #[test]
+        fn limit_exceeded_by_body() {
+            use std::io::Cursor;
             
             // setup
             
@@ -442,13 +473,13 @@ mod tests {
             
             // operation
             
-            let output = Request::get_headers_and_body(&mut &content[..]);
+            let output = Request::new(Cursor::new(content.clone()));
             
             // control
             
-            let (headers, body) = output.unwrap();
+            let request = output.unwrap();
             
-            assert_eq!(REQUEST_SIZE_LIMIT as usize, headers.len() + body.len());
+            assert_eq!(REQUEST_SIZE_LIMIT as usize, request.headers.len() + request.body.len());
         }
         
     }
@@ -460,6 +491,8 @@ mod tests {
         
         #[test]
         fn simple() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -467,8 +500,7 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             
             // operation
             
@@ -481,6 +513,8 @@ mod tests {
         
         #[test]
         fn with_query_string() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -488,8 +522,7 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             
             // operation
             
@@ -502,6 +535,8 @@ mod tests {
         
         #[test]
         fn extra_whitespace() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -509,8 +544,7 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             
             // operation
             
@@ -523,6 +557,8 @@ mod tests {
         
         #[test]
         fn without_method() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -530,8 +566,7 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             
             // operation
             
@@ -544,6 +579,8 @@ mod tests {
         
         #[test]
         fn without_path() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -551,8 +588,7 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             
             // operation
             
@@ -565,14 +601,15 @@ mod tests {
         
         #[test]
         fn method_only() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
             content.extend_from_slice(b"GET\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             
             // operation
             
@@ -592,6 +629,8 @@ mod tests {
         
         #[test]
         fn simple() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -599,8 +638,7 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"host";
             
             // operation
@@ -616,6 +654,8 @@ mod tests {
         
         #[test]
         fn complex() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -637,8 +677,7 @@ mod tests {
             content.extend_from_slice(b"Cache-Control: no-cache\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"Sec-GPC";
             
             // operation
@@ -654,6 +693,8 @@ mod tests {
         
         #[test]
         fn duplicate() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -662,8 +703,7 @@ mod tests {
             content.extend_from_slice(b"Host: non-existant\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"host";
             
             // operation
@@ -679,6 +719,8 @@ mod tests {
         
         #[test]
         fn case_mixing() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -686,8 +728,7 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"hOSt";
             
             // operation
@@ -703,6 +744,8 @@ mod tests {
         
         #[test]
         fn extra_whitespace() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -712,8 +755,7 @@ mod tests {
             content.extend_from_slice(b"Accept:    */*\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"Accept";
             
             // operation
@@ -729,6 +771,8 @@ mod tests {
         
         #[test]
         fn empty() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -738,8 +782,7 @@ mod tests {
             content.extend_from_slice(b"Accept:\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"Accept";
             
             // operation
@@ -755,6 +798,8 @@ mod tests {
         
         #[test]
         fn non_existant() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -764,8 +809,7 @@ mod tests {
             content.extend_from_slice(b"Accept: */*\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"Content-Length";
             
             // operation
@@ -786,6 +830,8 @@ mod tests {
         
         #[test]
         fn simple() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -800,8 +846,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"input";
             
             // operation
@@ -816,6 +861,8 @@ mod tests {
         
         #[test]
         fn complex() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -834,8 +881,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"second";
             
             // operation
@@ -850,6 +896,8 @@ mod tests {
         
         #[test]
         fn duplicate() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -868,8 +916,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"input";
             
             // operation
@@ -885,6 +932,8 @@ mod tests {
         
         #[test]
         fn case_mixing() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -899,8 +948,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"inPUT";
             
             // operation
@@ -915,6 +963,8 @@ mod tests {
         
         #[test]
         fn nonexistent_key() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -933,8 +983,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"third";
             
             // operation
@@ -948,6 +997,8 @@ mod tests {
         
         #[test]
         fn empty_key() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -966,8 +1017,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"first";
             
             // operation
@@ -981,6 +1031,8 @@ mod tests {
         
         #[test]
         fn empty_value() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -999,8 +1051,7 @@ mod tests {
             content.extend_from_slice(b"\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"first";
             
             // operation
@@ -1014,6 +1065,8 @@ mod tests {
         
         #[test]
         fn no_pairs() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -1023,8 +1076,7 @@ mod tests {
             content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"input";
             
             // operation
@@ -1038,6 +1090,8 @@ mod tests {
         
         #[test]
         fn no_whitespace_in_boundary() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -1052,8 +1106,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"input";
             
             // operation
@@ -1068,6 +1121,8 @@ mod tests {
         
         #[test]
         fn no_boundary() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -1081,8 +1136,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"input";
             
             // operation
@@ -1096,6 +1150,8 @@ mod tests {
         
         #[test]
         fn wrong_boundary() {
+            use std::io::Cursor;
+            
             // setup
             
             let mut content = Vec::new();
@@ -1110,8 +1166,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
             
-            let (headers, body) = Request::get_headers_and_body(&mut content.as_slice()).unwrap();
-            let request = Request { headers, body, stream: None };
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
             let key = b"input";
             
             // operation

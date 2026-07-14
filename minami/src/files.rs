@@ -5,18 +5,18 @@ use std::{
     process::{ Command, Stdio },
 };
 
-use ayano::{ Request, StatusCode, ContentType, CacheControl };
+use ayano::{ ServerRequest, StatusCode, ContentType, CacheControl };
 
 const INDEX: &[u8] = include_bytes!("../rsc/files.html");
 
-pub fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn index(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
         .and_then(|mut response| response.write_all(INDEX))?;
     
     Ok(())
 }
 
-pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn entries(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
     let root = rin::get::<&str>(b"root")?;
@@ -62,7 +62,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn play(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
     let root = rin::get::<&str>(b"root")?;
@@ -99,7 +99,7 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn mark(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
     let root = rin::get::<&str>(b"root")?;
@@ -131,7 +131,7 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn folder(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
     let root = rin::get::<&str>(b"root")?;
@@ -167,7 +167,7 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn delete(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
     let root = rin::get::<&str>(b"root")?;

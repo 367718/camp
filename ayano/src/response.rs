@@ -1,21 +1,18 @@
-use std::{
-    io::{ self, Write },
-    net::TcpStream,
-};
+use std::io::{ self, Write };
 
 use super::{
     CONNECTION_BUFFER_SIZE,
     StatusCode, ContentType, CacheControl,
 };
 
-pub struct Response {
+pub struct Response<S: Write> {
     buffer: Vec<u8>,
-    stream: TcpStream,
+    stream: S,
 }
 
-impl Response {
+impl<S: Write> Response<S> {
     
-    pub(crate) fn new(mut stream: TcpStream, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Self> {
+    pub(crate) fn new(mut stream: S, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Self> {
         let mut buffer = Vec::with_capacity(CONNECTION_BUFFER_SIZE);
         
         buffer.extend_from_slice(status.into_header());
@@ -37,7 +34,7 @@ impl Response {
     
 }
 
-impl Write for Response {
+impl<S: Write> Write for Response<S> {
     
     fn write(&mut self, content: &[u8]) -> io::Result<usize> {
         let size = content.len()
@@ -68,7 +65,7 @@ impl Write for Response {
     
 }
 
-impl Drop for Response {
+impl<S: Write> Drop for Response<S> {
     
     fn drop(&mut self) {
         self.flush().ok();

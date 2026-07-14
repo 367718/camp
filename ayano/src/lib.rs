@@ -3,12 +3,17 @@ mod response;
 
 use std::{
     io,
-    net::{ TcpListener },
+    net::{ TcpListener, TcpStream },
     time::Duration,
 };
 
-pub use request::{ Request, FormData };
-pub use response::Response;
+use request::Request;
+use response::Response;
+
+pub use request::FormData;
+
+pub type ServerRequest = Request<TcpStream>;
+pub type ServerResponse = Response<TcpStream>;
 
 const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;
 const REQUEST_SIZE_LIMIT: u64 = 64 * 1024;
@@ -83,7 +88,7 @@ impl Server {
         })
     }
     
-    pub fn accept(&mut self) -> io::Result<Request> {
+    pub fn accept(&mut self) -> io::Result<Request<TcpStream>> {
         let (stream, _) = self.listener.accept()?;
         
         stream.set_nodelay(true)?;

@@ -4,9 +4,9 @@ Non-compliant HTTP/1.1 server.
 
 ## Behavior
 
-* `Server`: provides access to `Request` structs via the "accept" method, blocking the execution thread
-* `Request`: has a size limit of 64 KiB and each can generate only a single `Response` via the "start_response" method
-* `Response`: "Transfer-Encoding: chunked" is always used a will signal EOF on drop
+* `Server`: provides access to `ServerRequest` structs via the "accept" method, blocking the execution thread
+* `ServerRequest`: has a size limit of 64 KiB and each can generate only a single `ServerResponse` via the "start_response" method
+* `ServerResponse`: "Transfer-Encoding: chunked" is always used a will signal EOF on drop
 
 ## API
 
@@ -14,12 +14,12 @@ Non-compliant HTTP/1.1 server.
     * bind
     * accept
 
-* `Request`
+* `ServerRequest`
     * endpoint
     * get_header
     * form_data
     * start_response
 
-* `Response`
+* `ServerResponse`
     * Write trait
     * Drop trait
