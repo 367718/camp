@@ -1,40 +1,50 @@
 use core::range::Range;
 
 pub fn delimited_range(content: &[u8], left: &[u8], right: &[u8]) -> Option<Range<usize>> {
-    let start = subslice_index(content, left)? + left.len();
-    let end = start + subslice_index(&content[start..], right)?;
+    let left_index = subslice_index(content, left)?;
+    let start = left_index + left.len();
+    
+    let right_index = subslice_index(&content[start..], right)?;
+    let end = start + right_index;
     
     Some(Range { start, end })
 }
 
-fn subslice_index(mut haystack: &[u8], needle: &[u8]) -> Option<usize> {
+fn subslice_index(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     let (needle_first, needle_rest) = needle.split_first()?;
     
     let first_lower = needle_first.to_ascii_lowercase();
     let first_upper = needle_first.to_ascii_uppercase();
     
-    let mut index = 0;
+    // first character might not be alphabetic (e.g. '<' or ' ')
+    let non_alphabetic = first_lower == first_upper;
     
-    while haystack.len() >= needle.len() {
+    let mut index = 0;
+    let mut haystack_rest = haystack;
+    
+    while haystack_rest.len() >= needle.len() {
         
-        // limit search to where a full match is still possible
-        let haystack_limit = haystack.len() - needle.len() + 1;
-        
-        let position = haystack[..haystack_limit]
-            .iter()
-            .position(|&byte| byte == first_lower || byte == first_upper)?;
+        let position = if non_alphabetic {
+            haystack_rest.iter().position(|&byte| byte == first_lower)
+        } else {
+            haystack_rest.iter().position(|&byte| byte == first_lower || byte == first_upper)
+        }?;
         
         index += position;
-        haystack = &haystack[position..];
+        haystack_rest = &haystack_rest[position..];
+        
+        if haystack_rest.len() < needle.len() {
+            return None;
+        }
         
         // first byte matches, compare rest
-        if haystack[1..needle.len()].eq_ignore_ascii_case(needle_rest) {
+        if haystack_rest[1..needle.len()].eq_ignore_ascii_case(needle_rest) {
             return Some(index);
         }
         
         // skip over matched byte and continue search
         index += 1;
-        haystack = &haystack[1..];
+        haystack_rest = &haystack_rest[1..];
         
     }
     

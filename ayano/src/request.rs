@@ -12,9 +12,9 @@ pub struct Request<S: Read + Write> {
     stream: Option<S>,
 }
 
-pub struct FormData<'r, 'h, 'k> {
+pub struct FormData<'r, 'k> {
     content: &'r [u8],
-    boundary: &'h [u8],
+    boundary: &'r [u8],
     key: &'k [u8],
 }
 
@@ -57,7 +57,7 @@ impl<S: Read + Write> Request<S> {
             // previous read might have included "\r\n\r"
             search_start_index = headers.len().saturating_sub(3);
             
-        };
+        }
         
         // -------------------- body --------------------
         
@@ -131,17 +131,44 @@ impl<S: Read + Write> Request<S> {
             .map(<[u8]>::trim_ascii_start)
     }
     
-    pub fn form_data<'r: 'h, 'h, 'k>(&'r self, key: &'k [u8]) -> FormData<'r, 'h, 'k> {
-        // Content-Type: multipart/form-data; boundary=9999999999999999999999999999
+    pub fn form_data<'r, 'k>(&'r self, key: &'k [u8]) -> FormData<'r, 'k> {
+        // Content-Type: multipart/form-data; charset=utf-8; boundary=9999999999999999999999999999
         
-        // multipart/form-data; boundary=9999999999999999999999999999
         let boundary = self.get_header(b"Content-Type")
-            //  boundary=9999999999999999999999999999
-            .and_then(|value| value.strip_prefix(b"multipart/form-data;"))
-            // boundary=9999999999999999999999999999
-            .map(<[u8]>::trim_ascii_start)
-            // 9999999999999999999999999999
-            .and_then(|value| value.strip_prefix(b"boundary="))
+            .and_then(|value| {
+                
+                // parameters are key-value pairs separated by ';' and preceded by mime type
+                let mut parts = value.split(|&curr| curr == b';').map(<[u8]>::trim_ascii);
+                
+                // mime type must be "multipart/form-data" in this case
+                if ! parts.next()?.eq_ignore_ascii_case(b"multipart/form-data") {
+                    return None;
+                }
+                
+                // any number of other parameters may be present before and after "boundary"
+                let boundary = parts.find_map(|part| {
+                    
+                    let mut pair = part.splitn(2, |&curr| curr == b'=').map(<[u8]>::trim_ascii);
+                    
+                    let pair_key = pair.next()?;
+                    let pair_value = pair.next()?;
+                    
+                    if pair_key.eq_ignore_ascii_case(b"boundary") {
+                        Some(pair_value)
+                    } else {
+                        None
+                    }
+                    
+                })?;
+                
+                // strip optional surrounding quotes
+                let unquoted = boundary.strip_prefix(b"\"")
+                    .and_then(|value| value.strip_suffix(b"\""))
+                    .unwrap_or(boundary);
+                
+                Some(unquoted)
+                
+            })
             .unwrap_or(&[]);
         
         FormData {
@@ -164,7 +191,7 @@ impl<S: Read + Write> Request<S> {
     
 }
 
-impl<'r> Iterator for FormData<'r, '_, '_> {
+impl<'r> Iterator for FormData<'r, '_> {
     
     type Item = &'r [u8];
     
@@ -190,7 +217,7 @@ impl<'r> Iterator for FormData<'r, '_, '_> {
             let current = &self.content[range];
             self.content = &self.content[range.end..];
             
-            let data = chikuwa::delimited_range(current, b"Content-Disposition: form-data; name=\"", b"\"\r\n\r\n")?;
+            let data = chikuwa::delimited_range(current, b"name=\"", b"\"\r\n\r\n")?;
             
             let key = &current[data];
             let value = &current[data.end + 5..].strip_suffix(b"\r\n--")?;
@@ -318,6 +345,35 @@ mod tests {
             content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"Content-Length: 4\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"1234");
+            
+            // operation
+            
+            let output = Request::new(Cursor::new(content.clone()));
+            
+            // control
+            
+            let request = output.unwrap();
+            
+            let control = request.headers
+                .into_iter()
+                .chain(request.body)
+                .collect::<Vec<u8>>();
+            
+            assert_eq!(content, control);
+        }
+        
+        #[test]
+        fn case_mixed_body_length() {
+            use std::io::Cursor;
+            
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"Content-LENGTH:4\r\n");
             content.extend_from_slice(b"\r\n");
             content.extend_from_slice(b"1234");
             
@@ -718,7 +774,32 @@ mod tests {
         }
         
         #[test]
-        fn case_mixing() {
+        fn case_mixed_content() {
+            use std::io::Cursor;
+            
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"GET /test/resource HTTP/1.1\r\n");
+            content.extend_from_slice(b"hOsT: placeholder\r\n");
+            content.extend_from_slice(b"\r\n");
+            
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let key = b"host";
+            
+            // operation
+            
+            let output = request.get_header(key);
+            
+            // control
+            
+            let value = output.unwrap();
+            
+            assert_eq!(value, b"placeholder");
+        }
+        
+        #[test]
+        fn case_mixed_key() {
             use std::io::Cursor;
             
             // setup
@@ -740,6 +821,33 @@ mod tests {
             let value = output.unwrap();
             
             assert_eq!(value, b"placeholder");
+        }
+        
+        #[test]
+        fn no_whitespace() {
+            use std::io::Cursor;
+            
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"GET /test/resource HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"User-Agent: Mozilla/9.0 (Windows NT 9.0; Win64; x64; rv:9.0) Gecko/9 Firefox/9.0\r\n");
+            content.extend_from_slice(b"Accept:*/*\r\n");
+            content.extend_from_slice(b"\r\n");
+            
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let key = b"Accept";
+            
+            // operation
+            
+            let output = request.get_header(key);
+            
+            // control
+            
+            let value = output.unwrap();
+            
+            assert_eq!(value, b"*/*");
         }
         
         #[test]
@@ -855,7 +963,7 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next().as_deref(), Some(b"90".as_slice()));
+            assert_eq!(output.next(), Some(b"90".as_slice()));
             assert!(output.next().is_none());
         }
         
@@ -890,7 +998,7 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next().as_deref(), Some(b"10".as_slice()));
+            assert_eq!(output.next(), Some(b"10".as_slice()));
             assert!(output.next().is_none());
         }
         
@@ -925,13 +1033,74 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next().as_deref(), Some(b"10".as_slice()));
-            assert_eq!(output.next().as_deref(), Some(b"90".as_slice()));
+            assert_eq!(output.next(), Some(b"10".as_slice()));
+            assert_eq!(output.next(), Some(b"90".as_slice()));
             assert!(output.next().is_none());
         }
         
         #[test]
-        fn case_mixing() {
+        fn no_name() {
+            use std::io::Cursor;
+            
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"Content-Length: 105\r\n");
+            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"Content-Disposition: form-data;\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"90\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
+            
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let key = b"input";
+            
+            // operation
+            
+            let mut output = request.form_data(key);
+            
+            // control
+            
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn case_mixed_name() {
+            use std::io::Cursor;
+            
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"Content-Length: 116\r\n");
+            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"CONTENT-DISPOSITION:form-data;naMe=\"input\"\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"90\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
+            
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let key = b"inPUT";
+            
+            // operation
+            
+            let mut output = request.form_data(key);
+            
+            // control
+            
+            assert_eq!(output.next(), Some(b"90".as_slice()));
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn case_mixed_key() {
             use std::io::Cursor;
             
             // setup
@@ -957,7 +1126,7 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next().as_deref(), Some(b"90".as_slice()));
+            assert_eq!(output.next(), Some(b"90".as_slice()));
             assert!(output.next().is_none());
         }
         
@@ -996,7 +1165,7 @@ mod tests {
         }
         
         #[test]
-        fn empty_key() {
+        fn empty_name() {
             use std::io::Cursor;
             
             // setup
@@ -1089,7 +1258,7 @@ mod tests {
         }
         
         #[test]
-        fn no_whitespace_in_boundary() {
+        fn additional_whitespace_in_boundary() {
             use std::io::Cursor;
             
             // setup
@@ -1098,7 +1267,7 @@ mod tests {
             content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"Content-Length: 118\r\n");
-            content.extend_from_slice(b"Content-Type:multipart/form-data;boundary=9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary = 9999999999999999999999999999\r\n");
             content.extend_from_slice(b"\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999\r\n");
             content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
@@ -1115,7 +1284,130 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next().as_deref(), Some(b"90".as_slice()));
+            assert_eq!(output.next(), Some(b"90".as_slice()));
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn mimetype_last() {
+            use std::io::Cursor;
+            
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"Content-Length: 118\r\n");
+            content.extend_from_slice(b"Content-Type: boundary=9999999999999999999999999999; multipart/form-data\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"90\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
+            
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let key = b"input";
+            
+            // operation
+            
+            let mut output = request.form_data(key);
+            
+            // control
+            
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn additional_parameter_before_boundary() {
+            use std::io::Cursor;
+            
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"Content-Length: 118\r\n");
+            content.extend_from_slice(b"Content-Type: multipart/form-data; charset=utf-8; boundary=9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"90\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
+            
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let key = b"input";
+            
+            // operation
+            
+            let mut output = request.form_data(key);
+            
+            // control
+            
+            assert_eq!(output.next(), Some(b"90".as_slice()));
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn additional_parameter_after_boundary() {
+            use std::io::Cursor;
+            
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"Content-Length: 118\r\n");
+            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999; charset=utf-8\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"90\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
+            
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let key = b"input";
+            
+            // operation
+            
+            let mut output = request.form_data(key);
+            
+            // control
+            
+            assert_eq!(output.next(), Some(b"90".as_slice()));
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn case_mixed_boundary() {
+            use std::io::Cursor;
+            
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"Content-Length: 118\r\n");
+            content.extend_from_slice(b"Content-Type: multipart/form-data; BOUNDARY=9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"90\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
+            
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let key = b"input";
+            
+            // operation
+            
+            let mut output = request.form_data(key);
+            
+            // control
+            
+            assert_eq!(output.next(), Some(b"90".as_slice()));
             assert!(output.next().is_none());
         }
         
