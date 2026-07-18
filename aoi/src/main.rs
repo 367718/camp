@@ -89,26 +89,26 @@ fn handle_request(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
         
         // -------------------- general --------------------
         
-        b"GET /" => index(request),
-        b"GET /styles.css" => styles(request),
-        b"GET /scripts.js" => scripts(request),
+        (b"GET", b"/") => index(request),
+        (b"GET", b"/styles.css") => styles(request),
+        (b"GET", b"/scripts.js") => scripts(request),
         
         // -------------------- commands --------------------
         
-        b"POST /play" => send_command(request, COMMAND_PLAY),
-        b"POST /minuschapter" => send_command(request, COMMAND_MINUSCHAPTER),
-        b"POST /pluschapter" => send_command(request, COMMAND_PLUSCHAPTER),
-        b"POST /minusplaylist" => send_command(request, COMMAND_MINUSPLAYLIST),
-        b"POST /plusplaylist" => send_command(request, COMMAND_PLUSPLAYLIST),
-        b"POST /minus5" => send_command(request, COMMAND_MINUS5),
-        b"POST /plus5" => send_command(request, COMMAND_PLUS5),
-        b"POST /minus75" => send_command(request, COMMAND_MINUS75),
-        b"POST /plus75" => send_command(request, COMMAND_PLUS75),
-        b"POST /fullscreen" => send_command(request, COMMAND_FULLSCREEN),
-        b"POST /subtitles" => send_command(request, COMMAND_SUBTITLES),
-        b"POST /title" => send_command(request, COMMAND_TITLE),
-        b"POST /time" => send_command(request, COMMAND_TIME),
-        b"POST /quit" => send_command(request, COMMAND_QUIT),
+        (b"POST", b"/play") => send_command(request, COMMAND_PLAY),
+        (b"POST", b"/minuschapter") => send_command(request, COMMAND_MINUSCHAPTER),
+        (b"POST", b"/pluschapter") => send_command(request, COMMAND_PLUSCHAPTER),
+        (b"POST", b"/minusplaylist") => send_command(request, COMMAND_MINUSPLAYLIST),
+        (b"POST", b"/plusplaylist") => send_command(request, COMMAND_PLUSPLAYLIST),
+        (b"POST", b"/minus5") => send_command(request, COMMAND_MINUS5),
+        (b"POST", b"/plus5") => send_command(request, COMMAND_PLUS5),
+        (b"POST", b"/minus75") => send_command(request, COMMAND_MINUS75),
+        (b"POST", b"/plus75") => send_command(request, COMMAND_PLUS75),
+        (b"POST", b"/fullscreen") => send_command(request, COMMAND_FULLSCREEN),
+        (b"POST", b"/subtitles") => send_command(request, COMMAND_SUBTITLES),
+        (b"POST", b"/title") => send_command(request, COMMAND_TITLE),
+        (b"POST", b"/time") => send_command(request, COMMAND_TIME),
+        (b"POST", b"/quit") => send_command(request, COMMAND_QUIT),
         
         // -------------------- not found --------------------
         
