@@ -93,6 +93,17 @@ pub fn win_filename(content: &str) -> Option<OsString> {
 #[cfg(test)]
 mod tests {
     
+    // no_replacement
+    // with_directory
+    // single
+    // multiple
+    // empty
+    // name_invalid
+    // name_invalid_double_format
+    // dirty_end
+    // double_invalid
+    // emoji
+    
     use super::*;
     
     #[test]

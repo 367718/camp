@@ -77,6 +77,10 @@ impl<S: Write> Drop for Response<S> {
 #[cfg(test)]
 mod tests {
     
+    // empty
+    // short
+    // long
+    
     use super::*;
     
     #[test]

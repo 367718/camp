@@ -38,6 +38,12 @@ mod tests {
     #[cfg(test)]
     mod to_str {
         
+        // letters
+        // numbers
+        // emoji
+        // empty
+        // encoding_error
+        
         use super::*;
         
         #[test]
@@ -129,6 +135,12 @@ mod tests {
     
     #[cfg(test)]
     mod to_u64 {
+        
+        // letters
+        // numbers
+        // emoji
+        // empty
+        // encoding_error
         
         use super::*;
         

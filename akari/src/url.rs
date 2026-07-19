@@ -63,6 +63,16 @@ impl Url<'_> {
 #[cfg(test)]
 mod tests {
     
+    // valid
+    // ip
+    // ip_with_port
+    // with_querystring
+    // with_port
+    // no_host
+    // invalid_scheme
+    // uppercase_scheme
+    // invalid_port
+    
     use super::*;
     
     #[test]

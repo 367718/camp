@@ -49,6 +49,15 @@ pub fn deserialize(data: &[u8]) -> Option<(ListEntry<'_>, &[u8])> {
 #[cfg(test)]
 mod tests {
     
+    // roundtrip
+    // no_content
+    // empty_tag
+    // no_tag_size
+    // no_tag
+    // no_value
+    // low_tag_size
+    // high_tag_size
+    
     use super::*;
     
     #[test]

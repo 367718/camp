@@ -59,6 +59,15 @@ mod tests {
     #[cfg(test)]
     mod subslice_index {
         
+        // simple
+        // case_mismatch
+        // content_match
+        // emoji
+        // not_contained
+        // empty
+        // haystack_empty
+        // needle_empty
+        
         use super::*;
         
         #[test]
@@ -199,6 +208,13 @@ mod tests {
         #[cfg(test)]
         mod lookup {
             
+            // simple
+            // complex
+            // left_and_right_not_present
+            // left_not_present
+            // right_not_present
+            // right_before_left
+            
             use super::*;
             
             #[test]
@@ -323,6 +339,12 @@ mod tests {
         
         #[cfg(test)]
         mod arguments {
+            
+            // empty
+            // empty_content
+            // empty_left_and_right
+            // empty_left
+            // empty_right
             
             use super::*;
             

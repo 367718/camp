@@ -89,6 +89,9 @@ mod tests {
     #[cfg(test)]
     mod valid {
         
+        // one
+        // three
+        
         use super::*;
         
         #[test]
@@ -195,6 +198,13 @@ mod tests {
     
     #[cfg(test)]
     mod malformed {
+        
+        // empty_link
+        // nested_items
+        // multiple_link
+        // no_items
+        // barebones
+        // disordered
         
         use super::*;
         
@@ -455,6 +465,9 @@ mod tests {
     
     #[cfg(test)]
     mod invalid {
+        
+        // unclosed_item
+        // missing_link
         
         use super::*;
         

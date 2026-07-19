@@ -86,6 +86,17 @@ mod tests {
     #[cfg(test)]
     mod extract_value {
         
+        // single
+        // multiple
+        // case_mismatch
+        // key_not_present
+        // content_empty
+        // key_empty
+        // extra_whitespace
+        // pair_malformed
+        // no_linebreak
+        // emoji
+        
         use super::*;
         
         #[test]

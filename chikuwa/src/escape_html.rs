@@ -37,6 +37,15 @@ pub fn escape_html(mut content: &[u8], mut writer: impl Write) -> io::Result<()>
 #[cfg(test)]
 mod tests {
     
+    // single
+    // single_first
+    // single_last
+    // multiple
+    // full
+    // emoji
+    // no_replacement
+    // empty
+    
     use super::*;
     
     #[test]

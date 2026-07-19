@@ -24,6 +24,17 @@ pub fn first_number(content: &[u8]) -> Option<u16> {
 #[cfg(test)]
 mod tests {
     
+    // valid
+    // zero
+    // negative
+    // limit
+    // too_big
+    // at_start
+    // at_end
+    // number_only
+    // no_number
+    // empty
+    
     use super::*;
     
     #[test]
