@@ -73,3 +73,113 @@ impl<S: Write> Drop for Response<S> {
     }
     
 }
+
+#[cfg(test)]
+mod tests {
+    
+    use super::*;
+    
+    #[test]
+    fn empty() {
+        // setup
+        
+        let mut content = Vec::new();
+        
+        let mut control = Vec::new();
+        control.extend_from_slice(b"HTTP/1.1 200 OK\r\n");
+        control.extend_from_slice(b"Content-Type: text/plain; charset=utf-8\r\n");
+        control.extend_from_slice(b"Cache-Control: no-cache, no-store\r\n");
+        control.extend_from_slice(b"Transfer-Encoding: chunked\r\n");
+        control.extend_from_slice(b"Connection: close\r\n");
+        control.extend_from_slice(b"\r\n");
+        control.extend_from_slice(b"0\r\n\r\n");
+        
+        // operation
+        
+        let output = Response::new(&mut content, StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic);
+        
+        // control
+        
+        assert!(output.is_ok());
+        
+        drop(output);
+        
+        assert_eq!(content, control);
+    }
+    
+    #[test]
+    fn short() {
+        // setup
+        
+        let mut content = Vec::new();
+        
+        let mut control = Vec::new();
+        control.extend_from_slice(b"HTTP/1.1 200 OK\r\n");
+        control.extend_from_slice(b"Content-Type: text/plain; charset=utf-8\r\n");
+        control.extend_from_slice(b"Cache-Control: no-cache, no-store\r\n");
+        control.extend_from_slice(b"Transfer-Encoding: chunked\r\n");
+        control.extend_from_slice(b"Connection: close\r\n");
+        control.extend_from_slice(b"\r\n");
+        control.extend_from_slice(b"6\r\n");
+        control.extend_from_slice(b"qwerty\r\n");
+        control.extend_from_slice(b"0\r\n\r\n");
+        
+        // operation
+        
+        let output = Response::new(&mut content, StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic);
+        
+        let mut output = output.unwrap();
+        
+        output.write_all(b"qwerty").unwrap();
+        
+        // control
+        
+        drop(output);
+        
+        assert_eq!(content, control);
+    }
+    
+    #[test]
+    fn long() {
+        // setup
+        
+        let mut content = Vec::new();
+        
+        let mut control = Vec::new();
+        control.extend_from_slice(b"HTTP/1.1 200 OK\r\n");
+        control.extend_from_slice(b"Content-Type: text/plain; charset=utf-8\r\n");
+        control.extend_from_slice(b"Cache-Control: no-cache, no-store\r\n");
+        control.extend_from_slice(b"Transfer-Encoding: chunked\r\n");
+        control.extend_from_slice(b"Connection: close\r\n");
+        control.extend_from_slice(b"\r\n");
+        write!(control, "{:x}\r\n", CONNECTION_BUFFER_SIZE).ok();
+        
+        for _ in 0..CONNECTION_BUFFER_SIZE {
+            control.push(b'a');
+        }
+        
+        control.extend_from_slice(b"\r\n");
+        control.extend_from_slice(b"6\r\n");
+        control.extend_from_slice(b"qwerty\r\n");
+        control.extend_from_slice(b"0\r\n\r\n");
+        
+        // operation
+        
+        let output = Response::new(&mut content, StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic);
+        
+        let mut output = output.unwrap();
+        
+        for _ in 0..CONNECTION_BUFFER_SIZE {
+            output.write_all(b"a").unwrap();
+        }
+        
+        output.write_all(b"qwerty").unwrap();
+        
+        // control
+        
+        drop(output);
+        
+        assert_eq!(content, control);
+    }
+    
+}

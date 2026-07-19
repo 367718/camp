@@ -109,7 +109,7 @@ impl<S: Read + Write> Request<S> {
         // GET /test/resource?fkey=fvalue HTTP/1.1\r\n
         
         // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
-        let first_line = self.headers.splitn(2, |&curr| curr == b'\r').next()?;
+        let first_line = self.headers.splitn(2, |&byte| byte == b'\r').next()?;
         
         let mut components = first_line.split(|&byte| byte == b' ')
             .filter(|component| ! component.is_empty());
@@ -120,7 +120,7 @@ impl<S: Read + Write> Request<S> {
         // request target
         let target = components.next()?
             // strip query string
-            .split(|&curr| curr == b'?').next().unwrap();
+            .split(|&byte| byte == b'?').next().unwrap();
         
         Some((method, target))
     }
@@ -128,42 +128,42 @@ impl<S: Read + Write> Request<S> {
     pub fn header(&self, key: &[u8]) -> Option<&[u8]> {
         // Host: placeholder\r\n
         
+        // non-compliant with rfc 9110:
+        // - whitespace is allowed in key
+        // - only "U+0020 SPACE" and "U+0009 HORIZONTAL TAB" should be considered as whitespace
+        
         chikuwa::delimited_range(&self.headers, key, b"\r\n")
             .map(|range| &self.headers[range])
             .and_then(|value| value.strip_prefix(b":"))
-            // technically too broad, as only "U+0020 SPACE" and "U+0009 HORIZONTAL TAB" should be trimmed
             .map(<[u8]>::trim_ascii)
     }
     
     pub fn form_data<'r, 'k>(&'r self, key: &'k [u8]) -> FormData<'r, 'k> {
         // Content-Type: multipart/form-data; charset=utf-8; boundary=9999999999999999999999999999
         
+        // non-compliant with rfc 9110:
+        // - media-type should precede parameter list
+        // - only "U+0020 SPACE" and "U+0009 HORIZONTAL TAB" should be considered as whitespace
+        
         let boundary = self.header(b"Content-Type")
             .and_then(|value| {
                 
-                // parameters are key-value pairs separated by ';' and preceded by mime type
-                let mut parts = value.split(|&curr| curr == b';').map(<[u8]>::trim_ascii);
-                
-                // mime type must be "multipart/form-data" in this case
-                if ! parts.next()?.eq_ignore_ascii_case(b"multipart/form-data") {
-                    return None;
-                }
-                
-                // any number of other parameters may be present before and after "boundary"
-                let boundary = parts.find_map(|part| {
-                    
-                    let mut pair = part.splitn(2, |&curr| curr == b'=').map(<[u8]>::trim_ascii);
-                    
-                    let pair_key = pair.next()?;
-                    let pair_value = pair.next()?;
-                    
-                    if pair_key.eq_ignore_ascii_case(b"boundary") {
-                        Some(pair_value)
-                    } else {
-                        None
-                    }
-                    
-                })?;
+                let boundary = value.split(|&byte| byte == b';')
+                    .find_map(|parameter| {
+                        
+                        let mut pair = parameter.splitn(2, |&byte| byte == b'=')
+                            .map(<[u8]>::trim_ascii);
+                        
+                        let pair_key = pair.next()?;
+                        let pair_value = pair.next()?;
+                        
+                        if pair_key.eq_ignore_ascii_case(b"boundary") {
+                            Some(pair_value)
+                        } else {
+                            None
+                        }
+                        
+                    })?;
                 
                 // strip optional surrounding quotes
                 let unquoted = boundary.strip_prefix(b"\"")
@@ -969,9 +969,9 @@ mod tests {
         // empty_value
         // empty_content
         // additional_whitespace_in_boundary
-        // mimetype_last
         // additional_parameter_before_boundary
         // additional_parameter_after_boundary
+        // quoted_boundary
         // case_mixed_boundary
         // no_boundary
         // wrong_boundary
@@ -1277,34 +1277,6 @@ mod tests {
         }
         
         #[test]
-        fn mimetype_last() {
-            // setup
-            
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 118\r\n");
-            content.extend_from_slice(b"Content-Type: boundary=9999999999999999999999999999; multipart/form-data\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
-            
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(key);
-            
-            // control
-            
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
         fn additional_parameter_before_boundary() {
             // setup
             
@@ -1342,6 +1314,35 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"Content-Length: 118\r\n");
             content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999; charset=utf-8\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"90\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999--\r\n");
+            
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let key = b"input";
+            
+            // operation
+            
+            let mut output = request.form_data(key);
+            
+            // control
+            
+            assert_eq!(output.next(), Some(b"90".as_slice()));
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn quoted_boundary() {
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"Content-Length: 118\r\n");
+            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=\"9999999999999999999999999999\"\r\n");
             content.extend_from_slice(b"\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999\r\n");
             content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
