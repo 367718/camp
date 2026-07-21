@@ -72,10 +72,11 @@ fn extract_value(content: &'static [u8], key: &[u8]) -> Option<&'static [u8]> {
     let range = chikuwa::delimited_range(content, key, b"\r\n")?;
     
     // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
-    let mut components = content[range].splitn(2, |&curr| curr == b'=');
+    let mut components = content[range].splitn(2, |&curr| curr == b'=')
+        .map(<[u8]>::trim_ascii_start);
     
     // to the right of '='
-    components.nth(1).map(<[u8]>::trim_ascii_start)
+    components.nth(1)
 }
 
 #[cfg(test)]

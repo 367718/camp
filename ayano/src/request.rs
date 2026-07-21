@@ -12,10 +12,10 @@ pub struct Request<S: Read + Write> {
     stream: Option<S>,
 }
 
-pub struct FormData<'r, 'k> {
+pub struct FormData<'r, 'p> {
     content: &'r [u8],
     boundary: &'r [u8],
-    key: &'k [u8],
+    param: &'p [u8],
 }
 
 impl<S: Read + Write> Request<S> {
@@ -109,7 +109,7 @@ impl<S: Read + Write> Request<S> {
         // GET /test/resource?fkey=fvalue HTTP/1.1\r\n
         
         // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
-        let first_line = self.headers.splitn(2, |&byte| byte == b'\r').next()?;
+        let first_line = self.headers.splitn(2, |&byte| byte == b'\r').next().unwrap();
         
         let mut components = first_line.split(|&byte| byte == b' ')
             .filter(|component| ! component.is_empty());
@@ -138,7 +138,7 @@ impl<S: Read + Write> Request<S> {
             .map(<[u8]>::trim_ascii)
     }
     
-    pub fn form_data<'r, 'k>(&'r self, key: &'k [u8]) -> FormData<'r, 'k> {
+    pub fn form_data<'r, 'p>(&'r self, param: &'p [u8]) -> FormData<'r, 'p> {
         // Content-Type: multipart/form-data; charset=utf-8; boundary=9999999999999999999999999999
         
         // non-compliant with rfc 9110:
@@ -146,19 +146,26 @@ impl<S: Read + Write> Request<S> {
         // - only "U+0020 SPACE" and "U+0009 HORIZONTAL TAB" should be considered as whitespace
         
         let boundary = self.header(b"Content-Type")
-            .and_then(|value| {
+            .and_then(|parameters| {
                 
-                let param_value = value.split(|&byte| byte == b';')
-                    .find_map(|parameter| {
+                let value = parameters
+                    .split(|&byte| byte == b';')
+                    .filter_map(|parameter| {
                         
+                        // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
                         let mut pair = parameter.splitn(2, |&byte| byte == b'=')
                             .map(<[u8]>::trim_ascii);
                         
-                        let param_key = pair.next()?;
-                        let param_value = pair.next()?;
+                        let key = pair.next().unwrap();
+                        let value = pair.next()?;
                         
-                        if param_key.eq_ignore_ascii_case(b"boundary") {
-                            Some(param_value)
+                        Some((key, value))
+                        
+                    })
+                    .find_map(|(key, value)| {
+                        
+                        if key.eq_ignore_ascii_case(b"boundary") {
+                            Some(value)
                         } else {
                             None
                         }
@@ -166,9 +173,10 @@ impl<S: Read + Write> Request<S> {
                     })?;
                 
                 // strip optional surrounding quotes
-                let unquoted = param_value.strip_prefix(b"\"")
-                    .and_then(|value| value.strip_suffix(b"\""))
-                    .unwrap_or(param_value);
+                let unquoted = match value {
+                    [b'"', inner @ .., b'"'] => inner,
+                    _ => value,
+                };
                 
                 Some(unquoted)
                 
@@ -178,7 +186,7 @@ impl<S: Read + Write> Request<S> {
         FormData {
             content: &self.body,
             boundary,
-            key,
+            param,
         }
     }
     
@@ -222,24 +230,48 @@ impl<'r> Iterator for FormData<'r, '_> {
             let current = &self.content[range];
             self.content = &self.content[range.end..];
             
+            // -------------------- parameter --------------------
+            
             let Some(parameters) = chikuwa::delimited_range(current, b"Content-Disposition:", b"\r\n\r\n") else {
                 continue;
             };
             
             let relevant = current[parameters]
                 .split(|&byte| byte == b';')
-                .filter_map(|param| chikuwa::delimited_range(param, b"name=\"", b"\"").map(|value| &param[value]))
-                .any(|value| value.eq_ignore_ascii_case(self.key));
+                .filter_map(|parameter| {
+                    
+                    // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
+                    let mut pair = parameter.splitn(2, |&byte| byte == b'=')
+                        .map(<[u8]>::trim_ascii);
+                    
+                    let key = pair.next().unwrap();
+                    let value = pair.next()?;
+                    
+                    Some((key, value))
+                    
+                })
+                .filter(|(key, _)| key.eq_ignore_ascii_case(b"name"))
+                .any(|(_, value)| matches!(value, [b'"', inner @ .., b'"'] if inner.eq_ignore_ascii_case(self.param)));
             
             if ! relevant {
                 continue;
             }
             
-            let Some(payload) = chikuwa::delimited_range(current, b"\r\n\r\n", b"\r\n--") else {
-                continue;
-            };
+            // -------------------- payload --------------------
             
-            return Some(&current[payload]);
+            if ! current.ends_with(b"\r\n--") {
+                continue;
+            }
+            
+            // exclude "\r\n\r\n" and "\r\n--"
+            let payload_start = parameters.end + 4;
+            let payload_end = current.len() - 4;
+            
+            let payload = &current[payload_start..payload_end];
+            
+            // -------------------- response --------------------
+            
+            return Some(payload);
             
         }
         
@@ -970,10 +1002,11 @@ mod tests {
         // multiple
         // malformed_payload
         // no_name
-        // additional_filename_parameter
-        // case_mixed_parameters
-        // no_whitespace_parameters
-        // nonexistent_key
+        // additional_filename_pair
+        // filename_pair_only
+        // case_mixed_pair
+        // no_whitespace_between_pairs
+        // nonexistent_param
         // empty_name
         // empty_payload
         // empty_content
@@ -1004,11 +1037,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
+            let param = b"input";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1037,11 +1070,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
+            let param = b"input";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1071,11 +1104,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
+            let param = b"input";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1100,11 +1133,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
+            let param = b"input";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1112,7 +1145,7 @@ mod tests {
         }
         
         #[test]
-        fn additional_filename_parameter() {
+        fn additional_filename_pair() {
             // setup
             
             let mut content = Vec::new();
@@ -1128,11 +1161,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
+            let param = b"input";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1141,7 +1174,35 @@ mod tests {
         }
         
         #[test]
-        fn case_mixed_parameters() {
+        fn filename_pair_only() {
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"Content-Length: 121\r\n");
+            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"Content-Disposition: form-data; filename=\"input\";\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"85\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999--");
+            
+            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let param = b"input";
+            
+            // operation
+            
+            let mut output = request.form_data(param);
+            
+            // control
+            
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn case_mixed_pair() {
             // setup
             
             let mut content = Vec::new();
@@ -1157,11 +1218,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
+            let param = b"input";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1170,7 +1231,7 @@ mod tests {
         }
         
         #[test]
-        fn no_whitespace_parameters() {
+        fn no_whitespace_between_pairs() {
             // setup
             
             let mut content = Vec::new();
@@ -1186,11 +1247,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
+            let param = b"input";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1199,7 +1260,7 @@ mod tests {
         }
         
         #[test]
-        fn nonexistent_key() {
+        fn nonexistent_param() {
             // setup
             
             let mut content = Vec::new();
@@ -1219,11 +1280,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"third";
+            let param = b"third";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1251,11 +1312,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"second";
+            let param = b"second";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1284,11 +1345,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"second";
+            let param = b"second";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1308,11 +1369,11 @@ mod tests {
             content.extend_from_slice(b"\r\n");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
+            let param = b"input";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1336,11 +1397,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
+            let param = b"input";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1365,11 +1426,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
+            let param = b"input";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1394,11 +1455,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
+            let param = b"input";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1423,11 +1484,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
+            let param = b"input";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1452,11 +1513,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
+            let param = b"input";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1480,11 +1541,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
+            let param = b"input";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
@@ -1508,11 +1569,11 @@ mod tests {
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
             let request = Request::new(Cursor::new(content.clone())).unwrap();
-            let key = b"input";
+            let param = b"input";
             
             // operation
             
-            let mut output = request.form_data(key);
+            let mut output = request.form_data(param);
             
             // control
             
