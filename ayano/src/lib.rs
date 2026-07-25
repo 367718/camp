@@ -139,7 +139,6 @@ mod tests {
         // control
         
         assert_eq!(request.endpoint(), Some((b"GET".as_slice(), b"/test/endpoint".as_slice())));
-        assert_eq!(request.header(b"content-length"), Some(b"4".as_slice()));
         
         response.write_all(b"qwerty").unwrap();
         response.write_all(b"!").unwrap();

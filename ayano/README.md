@@ -16,7 +16,6 @@ Non-compliant HTTP/1.1 server.
 
 * `ServerRequest`
     * endpoint
-    * get_header
     * form_data
     * start_response
 
