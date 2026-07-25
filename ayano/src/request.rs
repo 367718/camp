@@ -275,7 +275,7 @@ mod tests {
         // headers_and_body
         // body_not_signaled
         // body_without_length
-        // body_with_case_mixed_length
+        // body_with_mixed_case_length
         // body_with_lower_length
         // body_with_higher_length
         // body_with_excess_data
@@ -389,7 +389,7 @@ mod tests {
         }
         
         #[test]
-        fn body_with_case_mixed_length() {
+        fn body_with_mixed_case_length() {
             // setup
             
             let mut content = Vec::new();
@@ -710,11 +710,14 @@ mod tests {
         
         // single
         // multiple
+        // mixed_case_header
+        // header_without_whitespace
+        // header_with_extra_whitespace
         // malformed_payload
         // no_name
         // additional_filename_pair
         // filename_pair_only
-        // case_mixed_pair
+        // mixed_case_pair
         // no_whitespace_between_pairs
         // nonexistent_param
         // empty_name
@@ -725,7 +728,7 @@ mod tests {
         // additional_parameter_after_boundary
         // quoted_boundary
         // half_quoted_boundary
-        // case_mixed_boundary
+        // mixed_case_boundary
         // no_boundary
         // wrong_boundary
         
@@ -790,6 +793,93 @@ mod tests {
             // control
             
             assert_eq!(output.next(), Some(b"10".as_slice()));
+            assert_eq!(output.next(), Some(b"90".as_slice()));
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn mixed_case_header() {
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"Content-Length: 116\r\n");
+            content.extend_from_slice(b"Content-Type: multipart/form-data; boUNDaRY=9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"90\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999--");
+            
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
+            let param = b"input";
+            
+            // operation
+            
+            let mut output = request.form_data(param);
+            
+            // control
+            
+            assert_eq!(output.next(), Some(b"90".as_slice()));
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn header_without_whitespace() {
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"Content-Length: 116\r\n");
+            content.extend_from_slice(b"Content-Type:multipart/form-data;boundary=9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"90\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999--");
+            
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
+            let param = b"input";
+            
+            // operation
+            
+            let mut output = request.form_data(param);
+            
+            // control
+            
+            assert_eq!(output.next(), Some(b"90".as_slice()));
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn header_with_extra_whitespace() {
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"Content-Length: 116\r\n");
+            content.extend_from_slice(b"Content-Type:  multipart/form-data;  boundary=9999999999999999999999999999  \r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"90\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999--");
+            
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
+            let param = b"input";
+            
+            // operation
+            
+            let mut output = request.form_data(param);
+            
+            // control
+            
             assert_eq!(output.next(), Some(b"90".as_slice()));
             assert!(output.next().is_none());
         }
@@ -913,7 +1003,7 @@ mod tests {
         }
         
         #[test]
-        fn case_mixed_pair() {
+        fn mixed_case_pair() {
             // setup
             
             let mut content = Vec::new();
@@ -1236,7 +1326,7 @@ mod tests {
         }
         
         #[test]
-        fn case_mixed_boundary() {
+        fn mixed_case_boundary() {
             // setup
             
             let mut content = Vec::new();
