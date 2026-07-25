@@ -39,8 +39,6 @@ unsafe extern "system" {
 
 const WINHTTP_QUERY_CONTENT_LENGTH: c_ulong = 5; // DWORD
 const WINHTTP_QUERY_FLAG_NUMBER: c_ulong = 0x2000_0000; // DWORD
-const WINHTTP_HEADER_NAME_BY_INDEX: *const c_ushort = ptr::null(); // LPCWSTR -> WCHAR -> wchar_t
-const WINHTTP_NO_HEADER_INDEX: *mut c_ulong = ptr::null_mut(); // LPCWSTR -> WCHAR -> wchar_t
 
 pub struct Response {
     handle: HttpHandle,
@@ -78,10 +76,10 @@ impl Response {
             let result = WinHttpQueryHeaders(
                 self.handle.as_raw(),
                 WINHTTP_QUERY_CONTENT_LENGTH | WINHTTP_QUERY_FLAG_NUMBER,
-                WINHTTP_HEADER_NAME_BY_INDEX,
+                ptr::null(),
                 ptr::from_mut(&mut content_length).cast::<c_void>(),
                 &raw mut bytes,
-                WINHTTP_NO_HEADER_INDEX,
+                ptr::null_mut(),
             );
             
             if result == 0 {

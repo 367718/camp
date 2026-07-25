@@ -3,6 +3,18 @@
 
 body {
     
+    --primary-color: rgb(28 27 34 / 1);
+    --secondary-color: rgb(43 42 51 / 1);
+    
+    --text-primary-color: rgb(232 232 232 / 1);
+    --text-secondary-color: rgb(232 232 232 / 0.5);
+    
+    --accent-color-rin: rgb(105 125 160 / 1);
+    --accent-color-nadeshiko: rgb(178 133 139 / 1);
+    --accent-color-aoi: rgb(174 153 96 / 1);
+    --accent-color-chiaki: rgb(121 115 154 / 1);
+    --accent-color-ena: rgb(66 138 162 / 1);
+    
     &.rin {
         --accent-color: var(--accent-color-rin);
     }
@@ -23,23 +35,11 @@ body {
         --accent-color: var(--accent-color-ena);
     }
     
-    --primary-color: rgb(28 27 34 / 1);
-    --secondary-color: rgb(43 42 51 / 1);
-    
-    --text-primary-color: rgb(232 232 232 / 1);
-    --text-secondary-color: rgb(232 232 232 / 0.5);
-    
-    --accent-color-rin: rgb(105 125 160 / 1);
-    --accent-color-nadeshiko: rgb(178 133 139 / 1);
-    --accent-color-aoi: rgb(174 153 96 / 1);
-    --accent-color-chiaki: rgb(121 115 154 / 1);
-    --accent-color-ena: rgb(66 138 162 / 1);
-    
-    --transition-duration: 0.25s;
-    
     --entry-hovered-color: var(--secondary-color);
     --entry-selected-color: var(--accent-color);
     --entry-hovered-selected-color: color-mix(in srgb, var(--accent-color) 75%, var(--secondary-color));
+    
+    --transition-duration: 0.25s;
     
     width: 100%;
     height: 100vh;

@@ -162,15 +162,8 @@ impl<S: Read + Write> Request<S> {
                         Some((key, value))
                         
                     })
-                    .find_map(|(key, value)| {
-                        
-                        if key.eq_ignore_ascii_case(b"boundary") {
-                            Some(value)
-                        } else {
-                            None
-                        }
-                        
-                    })?;
+                    .find(|(key, _)| key.eq_ignore_ascii_case(b"boundary"))
+                    .map(|(_, value)| value)?;
                 
                 // strip optional surrounding quotes
                 let unquoted = match value {
@@ -328,7 +321,7 @@ mod tests {
             
             // operation
             
-            let output = Request::new(Cursor::new(content.clone()));
+            let output = Request::new(Cursor::new(&mut content));
             
             // control
             
@@ -355,7 +348,7 @@ mod tests {
             
             // operation
             
-            let output = Request::new(Cursor::new(content.clone()));
+            let output = Request::new(Cursor::new(&mut content));
             
             // control
             
@@ -379,7 +372,7 @@ mod tests {
             
             // operation
             
-            let output = Request::new(Cursor::new(content.clone()));
+            let output = Request::new(Cursor::new(&mut content));
             
             // control
             
@@ -398,7 +391,7 @@ mod tests {
             
             // operation
             
-            let output = Request::new(Cursor::new(content.clone()));
+            let output = Request::new(Cursor::new(&mut content));
             
             // control
             
@@ -420,7 +413,7 @@ mod tests {
             
             // operation
             
-            let output = Request::new(Cursor::new(content.clone()));
+            let output = Request::new(Cursor::new(&mut content));
             
             // control
             
@@ -447,7 +440,7 @@ mod tests {
             
             // operation
             
-            let output = Request::new(Cursor::new(content.clone()));
+            let output = Request::new(Cursor::new(&mut content));
             
             // control
             
@@ -469,7 +462,7 @@ mod tests {
             
             // operation
             
-            let output = Request::new(Cursor::new(content.clone()));
+            let output = Request::new(Cursor::new(&mut content));
             
             // control
             
@@ -489,7 +482,7 @@ mod tests {
             
             // operation
             
-            let output = Request::new(Cursor::new(content.clone()));
+            let output = Request::new(Cursor::new(&mut content));
             
             // control
             
@@ -513,7 +506,7 @@ mod tests {
             
             // operation
             
-            let output = Request::new(Cursor::new(content.clone()));
+            let output = Request::new(Cursor::new(&mut content));
             
             // control
             
@@ -537,7 +530,7 @@ mod tests {
             
             // operation
             
-            let output = Request::new(Cursor::new(content.clone()));
+            let output = Request::new(Cursor::new(&mut content));
             
             // control
             
@@ -570,7 +563,7 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             
             // operation
             
@@ -593,7 +586,7 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             
             // operation
             
@@ -616,7 +609,7 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             
             // operation
             
@@ -639,7 +632,7 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             
             // operation
             
@@ -662,7 +655,7 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             
             // operation
             
@@ -685,7 +678,7 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             
             // operation
             
@@ -708,7 +701,7 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             
             // operation
             
@@ -763,7 +756,7 @@ mod tests {
             content.extend_from_slice(b"Cache-Control: no-cache\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let key = b"Sec-GPC";
             
             // operation
@@ -787,7 +780,7 @@ mod tests {
             content.extend_from_slice(b"Host: non-existant\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let key = b"host";
             
             // operation
@@ -810,7 +803,7 @@ mod tests {
             content.extend_from_slice(b"hOsT: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let key = b"host";
             
             // operation
@@ -833,7 +826,7 @@ mod tests {
             content.extend_from_slice(b"Host: placeholder\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let key = b"hOSt";
             
             // operation
@@ -858,7 +851,7 @@ mod tests {
             content.extend_from_slice(b"Accept:*/*\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let key = b"Accept";
             
             // operation
@@ -883,7 +876,7 @@ mod tests {
             content.extend_from_slice(b"Accept:  */*  \r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let key = b"Accept";
             
             // operation
@@ -908,7 +901,7 @@ mod tests {
             content.extend_from_slice(b"Accept:\t*/*\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let key = b"Accept";
             
             // operation
@@ -933,7 +926,7 @@ mod tests {
             content.extend_from_slice(b"Accept : */*\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let key = b"Accept";
             
             // operation
@@ -956,7 +949,7 @@ mod tests {
             content.extend_from_slice(b"Accept:\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let key = b"Accept";
             
             // operation
@@ -981,7 +974,7 @@ mod tests {
             content.extend_from_slice(b"Accept: */*\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let key = b"Content-Length";
             
             // operation
@@ -1014,6 +1007,7 @@ mod tests {
         // additional_parameter_before_boundary
         // additional_parameter_after_boundary
         // quoted_boundary
+        // half_quoted_boundary
         // case_mixed_boundary
         // no_boundary
         // wrong_boundary
@@ -1036,7 +1030,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation
@@ -1069,7 +1063,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation
@@ -1103,7 +1097,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation
@@ -1132,7 +1126,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation
@@ -1160,7 +1154,7 @@ mod tests {
             content.extend_from_slice(b"85\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation
@@ -1189,7 +1183,7 @@ mod tests {
             content.extend_from_slice(b"85\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation
@@ -1217,7 +1211,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation
@@ -1246,7 +1240,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation
@@ -1279,7 +1273,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"third";
             
             // operation
@@ -1311,7 +1305,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"second";
             
             // operation
@@ -1344,7 +1338,7 @@ mod tests {
             content.extend_from_slice(b"\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"second";
             
             // operation
@@ -1368,7 +1362,7 @@ mod tests {
             content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
             content.extend_from_slice(b"\r\n");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation
@@ -1396,7 +1390,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation
@@ -1425,7 +1419,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation
@@ -1454,7 +1448,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation
@@ -1483,7 +1477,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation
@@ -1493,6 +1487,34 @@ mod tests {
             // control
             
             assert_eq!(output.next(), Some(b"90".as_slice()));
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn half_quoted_boundary() {
+            // setup
+            
+            let mut content = Vec::new();
+            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
+            content.extend_from_slice(b"Host: placeholder\r\n");
+            content.extend_from_slice(b"Content-Length: 115\r\n");
+            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=\"9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
+            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
+            content.extend_from_slice(b"\r\n");
+            content.extend_from_slice(b"90\r\n");
+            content.extend_from_slice(b"--9999999999999999999999999999--");
+            
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
+            let param = b"input";
+            
+            // operation
+            
+            let mut output = request.form_data(param);
+            
+            // control
+            
             assert!(output.next().is_none());
         }
         
@@ -1512,7 +1534,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation
@@ -1540,7 +1562,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation
@@ -1568,7 +1590,7 @@ mod tests {
             content.extend_from_slice(b"90\r\n");
             content.extend_from_slice(b"--9999999999999999999999999999--");
             
-            let request = Request::new(Cursor::new(content.clone())).unwrap();
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
             
             // operation

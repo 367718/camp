@@ -99,3 +99,55 @@ impl Server {
     }
     
 }
+
+#[cfg(test)]
+mod tests {
+    
+    use super::*;
+    
+    #[test]
+    fn request_and_response() {
+        use std::io::{ Cursor, Write };
+        
+        // setup
+        
+        let mut content = Vec::new();
+        content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
+        content.extend_from_slice(b"Host: placeholder\r\n");
+        content.extend_from_slice(b"Content-Length: 4\r\n");
+        content.extend_from_slice(b"\r\n");
+        content.extend_from_slice(b"1234");
+        
+        let mut control = Vec::new();
+        control.extend_from_slice(b"HTTP/1.1 500 Internal Server Error\r\n");
+        control.extend_from_slice(b"Content-Type: text/html; charset=utf-8\r\n");
+        control.extend_from_slice(b"Cache-Control: max-age=15552000, immutable\r\n");
+        control.extend_from_slice(b"Transfer-Encoding: chunked\r\n");
+        control.extend_from_slice(b"Connection: close\r\n");
+        control.extend_from_slice(b"\r\n");
+        control.extend_from_slice(b"7\r\n");
+        control.extend_from_slice(b"qwerty!\r\n");
+        control.extend_from_slice(b"0\r\n\r\n");
+        
+        // operation
+        
+        let output = Request::new(Cursor::new(&mut content));
+        
+        let mut request = output.unwrap();
+        let mut response = request.start_response(StatusCode::Error, ContentType::Html, CacheControl::Static).unwrap();
+        
+        // control
+        
+        assert_eq!(request.endpoint(), Some((b"GET".as_slice(), b"/test/endpoint".as_slice())));
+        assert_eq!(request.header(b"content-length"), Some(b"4".as_slice()));
+        
+        response.write_all(b"qwerty").unwrap();
+        response.write_all(b"!").unwrap();
+        
+        drop(response);
+        
+        assert_eq!(content[73..], control);
+        
+    }
+    
+}

@@ -44,9 +44,6 @@ unsafe extern "system" {
 }
 
 const WINHTTP_ACCESS_TYPE_DEFAULT_PROXY: c_ulong = 0; // DWORD
-const WINHTTP_NO_PROXY_NAME: *const c_ushort = ptr::null(); // LPCWSTR -> WCHAR -> wchar_t
-const WINHTTP_NO_PROXY_BYPASS: *const c_ushort = ptr::null(); // LPCWSTR -> WCHAR -> wchar_t
-
 const WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL: c_ulong = 133; // DWORD
 const WINHTTP_PROTOCOL_FLAG_HTTP2: c_ulong = 1; // DWORD
 
@@ -64,8 +61,8 @@ impl Session {
             let result = WinHttpOpen(
                 chikuwa::win_string(agent).as_ptr(),
                 WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-                WINHTTP_NO_PROXY_NAME,
-                WINHTTP_NO_PROXY_BYPASS,
+                ptr::null(),
+                ptr::null(),
                 0,
             );
             
