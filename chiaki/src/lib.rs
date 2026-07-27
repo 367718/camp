@@ -89,7 +89,7 @@ impl List {
     
     pub fn set(self, tag: &[u8], value: u16) -> io::Result<()> {
         if tag.len() > TAG_SIZE_LIMIT {
-            return Err(io::Error::new(ErrorKind::InvalidInput, "Tag size exceeded the maximum value supported"));
+            return Err(io::Error::new(ErrorKind::InvalidInput, "Tag size exceeds the maximum value supported"));
         }
         
         let entries = self.iter()
@@ -111,15 +111,7 @@ impl List {
     
     
     fn commit<'c>(list_path: &Path, entries: impl Iterator<Item = ListEntry<'c>>) -> io::Result<()> {
-        // serialize new content to temp file
-        
-        let mut temp_name = list_path.file_name()
-            .expect("Invalid list file path")
-            .to_os_string();
-        
-        temp_name.push(".tmp");
-        
-        let temp_path = chikuwa::EphemeralPath::from(list_path.with_file_name(temp_name));
+        let temp_path = chikuwa::EphemeralPath::from(list_path.with_added_extension("tmp"));
         
         let temp_file = File::options()
             .create_new(true)
@@ -135,7 +127,7 @@ impl List {
         // 'flush' is called internally, which may fail
         let temp_file = writer.into_inner()?;
         
-        // attempt to guarantee data is written to hardware before renaming
+        // commit data to hardware
         temp_file.sync_data()?;
         
         // attempt to update list file atomically

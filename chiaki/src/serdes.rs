@@ -6,7 +6,7 @@ pub fn serialize(writer: &mut impl Write, entry: &ListEntry) -> io::Result<()> {
     // -------------------- header --------------------
     
     let tag_size = u16::try_from(entry.tag.len())
-        .expect("Tag size exceeded the maximum value supported");
+        .expect("Tag size exceeds the maximum value supported");
     
     let value_bytes = entry.value.to_le_bytes();
     let tag_size_bytes = tag_size.to_le_bytes();
