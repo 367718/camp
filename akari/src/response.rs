@@ -43,7 +43,8 @@ impl Response {
     pub fn content_length(&self) -> io::Result<u64> {
         let mut content_length: c_ulong = 0;
         
-        let mut bytes = c_ulong::BITS;
+        #[allow(clippy::cast_possible_truncation)]
+        let mut bytes = size_of_val(&content_length) as c_ulong;
         
         unsafe {
             
