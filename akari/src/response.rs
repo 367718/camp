@@ -1,5 +1,5 @@
 use std::{
-    io::{ self, Error, Read },
+    io::{ self, Error, ErrorKind, Read },
     os::{
         raw::*,
         windows::io::RawHandle,
@@ -7,15 +7,9 @@ use std::{
     ptr,
 };
 
-use super::{ HttpHandle, Request };
+use super::HttpHandle;
 
 unsafe extern "system" {
-    
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreceiveresponse
-    fn WinHttpReceiveResponse(
-        h_request: RawHandle,
-        lp_reserved: *mut c_void, // LPVOID
-    ) -> c_int; // BOOL
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpqueryheaders
     fn WinHttpQueryHeaders(
@@ -41,35 +35,15 @@ const WINHTTP_QUERY_CONTENT_LENGTH: c_ulong = 5; // DWORD
 const WINHTTP_QUERY_FLAG_NUMBER: c_ulong = 0x2000_0000; // DWORD
 
 pub struct Response {
-    handle: HttpHandle,
+    pub(crate) handle: HttpHandle,
 }
 
 impl Response {
     
-    pub fn new(request: Request) -> io::Result<Self> {
-        unsafe {
-            
-            let result = WinHttpReceiveResponse(
-                request.handle.as_raw(),
-                ptr::null_mut(),
-            );
-            
-            if result == 0 {
-                return Err(Error::last_os_error());
-            }
-            
-        }
-        
-        Ok(Self {
-            handle: request.handle,
-        })
-    }
-    
     pub fn content_length(&self) -> io::Result<u64> {
         let mut content_length: c_ulong = 0;
         
-        #[allow(clippy::cast_possible_truncation)]
-        let mut bytes = size_of_val(&content_length) as c_ulong;
+        let mut bytes = c_ulong::BITS;
         
         unsafe {
             
@@ -98,8 +72,8 @@ impl Read for Response {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut amount_read: c_ulong = 0;
         
-        #[allow(clippy::cast_possible_truncation)]
-        let bytes = buf.len() as c_ulong;
+        let bytes = c_ulong::try_from(buf.len())
+            .map_err(|_| Error::from(ErrorKind::InvalidInput))?;
         
         unsafe {
             

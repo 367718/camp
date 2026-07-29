@@ -8,9 +8,11 @@ use std::{
 };
 
 use crate::{
-    HttpHandle,
-    DNS_RESOLUTION_TIMEOUT_AS_MILLIS, CONNECTION_TIMEOUT_AS_MILLIS,
-    SEND_TIMEOUT_AS_MILLIS, RECEIVE_TIMEOUT_AS_MILLIS,
+    DNS_RESOLUTION_TIMEOUT_AS_MILLIS,
+    CONNECTION_TIMEOUT_AS_MILLIS,
+    SEND_TIMEOUT_AS_MILLIS,
+    RECEIVE_TIMEOUT_AS_MILLIS,
+    HttpHandle, Connection,
 };
 
 unsafe extern "system" {
@@ -41,6 +43,14 @@ unsafe extern "system" {
         dw_buffer_length: c_ulong, // DWORD
     ) -> c_int; // BOOL
     
+    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpconnect
+    fn WinHttpConnect(
+        h_session: RawHandle,
+        pswz_server_name: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
+        n_server_port: c_ushort, // INTERNET_PORT -> WORD
+        dw_reserved: c_ulong,
+    ) -> RawHandle;
+    
 }
 
 const WINHTTP_ACCESS_TYPE_DEFAULT_PROXY: c_ulong = 0; // DWORD
@@ -53,7 +63,7 @@ pub struct Session {
 
 impl Session {
     
-    pub fn new(agent: &str) -> io::Result<Self> {
+    pub fn open(agent: &str) -> io::Result<Self> {
         // -------------------- open --------------------
         
         let handle = unsafe {
@@ -115,6 +125,29 @@ impl Session {
         }
         
         Ok(Self {
+            handle,
+        })
+    }
+    
+    pub fn connect(&self, host: &str, port: u16) -> io::Result<Connection> {
+        let handle = unsafe {
+            
+            let result = WinHttpConnect(
+                self.handle.as_raw(),
+                chikuwa::win_string(host).as_ptr(),
+                port,
+                0,
+            );
+            
+            if result.is_null() {
+                return Err(Error::last_os_error());
+            }
+            
+            HttpHandle::new(result)
+            
+        };
+        
+        Ok(Connection {
             handle,
         })
     }

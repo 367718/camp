@@ -33,16 +33,16 @@ impl Client {
     
     pub fn new() -> io::Result<Self> {
         Ok(Self {
-            session: Session::new(USER_AGENT)?,
+            session: Session::open(USER_AGENT)?,
         })
     }
     
     pub fn get(&mut self, resource: &str) -> io::Result<Response> {
         let url = Url::try_from(resource)?;
         
-        Connection::new(&self.session, url.host(), url.port())
-            .and_then(|connection| Request::new(connection, url.path()))
-            .and_then(Response::new)
+        self.session.connect(url.host(), url.port())
+            .and_then(|connection| connection.send_request(url.path()))
+            .and_then(Request::receive_response)
     }
     
 }

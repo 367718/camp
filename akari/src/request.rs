@@ -7,36 +7,17 @@ use std::{
     ptr,
 };
 
-use crate::{ HttpHandle, Connection };
+use crate::{ HttpHandle, Response };
 
 unsafe extern "system" {
     
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpopenrequest
-    fn WinHttpOpenRequest(
-        h_connect: RawHandle,
-        pwsz_verb: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
-        pwsz_object_name: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
-        pwsz_version: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
-        pwsz_referrer: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
-        ppwsz_accept_types: *mut *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
-        dw_flags: c_ulong, // DWORD
-    ) -> RawHandle;
-    
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsendrequest
-    fn WinHttpSendRequest(
+    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreceiveresponse
+    fn WinHttpReceiveResponse(
         h_request: RawHandle,
-        lpsz_headers: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
-        dw_headers_length: c_ulong, // DWORD
-        lp_optional: *mut c_void, // LPVOID
-        dw_optional_length: c_ulong, // DWORD
-        dw_total_length: c_ulong, // DWORD
-        dw_context: usize, // DWORD_PTR -> ULONG_PTR
+        lp_reserved: *mut c_void, // LPVOID
     ) -> c_int; // BOOL
     
 }
-
-const WINHTTP_FLAG_SECURE: c_ulong = 0x0080_0000; // DWORD
-const WINHTTP_NO_ADDITIONAL_HEADERS: *const c_ushort = ptr::null(); // LPCWSTR -> WCHAR -> wchar_t
 
 pub struct Request {
     pub handle: HttpHandle,
@@ -44,42 +25,12 @@ pub struct Request {
 
 impl Request {
     
-    #[allow(clippy::needless_pass_by_value)]
-    pub fn new(connection: Connection, path: &str) -> io::Result<Self> {
-        // -------------------- open --------------------
-        
-        let handle = unsafe {
-            
-            let result = WinHttpOpenRequest(
-                connection.handle.as_raw(),
-                ptr::null(),
-                chikuwa::win_string(path).as_ptr(),
-                ptr::null(),
-                ptr::null(),
-                ptr::null_mut(),
-                WINHTTP_FLAG_SECURE,
-            );
-            
-            if result.is_null() {
-                return Err(Error::last_os_error());
-            }
-            
-            HttpHandle::new(result)
-            
-        };
-        
-        // -------------------- send --------------------
-        
+    pub fn receive_response(self) -> io::Result<Response> {
         unsafe {
             
-            let result = WinHttpSendRequest(
-                handle.as_raw(),
-                WINHTTP_NO_ADDITIONAL_HEADERS,
-                0,
+            let result = WinHttpReceiveResponse(
+                self.handle.as_raw(),
                 ptr::null_mut(),
-                0,
-                0,
-                0,
             );
             
             if result == 0 {
@@ -88,8 +39,8 @@ impl Request {
             
         }
         
-        Ok(Self {
-            handle,
+        Ok(Response {
+            handle: self.handle,
         })
     }
     
