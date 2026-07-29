@@ -31,24 +31,17 @@ pub struct Client {
 
 impl Client {
     
-    // -------------------- constructors --------------------
-    
-    
     pub fn new() -> io::Result<Self> {
         Ok(Self {
             session: Session::new(USER_AGENT)?,
         })
     }
     
-    
-    // -------------------- mutators --------------------
-    
-    
     pub fn get(&mut self, resource: &str) -> io::Result<Response> {
         let url = Url::try_from(resource)?;
         
-        Connection::new(&self.session, &url)
-            .and_then(|connection| Request::new(connection, &url))
+        Connection::new(&self.session, url.host(), url.port())
+            .and_then(|connection| Request::new(connection, url.path()))
             .and_then(Response::new)
     }
     

@@ -7,7 +7,7 @@ use std::{
     ptr,
 };
 
-use crate::{ HttpHandle, Connection, Url };
+use crate::{ HttpHandle, Connection };
 
 unsafe extern "system" {
     
@@ -45,7 +45,7 @@ pub struct Request {
 impl Request {
     
     #[allow(clippy::needless_pass_by_value)]
-    pub fn new(connection: Connection, url: &Url) -> io::Result<Self> {
+    pub fn new(connection: Connection, path: &str) -> io::Result<Self> {
         // -------------------- open --------------------
         
         let handle = unsafe {
@@ -53,7 +53,7 @@ impl Request {
             let result = WinHttpOpenRequest(
                 connection.handle.as_raw(),
                 ptr::null(),
-                chikuwa::win_string(url.path()).as_ptr(),
+                chikuwa::win_string(path).as_ptr(),
                 ptr::null(),
                 ptr::null(),
                 ptr::null_mut(),
