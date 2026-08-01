@@ -1,7 +1,7 @@
 use std::{
     ffi::OsStr,
     fs,
-    io::{ self, Error, ErrorKind },
+    io::{ self, ErrorKind },
     path::{ Path, PathBuf },
 };
 
@@ -34,7 +34,7 @@ impl<'r> FilesEntry<'r> {
             .expect("Discrepancy between full path and root")
     }
     
-    pub fn is_marked<F: AsRef<OsStr>>(&self, flag: F) -> io::Result<bool> {
+    pub fn is_marked(&self, flag: impl AsRef<OsStr>) -> io::Result<bool> {
         crate::mark::is_marked(&self.inner, flag)
     }
     
@@ -42,35 +42,31 @@ impl<'r> FilesEntry<'r> {
     // -------------------- mutators --------------------
     
     
-    pub fn toggle_mark<F: AsRef<OsStr>>(self, flag: F) -> io::Result<()> {
+    pub fn toggle_mark(self, flag: impl AsRef<OsStr>) -> io::Result<()> {
         crate::mark::toggle(self.inner, flag)
     }
     
-    pub fn move_to_folder<F: AsRef<Path>>(self, folder: F) -> io::Result<()> {
+    pub fn move_to_folder(self, folder: impl AsRef<Path>) -> io::Result<()> {
         // if folder is empty or its 'file_name' cannot be extracted, entry will be moved to root
-        let container_name = folder.as_ref().file_name()
-            .unwrap_or_else(|| OsStr::new(""));
+        let container_name = folder.as_ref().file_name().unwrap_or_default();
+        let file_name = self.inner.file_name().expect("Invalid entry file name");
         
-        let container_path = self.root.join(container_name);
+        let mut target_path = self.root.join(container_name);
+        target_path.push(file_name);
         
-        let file_name = self.inner.file_name()
-            .expect("Invalid entry file name");
-        
-        let file_path = container_path.join(file_name);
-        
-        if self.inner == file_path {
+        if self.inner == target_path {
             return Ok(());
         }
         
-        if container_path.try_exists()? {
-            if file_path.try_exists()? {
-                return Err(Error::from(ErrorKind::AlreadyExists));
-            }
-        } else {
-            fs::create_dir(&container_path)?;
+        let container_path = target_path.parent().unwrap();
+        
+        if ! container_path.try_exists()? {
+            fs::create_dir(container_path)?;
+        } else if target_path.try_exists()? {
+            return Err(ErrorKind::AlreadyExists.into());
         }
         
-        fs::rename(self.inner, &file_path)
+        fs::rename(self.inner, &target_path)
     }
     
     pub fn delete(self) -> io::Result<()> {

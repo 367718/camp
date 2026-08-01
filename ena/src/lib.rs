@@ -13,11 +13,9 @@ pub struct Files {
     max_depth: usize,
 }
 
-// the "ReadDir" struct holds a file handle in Windows, so:
-// a) exhaustion is a possibility
-// b) the directory it points to cannot be modified while the handle is held
 pub struct FilesEntries<'r> {
-    directories: Vec<ReadDir>,
+    current: Option<(ReadDir, usize)>,
+    pending: Vec<(PathBuf, usize)>,
     root: &'r Path,
     max_depth: usize,
 }
@@ -32,15 +30,14 @@ impl Files {
     }
     
     pub fn iter(&self) -> FilesEntries<'_> {
-        let mut directories = Vec::with_capacity(self.max_depth);
-        
-        if let Ok(initial) = self.root.read_dir() {
-            directories.push(initial);
-        }
+        let current = self.root.read_dir()
+            .ok()
+            .map(|directory| (directory, 1));
         
         FilesEntries {
-            directories,
-            root: &self.root,
+            current,
+            pending: Vec::new(),
+            root: self.root.as_path(),
             max_depth: self.max_depth,
         }
     }
@@ -63,50 +60,41 @@ impl<'r> Iterator for FilesEntries<'r> {
     type Item = FilesEntry<'r>;
     
     fn next(&mut self) -> Option<Self::Item> {
-        
-        while let Some(current_dir) = self.directories.last_mut() {
+        loop {
             
-            let Some(dir_entry) = current_dir.next() else {
-                self.directories.pop();
-                continue;
-            };
-            
-            let Ok(dir_entry) = dir_entry else {
-                continue;
-            };
-            
-            // does not traverse symlinks
-            let Ok(file_type) = dir_entry.file_type() else {
-                continue;
-            };
-            
-            // -------------------- file --------------------
-            
-            if file_type.is_file() {
-                
-                let path = dir_entry.path();
-                
-                return Some(FilesEntry::new(path, self.root));
-                
-            }
-            
-            // -------------------- subdirectory --------------------
-            
-            // the root directory is considered "depth 1"
-            if file_type.is_dir() && self.directories.len() < self.max_depth {
-                
-                let path = dir_entry.path();
-                
-                if let Ok(subdirectory) = path.read_dir() {
-                    self.directories.push(subdirectory);
+            if let Some((directory, depth)) = &mut self.current {
+                for entry in directory {
+                    
+                    let Ok(entry) = entry else {
+                        continue;
+                    };
+                    
+                    let Ok(file_type) = entry.file_type() else {
+                        continue;
+                    };
+                    
+                    // -------------------- file --------------------
+                    
+                    if file_type.is_file() {
+                        return Some(FilesEntry::new(entry.path(), self.root));
+                    }
+                    
+                    // -------------------- subdirectory --------------------
+                    
+                    if file_type.is_dir() && *depth < self.max_depth {
+                        self.pending.push((entry.path(), *depth + 1));
+                    }
+                    
                 }
-                
             }
+            
+            let (next_path, next_depth) = self.pending.pop()?;
+            
+            self.current = next_path.read_dir()
+                .ok()
+                .map(|directory| (directory, next_depth));
             
         }
-        
-        None
-        
     }
     
 }
