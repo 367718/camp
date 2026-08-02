@@ -136,7 +136,7 @@ body {
     display: flex;
     justify-content: flex-end;
     
-    label {
+    a {
         
         color: var(--text-secondary-color);
         transition: background-color var(--transition-duration) ease, color var(--transition-duration) ease;

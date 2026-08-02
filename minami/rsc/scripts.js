@@ -7,19 +7,9 @@
 const CURRENT_SECTION_NODE_SELECTOR = "body";
 const CURRENT_SECTION_BUTTON_SELECTOR = ".sections a:not([href])";
 
-const HOTKEY_COPY_COMPLETE = "KeyC";
-const HOTKEY_COPY_CLEAN = "KeyX";
-
 const FILTER_NODE_SELECTOR = ".filter";
 const FILTER_TIMEOUT_ATTRIBUTE = "data-timeout";
 const FILTER_TIMEOUT_VALUE = 500;
-
-const LIST_NODE_SELECTOR = ".list";
-const LIST_SORTED_ATTRIBUTE = "data-sorted";
-const LIST_REFRESH_ATTRIBUTE = "data-refresh";
-
-const ENTRY_SELECTED_ATTRIBUTE = "data-selected";
-const ENTRY_FILTERED_ATTRIBUTE = "data-filtered";
 
 const ACTIONS_NODE_SELECTOR = ".actions";
 const ACTIONS_URL_ATTRIBUTE = "data-url";
@@ -30,6 +20,16 @@ const ACTIONS_REFRESH_ATTRIBUTE = "data-refresh";
 const TOGGLES_NODE_SELECTOR = ".toggles";
 const TOGGLES_ATTR_ATTRIBUTE = "data-attr";
 const TOGGLES_ENABLED_ATTRIBUTE = "data-enabled";
+
+const LIST_NODE_SELECTOR = ".list";
+const LIST_SORTED_ATTRIBUTE = "data-sorted";
+const LIST_REFRESH_ATTRIBUTE = "data-refresh";
+
+const ENTRY_SELECTED_ATTRIBUTE = "data-selected";
+const ENTRY_FILTERED_ATTRIBUTE = "data-filtered";
+
+const HOTKEY_COPY_COMPLETE = "KeyC";
+const HOTKEY_COPY_CLEAN = "KeyX";
 
 const COLOR_CLASSES = ["rin", "nadeshiko", "aoi", "chiaki", "ena"];
 
@@ -45,9 +45,9 @@ class CurrentSection {
     
     this.node = document.querySelector(CURRENT_SECTION_NODE_SELECTOR);
     this.filter = new Filter(this);
-    this.list = new List(this);
     this.actions = new Actions(this);
     this.toggles = new Toggles(this);
+    this.list = new List(this);
     
     // -------------------- styles --------------------
     
@@ -139,6 +139,121 @@ class Filter {
       .forEach(entry => entry.toggle_select());
     
   };
+  
+}
+
+class Actions {
+  
+  constructor(parent) {
+    
+    // -------------------- properties --------------------
+    
+    this.node = parent.node.querySelector(ACTIONS_NODE_SELECTOR);
+    this.parent = parent;
+    
+    // -------------------- bindings --------------------
+    
+    for (const child of this.node.children) {
+      
+      child.addEventListener("click", () => {
+        
+        const url = child.getAttribute(ACTIONS_URL_ATTRIBUTE);
+        const confirm = child.getAttribute(ACTIONS_CONFIRM_ATTRIBUTE) == "true";
+        const prompt = child.getAttribute(ACTIONS_PROMPT_ATTRIBUTE) == "true";
+        const refresh = child.getAttribute(ACTIONS_REFRESH_ATTRIBUTE) == "true";
+        
+        this.request(url, confirm, prompt, refresh);
+        
+      });
+      
+    }
+    
+  }
+  
+  request = (url, confirm, prompt, refresh) => {
+    
+    // -------------------- confirm --------------------
+    
+    if (confirm && ! window.confirm("Are you sure you want to proceed with the requested action?")) {
+      return;
+    }
+    
+    // -------------------- form data --------------------
+    
+    const form_data = new FormData();
+    
+    // -------------------- prompt --------------------
+    
+    if (prompt) {
+      
+      const input = window.prompt("The requested action requires a value");
+      
+      if (input === null) {
+        return;
+      }
+      
+      form_data.append("input", input);
+      
+    }
+    
+    // -------------------- matcher --------------------
+    
+    this.parent.list.entries
+      .filter(entry => entry.is_selected())
+      .forEach(entry => form_data.append("matcher", entry.text()));
+    
+    // -------------------- request --------------------
+    
+    fetch(url, { method: "POST", body: form_data })
+      .then(response => {
+        
+        if (response.status != 200) {
+          response.text().then(error => window.alert(error));
+          return;
+        }
+        
+        if (refresh) {
+          this.parent.list.refresh();
+        }
+        
+      })
+      .catch(error => window.alert(error));
+    
+  };
+  
+}
+
+class Toggles {
+  
+  constructor(parent) {
+    
+    // -------------------- properties --------------------
+    
+    this.node = parent.node.querySelector(TOGGLES_NODE_SELECTOR);
+    this.parent = parent;
+    
+    // -------------------- bindings --------------------
+    
+    for (const child of this.node.children) {
+      
+      child.addEventListener("click", (event) => {
+        
+        const state = child.getAttribute(TOGGLES_ENABLED_ATTRIBUTE) == "true" ? "false" : "true";
+        const attr = child.getAttribute(TOGGLES_ATTR_ATTRIBUTE);
+        
+        child.setAttribute(TOGGLES_ENABLED_ATTRIBUTE, state);
+        
+        this.parent.list.node.setAttribute(attr, state);
+        
+        this.parent.list.entries
+          .filter(entry => entry.is_selected() && ! entry.is_visible())
+          .forEach(entry => entry.toggle_select());
+        
+      });
+      
+    }
+    
+  }
   
 }
 
@@ -299,121 +414,6 @@ class List {
       .catch(error => window.alert(error));
     
   };
-  
-}
-
-class Actions {
-  
-  constructor(parent) {
-    
-    // -------------------- properties --------------------
-    
-    this.node = parent.node.querySelector(ACTIONS_NODE_SELECTOR);
-    this.parent = parent;
-    
-    // -------------------- bindings --------------------
-    
-    for (const child of this.node.children) {
-      
-      child.addEventListener("click", () => {
-        
-        const url = child.getAttribute(ACTIONS_URL_ATTRIBUTE);
-        const confirm = child.getAttribute(ACTIONS_CONFIRM_ATTRIBUTE) == "true";
-        const prompt = child.getAttribute(ACTIONS_PROMPT_ATTRIBUTE) == "true";
-        const refresh = child.getAttribute(ACTIONS_REFRESH_ATTRIBUTE) == "true";
-        
-        this.request(url, confirm, prompt, refresh);
-        
-      });
-      
-    }
-    
-  }
-  
-  request = (url, confirm, prompt, refresh) => {
-    
-    // -------------------- confirm --------------------
-    
-    if (confirm && ! window.confirm("Are you sure you want to proceed with the requested action?")) {
-      return;
-    }
-    
-    // -------------------- form data --------------------
-    
-    const form_data = new FormData();
-    
-    // -------------------- prompt --------------------
-    
-    if (prompt) {
-      
-      const input = window.prompt("The requested action requires a value");
-      
-      if (input === null) {
-        return;
-      }
-      
-      form_data.append("input", input);
-      
-    }
-    
-    // -------------------- matcher --------------------
-    
-    this.parent.list.entries
-      .filter(entry => entry.is_selected())
-      .forEach(entry => form_data.append("matcher", entry.text()));
-    
-    // -------------------- request --------------------
-    
-    fetch(url, { method: "POST", body: form_data })
-      .then(response => {
-        
-        if (response.status != 200) {
-          response.text().then(error => window.alert(error));
-          return;
-        }
-        
-        if (refresh) {
-          this.parent.list.refresh();
-        }
-        
-      })
-      .catch(error => window.alert(error));
-    
-  };
-  
-}
-
-class Toggles {
-  
-  constructor(parent) {
-    
-    // -------------------- properties --------------------
-    
-    this.node = parent.node.querySelector(TOGGLES_NODE_SELECTOR);
-    this.parent = parent;
-    
-    // -------------------- bindings --------------------
-    
-    for (const child of this.node.children) {
-      
-      child.addEventListener("click", (event) => {
-        
-        const state = child.getAttribute(TOGGLES_ENABLED_ATTRIBUTE) == "true" ? "false" : "true";
-        const attr = child.getAttribute(TOGGLES_ATTR_ATTRIBUTE);
-        
-        child.setAttribute(TOGGLES_ENABLED_ATTRIBUTE, state);
-        
-        this.parent.list.node.setAttribute(attr, state);
-        
-        this.parent.list.entries
-          .filter(entry => entry.is_selected() && ! entry.is_visible())
-          .forEach(entry => entry.toggle_select());
-        
-      });
-      
-    }
-    
-  }
   
 }
 
