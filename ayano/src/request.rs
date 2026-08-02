@@ -108,10 +108,10 @@ impl<S: Read + Write> Request<S> {
     pub fn endpoint(&self) -> Option<(&[u8], &[u8])> {
         // GET /test/resource?fkey=fvalue HTTP/1.1\r\n
         
-        // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
-        let first_line = self.headers.splitn(2, |&byte| byte == b'\r').next().unwrap();
+        let first_line = self.headers.split(|&byte| byte == b'\r').next().unwrap();
         
         let mut components = first_line.split(|&byte| byte == b' ')
+            // strip extra whitespace
             .filter(|component| ! component.is_empty());
         
         // request method
