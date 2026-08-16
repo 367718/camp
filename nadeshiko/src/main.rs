@@ -2,7 +2,6 @@ mod feed;
 
 use std::{
     error::Error,
-    ffi::OsStr,
     fs::File,
     io::{ self, Read, Write, BufWriter },
     path::{ Path, PathBuf },
@@ -122,7 +121,7 @@ fn build_destination(folder: &str, title: &str) -> Result<PathBuf, Box<dyn Error
         .join(file_name);
     
     let current_extension = file_path.extension()
-        .unwrap_or_else(|| OsStr::new(""));
+        .unwrap_or_default();
     
     if ! current_extension.eq_ignore_ascii_case("torrent") {
         file_path.add_extension("torrent");
