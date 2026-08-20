@@ -42,9 +42,9 @@ fn process() -> Result<(), Box<dyn Error>> {
     
     let mut cache = rules.iter().collect::<Vec<chiaki::ListEntry>>();
     
-    // -------------------- client --------------------
+    // -------------------- httpclient --------------------
     
-    let mut client = akari::Client::new()?;
+    let mut httpclient = akari::Client::new()?;
     
     // -------------------- entries --------------------
     
@@ -56,7 +56,7 @@ fn process() -> Result<(), Box<dyn Error>> {
         println!("{}", url);
         println!("--------------------");
         
-        for entry in &Feed::new(&mut client, url, max_feed_size)? {
+        for entry in &Feed::new(&mut httpclient, url, max_feed_size)? {
             
             // -------------------- title --------------------
             
@@ -98,10 +98,9 @@ fn process() -> Result<(), Box<dyn Error>> {
             
             println!("{}", title_str);
             
-            // rule update may fail, so torrent path is initially treated as ephemeral
-            let destination = chikuwa::EphemeralPath::from(build_destination(folder, title_str)?);
+            let destination = chikuwa::EphemeralPath::from(build_destination(title_str, folder)?);
             
-            download(&mut client, link_str, max_torrent_size, &destination)?;
+            download(&mut httpclient, link_str, max_torrent_size, &destination)?;
             update(rule, episode, max_list_size)?;
             
             destination.make_permanent();
@@ -113,9 +112,9 @@ fn process() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn build_destination(folder: &str, title: &str) -> Result<PathBuf, Box<dyn Error>> {
-    let file_name = chikuwa::win_filename(title)
-        .ok_or(format!("Invalid file name for torrent file: {}", title))?;
+fn build_destination(title_str: &str, folder: &str) -> Result<PathBuf, Box<dyn Error>> {
+    let file_name = chikuwa::win_filename(title_str)
+        .ok_or(format!("Invalid file name for torrent file: {}", title_str))?;
     
     let mut file_path = Path::new(folder)
         .join(file_name);
@@ -130,17 +129,18 @@ fn build_destination(folder: &str, title: &str) -> Result<PathBuf, Box<dyn Error
     Ok(file_path)
 }
 
-fn download(client: &mut akari::Client, link: &str, max_size: u64, destination: &Path) -> Result<(), Box<dyn Error>> {
-    let response = client.get(link)?;
+fn download(httpclient: &mut akari::Client, link_str: &str, max_torrent_size: u64, destination: &Path) -> Result<(), Box<dyn Error>> {
+    let response = httpclient.get(link_str)?;
     
     let file = File::options()
         .create_new(true)
         .write(true)
         .open(destination)?;
     
-    let mut reader = response.take(max_size);
-    let mut writer = BufWriter::new(file);
+    let mut reader = response.take(max_torrent_size);
+    let mut writer = BufWriter::with_capacity(64 * 1024, file);
     
+    // https://github.com/rust-lang/rust/issues/49921
     io::copy(&mut reader, &mut writer)?;
     
     writer.flush()?;
@@ -148,8 +148,8 @@ fn download(client: &mut akari::Client, link: &str, max_size: u64, destination: 
     Ok(())
 }
 
-fn update(rule: &mut chiaki::ListEntry, episode: u16, max_size: u64) -> Result<(), Box<dyn Error>> {
-    chiaki::List::load("rules", max_size)
+fn update(rule: &mut chiaki::ListEntry, episode: u16, max_list_size: u64) -> Result<(), Box<dyn Error>> {
+    chiaki::List::load("rules", max_list_size)
         .and_then(|list| list.set(rule.tag, episode))?;
     
     rule.value = episode;

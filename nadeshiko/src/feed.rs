@@ -8,7 +8,6 @@ pub struct FeedEntries<'c> {
     content: &'c [u8],
 }
 
-#[cfg_attr(debug_assertions, derive(PartialEq, Debug))]
 pub struct FeedEntry<'c> {
     pub content: &'c [u8],
 }
@@ -22,13 +21,13 @@ const LINK_CLOSE_TAG: &[u8] = b"</link>";
 
 impl Feed {
     
-    pub fn new(client: &mut akari::Client, url: &str, max_size: u64) -> io::Result<Self> {
-        let response = client.get(url)?;
+    pub fn new(httpclient: &mut akari::Client, url: &str, max_feed_size: u64) -> io::Result<Self> {
+        let response = httpclient.get(url)?;
         
         let size = response.content_length()?
-            .min(max_size);
+            .min(max_feed_size);
         
-        let mut content = Vec::with_capacity(usize::try_from(size).expect("Unsupported platform") + 1);
+        let mut content = Vec::with_capacity(usize::try_from(size.saturating_add(1)).expect("Unsupported platform"));
         
         response.take(size).read_to_end(&mut content)?;
         

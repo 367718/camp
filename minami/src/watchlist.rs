@@ -1,3 +1,5 @@
+use core::fmt::NumBuffer;
+
 use std::{
     error::Error,
     io::Write,
@@ -25,9 +27,13 @@ pub fn entries(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
     
+    let mut numbuf = NumBuffer::new();
+    
     for entry in &list {
         
-        write!(&mut response, "<a data-value='{}'>", entry.value)?;
+        response.write_all(b"<a data-value='")?;
+        response.write_all(entry.value.format_into(&mut numbuf).as_bytes())?;
+        response.write_all(b"'>")?;
         chikuwa::escape_html(entry.tag, &mut response)?;
         response.write_all(b"</a>")?;
         

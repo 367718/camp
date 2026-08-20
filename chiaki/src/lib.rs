@@ -62,7 +62,7 @@ impl List {
         
         let size = metadata.len().min(max_size);
         
-        let mut content = Vec::with_capacity(usize::try_from(size).expect("Unsupported platform") + 1);
+        let mut content = Vec::with_capacity(usize::try_from(size.saturating_add(1)).expect("Unsupported platform"));
         
         file.take(size).read_to_end(&mut content)
             .map_err(|error| Error::new(error.kind(), format!("Failed to read list file '{}': {}", file_path.display(), error)))?;
