@@ -114,7 +114,7 @@ fn process() -> Result<(), Box<dyn Error>> {
 
 fn build_destination(title_str: &str, folder: &str) -> Result<PathBuf, Box<dyn Error>> {
     let file_name = chikuwa::win_filename(title_str)
-        .ok_or(format!("Invalid file name for torrent file: {}", title_str))?;
+        .ok_or_else(|| format!("Invalid file name for torrent file: {}", title_str))?;
     
     let mut file_path = Path::new(folder)
         .join(file_name);

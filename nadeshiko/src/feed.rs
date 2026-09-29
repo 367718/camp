@@ -27,7 +27,8 @@ impl Feed {
         let size = response.content_length()?
             .min(max_feed_size);
         
-        let mut content = Vec::with_capacity(usize::try_from(size.saturating_add(1)).expect("Unsupported platform"));
+        let capacity = usize::try_from(size.saturating_add(1)).expect("Unsupported platform");
+        let mut content = Vec::with_capacity(capacity);
         
         response.take(size).read_to_end(&mut content)?;
         
