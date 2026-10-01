@@ -40,6 +40,8 @@ fn process() -> Result<(), Box<dyn Error>> {
     
     // -------------------- cache --------------------
     
+    // a cache is used to prevent loading the rules list file on every feed entry evaluated
+    // on update, both the list file and the cache are modified
     let mut cache = rules.iter().collect::<Vec<chiaki::ListEntry>>();
     
     // -------------------- httpclient --------------------
