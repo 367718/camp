@@ -48,24 +48,29 @@ impl<'r> FilesEntry<'r> {
     
     pub fn move_to_folder(self, folder: impl AsRef<Path>) -> io::Result<()> {
         // if folder is empty or its 'file_name' cannot be extracted, entry will be moved to root
-        let container_name = folder.as_ref().file_name().unwrap_or_default();
-        let file_name = self.inner.file_name().expect("Invalid entry file name");
+        let container_name = folder.as_ref()
+            .file_name()
+            .unwrap_or_default();
         
-        let mut target_path = self.root.join(container_name);
-        target_path.push(file_name);
+        let file_name = self.inner
+            .file_name()
+            .expect("Invalid entry file name");
+        
+        let target_path = self.root
+            .join(container_name)
+            .join(file_name);
         
         if self.inner == target_path {
             return Ok(());
         }
         
-        let container_path = target_path.parent().unwrap();
+        fs::create_dir_all(target_path.parent().unwrap())?;
         
-        if ! container_path.try_exists()? {
-            fs::create_dir(container_path)?;
-        } else if target_path.try_exists()? {
+        if target_path.try_exists()? {
             return Err(ErrorKind::AlreadyExists.into());
         }
         
+        // potential toctou bug
         fs::rename(self.inner, &target_path)
     }
     
@@ -86,7 +91,7 @@ impl AsRef<Path> for FilesEntry<'_> {
 impl AsRef<OsStr> for FilesEntry<'_> {
     
     fn as_ref(&self) -> &OsStr {
-        OsStr::new(&self.inner)
+        self.inner.as_os_str()
     }
     
 }

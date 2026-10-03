@@ -22,7 +22,7 @@ pub struct FilesEntries<'r> {
 
 impl Files {
     
-    pub fn new<P: AsRef<Path>>(path: P, max_depth: u64) -> Self {
+    pub fn new(path: impl AsRef<Path>, max_depth: u64) -> Self {
         Self {
             root: path.as_ref().to_path_buf(),
             max_depth: usize::try_from(max_depth).expect("Unsupported platform"),
@@ -31,8 +31,8 @@ impl Files {
     
     pub fn iter(&self) -> FilesEntries<'_> {
         let current = self.root.read_dir()
-            .ok()
-            .map(|directory| (directory, 1));
+            .map(|directory| (directory, 1))
+            .ok();
         
         FilesEntries {
             current,
@@ -63,11 +63,7 @@ impl<'r> Iterator for FilesEntries<'r> {
         loop {
             
             if let Some((directory, depth)) = &mut self.current {
-                for entry in directory {
-                    
-                    let Ok(entry) = entry else {
-                        continue;
-                    };
+                for entry in directory.flatten() {
                     
                     let Ok(file_type) = entry.file_type() else {
                         continue;
@@ -91,8 +87,8 @@ impl<'r> Iterator for FilesEntries<'r> {
             let (next_path, next_depth) = self.pending.pop()?;
             
             self.current = next_path.read_dir()
-                .ok()
-                .map(|directory| (directory, next_depth));
+                .map(|directory| (directory, next_depth))
+                .ok();
             
         }
     }
