@@ -5,9 +5,9 @@ const SUPPORTED_SCHEME: &str = "https://";
 const DEFAULT_PORT: u16 = 443;
 
 pub struct Url<'r> {
-    host: &'r str,
-    port: u16,
-    path: &'r str,
+    pub host: &'r str,
+    pub port: u16,
+    pub path: &'r str,
 }
 
 impl<'r> TryFrom<&'r str> for Url<'r> {
@@ -23,7 +23,7 @@ impl<'r> TryFrom<&'r str> for Url<'r> {
         // 1 -> "example.com/placeholder"
         // 2 -> "test.com:8080"
         let base = resource.strip_prefix(SUPPORTED_SCHEME)
-            .ok_or(Error::new(ErrorKind::InvalidInput, "Unsupported URL scheme"))?;
+            .ok_or_else(|| Error::new(ErrorKind::InvalidInput, "Unsupported URL scheme"))?;
         
         // extract host_plus_port and path
         // 1 -> "example.com", "/placeholder"
@@ -40,22 +40,6 @@ impl<'r> TryFrom<&'r str> for Url<'r> {
         };
         
         Ok(Self { host, port, path })
-    }
-    
-}
-
-impl Url<'_> {
-    
-    pub fn host(&self) -> &str {
-        self.host
-    }
-    
-    pub fn port(&self) -> u16 {
-        self.port
-    }
-    
-    pub fn path(&self) -> &str {
-        self.path
     }
     
 }
@@ -89,9 +73,9 @@ mod tests {
         
         let output = output.unwrap();
         
-        assert_eq!(output.host(), "example.com");
-        assert_eq!(output.port(), 443);
-        assert_eq!(output.path(), "/test");
+        assert_eq!(output.host, "example.com");
+        assert_eq!(output.port, 443);
+        assert_eq!(output.path, "/test");
     }
     
     #[test]
@@ -108,9 +92,9 @@ mod tests {
         
         let output = output.unwrap();
         
-        assert_eq!(output.host(), "192.168.150.10");
-        assert_eq!(output.port(), 443);
-        assert_eq!(output.path(), "/test");
+        assert_eq!(output.host, "192.168.150.10");
+        assert_eq!(output.port, 443);
+        assert_eq!(output.path, "/test");
     }
     
     #[test]
@@ -127,9 +111,9 @@ mod tests {
         
         let output = output.unwrap();
         
-        assert_eq!(output.host(), "192.168.150.10");
-        assert_eq!(output.port(), 7777);
-        assert_eq!(output.path(), "/");
+        assert_eq!(output.host, "192.168.150.10");
+        assert_eq!(output.port, 7777);
+        assert_eq!(output.path, "/");
     }
     
     #[test]
@@ -146,9 +130,9 @@ mod tests {
         
         let output = output.unwrap();
         
-        assert_eq!(output.host(), "example.com");
-        assert_eq!(output.port(), 443);
-        assert_eq!(output.path(), "/test?placeholder=no&madeup=yes");
+        assert_eq!(output.host, "example.com");
+        assert_eq!(output.port, 443);
+        assert_eq!(output.path, "/test?placeholder=no&madeup=yes");
     }
     
     #[test]
@@ -165,9 +149,9 @@ mod tests {
         
         let output = output.unwrap();
         
-        assert_eq!(output.host(), "example.com");
-        assert_eq!(output.port(), 8080);
-        assert_eq!(output.path(), "/test");
+        assert_eq!(output.host, "example.com");
+        assert_eq!(output.port, 8080);
+        assert_eq!(output.path, "/test");
     }
     
     #[test]
@@ -184,9 +168,9 @@ mod tests {
         
         let output = output.unwrap();
         
-        assert_eq!(output.host(), "");
-        assert_eq!(output.port(), 443);
-        assert_eq!(output.path(), "/");
+        assert_eq!(output.host, "");
+        assert_eq!(output.port, 443);
+        assert_eq!(output.path, "/");
     }
     
     #[test]

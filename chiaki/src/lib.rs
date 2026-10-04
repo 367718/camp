@@ -36,7 +36,7 @@ impl List {
         // prevent directory traversal
         let file_name = Path::new(name)
             .file_name()
-            .ok_or(Error::new(ErrorKind::InvalidInput, "Invalid list file name"))?;
+            .ok_or_else(|| Error::new(ErrorKind::InvalidInput, "Invalid list file name"))?;
         
         let file_path = env::current_dir()?
             .join(file_name)

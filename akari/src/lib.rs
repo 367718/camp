@@ -40,8 +40,8 @@ impl Client {
     pub fn get(&mut self, resource: &str) -> io::Result<Response> {
         let url = Url::try_from(resource)?;
         
-        self.session.connect(url.host(), url.port())
-            .and_then(|connection| connection.send_request(url.path()))
+        self.session.connect(url.host, url.port)
+            .and_then(|connection| connection.send_request(url.path))
             .and_then(Request::receive_response)
     }
     
