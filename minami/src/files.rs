@@ -84,6 +84,7 @@ pub fn play(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     
     let mut selected = list.into_iter()
         .filter(|entry| matchers.iter().any(|&matcher| matcher == entry.relative()))
+        .map(ena::FilesEntry::to_path)
         .peekable();
     
     if selected.peek().is_none() {

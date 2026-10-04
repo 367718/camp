@@ -1,7 +1,7 @@
 use std::{
     ffi::OsStr,
     fs,
-    io::{ self, ErrorKind },
+    io,
     path::{ Path, PathBuf },
 };
 
@@ -25,10 +25,6 @@ impl<'r> FilesEntry<'r> {
     // -------------------- accessors --------------------
     
     
-    pub fn path(&self) -> &Path {
-        &self.inner
-    }
-    
     pub fn relative(&self) -> &Path {
         self.inner.strip_prefix(self.root)
             .expect("Discrepancy between full path and root")
@@ -41,6 +37,10 @@ impl<'r> FilesEntry<'r> {
     
     // -------------------- mutators --------------------
     
+    
+    pub fn to_path(self) -> PathBuf {
+        self.inner
+    }
     
     pub fn toggle_mark(self, flag: impl AsRef<OsStr>) -> io::Result<()> {
         crate::mark::toggle(self.inner, flag)
@@ -66,32 +66,19 @@ impl<'r> FilesEntry<'r> {
         
         fs::create_dir_all(target_path.parent().unwrap())?;
         
-        if target_path.try_exists()? {
-            return Err(ErrorKind::AlreadyExists.into());
-        }
+        let temp_path = chikuwa::EphemeralPath::from(target_path);
         
-        // potential toctou bug
-        fs::rename(self.inner, &target_path)
+        // avoid toctou bug
+        fs::hard_link(&self.inner, &temp_path)?;
+        fs::remove_file(&self.inner)?;
+        
+        temp_path.make_permanent();
+        
+        Ok(())
     }
     
     pub fn delete(self) -> io::Result<()> {
         fs::remove_file(self.inner)
-    }
-    
-}
-
-impl AsRef<Path> for FilesEntry<'_> {
-    
-    fn as_ref(&self) -> &Path {
-        &self.inner
-    }
-    
-}
-
-impl AsRef<OsStr> for FilesEntry<'_> {
-    
-    fn as_ref(&self) -> &OsStr {
-        self.inner.as_os_str()
     }
     
 }
