@@ -69,7 +69,7 @@ impl Session {
         let handle = unsafe {
             
             let result = WinHttpOpen(
-                chikuwa::win_string(agent).as_ptr(),
+                chikuwa::win_string(agent)?.as_ptr(),
                 WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
                 ptr::null(),
                 ptr::null(),
@@ -134,7 +134,7 @@ impl Session {
             
             let result = WinHttpConnect(
                 self.handle.as_raw(),
-                chikuwa::win_string(host).as_ptr(),
+                chikuwa::win_string(host)?.as_ptr(),
                 port,
                 0,
             );

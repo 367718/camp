@@ -52,7 +52,7 @@ impl Connection {
             let result = WinHttpOpenRequest(
                 self.handle.as_raw(),
                 ptr::null(),
-                chikuwa::win_string(path).as_ptr(),
+                chikuwa::win_string(path)?.as_ptr(),
                 ptr::null(),
                 ptr::null(),
                 ptr::null_mut(),

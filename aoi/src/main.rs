@@ -144,7 +144,7 @@ fn send_command(request: &mut ServerRequest, command: &[u8]) -> Result<(), Box<d
     unsafe {
         
         let result = WaitNamedPipeW(
-            chikuwa::win_string(pipe).as_ptr(),
+            chikuwa::win_string(pipe)?.as_ptr(),
             PIPE_MAX_WAIT_AS_MILLIS,
         );
         
