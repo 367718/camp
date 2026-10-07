@@ -131,7 +131,7 @@ fn build_destination(title_str: &str, folder: &str) -> Result<PathBuf, Box<dyn E
     Ok(file_path)
 }
 
-fn download(httpclient: &mut akari::Client, link_str: &str, max_torrent_size: u64, destination: &Path) -> Result<(), Box<dyn Error>> {
+fn download(httpclient: &mut akari::Client, link_str: &str, max_torrent_size: u64, destination: impl AsRef<Path>) -> Result<(), Box<dyn Error>> {
     let response = httpclient.get(link_str)?;
     
     let file = File::options()
