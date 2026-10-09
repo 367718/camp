@@ -50,7 +50,7 @@ fn process() -> Result<(), Box<dyn Error>> {
     
     // -------------------- entries --------------------
     
-    for feed in &feeds {
+    for feed in feeds.iter() {
         
         let url = str::from_utf8(feed.tag)?;
         
@@ -58,7 +58,7 @@ fn process() -> Result<(), Box<dyn Error>> {
         println!("{}", url);
         println!("--------------------");
         
-        for entry in &Feed::new(&mut httpclient, url, max_feed_size)? {
+        for entry in Feed::new(&mut httpclient, url, max_feed_size)?.iter() {
             
             // -------------------- title --------------------
             

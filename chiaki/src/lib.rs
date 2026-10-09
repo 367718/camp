@@ -80,6 +80,7 @@ impl List {
     // -------------------- accessors --------------------
     
     
+    #[allow(clippy::iter_without_into_iter)]
     pub fn iter(&self) -> ListEntries<'_> {
         ListEntries { content: &self.content }
     }
@@ -138,17 +139,6 @@ impl List {
         temp_path.make_permanent();
         
         Ok(())
-    }
-    
-}
-
-impl<'c> IntoIterator for &'c List {
-    
-    type IntoIter = ListEntries<'c>;
-    type Item = ListEntry<'c>;
-    
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
     }
     
 }

@@ -25,7 +25,7 @@ pub fn entries(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     
     let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
     
-    for entry in &list {
+    for entry in list.iter() {
         
         response.write_all(b"<a>")?;
         chikuwa::escape_html(entry.tag, &mut response)?;

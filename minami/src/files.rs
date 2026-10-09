@@ -33,7 +33,7 @@ pub fn entries(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     
     let mut numbuf = NumBuffer::new();
     
-    for entry in &list {
+    for entry in list.iter() {
         
         // skip entries whose relative path cannot be represented in utf8
         let Some(relative) = entry.relative().to_str() else {
@@ -82,7 +82,7 @@ pub fn play(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
         .filter_map(|matcher| str::from_utf8(matcher).ok())
         .collect::<Vec<&str>>();
     
-    let mut selected = list.into_iter()
+    let mut selected = list.iter()
         .filter(|entry| matchers.iter().any(|&matcher| matcher == entry.relative()))
         .map(ena::FilesEntry::to_path)
         .peekable();
@@ -120,7 +120,7 @@ pub fn mark(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
         .filter_map(|matcher| str::from_utf8(matcher).ok())
         .collect::<Vec<&str>>();
     
-    let mut selected = list.into_iter()
+    let mut selected = list.iter()
         .filter(|entry| matchers.iter().any(|&matcher| matcher == entry.relative()))
         .peekable();
     
@@ -151,7 +151,7 @@ pub fn folder(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
         .filter_map(|matcher| str::from_utf8(matcher).ok())
         .collect::<Vec<&str>>();
     
-    let mut selected = list.into_iter()
+    let mut selected = list.iter()
         .filter(|entry| matchers.iter().any(|&matcher| matcher == entry.relative()))
         .peekable();
     
@@ -187,7 +187,7 @@ pub fn delete(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
         .filter_map(|matcher| str::from_utf8(matcher).ok())
         .collect::<Vec<&str>>();
     
-    let mut selected = list.into_iter()
+    let mut selected = list.iter()
         .filter(|entry| matchers.iter().any(|&matcher| matcher == entry.relative()))
         .peekable();
     

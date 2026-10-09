@@ -13,6 +13,7 @@ pub struct FeedEntry<'c> {
 }
 
 const FEED_INITIAL_SIZE: u64 = 32 * 1024;
+
 const ITEM_OPEN_TAG: &[u8] = b"<item>";
 const ITEM_CLOSE_TAG: &[u8] = b"</item>";
 const TITLE_OPEN_TAG: &[u8] = b"<title>";
@@ -38,17 +39,6 @@ impl Feed {
     
     pub fn iter(&self) -> FeedEntries<'_> {
         FeedEntries { content: &self.content }
-    }
-    
-}
-
-impl<'c> IntoIterator for &'c Feed {
-    
-    type IntoIter = FeedEntries<'c>;
-    type Item = FeedEntry<'c>;
-    
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
     }
     
 }

@@ -29,7 +29,7 @@ pub fn entries(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     
     let mut numbuf = NumBuffer::new();
     
-    for entry in &list {
+    for entry in list.iter() {
         
         response.write_all(b"<a data-value='")?;
         response.write_all(entry.value.format_into(&mut numbuf).as_bytes())?;

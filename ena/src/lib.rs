@@ -29,6 +29,7 @@ impl Files {
         }
     }
     
+    #[allow(clippy::iter_without_into_iter)]
     pub fn iter(&self) -> FilesEntries<'_> {
         let current = self.root.read_dir()
             .map(|directory| (directory, 1))
@@ -40,17 +41,6 @@ impl Files {
             root: self.root.as_path(),
             max_depth: self.max_depth,
         }
-    }
-    
-}
-
-impl<'r> IntoIterator for &'r Files {
-    
-    type IntoIter = FilesEntries<'r>;
-    type Item = FilesEntry<'r>;
-    
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
     }
     
 }
