@@ -12,6 +12,7 @@ pub struct FeedEntry<'c> {
     pub content: &'c [u8],
 }
 
+const FEED_INITIAL_SIZE: u64 = 32 * 1024;
 const ITEM_OPEN_TAG: &[u8] = b"<item>";
 const ITEM_CLOSE_TAG: &[u8] = b"</item>";
 const TITLE_OPEN_TAG: &[u8] = b"<title>";
@@ -24,7 +25,7 @@ impl Feed {
     pub fn new(httpclient: &mut akari::Client, url: &str, max_feed_size: u64) -> io::Result<Self> {
         let response = httpclient.get(url)?;
         
-        let size = response.content_length()?
+        let size = FEED_INITIAL_SIZE
             .min(max_feed_size);
         
         let capacity = usize::try_from(size.saturating_add(1)).expect("Unsupported platform");

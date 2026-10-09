@@ -15,5 +15,4 @@ Only HTTPS is supported and connections will be pooled for reuse.
     * get
 
 * `Response`
-    * content_length
     * Read trait

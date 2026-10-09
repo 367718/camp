@@ -56,6 +56,9 @@ unsafe extern "system" {
 const WINHTTP_ACCESS_TYPE_DEFAULT_PROXY: c_ulong = 0; // DWORD
 const WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL: c_ulong = 133; // DWORD
 const WINHTTP_PROTOCOL_FLAG_HTTP2: c_ulong = 1; // DWORD
+const WINHTTP_OPTION_DECOMPRESSION: c_ulong = 118; // DWORD
+const WINHTTP_DECOMPRESSION_FLAG_GZIP: c_ulong = 1; // DWORD
+const WINHTTP_DECOMPRESSION_FLAG_DEFLATE: c_ulong = 2; // DWORD
 
 pub struct Session {
     pub handle: HttpHandle,
@@ -104,17 +107,39 @@ impl Session {
         
         // -------------------- http2 --------------------
         
-        let mut version = WINHTTP_PROTOCOL_FLAG_HTTP2;
+        let mut flag = WINHTTP_PROTOCOL_FLAG_HTTP2;
         
         #[allow(clippy::cast_possible_truncation)]
-        let bytes = size_of_val(&version) as c_ulong;
+        let bytes = size_of_val(&flag) as c_ulong;
         
         unsafe {
             
             let result = WinHttpSetOption(
                 handle.as_raw(),
                 WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
-                ptr::from_mut(&mut version).cast::<c_void>(),
+                ptr::from_mut(&mut flag).cast::<c_void>(),
+                bytes,
+            );
+            
+            if result == 0 {
+                return Err(Error::last_os_error());
+            }
+            
+        }
+        
+        // -------------------- decompression --------------------
+        
+        let mut flag = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
+        
+        #[allow(clippy::cast_possible_truncation)]
+        let bytes = size_of_val(&flag) as c_ulong;
+        
+        unsafe {
+            
+            let result = WinHttpSetOption(
+                handle.as_raw(),
+                WINHTTP_OPTION_DECOMPRESSION,
+                ptr::from_mut(&mut flag).cast::<c_void>(),
                 bytes,
             );
             
