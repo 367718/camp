@@ -1,7 +1,6 @@
 [package]
 name = "akari"
 description = "HTTP/2 client"
-build = "rsc/build.rs"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true

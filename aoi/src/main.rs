@@ -42,7 +42,7 @@ const COMMAND_TITLE: &[u8] = b"show-text ${media-title} 5000\n";
 const COMMAND_TIME: &[u8] = b"show-text \"${playback-time} (${time-remaining})\" 5000\n";
 const COMMAND_QUIT: &[u8] = b"quit\n";
 
-const PIPE_MAX_WAIT_AS_MILLIS: c_ulong = 5_000;
+const PIPE_MAX_WAIT: c_ulong = 5_000;
 
 fn main() {
     println!("{} v{}", APP_NAME, APP_VERSION);
@@ -145,7 +145,7 @@ fn send_command(request: &mut ServerRequest, command: &[u8]) -> Result<(), Box<d
         
         let result = WaitNamedPipeW(
             chikuwa::win_string(pipe)?.as_ptr(),
-            PIPE_MAX_WAIT_AS_MILLIS,
+            PIPE_MAX_WAIT,
         );
         
         if result == 0 {

@@ -2,17 +2,17 @@ use std::{
     io::{ self, Error },
     os::{
         raw::*,
-        windows::io::RawHandle,
+        windows::io::{ RawHandle, AsRawHandle },
     },
     ptr,
 };
 
 use crate::{
-    DNS_RESOLUTION_TIMEOUT_AS_MILLIS,
-    CONNECTION_TIMEOUT_AS_MILLIS,
-    SEND_TIMEOUT_AS_MILLIS,
-    RECEIVE_TIMEOUT_AS_MILLIS,
-    HttpHandle, Connection,
+    DNS_RESOLUTION_TIMEOUT,
+    CONNECTION_TIMEOUT,
+    SEND_TIMEOUT,
+    RECEIVE_TIMEOUT,
+    WinHttpHandle,
 };
 
 unsafe extern "system" {
@@ -43,14 +43,6 @@ unsafe extern "system" {
         dw_buffer_length: c_ulong, // DWORD
     ) -> c_int; // BOOL
     
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpconnect
-    fn WinHttpConnect(
-        h_session: RawHandle,
-        pswz_server_name: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
-        n_server_port: c_ushort, // INTERNET_PORT -> WORD
-        dw_reserved: c_ulong,
-    ) -> RawHandle;
-    
 }
 
 const WINHTTP_ACCESS_TYPE_DEFAULT_PROXY: c_ulong = 0; // DWORD
@@ -61,7 +53,7 @@ const WINHTTP_DECOMPRESSION_FLAG_GZIP: c_ulong = 1; // DWORD
 const WINHTTP_DECOMPRESSION_FLAG_DEFLATE: c_ulong = 2; // DWORD
 
 pub struct Session {
-    pub handle: HttpHandle,
+    pub handle: WinHttpHandle,
 }
 
 impl Session {
@@ -83,7 +75,7 @@ impl Session {
                 return Err(Error::last_os_error());
             }
             
-            HttpHandle::new(result)
+            WinHttpHandle::from(result)
             
         };
         
@@ -92,11 +84,11 @@ impl Session {
         unsafe {
             
             let result = WinHttpSetTimeouts(
-                handle.as_raw(),
-                DNS_RESOLUTION_TIMEOUT_AS_MILLIS,
-                CONNECTION_TIMEOUT_AS_MILLIS,
-                SEND_TIMEOUT_AS_MILLIS,
-                RECEIVE_TIMEOUT_AS_MILLIS,
+                handle.as_raw_handle(),
+                DNS_RESOLUTION_TIMEOUT,
+                CONNECTION_TIMEOUT,
+                SEND_TIMEOUT,
+                RECEIVE_TIMEOUT,
             );
             
             if result == 0 {
@@ -115,7 +107,7 @@ impl Session {
         unsafe {
             
             let result = WinHttpSetOption(
-                handle.as_raw(),
+                handle.as_raw_handle(),
                 WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
                 ptr::from_mut(&mut flag).cast::<c_void>(),
                 bytes,
@@ -137,7 +129,7 @@ impl Session {
         unsafe {
             
             let result = WinHttpSetOption(
-                handle.as_raw(),
+                handle.as_raw_handle(),
                 WINHTTP_OPTION_DECOMPRESSION,
                 ptr::from_mut(&mut flag).cast::<c_void>(),
                 bytes,
@@ -150,29 +142,6 @@ impl Session {
         }
         
         Ok(Self {
-            handle,
-        })
-    }
-    
-    pub fn connect(&self, host: &str, port: u16) -> io::Result<Connection> {
-        let handle = unsafe {
-            
-            let result = WinHttpConnect(
-                self.handle.as_raw(),
-                chikuwa::win_string(host)?.as_ptr(),
-                port,
-                0,
-            );
-            
-            if result.is_null() {
-                return Err(Error::last_os_error());
-            }
-            
-            HttpHandle::new(result)
-            
-        };
-        
-        Ok(Connection {
             handle,
         })
     }

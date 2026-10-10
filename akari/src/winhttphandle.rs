@@ -1,6 +1,6 @@
 use std::os::{
     raw::*,
-    windows::io::RawHandle,
+    windows::io::{ RawHandle, AsRawHandle },
 };
 
 unsafe extern "system" {
@@ -12,31 +12,31 @@ unsafe extern "system" {
     
 }
 
-pub struct HttpHandle {
-    inner: RawHandle,
-}
+pub struct WinHttpHandle(RawHandle);
 
-impl HttpHandle {
+impl From<RawHandle> for WinHttpHandle {
     
-    pub fn new(raw: RawHandle) -> Self {
-        Self {
-            inner: raw,
-        }
-    }
-    
-    pub fn as_raw(&self) -> RawHandle {
-        self.inner
+    fn from(inner: RawHandle) -> Self {
+        Self(inner)
     }
     
 }
 
-impl Drop for HttpHandle {
+impl AsRawHandle for WinHttpHandle {
+    
+    fn as_raw_handle(&self) -> RawHandle {
+        self.0
+    }
+    
+}
+
+impl Drop for WinHttpHandle {
     
     fn drop(&mut self) {
         unsafe {
             
             WinHttpCloseHandle(
-                self.inner,
+                self.0,
             );
             
         }
