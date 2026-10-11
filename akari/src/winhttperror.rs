@@ -36,7 +36,13 @@ const FORMAT_MESSAGE_IGNORE_INSERTS: u32 = 0x0000_0200;
 
 pub fn last_winhttp_error() -> Error {
     let os_error = Error::last_os_error();
-    let error_code = c_ulong::try_from(os_error.raw_os_error().unwrap_or(0)).unwrap();
+    
+    let error_code = os_error
+        .raw_os_error()
+        .unwrap_or(0)
+        .cast_unsigned();
+    
+    // -------------------- get module --------------------
     
     let module = unsafe {
         
@@ -45,6 +51,8 @@ pub fn last_winhttp_error() -> Error {
         )
         
     };
+    
+    // -------------------- format message --------------------
     
     // FORMAT_MESSAGE_FROM_SYSTEM -> use core windows system message table as fallback
     // FORMAT_MESSAGE_IGNORE_INSERTS -> ignore insertion sequences, since "arguments" is null
@@ -57,6 +65,9 @@ pub fn last_winhttp_error() -> Error {
     
     let mut buffer: [c_ushort; 1024] = [0; 1024];
     
+    #[allow(clippy::cast_possible_truncation)]
+    let buffer_length = buffer.len() as c_ulong;
+    
     let length = unsafe {
         
         let result = FormatMessageW(
@@ -65,7 +76,7 @@ pub fn last_winhttp_error() -> Error {
             error_code,
             0,
             buffer.as_mut_ptr(),
-            c_ulong::try_from(buffer.len()).unwrap(),
+            buffer_length,
             ptr::null_mut(),
         );
         
