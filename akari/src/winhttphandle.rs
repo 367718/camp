@@ -1,30 +1,23 @@
-use std::os::{
-    raw::*,
-    windows::io::{ RawHandle, AsRawHandle },
-};
+use std::os::raw::*;
 
 unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpclosehandle
     fn WinHttpCloseHandle(
-        h_internet: RawHandle,
+        h_internet: *mut c_void, // HINTERNET -> LPVOID
     ) -> c_int; // BOOL
     
 }
 
-pub struct WinHttpHandle(RawHandle);
+pub struct WinHttpHandle(*mut c_void);
 
-impl From<RawHandle> for WinHttpHandle {
+impl WinHttpHandle {
     
-    fn from(inner: RawHandle) -> Self {
+    pub fn new(inner: *mut c_void) -> Self {
         Self(inner)
     }
     
-}
-
-impl AsRawHandle for WinHttpHandle {
-    
-    fn as_raw_handle(&self) -> RawHandle {
+    pub fn as_raw(&self) -> *mut c_void {
         self.0
     }
     

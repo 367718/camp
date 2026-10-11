@@ -1,30 +1,31 @@
 use std::{
     io::{ self, Error, ErrorKind, Read },
-    os::{
-        raw::*,
-        windows::io::{ RawHandle, AsRawHandle },
-    },
+    os::raw::*,
     ptr,
 };
 
-use super::{ WinHttpHandle, Connection };
+use crate::{
+    last_winhttp_error,
+    WinHttpHandle,
+    Connection,
+};
 
 unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpopenrequest
     fn WinHttpOpenRequest(
-        h_connect: RawHandle,
+        h_connect: *mut c_void, // HINTERNET -> LPVOID
         pwsz_verb: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
         pwsz_object_name: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
         pwsz_version: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
         pwsz_referrer: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
         ppwsz_accept_types: *mut *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
         dw_flags: c_ulong, // DWORD
-    ) -> RawHandle;
+    ) -> *mut c_void; // HINTERNET -> LPVOID
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsendrequest
     fn WinHttpSendRequest(
-        h_request: RawHandle,
+        h_request: *mut c_void, // HINTERNET -> LPVOID
         lpsz_headers: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
         dw_headers_length: c_ulong, // DWORD
         lp_optional: *mut c_void, // LPVOID
@@ -35,13 +36,13 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreceiveresponse
     fn WinHttpReceiveResponse(
-        h_request: RawHandle,
+        h_request: *mut c_void, // HINTERNET -> LPVOID
         lp_reserved: *mut c_void, // LPVOID
     ) -> c_int; // BOOL
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreaddata
     fn WinHttpReadData(
-        h_request: RawHandle,
+        h_request: *mut c_void, // HINTERNET -> LPVOID
         lp_buffer: *mut c_void, // LPVOID
         dw_number_of_bytes_to_read: c_ulong, // DWORD
         lpdw_number_of_bytes_read: *mut c_ulong, // LPDWORD -> DWORD
@@ -50,7 +51,6 @@ unsafe extern "system" {
 }
 
 const WINHTTP_FLAG_SECURE: c_ulong = 0x0080_0000; // DWORD
-const WINHTTP_NO_ADDITIONAL_HEADERS: *const c_ushort = ptr::null(); // LPCWSTR -> WCHAR -> wchar_t
 
 pub struct Response {
     handle: WinHttpHandle,
@@ -64,7 +64,7 @@ impl Response {
         let handle = unsafe {
             
             let result = WinHttpOpenRequest(
-                connection.handle.as_raw_handle(),
+                connection.handle.as_raw(),
                 ptr::null(),
                 chikuwa::win_string(path)?.as_ptr(),
                 ptr::null(),
@@ -74,10 +74,10 @@ impl Response {
             );
             
             if result.is_null() {
-                return Err(Error::last_os_error());
+                return Err(last_winhttp_error());
             }
             
-            WinHttpHandle::from(result)
+            WinHttpHandle::new(result)
             
         };
         
@@ -86,8 +86,8 @@ impl Response {
         unsafe {
             
             let result = WinHttpSendRequest(
-                handle.as_raw_handle(),
-                WINHTTP_NO_ADDITIONAL_HEADERS,
+                handle.as_raw(),
+                ptr::null(),
                 0,
                 ptr::null_mut(),
                 0,
@@ -96,7 +96,7 @@ impl Response {
             );
             
             if result == 0 {
-                return Err(Error::last_os_error());
+                return Err(last_winhttp_error());
             }
             
         }
@@ -106,12 +106,12 @@ impl Response {
         unsafe {
             
             let result = WinHttpReceiveResponse(
-                handle.as_raw_handle(),
+                handle.as_raw(),
                 ptr::null_mut(),
             );
             
             if result == 0 {
-                return Err(Error::last_os_error());
+                return Err(last_winhttp_error());
             }
             
         }
@@ -134,14 +134,14 @@ impl Read for Response {
         unsafe {
             
             let result = WinHttpReadData(
-                self.handle.as_raw_handle(),
+                self.handle.as_raw(),
                 ptr::from_mut(buf).cast::<c_void>(),
                 bytes,
                 &raw mut amount_read,
             );
             
             if result == 0 {
-                return Err(Error::last_os_error());
+                return Err(last_winhttp_error());
             }
             
         }

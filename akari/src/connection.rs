@@ -1,22 +1,23 @@
 use std::{
-    io::{ self, Error },
-    os::{
-        raw::*,
-        windows::io::{ RawHandle, AsRawHandle },
-    },
+    io,
+    os::raw::*,
 };
 
-use crate::{ WinHttpHandle, Session };
+use crate::{
+    last_winhttp_error,
+    WinHttpHandle,
+    Session,
+};
 
 unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpconnect
     fn WinHttpConnect(
-        h_session: RawHandle,
+        h_session: *mut c_void, // HINTERNET -> LPVOID
         pswz_server_name: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
         n_server_port: c_ushort, // INTERNET_PORT -> WORD
         dw_reserved: c_ulong,
-    ) -> RawHandle;
+    ) -> *mut c_void; // HINTERNET -> LPVOID
     
 }
 
@@ -30,17 +31,17 @@ impl Connection {
         let handle = unsafe {
             
             let result = WinHttpConnect(
-                session.handle.as_raw_handle(),
+                session.handle.as_raw(),
                 chikuwa::win_string(host)?.as_ptr(),
                 port,
                 0,
             );
             
             if result.is_null() {
-                return Err(Error::last_os_error());
+                return Err(last_winhttp_error());
             }
             
-            WinHttpHandle::from(result)
+            WinHttpHandle::new(result)
             
         };
         

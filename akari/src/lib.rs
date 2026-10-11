@@ -1,30 +1,32 @@
 #[link(name = "winhttp")]
 unsafe extern "system" {}
 
+mod winhttperror;
 mod winhttphandle;
+mod url;
 mod session;
 mod connection;
 mod response;
-mod url;
 
 use std::{
     io,
     os::raw::*,
 };
 
+use winhttperror::last_winhttp_error;
 use winhttphandle::WinHttpHandle;
+use url::Url;
 use session::Session;
 use connection::Connection;
-use url::Url;
 
 pub use response::Response;
+
+const USER_AGENT: &str = env!("CARGO_PKG_NAME");
 
 const DNS_RESOLUTION_TIMEOUT: c_int = 15_000;
 const CONNECTION_TIMEOUT: c_int = 15_000;
 const SEND_TIMEOUT: c_int = 15_000;
 const RECEIVE_TIMEOUT: c_int = 15_000;
-
-const USER_AGENT: &str = env!("CARGO_PKG_NAME");
 
 pub struct Client {
     session: Session,

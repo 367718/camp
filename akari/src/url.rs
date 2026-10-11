@@ -1,6 +1,6 @@
 use std::io::{ Error, ErrorKind };
 
-// "secure" flag hardcoded in "request" construction
+// "secure" flag hardcoded in "response -> receive"
 const SUPPORTED_SCHEME: &str = "https://";
 const DEFAULT_PORT: u16 = 443;
 

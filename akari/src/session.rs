@@ -1,9 +1,6 @@
 use std::{
-    io::{ self, Error },
-    os::{
-        raw::*,
-        windows::io::{ RawHandle, AsRawHandle },
-    },
+    io,
+    os::raw::*,
     ptr,
 };
 
@@ -12,6 +9,7 @@ use crate::{
     CONNECTION_TIMEOUT,
     SEND_TIMEOUT,
     RECEIVE_TIMEOUT,
+    last_winhttp_error,
     WinHttpHandle,
 };
 
@@ -24,11 +22,11 @@ unsafe extern "system" {
         psz_proxy_w: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
         psz_proxy_bypass_w: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
         dw_flags: c_ulong, // DWORD
-    ) -> RawHandle;
+    ) -> *mut c_void; // HINTERNET -> LPVOID
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsettimeouts
     fn WinHttpSetTimeouts(
-        h_internet: RawHandle,
+        h_internet: *mut c_void, // HINTERNET -> LPVOID
         n_resolve_timeout: c_int,
         n_connect_timeout: c_int,
         n_send_timeout: c_int,
@@ -37,7 +35,7 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsetoption
     fn WinHttpSetOption(
-        h_internet: RawHandle,
+        h_internet: *mut c_void, // HINTERNET -> LPVOID
         dw_option: c_ulong, // DWORD
         lp_buffer: *mut c_void, // LPVOID
         dw_buffer_length: c_ulong, // DWORD
@@ -45,7 +43,7 @@ unsafe extern "system" {
     
 }
 
-const WINHTTP_ACCESS_TYPE_DEFAULT_PROXY: c_ulong = 0; // DWORD
+const WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY: c_ulong = 4; // DWORD
 const WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL: c_ulong = 133; // DWORD
 const WINHTTP_PROTOCOL_FLAG_HTTP2: c_ulong = 1; // DWORD
 const WINHTTP_OPTION_DECOMPRESSION: c_ulong = 118; // DWORD
@@ -65,17 +63,17 @@ impl Session {
             
             let result = WinHttpOpen(
                 chikuwa::win_string(agent)?.as_ptr(),
-                WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+                WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
                 ptr::null(),
                 ptr::null(),
                 0,
             );
             
             if result.is_null() {
-                return Err(Error::last_os_error());
+                return Err(last_winhttp_error());
             }
             
-            WinHttpHandle::from(result)
+            WinHttpHandle::new(result)
             
         };
         
@@ -84,7 +82,7 @@ impl Session {
         unsafe {
             
             let result = WinHttpSetTimeouts(
-                handle.as_raw_handle(),
+                handle.as_raw(),
                 DNS_RESOLUTION_TIMEOUT,
                 CONNECTION_TIMEOUT,
                 SEND_TIMEOUT,
@@ -92,7 +90,7 @@ impl Session {
             );
             
             if result == 0 {
-                return Err(Error::last_os_error());
+                return Err(last_winhttp_error());
             }
             
         }
@@ -107,20 +105,21 @@ impl Session {
         unsafe {
             
             let result = WinHttpSetOption(
-                handle.as_raw_handle(),
+                handle.as_raw(),
                 WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
                 ptr::from_mut(&mut flag).cast::<c_void>(),
                 bytes,
             );
             
             if result == 0 {
-                return Err(Error::last_os_error());
+                return Err(last_winhttp_error());
             }
             
         }
         
         // -------------------- decompression --------------------
         
+        // winhttp does not natively support the brotli (br) compression algorithm
         let mut flag = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
         
         #[allow(clippy::cast_possible_truncation)]
@@ -129,14 +128,14 @@ impl Session {
         unsafe {
             
             let result = WinHttpSetOption(
-                handle.as_raw_handle(),
+                handle.as_raw(),
                 WINHTTP_OPTION_DECOMPRESSION,
                 ptr::from_mut(&mut flag).cast::<c_void>(),
                 bytes,
             );
             
             if result == 0 {
-                return Err(Error::last_os_error());
+                return Err(last_winhttp_error());
             }
             
         }
