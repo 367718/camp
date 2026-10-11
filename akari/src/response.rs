@@ -23,6 +23,14 @@ unsafe extern "system" {
         dw_flags: c_ulong, // DWORD
     ) -> *mut c_void; // HINTERNET -> LPVOID
     
+    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsetoption
+    fn WinHttpSetOption(
+        h_internet: *mut c_void, // HINTERNET -> LPVOID
+        dw_option: c_ulong, // DWORD
+        lp_buffer: *mut c_void, // LPVOID
+        dw_buffer_length: c_ulong, // DWORD
+    ) -> c_int; // BOOL
+    
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsendrequest
     fn WinHttpSendRequest(
         h_request: *mut c_void, // HINTERNET -> LPVOID
@@ -52,6 +60,12 @@ unsafe extern "system" {
 
 const WINHTTP_FLAG_SECURE: c_ulong = 0x0080_0000; // DWORD
 
+const WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL: c_ulong = 133; // DWORD
+const WINHTTP_PROTOCOL_FLAG_HTTP2: c_ulong = 1; // DWORD
+const WINHTTP_OPTION_DECOMPRESSION: c_ulong = 118; // DWORD
+const WINHTTP_DECOMPRESSION_FLAG_GZIP: c_ulong = 1; // DWORD
+const WINHTTP_DECOMPRESSION_FLAG_DEFLATE: c_ulong = 2; // DWORD
+
 pub struct Response {
     handle: WinHttpHandle,
 }
@@ -80,6 +94,51 @@ impl Response {
             WinHttpHandle::new(result)
             
         };
+        
+        // -------------------- set http2 --------------------
+        
+        let mut flag = WINHTTP_PROTOCOL_FLAG_HTTP2;
+        
+        #[allow(clippy::cast_possible_truncation)]
+        let bytes = size_of_val(&flag) as c_ulong;
+        
+        unsafe {
+            
+            let result = WinHttpSetOption(
+                handle.as_raw(),
+                WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
+                ptr::from_mut(&mut flag).cast::<c_void>(),
+                bytes,
+            );
+            
+            if result == 0 {
+                return Err(last_winhttp_error());
+            }
+            
+        }
+        
+        // -------------------- set decompression --------------------
+        
+        // winhttp does not natively support the brotli (br) compression algorithm
+        let mut flag = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
+        
+        #[allow(clippy::cast_possible_truncation)]
+        let bytes = size_of_val(&flag) as c_ulong;
+        
+        unsafe {
+            
+            let result = WinHttpSetOption(
+                handle.as_raw(),
+                WINHTTP_OPTION_DECOMPRESSION,
+                ptr::from_mut(&mut flag).cast::<c_void>(),
+                bytes,
+            );
+            
+            if result == 0 {
+                return Err(last_winhttp_error());
+            }
+            
+        }
         
         // -------------------- send request --------------------
         
