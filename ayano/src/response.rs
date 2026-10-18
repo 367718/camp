@@ -89,14 +89,15 @@ mod tests {
         
         let mut content = Vec::new();
         
-        let mut control = Vec::new();
-        control.extend_from_slice(b"HTTP/1.1 200 OK\r\n");
-        control.extend_from_slice(b"Content-Type: text/plain; charset=utf-8\r\n");
-        control.extend_from_slice(b"Cache-Control: no-cache, no-store\r\n");
-        control.extend_from_slice(b"Transfer-Encoding: chunked\r\n");
-        control.extend_from_slice(b"Connection: close\r\n");
-        control.extend_from_slice(b"\r\n");
-        control.extend_from_slice(b"0\r\n\r\n");
+        let control: &[u8] = concat!(
+            "HTTP/1.1 200 OK\r\n",
+            "Content-Type: text/plain; charset=utf-8\r\n",
+            "Cache-Control: no-cache, no-store\r\n",
+            "Transfer-Encoding: chunked\r\n",
+            "Connection: close\r\n",
+            "\r\n",
+            "0\r\n\r\n",
+        ).as_bytes();
         
         // operation
         
@@ -117,16 +118,17 @@ mod tests {
         
         let mut content = Vec::new();
         
-        let mut control = Vec::new();
-        control.extend_from_slice(b"HTTP/1.1 200 OK\r\n");
-        control.extend_from_slice(b"Content-Type: text/plain; charset=utf-8\r\n");
-        control.extend_from_slice(b"Cache-Control: no-cache, no-store\r\n");
-        control.extend_from_slice(b"Transfer-Encoding: chunked\r\n");
-        control.extend_from_slice(b"Connection: close\r\n");
-        control.extend_from_slice(b"\r\n");
-        control.extend_from_slice(b"6\r\n");
-        control.extend_from_slice(b"qwerty\r\n");
-        control.extend_from_slice(b"0\r\n\r\n");
+        let control: &[u8] = concat!(
+            "HTTP/1.1 200 OK\r\n",
+            "Content-Type: text/plain; charset=utf-8\r\n",
+            "Cache-Control: no-cache, no-store\r\n",
+            "Transfer-Encoding: chunked\r\n",
+            "Connection: close\r\n",
+            "\r\n",
+            "6\r\n",
+            "qwerty\r\n",
+            "0\r\n\r\n",
+        ).as_bytes();
         
         // operation
         

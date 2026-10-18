@@ -14,8 +14,8 @@ unsafe extern "system" {
     
     // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-waitnamedpipew
     fn WaitNamedPipeW(
-        lpNamedPipeName: *const c_ushort,
-        nTimeOut: c_ulong,
+        lpNamedPipeName: *const c_ushort, // LPCWSTR
+        nTimeOut: c_ulong, // DWORD
     ) -> c_int;
     
 }
@@ -140,11 +140,12 @@ fn scripts(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
 
 fn send_command(request: &mut ServerRequest, command: &[u8]) -> Result<(), Box<dyn Error>> {
     let pipe = rin::get::<&str>(b"pipe")?;
+    let wide_pipe = chikuwa::win_string(pipe)?;
     
     unsafe {
         
         let result = WaitNamedPipeW(
-            chikuwa::win_string(pipe)?.as_ptr(),
+            wide_pipe.as_ptr(),
             PIPE_MAX_WAIT,
         );
         

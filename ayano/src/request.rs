@@ -14,7 +14,7 @@ pub struct Request<S: Read + Write> {
 
 pub struct FormData<'r, 'p> {
     content: &'r [u8],
-    boundary: &'r [u8],
+    delimiter: Vec<u8>,
     param: &'p [u8],
 }
 
@@ -164,11 +164,7 @@ impl<S: Read + Write> Request<S> {
             })
             .unwrap_or(&[]);
         
-        FormData {
-            content: &self.body,
-            boundary,
-            param,
-        }
+        FormData::new(&self.body, boundary, param)
     }
     
     
@@ -184,12 +180,12 @@ impl<S: Read + Write> Request<S> {
     
 }
 
-impl<'r> Iterator for FormData<'r, '_> {
+impl<'r, 'p> FormData<'r, 'p> {
     
-    type Item = &'r [u8];
+    // -------------------- constructors --------------------
     
-    fn next(&mut self) -> Option<Self::Item> {
-        
+    
+    fn new(content: &'r [u8], boundary: &'r [u8], param: &'p [u8]) -> Self {
         // --9999999999999999999999999999\r\n
         // Content-Disposition: form-data; name="placeholder key #1" filename="example.txt"\r\n
         // \r\n
@@ -200,63 +196,174 @@ impl<'r> Iterator for FormData<'r, '_> {
         // placeholder value #2\r\n
         // --9999999999999999999999999999--
         
-        while let Some(range) = chikuwa::delimited_range(self.content, self.boundary, self.boundary) {
-            
-            // \r\n
-            // Content-Disposition: form-data; name="placeholder key" filename="example.txt"\r\n
-            // \r\n
-            // placeholder value\r\n
-            // --
-            
-            let current = &self.content[range];
-            self.content = &self.content[range.end..];
-            
-            // -------------------- parameter --------------------
-            
-            let Some(parameters) = chikuwa::delimited_range(current, b"Content-Disposition:", b"\r\n\r\n") else {
-                continue;
+        if boundary.is_empty() {
+            return Self {
+                content: &[],
+                delimiter: Vec::new(),
+                param,
             };
+        }
+        
+        let mut delimiter = Vec::with_capacity(boundary.len() + 4);
+        delimiter.extend_from_slice(b"\r\n--");
+        delimiter.extend_from_slice(boundary);
+        
+        let mut reader = Self {
+            content,
+            delimiter,
+            param,
+        };
+        
+        // first boundary could be one of two possibilities:
+        // --9999999999999999999999999999 if no preamble
+        // \r\n--9999999999999999999999999999, like the rest, if a preamble is present
+        if reader.consume_first_boundary(boundary).is_none() {
+            reader.content = &[];
+        }
+        
+        reader
+    }
+    
+    
+    // -------------------- mutators --------------------
+    
+    
+    fn consume_first_boundary(&mut self, boundary: &'r [u8]) -> Option<()> {
+        let mut first_delimiter = Vec::with_capacity(boundary.len() + 2);
+        first_delimiter.extend_from_slice(b"--");
+        first_delimiter.extend_from_slice(boundary);
+        
+        let after_delimiter = if let Some(rest) = self.content.strip_prefix(&first_delimiter[..]) {
+            // no preamble
+            rest
+        } else {
+            // preamble present
+            let index = Self::find_subslice(self.content, &self.delimiter)?;
+            &self.content[index + self.delimiter.len()..]
+        };
+        
+        // payload is empty, as body consists only of opening/closing boundary
+        if after_delimiter.starts_with(b"--") {
+            self.content = &[];
+            return None;
+        }
+        
+        // skip transport padding (spaces / tabs)
+        let mut after_padding = after_delimiter;
+        
+        while let [b' ' | b'\t', rest @ ..] = after_padding {
+            after_padding = rest;
+        }
+        
+        self.content = after_padding.strip_prefix(b"\r\n")?;
+        
+        Some(())
+    }
+    
+    
+    fn next_part(&mut self) -> Option<(&'r [u8], &'r [u8])> {
+        if self.content.is_empty() {
+            return None;
+        }
+        
+        // headers: up to "\r\n\r\n"
+        let header_end = Self::find_subslice(self.content, b"\r\n\r\n")?;
+        let headers = &self.content[..header_end];
+        
+        let after_headers = &self.content[header_end + 4..];
+        
+        // payload: up to delimiter
+        let payload_end = Self::find_subslice(after_headers, &self.delimiter)?;
+        let payload = &after_headers[..payload_end];
+        
+        let after_delimiter = &after_headers[payload_end + self.delimiter.len()..];
+        
+        if after_delimiter.starts_with(b"--") {
             
-            let relevant = current[parameters]
-                .split(|&byte| byte == b';')
-                .filter_map(|parameter| {
-                    
-                    // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
-                    let mut pair = parameter.splitn(2, |&byte| byte == b'=')
-                        .map(<[u8]>::trim_ascii);
-                    
-                    let key = pair.next().unwrap();
-                    let value = pair.next()?;
-                    
-                    Some((key, value))
-                    
-                })
-                .filter(|(key, _)| key.eq_ignore_ascii_case(b"name"))
-                .any(|(_, value)| matches!(value, [b'"', inner @ .., b'"'] if inner.eq_ignore_ascii_case(self.param)));
+            // final boundary ("--")
+            self.content = &[];
             
-            if ! relevant {
-                continue;
+        } else {
+            
+            // skip transport padding (spaces / tabs)
+            let mut after_padding = after_delimiter;
+            
+            while let [b' ' | b'\t', rest @ ..] = after_padding {
+                after_padding = rest;
             }
             
-            // -------------------- payload --------------------
-            
-            if ! current.ends_with(b"\r\n--") {
-                continue;
-            }
-            
-            // exclude "\r\n\r\n" and "\r\n--"
-            let payload_start = parameters.end + 4;
-            let payload_end = current.len() - 4;
-            
-            let payload = &current[payload_start..payload_end];
-            
-            // -------------------- response --------------------
-            
-            return Some(payload);
+            // intermediate boundary ("\r\n")
+            self.content = after_padding.strip_prefix(b"\r\n")?;
             
         }
         
-        None
+        Some((headers, payload))
+    }
+    
+    
+    // -------------------- helpers --------------------
+    
+    
+    fn find_subslice(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+        if needle.is_empty() {
+            return None;
+        }
+        
+        haystack.windows(needle.len())
+            .position(|window| window == needle)
+    }
+    
+}
+
+impl<'r> Iterator for FormData<'r, '_> {
+    
+    type Item = &'r [u8];
+    
+    fn next(&mut self) -> Option<Self::Item> {
+        
+        loop {
+            
+            let (headers, payload) = self.next_part()?;
+            
+            let relevant = headers
+                .split(|&byte| byte == b'\n')
+                .map(|line| line.strip_suffix(b"\r").unwrap_or(line))
+                .find(|line| line.get(..20).is_some_and(|prefix| prefix.eq_ignore_ascii_case(b"content-disposition:")))
+                .is_some_and(|disposition| {
+                    
+                    disposition.split(|&byte| byte == b';')
+                        .filter_map(|parameter| {
+                            
+                            // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
+                            let mut pair = parameter.splitn(2, |&byte| byte == b'=')
+                                .map(<[u8]>::trim_ascii);
+                            
+                            let key = pair.next().unwrap();
+                            let value = pair.next()?;
+                            
+                            Some((key, value))
+                            
+                        })
+                        .filter(|(key, _)| key.eq_ignore_ascii_case(b"name"))
+                        .any(|(_, value)| {
+                            
+                            // strip optional surrounding quotes
+                            let unquoted = match value {
+                                [b'"', inner @ .., b'"'] => inner,
+                                _ => value,
+                            };
+                            
+                            unquoted.eq_ignore_ascii_case(self.param)
+                            
+                        })
+                    
+                });
+            
+            if relevant {
+                return Some(payload);
+            }
+            
+        }
         
     }
     
@@ -288,24 +395,25 @@ mod tests {
         fn headers_only() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"User-Agent: Mozilla/9.0 (Windows NT 9.0; Win64; x64; rv:9.0) Gecko/9 Firefox/9.0\r\n");
-            content.extend_from_slice(b"Accept: */*\r\n");
-            content.extend_from_slice(b"Accept-Language: en-US,en;q=0.5\r\n");
-            content.extend_from_slice(b"Accept-Encoding: gzip, deflate, br, zstd\r\n");
-            content.extend_from_slice(b"Referer: http://placeholder/test\r\n");
-            content.extend_from_slice(b"DNT: 1\r\n");
-            content.extend_from_slice(b"Sec-GPC: 1\r\n");
-            content.extend_from_slice(b"Connection: keep-alive\r\n");
-            content.extend_from_slice(b"Sec-Fetch-Dest: empty\r\n");
-            content.extend_from_slice(b"Sec-Fetch-Mode: cors\r\n");
-            content.extend_from_slice(b"Sec-Fetch-Site: same-origin\r\n");
-            content.extend_from_slice(b"Priority: u=0\r\n");
-            content.extend_from_slice(b"Pragma: no-cache\r\n");
-            content.extend_from_slice(b"Cache-Control: no-cache\r\n");
-            content.extend_from_slice(b"\r\n");
+            let mut content: Vec<u8> = concat!(
+                "GET /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "User-Agent: Mozilla/9.0 (Windows NT 9.0; Win64; x64; rv:9.0) Gecko/9 Firefox/9.0\r\n",
+                "Accept: */*\r\n",
+                "Accept-Language: en-US,en;q=0.5\r\n",
+                "Accept-Encoding: gzip, deflate, br, zstd\r\n",
+                "Referer: http://placeholder/test\r\n",
+                "DNT: 1\r\n",
+                "Sec-GPC: 1\r\n",
+                "Connection: keep-alive\r\n",
+                "Sec-Fetch-Dest: empty\r\n",
+                "Sec-Fetch-Mode: cors\r\n",
+                "Sec-Fetch-Site: same-origin\r\n",
+                "Priority: u=0\r\n",
+                "Pragma: no-cache\r\n",
+                "Cache-Control: no-cache\r\n",
+                "\r\n",
+            ).as_bytes().to_vec();
             
             // operation
             
@@ -327,12 +435,13 @@ mod tests {
         fn headers_and_body() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 4\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"1234");
+            let mut content: Vec<u8> = concat!(
+                "GET /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 4\r\n",
+                "\r\n",
+                "1234",
+            ).as_bytes().to_vec();
             
             // operation
             
@@ -354,9 +463,10 @@ mod tests {
         fn body_not_signaled() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
+            let mut content: Vec<u8> = concat!(
+                "GET /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+            ).as_bytes().to_vec();
             
             // operation
             
@@ -371,11 +481,12 @@ mod tests {
         fn body_without_length() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"1234");
+            let mut content: Vec<u8> = concat!(
+                "GET /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "\r\n",
+                "1234",
+            ).as_bytes().to_vec();
             
             // operation
             
@@ -392,12 +503,13 @@ mod tests {
         fn body_with_mixed_case_length() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-LENGTH:4\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"1234");
+            let mut content: Vec<u8> = concat!(
+                "GET /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-LENGTH:4\r\n",
+                "\r\n",
+                "1234",
+            ).as_bytes().to_vec();
             
             // operation
             
@@ -419,12 +531,13 @@ mod tests {
         fn body_with_lower_length() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 3\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"1234");
+            let mut content: Vec<u8> = concat!(
+                "GET /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 3\r\n",
+                "\r\n",
+                "1234",
+            ).as_bytes().to_vec();
             
             // operation
             
@@ -441,12 +554,13 @@ mod tests {
         fn body_with_higher_length() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 5\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"1234");
+            let mut content: Vec<u8> = concat!(
+                "GET /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 5\r\n",
+                "\r\n",
+                "1234",
+            ).as_bytes().to_vec();
             
             // operation
             
@@ -461,12 +575,13 @@ mod tests {
         fn body_with_excess_data() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 4\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"12345");
+            let mut content: Vec<u8> = concat!(
+                "GET /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 4\r\n",
+                "\r\n",
+                "12345",
+            ).as_bytes().to_vec();
             
             // operation
             
@@ -546,10 +661,11 @@ mod tests {
         fn with_query_string() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/resource?fkey=fvalue HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"\r\n");
+            let mut content: Vec<u8> = concat!(
+                "GET /test/resource?fkey=fvalue HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "\r\n",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             
@@ -569,10 +685,11 @@ mod tests {
         fn without_query_string() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/resource HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"\r\n");
+            let mut content: Vec<u8> = concat!(
+                "GET /test/resource HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "\r\n",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             
@@ -592,10 +709,11 @@ mod tests {
         fn with_extra_whitespace() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET  /test/resource  HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"\r\n");
+            let mut content: Vec<u8> = concat!(
+                "GET  /test/resource  HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "\r\n",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             
@@ -615,10 +733,11 @@ mod tests {
         fn with_invalid_whitespace() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET\t/test/resource  HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"\r\n");
+            let mut content: Vec<u8> = concat!(
+                "GET\t/test/resource  HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "\r\n",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             
@@ -638,10 +757,11 @@ mod tests {
         fn without_method() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"/test/resource HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"\r\n");
+            let mut content: Vec<u8> = concat!(
+                "/test/resource HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "\r\n",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             
@@ -661,10 +781,11 @@ mod tests {
         fn without_target() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"\r\n");
+            let mut content: Vec<u8> = concat!(
+                "GET HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "\r\n",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             
@@ -684,10 +805,11 @@ mod tests {
         fn without_version() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"GET /test/resource\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"\r\n");
+            let mut content: Vec<u8> = concat!(
+                "GET /test/resource\r\n",
+                "Host: placeholder\r\n",
+                "\r\n",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             
@@ -710,10 +832,14 @@ mod tests {
         
         // single
         // multiple
+        // with_content_type
+        // with_preamble_and_epilogue
+        // with_transport_padding
         // mixed_case_header
         // header_without_whitespace
         // header_with_extra_whitespace
-        // malformed_payload
+        // malformed_payload_first
+        // malformed_payload_second
         // no_name
         // additional_filename_pair
         // filename_pair_only
@@ -726,6 +852,7 @@ mod tests {
         // additional_whitespace_in_boundary
         // additional_parameter_before_boundary
         // additional_parameter_after_boundary
+        // boundary_collision
         // quoted_boundary
         // half_quoted_boundary
         // mixed_case_boundary
@@ -738,17 +865,18 @@ mod tests {
         fn single() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 116\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 116\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -767,21 +895,22 @@ mod tests {
         fn multiple() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 200\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"10\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 200\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "10\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -798,20 +927,124 @@ mod tests {
         }
         
         #[test]
+        fn with_content_type() {
+            // setup
+            
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 241\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "Content-Type: text/plain; charset=utf-8\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"other\"\r\n",
+                "\r\n",
+                "10\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
+            
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
+            let param = b"input";
+            
+            // operation
+            
+            let mut output = request.form_data(param);
+            
+            // control
+            
+            assert_eq!(output.next(), Some(b"90".as_slice()));
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn with_preamble_and_epilogue() {
+            // setup
+            
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 347\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit.\r\n",
+                "Maecenas in velit pharetra, imperdiet nisi vitae, suscipit metus.\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+                "In auctor mi vel metus porttitor, ut sagittis mi malesuada.\r\n",
+                "Aliquam ornare odio nec lobortis tincidunt.\r\n",
+            ).as_bytes().to_vec();
+            
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
+            let param = b"input";
+            
+            // operation
+            
+            let mut output = request.form_data(param);
+            
+            // control
+            
+            assert_eq!(output.next(), Some(b"90".as_slice()));
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn with_transport_padding() {
+            // setup
+            
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 204\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999   \r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "10\r\n",
+                "--9999999999999999999999999999\t\r\n",
+                "Content-Disposition: form-data; name=\"other\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
+            
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
+            let param = b"input";
+            
+            // operation
+            
+            let mut output = request.form_data(param);
+            
+            // control
+            
+            assert_eq!(output.next(), Some(b"10".as_slice()));
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
         fn mixed_case_header() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 116\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boUNDaRY=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 116\r\n",
+                "Content-Type: multipart/form-data; boUNDaRY=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -830,17 +1063,18 @@ mod tests {
         fn header_without_whitespace() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 116\r\n");
-            content.extend_from_slice(b"Content-Type:multipart/form-data;boundary=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 116\r\n",
+                "Content-Type:multipart/form-data;boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -859,17 +1093,18 @@ mod tests {
         fn header_with_extra_whitespace() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 116\r\n");
-            content.extend_from_slice(b"Content-Type:  multipart/form-data;  boundary=9999999999999999999999999999  \r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 116\r\n",
+                "Content-Type:  multipart/form-data;  boundary=9999999999999999999999999999  \r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -885,24 +1120,25 @@ mod tests {
         }
         
         #[test]
-        fn malformed_payload() {
+        fn malformed_payload_first() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 198\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"10");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 198\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "10",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -913,7 +1149,34 @@ mod tests {
             
             // control
             
-            assert_eq!(output.next(), Some(b"90".as_slice()));
+            assert_eq!(output.next(), Some(b"10--9999999999999999999999999999\r\nContent-Disposition: form-data; name=\"input\"\r\n\r\n90".as_slice()));
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
+        fn malformed_payload_second() {
+            // setup
+            
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 112\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"first\"\r\n",
+                "\r\n--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
+            
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
+            let param = b"first";
+            
+            // operation
+            
+            let mut output = request.form_data(param);
+            
+            // control
+            
             assert!(output.next().is_none());
         }
         
@@ -921,17 +1184,18 @@ mod tests {
         fn no_name() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 103\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data;\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 103\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data;\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -949,17 +1213,18 @@ mod tests {
         fn additional_filename_pair() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 137\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; filename=\"test.txt\"; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"85\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 137\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; filename=\"test.txt\"; name=\"input\"\r\n",
+                "\r\n",
+                "85\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -978,17 +1243,18 @@ mod tests {
         fn filename_pair_only() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 121\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; filename=\"input\";\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"85\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 121\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; filename=\"input\";\r\n",
+                "\r\n",
+                "85\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -1006,17 +1272,18 @@ mod tests {
         fn mixed_case_pair() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 114\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"CONTENT-DISPOSITION: form-data; naMe=\"inPUt\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 116\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "CONTENT-DISPOSITION: form-data; naMe=\"inPUt\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -1035,17 +1302,18 @@ mod tests {
         fn no_whitespace_between_pairs() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 114\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition:form-data;name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 114\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition:form-data;name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -1064,21 +1332,22 @@ mod tests {
         fn nonexistent_param() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 201\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"second\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"10\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"first\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 201\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"second\"\r\n",
+                "\r\n",
+                "10\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"first\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"third";
@@ -1096,21 +1365,22 @@ mod tests {
         fn empty_name() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 196\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"10\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"second\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 196\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"\"\r\n",
+                "\r\n",
+                "10\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"second\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"second";
@@ -1129,21 +1399,22 @@ mod tests {
         fn empty_payload() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 199\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"first\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"10\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"second\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 199\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"first\"\r\n",
+                "\r\n",
+                "10\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"second\"\r\n",
+                "\r\n",
+                "\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"second";
@@ -1162,12 +1433,13 @@ mod tests {
         fn empty_content() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 0\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 0\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -1185,17 +1457,18 @@ mod tests {
         fn additional_whitespace_in_boundary() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 116\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary = 9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 116\r\n",
+                "Content-Type: multipart/form-data; boundary = 9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -1214,17 +1487,18 @@ mod tests {
         fn additional_parameter_before_boundary() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 116\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; charset=utf-8; boundary=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 116\r\n",
+                "Content-Type: multipart/form-data; charset=utf-8; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -1243,17 +1517,18 @@ mod tests {
         fn additional_parameter_after_boundary() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 116\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999999; charset=utf-8\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 116\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999; charset=utf-8\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -1269,20 +1544,51 @@ mod tests {
         }
         
         #[test]
+        fn boundary_collision() {
+            // setup
+            
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 146\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "ab9999999999999999999999999999cd\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
+            
+            let request = Request::new(Cursor::new(&mut content)).unwrap();
+            let param = b"input";
+            
+            // operation
+            
+            let mut output = request.form_data(param);
+            
+            // control
+            
+            assert_eq!(output.next(), Some(b"ab9999999999999999999999999999cd".as_slice()));
+            assert!(output.next().is_none());
+        }
+        
+        #[test]
         fn quoted_boundary() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 116\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=\"9999999999999999999999999999\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 116\r\n",
+                "Content-Type: multipart/form-data; boundary=\"9999999999999999999999999999\"\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -1301,17 +1607,18 @@ mod tests {
         fn half_quoted_boundary() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 115\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=\"9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 115\r\n",
+                "Content-Type: multipart/form-data; boundary=\"9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -1329,17 +1636,18 @@ mod tests {
         fn mixed_case_boundary() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 116\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; BOUNDARY=9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 116\r\n",
+                "Content-Type: multipart/form-data; BOUNDARY=9999999999999999999999999999\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -1358,16 +1666,17 @@ mod tests {
         fn no_boundary() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 116\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 116\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";
@@ -1385,17 +1694,18 @@ mod tests {
         fn wrong_boundary() {
             // setup
             
-            let mut content = Vec::new();
-            content.extend_from_slice(b"POST /test/endpoint HTTP/1.1\r\n");
-            content.extend_from_slice(b"Host: placeholder\r\n");
-            content.extend_from_slice(b"Content-Length: 116\r\n");
-            content.extend_from_slice(b"Content-Type: multipart/form-data; boundary=9999999999999999999999999998\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999\r\n");
-            content.extend_from_slice(b"Content-Disposition: form-data; name=\"input\"\r\n");
-            content.extend_from_slice(b"\r\n");
-            content.extend_from_slice(b"90\r\n");
-            content.extend_from_slice(b"--9999999999999999999999999999--");
+            let mut content: Vec<u8> = concat!(
+                "POST /test/endpoint HTTP/1.1\r\n",
+                "Host: placeholder\r\n",
+                "Content-Length: 116\r\n",
+                "Content-Type: multipart/form-data; boundary=9999999999999999999999999998\r\n",
+                "\r\n",
+                "--9999999999999999999999999999\r\n",
+                "Content-Disposition: form-data; name=\"input\"\r\n",
+                "\r\n",
+                "90\r\n",
+                "--9999999999999999999999999999--",
+            ).as_bytes().to_vec();
             
             let request = Request::new(Cursor::new(&mut content)).unwrap();
             let param = b"input";

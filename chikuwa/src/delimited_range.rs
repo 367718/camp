@@ -236,14 +236,14 @@ mod tests {
             fn complex() {
                 // setup
                 
-                let content = br#"
-                    <item>
-                        <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
-                        <link>http://localhost/download/123456.torrent</link>
-                        <guid isPermaLink="true">http://localhost/view/123456</guid>
-                        <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
-                    </item>
-                "#;
+                let content: &[u8] = concat!(
+                    "<item>",
+                        "<title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>",
+                        "<link>http://localhost/download/123456.torrent</link>",
+                        "<guid isPermaLink=\"true\">http://localhost/view/123456</guid>",
+                        "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
+                    "</item>",
+                ).as_bytes();
                 
                 // operation
                 
@@ -251,21 +251,21 @@ mod tests {
                 
                 // control
                 
-                assert_eq!(output, Some(Range { start: 146, end: 186 }));
+                assert_eq!(output, Some(Range { start: 75, end: 115 }));
             }
             
             #[test]
             fn left_and_right_not_present() {
                 // setup
                 
-                let content = br#"
-                    <item>
-                        <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
-                        <link>http://localhost/download/123456.torrent</link>
-                        <guid isPermaLink="true">http://localhost/view/123456</guid>
-                        <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
-                    </item>
-                "#;
+                let content: &[u8] = concat!(
+                    "<item>",
+                        "<title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>",
+                        "<link>http://localhost/download/123456.torrent</link>",
+                        "<guid isPermaLink=\"true\">http://localhost/view/123456</guid>",
+                        "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
+                    "</item>",
+                ).as_bytes();
                 
                 // operation
                 
@@ -280,14 +280,14 @@ mod tests {
             fn left_not_present() {
                 // setup
                 
-                let content = br#"
-                    <item>
-                        <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
-                        <link>http://localhost/download/123456.torrent</link>
-                        <guid isPermaLink="true">http://localhost/view/123456</guid>
-                        <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
-                    </item>
-                "#;
+                let content: &[u8] = concat!(
+                    "<item>",
+                        "<title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>",
+                        "<link>http://localhost/download/123456.torrent</link>",
+                        "<guid isPermaLink=\"true\">http://localhost/view/123456</guid>",
+                        "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
+                    "</item>",
+                ).as_bytes();
                 
                 // operation
                 
@@ -302,14 +302,14 @@ mod tests {
             fn right_not_present() {
                 // setup
                 
-                let content = br#"
-                    <item>
-                        <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
-                        <link>http://localhost/download/123456.torrent</link>
-                        <guid isPermaLink="true">http://localhost/view/123456</guid>
-                        <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
-                    </item>
-                "#;
+                let content: &[u8] = concat!(
+                    "<item>",
+                        "<title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>",
+                        "<link>http://localhost/download/123456.torrent</link>",
+                        "<guid isPermaLink=\"true\">http://localhost/view/123456</guid>",
+                        "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
+                    "</item>",
+                ).as_bytes();
                 
                 // operation
                 

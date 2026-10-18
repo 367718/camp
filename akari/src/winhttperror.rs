@@ -12,7 +12,7 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandlew
     fn GetModuleHandleW(
-        lp_module_name: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
+        lp_module_name: *const c_ushort, // LPCWSTR
     ) -> *mut c_void; // HMODULE
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-formatmessagew
@@ -21,7 +21,7 @@ unsafe extern "system" {
         lp_source: *const c_void, // LPCVOID
         dw_message_id: c_ulong, // DWORD
         dw_language_id: c_ulong, // DWORD
-        lp_buffer: *mut c_ushort, // LPWSTR -> WCHAR -> wchar_t
+        lp_buffer: *mut c_ushort, // LPWSTR
         n_size: c_ulong, // DWORD,
         arguments: *mut c_char, // va_list
     ) -> c_ulong;
@@ -44,10 +44,12 @@ pub fn last_winhttp_error() -> Error {
     
     // -------------------- get module --------------------
     
+    let wide_name = chikuwa::win_string(MODULE_NAME).unwrap();
+    
     let module = unsafe {
         
         GetModuleHandleW(
-            chikuwa::win_string(MODULE_NAME).unwrap().as_ptr(),
+            wide_name.as_ptr(),
         )
         
     };

@@ -4,7 +4,7 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpclosehandle
     fn WinHttpCloseHandle(
-        h_internet: *mut c_void, // HINTERNET -> LPVOID
+        h_internet: *mut c_void, // HINTERNET
     ) -> c_int; // BOOL
     
 }

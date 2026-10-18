@@ -111,23 +111,25 @@ mod tests {
         
         // setup
         
-        let mut content = Vec::new();
-        content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
-        content.extend_from_slice(b"Host: placeholder\r\n");
-        content.extend_from_slice(b"Content-Length: 4\r\n");
-        content.extend_from_slice(b"\r\n");
-        content.extend_from_slice(b"1234");
+        let mut content: Vec<u8> = concat!(
+            "GET /test/endpoint HTTP/1.1\r\n",
+            "Host: placeholder\r\n",
+            "Content-Length: 4\r\n",
+            "\r\n",
+            "1234",
+        ).as_bytes().to_vec();
         
-        let mut control = Vec::new();
-        control.extend_from_slice(b"HTTP/1.1 500 Internal Server Error\r\n");
-        control.extend_from_slice(b"Content-Type: text/html; charset=utf-8\r\n");
-        control.extend_from_slice(b"Cache-Control: max-age=15552000, immutable\r\n");
-        control.extend_from_slice(b"Transfer-Encoding: chunked\r\n");
-        control.extend_from_slice(b"Connection: close\r\n");
-        control.extend_from_slice(b"\r\n");
-        control.extend_from_slice(b"7\r\n");
-        control.extend_from_slice(b"qwerty!\r\n");
-        control.extend_from_slice(b"0\r\n\r\n");
+        let control: &[u8] = concat!(
+            "HTTP/1.1 500 Internal Server Error\r\n",
+            "Content-Type: text/html; charset=utf-8\r\n",
+            "Cache-Control: max-age=15552000, immutable\r\n",
+            "Transfer-Encoding: chunked\r\n",
+            "Connection: close\r\n",
+            "\r\n",
+            "7\r\n",
+            "qwerty!\r\n",
+            "0\r\n\r\n",
+        ).as_bytes();
         
         // operation
         
@@ -145,7 +147,7 @@ mod tests {
         
         drop(response);
         
-        assert_eq!(content[73..], control);
+        assert_eq!(&content[73..], control);
         
     }
     

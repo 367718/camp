@@ -13,11 +13,11 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpconnect
     fn WinHttpConnect(
-        h_session: *mut c_void, // HINTERNET -> LPVOID
-        pswz_server_name: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
-        n_server_port: c_ushort, // INTERNET_PORT -> WORD
+        h_session: *mut c_void, // HINTERNET
+        pswz_server_name: *const c_ushort, // LPCWSTR
+        n_server_port: c_ushort, // INTERNET_PORT
         dw_reserved: c_ulong,
-    ) -> *mut c_void; // HINTERNET -> LPVOID
+    ) -> *mut c_void; // HINTERNET
     
 }
 
@@ -28,11 +28,13 @@ pub struct Connection {
 impl Connection {
     
     pub fn open(session: &Session, host: &str, port: u16) -> io::Result<Self> {
+        let wide_host = chikuwa::win_string(host)?;
+        
         let handle = unsafe {
             
             let result = WinHttpConnect(
                 session.handle.as_raw(),
-                chikuwa::win_string(host)?.as_ptr(),
+                wide_host.as_ptr(),
                 port,
                 0,
             );

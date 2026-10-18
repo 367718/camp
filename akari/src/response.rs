@@ -14,18 +14,18 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpopenrequest
     fn WinHttpOpenRequest(
-        h_connect: *mut c_void, // HINTERNET -> LPVOID
-        pwsz_verb: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
-        pwsz_object_name: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
-        pwsz_version: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
-        pwsz_referrer: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
-        ppwsz_accept_types: *mut *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
+        h_connect: *mut c_void, // HINTERNET
+        pwsz_verb: *const c_ushort, // LPCWSTR
+        pwsz_object_name: *const c_ushort, // LPCWSTR
+        pwsz_version: *const c_ushort, // LPCWSTR
+        pwsz_referrer: *const c_ushort, // LPCWSTR
+        ppwsz_accept_types: *mut *const c_ushort, // LPCWSTR
         dw_flags: c_ulong, // DWORD
-    ) -> *mut c_void; // HINTERNET -> LPVOID
+    ) -> *mut c_void; // HINTERNET
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsetoption
     fn WinHttpSetOption(
-        h_internet: *mut c_void, // HINTERNET -> LPVOID
+        h_internet: *mut c_void, // HINTERNET
         dw_option: c_ulong, // DWORD
         lp_buffer: *mut c_void, // LPVOID
         dw_buffer_length: c_ulong, // DWORD
@@ -33,27 +33,27 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsendrequest
     fn WinHttpSendRequest(
-        h_request: *mut c_void, // HINTERNET -> LPVOID
-        lpsz_headers: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
+        h_request: *mut c_void, // HINTERNET
+        lpsz_headers: *const c_ushort, // LPCWSTR
         dw_headers_length: c_ulong, // DWORD
         lp_optional: *mut c_void, // LPVOID
         dw_optional_length: c_ulong, // DWORD
         dw_total_length: c_ulong, // DWORD
-        dw_context: usize, // DWORD_PTR -> ULONG_PTR
+        dw_context: usize, // DWORD_PTR
     ) -> c_int; // BOOL
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreceiveresponse
     fn WinHttpReceiveResponse(
-        h_request: *mut c_void, // HINTERNET -> LPVOID
+        h_request: *mut c_void, // HINTERNET
         lp_reserved: *mut c_void, // LPVOID
     ) -> c_int; // BOOL
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreaddata
     fn WinHttpReadData(
-        h_request: *mut c_void, // HINTERNET -> LPVOID
+        h_request: *mut c_void, // HINTERNET
         lp_buffer: *mut c_void, // LPVOID
         dw_number_of_bytes_to_read: c_ulong, // DWORD
-        lpdw_number_of_bytes_read: *mut c_ulong, // LPDWORD -> DWORD
+        lpdw_number_of_bytes_read: *mut c_ulong, // LPDWORD
     ) -> c_int; // BOOL
     
 }
@@ -75,12 +75,14 @@ impl Response {
     pub(crate) fn receive(connection: &Connection, path: &str) -> io::Result<Self> {
         // -------------------- open request --------------------
         
+        let wide_path = chikuwa::win_string(path)?;
+        
         let handle = unsafe {
             
             let result = WinHttpOpenRequest(
                 connection.handle.as_raw(),
                 ptr::null(),
-                chikuwa::win_string(path)?.as_ptr(),
+                wide_path.as_ptr(),
                 ptr::null(),
                 ptr::null(),
                 ptr::null_mut(),

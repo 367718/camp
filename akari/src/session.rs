@@ -17,16 +17,16 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpopen
     fn WinHttpOpen(
-        psz_agent_w: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
+        psz_agent_w: *const c_ushort, // LPCWSTR
         dw_access_type: c_ulong, // DWORD
-        psz_proxy_w: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
-        psz_proxy_bypass_w: *const c_ushort, // LPCWSTR -> WCHAR -> wchar_t
+        psz_proxy_w: *const c_ushort, // LPCWSTR
+        psz_proxy_bypass_w: *const c_ushort, // LPCWSTR
         dw_flags: c_ulong, // DWORD
-    ) -> *mut c_void; // HINTERNET -> LPVOID
+    ) -> *mut c_void; // HINTERNET
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsettimeouts
     fn WinHttpSetTimeouts(
-        h_internet: *mut c_void, // HINTERNET -> LPVOID
+        h_internet: *mut c_void, // HINTERNET
         n_resolve_timeout: c_int,
         n_connect_timeout: c_int,
         n_send_timeout: c_int,
@@ -46,10 +46,12 @@ impl Session {
     pub fn open(agent: &str) -> io::Result<Self> {
         // -------------------- open --------------------
         
+        let wide_agent = chikuwa::win_string(agent)?;
+        
         let handle = unsafe {
             
             let result = WinHttpOpen(
-                chikuwa::win_string(agent)?.as_ptr(),
+                wide_agent.as_ptr(),
                 WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
                 ptr::null(),
                 ptr::null(),
