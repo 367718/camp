@@ -1,13 +1,6 @@
 use std::os::raw::*;
 
-unsafe extern "system" {
-    
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpclosehandle
-    fn WinHttpCloseHandle(
-        h_internet: *mut c_void, // HINTERNET
-    ) -> c_int; // BOOL
-    
-}
+use crate::sys;
 
 pub struct WinHttpHandle(*mut c_void);
 
@@ -28,7 +21,7 @@ impl Drop for WinHttpHandle {
     fn drop(&mut self) {
         unsafe {
             
-            WinHttpCloseHandle(
+            sys::WinHttpCloseHandle(
                 self.0,
             );
             

@@ -1,1724 +1,354 @@
-use std::io::{ self, Read, Write, Error, ErrorKind };
-
-use super::{
-    REQUEST_SIZE_LIMIT, CONNECTION_BUFFER_SIZE,
-    StatusCode, ContentType, CacheControl,
-    Response,
+use std::{
+    io::{ self, Error, ErrorKind },
+    mem,
+    os::raw::*,
+    ptr,
+    slice,
 };
 
-pub struct Request<S: Read + Write> {
-    headers: Vec<u8>,
+use crate::{
+    sys,
+    Server, FormField, Response,
+    StatusCode, ContentType, CacheControl,
+};
+
+pub struct Request<'s> {
+    server: &'s Server,
+    headers: Box<[u64]>,
     body: Vec<u8>,
-    stream: Option<S>,
+    answered: bool,
 }
 
-pub struct FormData<'r, 'p> {
-    content: &'r [u8],
-    delimiter: Vec<u8>,
-    param: &'p [u8],
-}
+const REQUEST_HEADERS_SIZE_LIMIT: usize = 16 * 128;
+const REQUEST_BODY_SIZE_LIMIT: usize = 512 * 1024;
 
-impl<S: Read + Write> Request<S> {
+const REQUEST_BODY_CHUNK_CAPACITY: usize = 8 * 1024;
+
+impl<'s> Request<'s> {
     
     // -------------------- constructors --------------------
     
     
-    pub(crate) fn new(stream: S) -> io::Result<Self> {
-        let mut reader = stream.take(REQUEST_SIZE_LIMIT);
-        let mut buffer = [0; CONNECTION_BUFFER_SIZE];
-        let mut search_start_index = 0;
+    pub(crate) fn new(server: &'s Server) -> io::Result<Self> {
+        let headers = Self::read_headers(server)?;
+        let body = Self::read_body(server, &headers)?;
+        let answered = false;
         
-        let mut headers = Vec::new();
-        let mut body;
-        
-        // -------------------- headers --------------------
-        
-        loop {
-            
-            let bytes = match reader.read(&mut buffer) {
-                Ok(0) => return Err(Error::new(ErrorKind::UnexpectedEof, "Connection closed while reading headers")),
-                Ok(bytes) => bytes,
-                Err(error) if error.kind() == ErrorKind::Interrupted => continue,
-                Err(error) => return Err(error),
-            };
-            
-            headers.extend_from_slice(&buffer[..bytes]);
-            
-            let headers_end = headers[search_start_index..]
-                .windows(4)
-                .position(|window| window == b"\r\n\r\n");
-            
-            if let Some(headers_end) = headers_end {
-                // consider "\r\n\r\n" as part of header
-                body = headers.split_off(search_start_index + headers_end + 4);
-                break;
-            }
-            
-            // previous read might have included "\r\n\r"
-            search_start_index = headers.len().saturating_sub(3);
-            
-        }
-        
-        // -------------------- body --------------------
-        
-        // TODO: replace with usize::from_ascii in the future (https://github.com/rust-lang/rust/issues/134821)
-        // body will be empty unless the request specifies a content length
-        let content_length = chikuwa::delimited_range(&headers, b"Content-Length:", b"\r\n")
-            .and_then(|range| str::from_utf8(&headers[range]).ok())
-            .and_then(|value| value.trim().parse::<usize>().ok())
-            .unwrap_or(0);
-        
-        if body.len() < content_length {
-            
-            // limit reservation since content_length value is untrusted
-            let remaining = (content_length - body.len())
-                .min(usize::try_from(reader.limit()).expect("Unsupported platform"));
-            
-            body.reserve_exact(remaining + 1);
-            reader.set_limit(remaining as u64);
-            
-            reader.read_to_end(&mut body)?;
-            
-            if body.len() < content_length && reader.limit() > 0 {
-                return Err(Error::new(ErrorKind::UnexpectedEof, "Connection closed while reading body"));
-            }
-            
-        }
-        
-        body.truncate(content_length);
-        
-        // -------------------- stream --------------------
-        
-        let stream = Some(reader.into_inner());
-        
-        // -------------------- response --------------------
-        
-        Ok(Self {
-            headers,
-            body,
-            stream,
-        })
-        
+        Ok(Self { server, headers, body, answered })
     }
     
     
     // -------------------- accessors --------------------
     
     
-    pub fn endpoint(&self) -> Option<(&[u8], &[u8])> {
-        // GET /test/resource?fkey=fvalue HTTP/1.1\r\n
+    pub fn verb(&self) -> Option<&'static str> {
+        let headers_data = Self::headers_data(&self.headers);
         
-        let first_line = self.headers.split(|&byte| byte == b'\r').next().unwrap();
-        
-        let mut components = first_line.split(|&byte| byte == b' ')
-            // strip extra whitespace
-            .filter(|component| ! component.is_empty());
-        
-        // request method
-        let method = components.next()?;
-        
-        // request target
-        let target = components.next()?
-            // strip query string
-            .split(|&byte| byte == b'?').next().unwrap();
-        
-        Some((method, target))
-    }
-    
-    pub fn form_data<'r, 'p>(&'r self, param: &'p [u8]) -> FormData<'r, 'p> {
-        // Content-Type: multipart/form-data; charset=utf-8; boundary=9999999999999999999999999999
-        
-        // non-compliant with rfc 9110:
-        // - media-type should precede parameter list
-        // - only "U+0020 SPACE" and "U+0009 HORIZONTAL TAB" should be considered as whitespace
-        
-        let boundary = chikuwa::delimited_range(&self.headers, b"Content-Type:", b"\r\n")
-            .map(|range| &self.headers[range])
-            .and_then(|parameters| {
-                
-                let value = parameters
-                    .split(|&byte| byte == b';')
-                    .filter_map(|parameter| {
-                        
-                        // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
-                        let mut pair = parameter.splitn(2, |&byte| byte == b'=')
-                            .map(<[u8]>::trim_ascii);
-                        
-                        let key = pair.next().unwrap();
-                        let value = pair.next()?;
-                        
-                        Some((key, value))
-                        
-                    })
-                    .find(|(key, _)| key.eq_ignore_ascii_case(b"boundary"))
-                    .map(|(_, value)| value)?;
-                
-                // strip optional surrounding quotes
-                let unquoted = match value {
-                    [b'"', inner @ .., b'"'] => inner,
-                    _ => value,
-                };
-                
-                Some(unquoted)
-                
-            })
-            .unwrap_or(&[]);
-        
-        FormData::new(&self.body, boundary, param)
-    }
-    
-    
-    // -------------------- mutators --------------------
-    
-    
-    pub fn start_response(&mut self, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Response<S>> {
-        let stream = self.stream.take()
-            .ok_or(Error::other("Response already sent"))?;
-        
-        Response::new(stream, status, content, cache)
-    }
-    
-}
-
-impl<'r, 'p> FormData<'r, 'p> {
-    
-    // -------------------- constructors --------------------
-    
-    
-    fn new(content: &'r [u8], boundary: &'r [u8], param: &'p [u8]) -> Self {
-        // --9999999999999999999999999999\r\n
-        // Content-Disposition: form-data; name="placeholder key #1" filename="example.txt"\r\n
-        // \r\n
-        // placeholder value #1\r\n
-        // --9999999999999999999999999999\r\n
-        // Content-Disposition: form-data; name="placeholder key #2" filename="example.txt"\r\n
-        // \r\n
-        // placeholder value #2\r\n
-        // --9999999999999999999999999999--
-        
-        if boundary.is_empty() {
-            return Self {
-                content: &[],
-                delimiter: Vec::new(),
-                param,
-            };
-        }
-        
-        let mut delimiter = Vec::with_capacity(boundary.len() + 4);
-        delimiter.extend_from_slice(b"\r\n--");
-        delimiter.extend_from_slice(boundary);
-        
-        let mut reader = Self {
-            content,
-            delimiter,
-            param,
+        let verb = match headers_data.verb {
+            4 => "GET",
+            6 => "POST",
+            _ => return None,
         };
         
-        // first boundary could be one of two possibilities:
-        // --9999999999999999999999999999 if no preamble
-        // \r\n--9999999999999999999999999999, like the rest, if a preamble is present
-        if reader.consume_first_boundary(boundary).is_none() {
-            reader.content = &[];
-        }
-        
-        reader
+        Some(verb)
     }
     
     
-    // -------------------- mutators --------------------
-    
-    
-    fn consume_first_boundary(&mut self, boundary: &'r [u8]) -> Option<()> {
-        let mut first_delimiter = Vec::with_capacity(boundary.len() + 2);
-        first_delimiter.extend_from_slice(b"--");
-        first_delimiter.extend_from_slice(boundary);
+    pub fn path(&self) -> Option<String> {
+        let headers_data = Self::headers_data(&self.headers);
         
-        let after_delimiter = if let Some(rest) = self.content.strip_prefix(&first_delimiter[..]) {
-            // no preamble
-            rest
-        } else {
-            // preamble present
-            let index = Self::find_subslice(self.content, &self.delimiter)?;
-            &self.content[index + self.delimiter.len()..]
-        };
+        let cooked = &headers_data.cooked_url;
         
-        // payload is empty, as body consists only of opening/closing boundary
-        if after_delimiter.starts_with(b"--") {
-            self.content = &[];
+        if cooked.p_abs_path.is_null() || cooked.abs_path_length == 0 {
             return None;
         }
         
-        // skip transport padding (spaces / tabs)
-        let mut after_padding = after_delimiter;
+        let path = unsafe {
+            
+            let bytes = slice::from_raw_parts(
+                cooked.p_abs_path,
+                (cooked.abs_path_length as usize) / mem::size_of::<u16>(),
+            );
+            
+            String::from_utf16(bytes).ok()?
+            
+        };
         
-        while let [b' ' | b'\t', rest @ ..] = after_padding {
-            after_padding = rest;
-        }
-        
-        self.content = after_padding.strip_prefix(b"\r\n")?;
-        
-        Some(())
+        Some(path)
     }
     
     
-    fn next_part(&mut self) -> Option<(&'r [u8], &'r [u8])> {
-        if self.content.is_empty() {
-            return None;
-        }
+    pub fn form_field<'r, 'p>(&'r self, param: &'p [u8]) -> FormField<'r, 'p> {
+        let headers_data = Self::headers_data(&self.headers);
+        let content_type_raw = &headers_data.headers.known_headers[sys::HTTP_HEADER_CONTENT_TYPE];
         
-        // headers: up to "\r\n\r\n"
-        let header_end = Self::find_subslice(self.content, b"\r\n\r\n")?;
-        let headers = &self.content[..header_end];
-        
-        let after_headers = &self.content[header_end + 4..];
-        
-        // payload: up to delimiter
-        let payload_end = Self::find_subslice(after_headers, &self.delimiter)?;
-        let payload = &after_headers[..payload_end];
-        
-        let after_delimiter = &after_headers[payload_end + self.delimiter.len()..];
-        
-        if after_delimiter.starts_with(b"--") {
+        let content_type = unsafe {
             
-            // final boundary ("--")
-            self.content = &[];
-            
-        } else {
-            
-            // skip transport padding (spaces / tabs)
-            let mut after_padding = after_delimiter;
-            
-            while let [b' ' | b'\t', rest @ ..] = after_padding {
-                after_padding = rest;
+            if ! content_type_raw.p_raw_value.is_null() && content_type_raw.raw_value_length > 0 {
+                
+                let bytes = slice::from_raw_parts(
+                    content_type_raw.p_raw_value.cast::<u8>(),
+                    content_type_raw.raw_value_length as usize,
+                );
+                
+                Some(bytes)
+                
+            } else {
+                
+                None
+                
             }
             
-            // intermediate boundary ("\r\n")
-            self.content = after_padding.strip_prefix(b"\r\n")?;
-            
+        };
+        
+        FormField::new(&self.body, content_type, param)
+    }
+    
+    
+    // -------------------- mutators --------------------
+    
+    
+    pub fn start_response(&mut self, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Response<'s>> {
+        if self.answered {
+            return Err(Error::other("Response has already been sent"));
         }
         
-        Some((headers, payload))
+        let request_id = Self::headers_data(&self.headers).request_id;
+        let response = Response::new(self.server, request_id, status, content, cache)?;
+        
+        self.answered = true;
+        
+        Ok(response)
     }
     
     
     // -------------------- helpers --------------------
     
     
-    fn find_subslice(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-        if needle.is_empty() {
-            return None;
+    fn read_headers(server: &Server) -> io::Result<Box<[u64]>> {
+        // ensure 8-byte alignment by using u64
+        let mut buffer = vec![0_u64; REQUEST_HEADERS_SIZE_LIMIT].into_boxed_slice();
+        let mut amount_read: c_ulong = 0;
+        
+        let result = unsafe {
+            
+            sys::HttpReceiveHttpRequest(
+                server.queue_handle(),
+                0,
+                0,
+                buffer.as_mut_ptr().cast::<c_void>(),
+                c_ulong::try_from(mem::size_of_val(&*buffer)).expect("Unexpected truncation"),
+                &raw mut amount_read,
+                ptr::null_mut(),
+            )
+            
+        };
+        
+        // -------------------- limit exceeded --------------------
+        
+        // capacity of the supplied buffer was insufficient
+        if result == sys::ERROR_MORE_DATA {
+            // data struct is partially populated
+            let request_id = Self::headers_data(&buffer).request_id;
+            Self::abort(server, request_id, StatusCode::RequestHeaderFieldsTooLarge);
+            return Err(Error::new(ErrorKind::InvalidData, "Request headers exceeded maximum allowable size"));
         }
         
-        haystack.windows(needle.len())
-            .position(|window| window == needle)
+        // -------------------- error --------------------
+        
+        if result != sys::NO_ERROR {
+            return Err(Error::from_raw_os_error(result.cast_signed()));
+        }
+        
+        // -------------------- incomplete request --------------------
+        
+        // data struct has not been populated properly
+        if (amount_read as usize) < mem::size_of::<sys::HttpRequestV2>() {
+            
+            // just enough data to get request_id
+            if amount_read >= 24 {
+                let request_id = Self::headers_data(&buffer).request_id;
+                Self::abort(server, request_id, StatusCode::BadRequest);
+            }
+            
+            return Err(Error::new(ErrorKind::InvalidData, "Malformed request"));
+            
+        }
+        
+        // -------------------- incompatible http version --------------------
+        
+        let data = Self::headers_data(&buffer);
+        
+        // http version requested is not supported
+        if data.version != sys::HTTP_VERSION_1_1 {
+            Self::abort(server, data.request_id, StatusCode::VersionNotSupported);
+            return Err(Error::other("Unsupported HTTP version"));
+        }
+        
+        Ok(buffer)
+    }
+    
+    
+    fn read_body(server: &Server, headers: &[u64]) -> io::Result<Vec<u8>> {
+        let mut buffer = Vec::new();
+        
+        let headers_data = Self::headers_data(headers);
+        
+        if (headers_data.flags & sys::HTTP_REQUEST_FLAG_MORE_ENTITY_BODY_EXISTS) != 0 {
+            
+            // ---------------- content-length check ----------------
+            
+            let Ok(content_length) = Self::parse_content_length(headers_data) else {
+                Self::abort(server, headers_data.request_id, StatusCode::BadRequest);
+                return Err(Error::new(ErrorKind::InvalidData, "Malformed Content-Length header"));
+            };
+            
+            if let Some(content_length) = content_length {
+                if content_length > REQUEST_BODY_SIZE_LIMIT {
+                    Self::abort(server, headers_data.request_id, StatusCode::ContentTooLarge);
+                    return Err(Error::new(ErrorKind::InvalidData, "Request body exceeded maximum allowable size"));
+                }
+                
+                buffer.reserve(content_length);
+            }
+            
+            // ---------------- content streaming ----------------
+            
+            let mut chunk = [0_u8; REQUEST_BODY_CHUNK_CAPACITY];
+            let chunk_len = c_ulong::try_from(chunk.len()).expect("Unexpected truncation");
+            
+            loop {
+                
+                let mut bytes_read: c_ulong = 0;
+                
+                let result = unsafe {
+                    
+                    sys::HttpReceiveRequestEntityBody(
+                        server.queue_handle(),
+                        headers_data.request_id,
+                        sys::HTTP_RECEIVE_REQUEST_ENTITY_BODY_FLAG_FILL_BUFFER,
+                        chunk.as_mut_ptr().cast::<c_void>(),
+                        chunk_len,
+                        &raw mut bytes_read,
+                        ptr::null_mut(),
+                    )
+                    
+                };
+                
+                match result {
+                    
+                    sys::ERROR_HANDLE_EOF => break,
+                    
+                    sys::NO_ERROR => {
+                        
+                        if bytes_read > 0 {
+                            
+                            // while a check for the value of the content-length header was done previously,
+                            // the header itself may be absent and nothing stops the client from actually sending more data
+                            if buffer.len() + (bytes_read as usize) > REQUEST_BODY_SIZE_LIMIT {
+                                Self::abort(server, headers_data.request_id, StatusCode::ContentTooLarge);
+                                return Err(Error::new(ErrorKind::InvalidData, "Request body exceeded maximum allowable size"));
+                            }
+                            
+                            buffer.extend_from_slice(&chunk[..bytes_read as usize]);
+                            
+                        } else {
+                            
+                            break;
+                            
+                        }
+                        
+                    },
+                    
+                    _ => {
+                        
+                        Self::abort(server, headers_data.request_id, StatusCode::Error);
+                        return Err(Error::from_raw_os_error(result.cast_signed()));
+                        
+                    },
+                    
+                }
+                
+            }
+            
+        }
+        
+        Ok(buffer)
+    }
+    
+    
+    fn headers_data(headers: &[u64]) -> &sys::HttpRequestV2 {
+        unsafe { &*headers.as_ptr().cast::<sys::HttpRequestV2>() }
+    }
+    
+    
+    fn parse_content_length(headers_data: &sys::HttpRequestV2) -> io::Result<Option<usize>> {
+        let content_length_raw = &headers_data.headers.known_headers[sys::HTTP_HEADER_CONTENT_LENGTH];
+        
+        if content_length_raw.p_raw_value.is_null() || content_length_raw.raw_value_length == 0 {
+            return Ok(None);
+        }
+        
+        let content_length_bytes = unsafe {
+            
+            slice::from_raw_parts(
+                content_length_raw.p_raw_value.cast::<u8>(),
+                content_length_raw.raw_value_length as usize,
+            )
+            
+        };
+        
+        let content_length_string = str::from_utf8(content_length_bytes)
+            .map_err(|_| Error::from(ErrorKind::InvalidData))?;
+        
+        // TODO: replace with usize::from_ascii in the future (https://github.com/rust-lang/rust/issues/134821)
+        let content_length_int = content_length_string
+            .trim()
+            .parse::<usize>()
+            .map_err(|_| Error::from(ErrorKind::InvalidData))?;
+        
+        Ok(Some(content_length_int))
+    }
+    
+    
+    fn abort(server: &Server, request_id: c_ulonglong, status: StatusCode) {
+        let mut response: sys::HttpResponseV2 = unsafe { mem::zeroed() };
+        
+        response.version = sys::HTTP_VERSION_1_1;
+        response.status_code = status.into_int();
+        
+        let mut bytes_sent: c_ulong = 0;
+        
+        unsafe {
+            
+            sys::HttpSendHttpResponse(
+                server.queue_handle(),
+                request_id,
+                sys::HTTP_SEND_RESPONSE_FLAG_DISCONNECT,
+                &raw mut response,
+                ptr::null_mut(),
+                &raw mut bytes_sent,
+                ptr::null_mut(),
+                0,
+                ptr::null_mut(),
+                ptr::null_mut(),
+            );
+            
+        }
     }
     
 }
 
-impl<'r> Iterator for FormData<'r, '_> {
+impl Drop for Request<'_> {
     
-    type Item = &'r [u8];
-    
-    fn next(&mut self) -> Option<Self::Item> {
-        
-        loop {
-            
-            let (headers, payload) = self.next_part()?;
-            
-            let relevant = headers
-                .split(|&byte| byte == b'\n')
-                .map(|line| line.strip_suffix(b"\r").unwrap_or(line))
-                .find(|line| line.get(..20).is_some_and(|prefix| prefix.eq_ignore_ascii_case(b"content-disposition:")))
-                .is_some_and(|disposition| {
-                    
-                    disposition.split(|&byte| byte == b';')
-                        .filter_map(|parameter| {
-                            
-                            // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
-                            let mut pair = parameter.splitn(2, |&byte| byte == b'=')
-                                .map(<[u8]>::trim_ascii);
-                            
-                            let key = pair.next().unwrap();
-                            let value = pair.next()?;
-                            
-                            Some((key, value))
-                            
-                        })
-                        .filter(|(key, _)| key.eq_ignore_ascii_case(b"name"))
-                        .any(|(_, value)| {
-                            
-                            // strip optional surrounding quotes
-                            let unquoted = match value {
-                                [b'"', inner @ .., b'"'] => inner,
-                                _ => value,
-                            };
-                            
-                            unquoted.eq_ignore_ascii_case(self.param)
-                            
-                        })
-                    
-                });
-            
-            if relevant {
-                return Some(payload);
-            }
-            
+    fn drop(&mut self) {
+        if self.answered {
+            return;
         }
         
-    }
-    
-}
-
-#[cfg(test)]
-mod tests {
-    
-    use super::*;
-    use std::io::Cursor;
-    
-    #[cfg(test)]
-    mod new {
-        
-        // headers_only
-        // headers_and_body
-        // body_not_signaled
-        // body_without_length
-        // body_with_mixed_case_length
-        // body_with_lower_length
-        // body_with_higher_length
-        // body_with_excess_data
-        // limit_exceeded_by_headers
-        // limit_exceeded_by_body
-        
-        use super::*;
-        
-        #[test]
-        fn headers_only() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "GET /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "User-Agent: Mozilla/9.0 (Windows NT 9.0; Win64; x64; rv:9.0) Gecko/9 Firefox/9.0\r\n",
-                "Accept: */*\r\n",
-                "Accept-Language: en-US,en;q=0.5\r\n",
-                "Accept-Encoding: gzip, deflate, br, zstd\r\n",
-                "Referer: http://placeholder/test\r\n",
-                "DNT: 1\r\n",
-                "Sec-GPC: 1\r\n",
-                "Connection: keep-alive\r\n",
-                "Sec-Fetch-Dest: empty\r\n",
-                "Sec-Fetch-Mode: cors\r\n",
-                "Sec-Fetch-Site: same-origin\r\n",
-                "Priority: u=0\r\n",
-                "Pragma: no-cache\r\n",
-                "Cache-Control: no-cache\r\n",
-                "\r\n",
-            ).as_bytes().to_vec();
-            
-            // operation
-            
-            let output = Request::new(Cursor::new(&mut content));
-            
-            // control
-            
-            let request = output.unwrap();
-            
-            let control = request.headers
-                .into_iter()
-                .chain(request.body)
-                .collect::<Vec<u8>>();
-            
-            assert_eq!(content, control);
-        }
-        
-        #[test]
-        fn headers_and_body() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "GET /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 4\r\n",
-                "\r\n",
-                "1234",
-            ).as_bytes().to_vec();
-            
-            // operation
-            
-            let output = Request::new(Cursor::new(&mut content));
-            
-            // control
-            
-            let request = output.unwrap();
-            
-            let control = request.headers
-                .into_iter()
-                .chain(request.body)
-                .collect::<Vec<u8>>();
-            
-            assert_eq!(content, control);
-        }
-        
-        #[test]
-        fn body_not_signaled() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "GET /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-            ).as_bytes().to_vec();
-            
-            // operation
-            
-            let output = Request::new(Cursor::new(&mut content));
-            
-            // control
-            
-            assert!(output.is_err());
-        }
-        
-        #[test]
-        fn body_without_length() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "GET /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "\r\n",
-                "1234",
-            ).as_bytes().to_vec();
-            
-            // operation
-            
-            let output = Request::new(Cursor::new(&mut content));
-            
-            // control
-            
-            let request = output.unwrap();
-            
-            assert!(request.body.is_empty());
-        }
-        
-        #[test]
-        fn body_with_mixed_case_length() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "GET /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-LENGTH:4\r\n",
-                "\r\n",
-                "1234",
-            ).as_bytes().to_vec();
-            
-            // operation
-            
-            let output = Request::new(Cursor::new(&mut content));
-            
-            // control
-            
-            let request = output.unwrap();
-            
-            let control = request.headers
-                .into_iter()
-                .chain(request.body)
-                .collect::<Vec<u8>>();
-            
-            assert_eq!(content, control);
-        }
-        
-        #[test]
-        fn body_with_lower_length() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "GET /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 3\r\n",
-                "\r\n",
-                "1234",
-            ).as_bytes().to_vec();
-            
-            // operation
-            
-            let output = Request::new(Cursor::new(&mut content));
-            
-            // control
-            
-            let request = output.unwrap();
-            
-            assert_eq!(b"123".as_slice(), request.body);
-        }
-        
-        #[test]
-        fn body_with_higher_length() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "GET /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 5\r\n",
-                "\r\n",
-                "1234",
-            ).as_bytes().to_vec();
-            
-            // operation
-            
-            let output = Request::new(Cursor::new(&mut content));
-            
-            // control
-            
-            assert!(output.is_err());
-        }
-        
-        #[test]
-        fn body_with_excess_data() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "GET /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 4\r\n",
-                "\r\n",
-                "12345",
-            ).as_bytes().to_vec();
-            
-            // operation
-            
-            let output = Request::new(Cursor::new(&mut content));
-            
-            // control
-            
-            let request = output.unwrap();
-            
-            assert_eq!(b"1234".as_slice(), request.body);
-        }
-        
-        #[test]
-        fn limit_exceeded_by_headers() {
-            // setup
-            
-            let mut content = Vec::with_capacity(REQUEST_SIZE_LIMIT as usize);
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
-            
-            for _ in 0..REQUEST_SIZE_LIMIT {
-                content.push(b'a');
-            }
-            
-            content.extend_from_slice(b"\r\n\r\n");
-            
-            // operation
-            
-            let output = Request::new(Cursor::new(&mut content));
-            
-            // control
-            
-            assert!(output.is_err());
-        }
-        
-        #[test]
-        fn limit_exceeded_by_body() {
-            // setup
-            
-            let mut content = Vec::with_capacity(REQUEST_SIZE_LIMIT as usize);
-            content.extend_from_slice(b"GET /test/endpoint HTTP/1.1\r\n");
-            write!(content, "Content-Length: {}\r\n", REQUEST_SIZE_LIMIT + 1).ok();
-            content.extend_from_slice(b"\r\n");
-            
-            for _ in 0..REQUEST_SIZE_LIMIT {
-                content.push(b'a');
-            }
-            
-            content.extend_from_slice(b"\r\n");
-            
-            // operation
-            
-            let output = Request::new(Cursor::new(&mut content));
-            
-            // control
-            
-            let request = output.unwrap();
-            
-            assert_eq!(REQUEST_SIZE_LIMIT as usize, request.headers.len() + request.body.len());
-        }
-        
-    }
-    
-    #[cfg(test)]
-    mod endpoint {
-        
-        // with_query_string
-        // without_query_string        
-        // with_extra_whitespace
-        // with_invalid_whitespace
-        // without_method
-        // without_target
-        // without_version
-        
-        use super::*;
-        
-        #[test]
-        fn with_query_string() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "GET /test/resource?fkey=fvalue HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "\r\n",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            
-            // operation
-            
-            let output = request.endpoint();
-            
-            // control
-            
-            let (method, target) = output.unwrap();
-            
-            assert_eq!(method, b"GET".as_slice());
-            assert_eq!(target, b"/test/resource".as_slice());
-        }
-        
-        #[test]
-        fn without_query_string() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "GET /test/resource HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "\r\n",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            
-            // operation
-            
-            let output = request.endpoint();
-            
-            // control
-            
-            let (method, target) = output.unwrap();
-            
-            assert_eq!(method, b"GET".as_slice());
-            assert_eq!(target, b"/test/resource".as_slice());
-        }
-        
-        #[test]
-        fn with_extra_whitespace() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "GET  /test/resource  HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "\r\n",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            
-            // operation
-            
-            let output = request.endpoint();
-            
-            // control
-            
-            let (method, target) = output.unwrap();
-            
-            assert_eq!(method, b"GET".as_slice());
-            assert_eq!(target, b"/test/resource".as_slice());
-        }
-        
-        #[test]
-        fn with_invalid_whitespace() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "GET\t/test/resource  HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "\r\n",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            
-            // operation
-            
-            let output = request.endpoint();
-            
-            // control
-            
-            let (method, target) = output.unwrap();
-            
-            assert_eq!(method, b"GET\t/test/resource".as_slice());
-            assert_eq!(target, b"HTTP/1.1".as_slice());
-        }
-        
-        #[test]
-        fn without_method() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "/test/resource HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "\r\n",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            
-            // operation
-            
-            let output = request.endpoint();
-            
-            // control
-            
-            let (method, target) = output.unwrap();
-            
-            assert_eq!(method, b"/test/resource".as_slice());
-            assert_eq!(target, b"HTTP/1.1".as_slice());
-        }
-        
-        #[test]
-        fn without_target() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "GET HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "\r\n",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            
-            // operation
-            
-            let output = request.endpoint();
-            
-            // control
-            
-            let (method, target) = output.unwrap();
-            
-            assert_eq!(method, b"GET".as_slice());
-            assert_eq!(target, b"HTTP/1.1".as_slice());
-        }
-        
-        #[test]
-        fn without_version() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "GET /test/resource\r\n",
-                "Host: placeholder\r\n",
-                "\r\n",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            
-            // operation
-            
-            let output = request.endpoint();
-            
-            // control
-            
-            let (method, target) = output.unwrap();
-            
-            assert_eq!(method, b"GET".as_slice());
-            assert_eq!(target, b"/test/resource".as_slice());
-        }
-        
-    }
-    
-    #[cfg(test)]
-    mod form_data {
-        
-        // single
-        // multiple
-        // with_content_type
-        // with_preamble_and_epilogue
-        // with_transport_padding
-        // mixed_case_header
-        // header_without_whitespace
-        // header_with_extra_whitespace
-        // malformed_payload_first
-        // malformed_payload_second
-        // no_name
-        // additional_filename_pair
-        // filename_pair_only
-        // mixed_case_pair
-        // no_whitespace_between_pairs
-        // nonexistent_param
-        // empty_name
-        // empty_payload
-        // empty_content
-        // additional_whitespace_in_boundary
-        // additional_parameter_before_boundary
-        // additional_parameter_after_boundary
-        // boundary_collision
-        // quoted_boundary
-        // half_quoted_boundary
-        // mixed_case_boundary
-        // no_boundary
-        // wrong_boundary
-        
-        use super::*;
-        
-        #[test]
-        fn single() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 116\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn multiple() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 200\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "10\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"10".as_slice()));
-            assert_eq!(output.next(), Some(b"90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn with_content_type() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 241\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "Content-Type: text/plain; charset=utf-8\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"other\"\r\n",
-                "\r\n",
-                "10\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn with_preamble_and_epilogue() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 347\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit.\r\n",
-                "Maecenas in velit pharetra, imperdiet nisi vitae, suscipit metus.\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-                "In auctor mi vel metus porttitor, ut sagittis mi malesuada.\r\n",
-                "Aliquam ornare odio nec lobortis tincidunt.\r\n",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn with_transport_padding() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 204\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999   \r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "10\r\n",
-                "--9999999999999999999999999999\t\r\n",
-                "Content-Disposition: form-data; name=\"other\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"10".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn mixed_case_header() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 116\r\n",
-                "Content-Type: multipart/form-data; boUNDaRY=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn header_without_whitespace() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 116\r\n",
-                "Content-Type:multipart/form-data;boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn header_with_extra_whitespace() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 116\r\n",
-                "Content-Type:  multipart/form-data;  boundary=9999999999999999999999999999  \r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn malformed_payload_first() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 198\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "10",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"10--9999999999999999999999999999\r\nContent-Disposition: form-data; name=\"input\"\r\n\r\n90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn malformed_payload_second() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 112\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"first\"\r\n",
-                "\r\n--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"first";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn no_name() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 103\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data;\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn additional_filename_pair() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 137\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; filename=\"test.txt\"; name=\"input\"\r\n",
-                "\r\n",
-                "85\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"85".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn filename_pair_only() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 121\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; filename=\"input\";\r\n",
-                "\r\n",
-                "85\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn mixed_case_pair() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 116\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "CONTENT-DISPOSITION: form-data; naMe=\"inPUt\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn no_whitespace_between_pairs() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 114\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition:form-data;name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn nonexistent_param() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 201\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"second\"\r\n",
-                "\r\n",
-                "10\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"first\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"third";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn empty_name() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 196\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"\"\r\n",
-                "\r\n",
-                "10\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"second\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"second";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn empty_payload() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 199\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"first\"\r\n",
-                "\r\n",
-                "10\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"second\"\r\n",
-                "\r\n",
-                "\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"second";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some([].as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn empty_content() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 0\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn additional_whitespace_in_boundary() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 116\r\n",
-                "Content-Type: multipart/form-data; boundary = 9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn additional_parameter_before_boundary() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 116\r\n",
-                "Content-Type: multipart/form-data; charset=utf-8; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn additional_parameter_after_boundary() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 116\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999; charset=utf-8\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn boundary_collision() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 146\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "ab9999999999999999999999999999cd\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"ab9999999999999999999999999999cd".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn quoted_boundary() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 116\r\n",
-                "Content-Type: multipart/form-data; boundary=\"9999999999999999999999999999\"\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn half_quoted_boundary() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 115\r\n",
-                "Content-Type: multipart/form-data; boundary=\"9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn mixed_case_boundary() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 116\r\n",
-                "Content-Type: multipart/form-data; BOUNDARY=9999999999999999999999999999\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert_eq!(output.next(), Some(b"90".as_slice()));
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn no_boundary() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 116\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert!(output.next().is_none());
-        }
-        
-        #[test]
-        fn wrong_boundary() {
-            // setup
-            
-            let mut content: Vec<u8> = concat!(
-                "POST /test/endpoint HTTP/1.1\r\n",
-                "Host: placeholder\r\n",
-                "Content-Length: 116\r\n",
-                "Content-Type: multipart/form-data; boundary=9999999999999999999999999998\r\n",
-                "\r\n",
-                "--9999999999999999999999999999\r\n",
-                "Content-Disposition: form-data; name=\"input\"\r\n",
-                "\r\n",
-                "90\r\n",
-                "--9999999999999999999999999999--",
-            ).as_bytes().to_vec();
-            
-            let request = Request::new(Cursor::new(&mut content)).unwrap();
-            let param = b"input";
-            
-            // operation
-            
-            let mut output = request.form_data(param);
-            
-            // control
-            
-            assert!(output.next().is_none());
-        }
-        
+        // unaswered request; assume error and drop connection
+        let request_id = Self::headers_data(&self.headers).request_id;
+        Self::abort(self.server, request_id, StatusCode::Error);
     }
     
 }

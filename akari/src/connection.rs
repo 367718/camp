@@ -1,25 +1,9 @@
-use std::{
-    io,
-    os::raw::*,
-};
+use std::io;
 
 use crate::{
-    last_winhttp_error,
-    WinHttpHandle,
-    Session,
+    sys, last_winhttp_error,
+    WinHttpHandle, Session,
 };
-
-unsafe extern "system" {
-    
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpconnect
-    fn WinHttpConnect(
-        h_session: *mut c_void, // HINTERNET
-        pswz_server_name: *const c_ushort, // LPCWSTR
-        n_server_port: c_ushort, // INTERNET_PORT
-        dw_reserved: c_ulong,
-    ) -> *mut c_void; // HINTERNET
-    
-}
 
 pub struct Connection {
     pub handle: WinHttpHandle,
@@ -32,7 +16,7 @@ impl Connection {
         
         let handle = unsafe {
             
-            let result = WinHttpConnect(
+            let result = sys::WinHttpConnect(
                 session.handle.as_raw(),
                 wide_host.as_ptr(),
                 port,

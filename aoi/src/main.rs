@@ -1,3 +1,8 @@
+#[link(name = "kernel32")]
+unsafe extern "system" {}
+
+mod sys;
+
 use std::{
     error::Error,
     fs::File,
@@ -6,19 +11,9 @@ use std::{
 };
 
 use ayano::{
-    Server, ServerRequest,
+    Server, Request,
     StatusCode, ContentType, CacheControl,
 };
-
-unsafe extern "system" {
-    
-    // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-waitnamedpipew
-    fn WaitNamedPipeW(
-        lpNamedPipeName: *const c_ushort, // LPCWSTR
-        nTimeOut: c_ulong, // DWORD
-    ) -> c_int;
-    
-}
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -61,7 +56,7 @@ fn main() {
 
 fn process() -> Result<(), Box<dyn Error>> {
     let address = rin::get::<&str>(b"address")?;
-    let mut server = Server::bind(address, 10, 10)?;
+    let server = Server::bind(address)?;
     
     println!();
     println!("Listening on http://{}", address);
@@ -81,34 +76,35 @@ fn process() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn handle_request(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
-    let endpoint = request.endpoint()
+fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
+    let (verb, path) = request.verb()
+        .zip(request.path())
         .ok_or("Invalid request")?;
     
-    match endpoint {
+    match (verb, path.as_str()) {
         
         // -------------------- general --------------------
         
-        (b"GET", b"/") => index(request),
-        (b"GET", b"/styles.css") => styles(request),
-        (b"GET", b"/scripts.js") => scripts(request),
+        ("GET", "/") => index(request),
+        ("GET", "/styles.css") => styles(request),
+        ("GET", "/scripts.js") => scripts(request),
         
         // -------------------- commands --------------------
         
-        (b"POST", b"/play") => send_command(request, COMMAND_PLAY),
-        (b"POST", b"/minuschapter") => send_command(request, COMMAND_MINUSCHAPTER),
-        (b"POST", b"/pluschapter") => send_command(request, COMMAND_PLUSCHAPTER),
-        (b"POST", b"/minusplaylist") => send_command(request, COMMAND_MINUSPLAYLIST),
-        (b"POST", b"/plusplaylist") => send_command(request, COMMAND_PLUSPLAYLIST),
-        (b"POST", b"/minus5") => send_command(request, COMMAND_MINUS5),
-        (b"POST", b"/plus5") => send_command(request, COMMAND_PLUS5),
-        (b"POST", b"/minus75") => send_command(request, COMMAND_MINUS75),
-        (b"POST", b"/plus75") => send_command(request, COMMAND_PLUS75),
-        (b"POST", b"/fullscreen") => send_command(request, COMMAND_FULLSCREEN),
-        (b"POST", b"/subtitles") => send_command(request, COMMAND_SUBTITLES),
-        (b"POST", b"/title") => send_command(request, COMMAND_TITLE),
-        (b"POST", b"/time") => send_command(request, COMMAND_TIME),
-        (b"POST", b"/quit") => send_command(request, COMMAND_QUIT),
+        ("POST", "/play") => send_command(request, COMMAND_PLAY),
+        ("POST", "/minuschapter") => send_command(request, COMMAND_MINUSCHAPTER),
+        ("POST", "/pluschapter") => send_command(request, COMMAND_PLUSCHAPTER),
+        ("POST", "/minusplaylist") => send_command(request, COMMAND_MINUSPLAYLIST),
+        ("POST", "/plusplaylist") => send_command(request, COMMAND_PLUSPLAYLIST),
+        ("POST", "/minus5") => send_command(request, COMMAND_MINUS5),
+        ("POST", "/plus5") => send_command(request, COMMAND_PLUS5),
+        ("POST", "/minus75") => send_command(request, COMMAND_MINUS75),
+        ("POST", "/plus75") => send_command(request, COMMAND_PLUS75),
+        ("POST", "/fullscreen") => send_command(request, COMMAND_FULLSCREEN),
+        ("POST", "/subtitles") => send_command(request, COMMAND_SUBTITLES),
+        ("POST", "/title") => send_command(request, COMMAND_TITLE),
+        ("POST", "/time") => send_command(request, COMMAND_TIME),
+        ("POST", "/quit") => send_command(request, COMMAND_QUIT),
         
         // -------------------- not found --------------------
         
@@ -117,34 +113,34 @@ fn handle_request(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn index(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
+fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
         .and_then(|mut response| response.write_all(INDEX))?;
     
     Ok(())
 }
 
-fn styles(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
+fn styles(request: &mut Request) -> Result<(), Box<dyn Error>> {
     request.start_response(StatusCode::Ok, ContentType::Css, CacheControl::Static)
         .and_then(|mut response| response.write_all(STYLES))?;
     
     Ok(())
 }
 
-fn scripts(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
+fn scripts(request: &mut Request) -> Result<(), Box<dyn Error>> {
     request.start_response(StatusCode::Ok, ContentType::Javascript, CacheControl::Static)
         .and_then(|mut response| response.write_all(SCRIPTS))?;
     
     Ok(())
 }
 
-fn send_command(request: &mut ServerRequest, command: &[u8]) -> Result<(), Box<dyn Error>> {
+fn send_command(request: &mut Request, command: &[u8]) -> Result<(), Box<dyn Error>> {
     let pipe = rin::get::<&str>(b"pipe")?;
     let wide_pipe = chikuwa::win_string(pipe)?;
     
     unsafe {
         
-        let result = WaitNamedPipeW(
+        let result = sys::WaitNamedPipeW(
             wide_pipe.as_ptr(),
             PIPE_MAX_WAIT,
         );

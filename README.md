@@ -9,7 +9,7 @@
 ## Libraries
 
 * `akari`: HTTP/2 client
-* `ayano`: non-compliant HTTP/1.1 server
+* `ayano`: HTTP/1.1 server
 * `chiaki`: lists manager
 * `chikuwa`: collection of small utilities
 * `ena`: files manager

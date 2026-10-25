@@ -1,12 +1,20 @@
 # ayano
 
-Non-compliant HTTP/1.1 server.
+HTTP/1.1 server.
 
 ## Behavior
 
-* `Server`: provides access to `ServerRequest` structs via the "accept" method, blocking the execution thread
-* `ServerRequest`: has a size limit of 64 KiB and each can generate only a single `ServerResponse` via the "start_response" method
-* `ServerResponse`: "Transfer-Encoding: chunked" is always used a will signal EOF on drop
+* `Server`
+    * provides access to `Request` structs via the "accept" method, blocking the execution thread
+
+* `Request`:
+    * accepts HTTP/1.1 only
+    * limits headers size to 16 KiB
+    * limits body size to 512 KiB
+    * generates only a single `Response` each via the "start_response" method
+
+* `Response`: 
+    * "Transfer-Encoding: chunked" is always used and will signal EOF on drop
 
 ## API
 
@@ -14,11 +22,12 @@ Non-compliant HTTP/1.1 server.
     * bind
     * accept
 
-* `ServerRequest`
-    * endpoint
-    * form_data
+* `Request`
+    * verb
+    * path
+    * form_field
     * start_response
 
-* `ServerResponse`
+* `Response`
     * Write trait
     * Drop trait

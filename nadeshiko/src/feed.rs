@@ -89,22 +89,22 @@ mod tests {
         fn one() {
             // setup
             
-            let content: &[u8] = concat!(
-                "<rss version=\"2.0\">",
-                    "<channel>",
-                        "<title>Example RSS</title>",
-                        "<description>Example RSS Feed</description>",
-                        "<link>http://localhost/</link>",
-                        "<atom:link href=\"http://localhost/rss\" rel=\"self\" type=\"application/rss+xml\"/>",
-                        "<item>",
-                            "<title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>",
-                            "<link>http://localhost/download/123456.torrent</link>",
-                            "<guid isPermaLink=\"true\">http://localhost/view/123456</guid>",
-                            "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                        "</item>",
-                    "</channel>",
-                "</rss>",
-            ).as_bytes();
+            let content = br#"
+                <rss version="2.0">
+                    <channel>
+                        <title>Example RSS</title>
+                        <description>Example RSS Feed</description>
+                        <link>http://localhost/</link>
+                        <atom:link href="http://localhost/rss" rel="self" type="application/rss+xml"/>
+                        <item>
+                            <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
+                            <link>http://localhost/download/123456.torrent</link>
+                            <guid isPermaLink="true">http://localhost/view/123456</guid>
+                            <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                        </item>
+                    </channel>
+                </rss>
+            "#;
             
             let entries = Feed {
                 content: content.to_vec(),
@@ -128,34 +128,34 @@ mod tests {
         fn three() {
             // setup
             
-            let content: &[u8] = concat!(
-                "<rss version=\"2.0\">",
-                    "<channel>",
-                        "<title>Example RSS</title>",
-                        "<description>Example RSS Feed</description>",
-                        "<link>http://localhost/</link>",
-                        "<atom:link href=\"http://localhost/rss\" rel=\"self\" type=\"application/rss+xml\"/>",
-                        "<item>",
-                            "<title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>",
-                            "<link>http://localhost/download/123456.torrent</link>",
-                            "<guid isPermaLink=\"true\">http://localhost/view/123456</guid>",
-                            "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                        "</item>",
-                        "<item>",
-                            "<title>[Example] Placeholder - 18 (720p) [83538700].mkv</title>",
-                            "<link>http://localhost/download/654321.torrent</link>",
-                            "<guid isPermaLink=\"true\">http://localhost/view/654321</guid>",
-                            "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                        "</item>",
-                        "<item>",
-                            "<title>[Example] Placeholder - 19 (720p) [83538700].mkv</title>",
-                            "<link>http://localhost/download/123123.torrent</link>",
-                            "<guid isPermaLink=\"true\">http://localhost/view/123123</guid>",
-                            "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                        "</item>",
-                    "</channel>",
-                "</rss>",
-            ).as_bytes();
+            let content = br#"
+                <rss version="2.0">
+                    <channel>
+                        <title>Example RSS</title>
+                        <description>Example RSS Feed</description>
+                        <link>http://localhost/</link>
+                        <atom:link href="http://localhost/rss" rel="self" type="application/rss+xml"/>
+                        <item>
+                            <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
+                            <link>http://localhost/download/123456.torrent</link>
+                            <guid isPermaLink="true">http://localhost/view/123456</guid>
+                            <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                        </item>
+                        <item>
+                            <title>[Example] Placeholder - 18 (720p) [83538700].mkv</title>
+                            <link>http://localhost/download/654321.torrent</link>
+                            <guid isPermaLink="true">http://localhost/view/654321</guid>
+                            <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                        </item>
+                        <item>
+                            <title>[Example] Placeholder - 19 (720p) [83538700].mkv</title>
+                            <link>http://localhost/download/123123.torrent</link>
+                            <guid isPermaLink="true">http://localhost/view/123123</guid>
+                            <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                        </item>
+                    </channel>
+                </rss>
+            "#;
             
             let entries = Feed {
                 content: content.to_vec(),
@@ -203,22 +203,22 @@ mod tests {
         fn empty_link() {
             // setup
             
-            let content: &[u8] = concat!(
-                "<rss version=\"2.0\">",
-                    "<channel>",
-                        "<title>Example RSS</title>",
-                        "<description>Example RSS Feed</description>",
-                        "<link>http://localhost/</link>",
-                        "<atom:link href=\"http://localhost/rss\" rel=\"self\" type=\"application/rss+xml\"/>",
-                        "<item>",
-                            "<title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>",
-                            "<link></link>",
-                            "<guid isPermaLink=\"true\">http://localhost/view/123456</guid>",
-                            "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                        "</item>",
-                    "</channel>",
-                "</rss>",
-            ).as_bytes();
+            let content = br#"
+                <rss version="2.0">
+                    <channel>
+                        <title>Example RSS</title>
+                        <description>Example RSS Feed</description>
+                        <link>http://localhost/</link>
+                        <atom:link href="http://localhost/rss" rel="self" type="application/rss+xml"/>
+                        <item>
+                            <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
+                            <link></link>
+                            <guid isPermaLink="true">http://localhost/view/123456</guid>
+                            <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                        </item>
+                    </channel>
+                </rss>
+            "#;
             
             let entries = Feed {
                 content: content.to_vec(),
@@ -242,32 +242,32 @@ mod tests {
         fn nested_items() {
             // setup
             
-            let content: &[u8] = concat!(
-                "<rss version=\"2.0\">",
-                    "<channel>",
-                        "<title>Example RSS</title>",
-                        "<description>Example RSS Feed</description>",
-                        "<link>http://localhost/</link>",
-                        "<atom:link href=\"http://localhost/rss\" rel=\"self\" type=\"application/rss+xml\"/>",
-                        "<item>",
-                            "<title>[Example] Placeholder - 16 (720p) [83538700].mkv</title>",
-                            "<item>",
-                                "<link>http://localhost/download/321321.torrent</link>",
-                            "</item>",
-                            "<guid isPermaLink=\"true\">http://localhost/view/321321</guid>",
-                            "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                        "</item>",
-                        "<item>",
-                            "<item>",
-                                "<link>http://localhost/download/321321.torrent</link>",
-                            "</item>",
-                            "<title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>",
-                            "<guid isPermaLink=\"true\">http://localhost/view/321321</guid>",
-                            "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                        "</item>",
-                    "</channel>",
-                "</rss>",
-            ).as_bytes();
+            let content = br#"
+                <rss version="2.0">
+                    <channel>
+                        <title>Example RSS</title>
+                        <description>Example RSS Feed</description>
+                        <link>http://localhost/</link>
+                        <atom:link href="http://localhost/rss" rel="self" type="application/rss+xml"/>
+                        <item>
+                            <title>[Example] Placeholder - 16 (720p) [83538700].mkv</title>
+                            <item>
+                                <link>http://localhost/download/321321.torrent</link>
+                            </item>
+                            <guid isPermaLink="true">http://localhost/view/321321</guid>
+                            <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                        </item>
+                        <item>
+                            <item>
+                                <link>http://localhost/download/321321.torrent</link>
+                            </item>
+                            <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
+                            <guid isPermaLink="true">http://localhost/view/321321</guid>
+                            <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                        </item>
+                    </channel>
+                </rss>
+            "#;
             
             let entries = Feed {
                 content: content.to_vec(),
@@ -296,23 +296,23 @@ mod tests {
         fn multiple_link() {
             // setup
             
-            let content: &[u8] = concat!(
-                "<rss version=\"2.0\">",
-                    "<channel>",
-                        "<title>Example RSS</title>",
-                        "<description>Example RSS Feed</description>",
-                        "<link>http://localhost/</link>",
-                        "<atom:link href=\"http://localhost/rss\" rel=\"self\" type=\"application/rss+xml\"/>",
-                        "<item>",
-                            "<title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>",
-                            "<link>http://localhost/download/123456.torrent</link>",
-                            "<link>http://localhost/download/1234567890.torrent</link>",
-                            "<guid isPermaLink=\"true\">http://localhost/view/123456</guid>",
-                            "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                        "</item>",
-                    "</channel>",
-                "</rss>",
-            ).as_bytes();
+            let content = br#"
+                <rss version="2.0">
+                    <channel>
+                        <title>Example RSS</title>
+                        <description>Example RSS Feed</description>
+                        <link>http://localhost/</link>
+                        <atom:link href="http://localhost/rss" rel="self" type="application/rss+xml"/>
+                        <item>
+                            <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
+                            <link>http://localhost/download/123456.torrent</link>
+                            <link>http://localhost/download/1234567890.torrent</link>
+                            <guid isPermaLink="true">http://localhost/view/123456</guid>
+                            <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                        </item>
+                    </channel>
+                </rss>
+            "#;
             
             let entries = Feed {
                 content: content.to_vec(),
@@ -336,16 +336,16 @@ mod tests {
         fn no_items() {
             // setup
             
-            let content: &[u8] = concat!(
-                "<rss version=\"2.0\">",
-                    "<channel>",
-                        "<title>Example RSS</title>",
-                        "<description>Example RSS Feed</description>",
-                        "<link>http://localhost/</link>",
-                        "<atom:link href=\"http://localhost/rss\" rel=\"self\" type=\"application/rss+xml\"/>",
-                    "</channel>",
-                "</rss>",
-            ).as_bytes();
+            let content = br#"
+                <rss version="2.0">
+                    <channel>
+                        <title>Example RSS</title>
+                        <description>Example RSS Feed</description>
+                        <link>http://localhost/</link>
+                        <atom:link href="http://localhost/rss" rel="self" type="application/rss+xml"/>
+                    </channel>
+                </rss>
+            "#;
             
             let entries = Feed {
                 content: content.to_vec(),
@@ -364,26 +364,26 @@ mod tests {
         fn barebones() {
             // setup
             
-            let content: &[u8] = concat!(
-                "<item>",
-                    "<title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>",
-                    "<link>http://localhost/download/123456.torrent</link>",
-                    "<guid isPermaLink=\"true\">http://localhost/view/123456</guid>",
-                    "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                "</item>",
-                "<item>",
-                    "<title>[Example] Placeholder - 18 (720p) [83538700].mkv</title>",
-                    "<link>http://localhost/download/654321.torrent</link>",
-                    "<guid isPermaLink=\"true\">http://localhost/view/654321</guid>",
-                    "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                "</item>",
-                "<item>",
-                    "<title>[Example] Placeholder - 19 (720p) [83538700].mkv</title>",
-                    "<link>http://localhost/download/123123.torrent</link>",
-                    "<guid isPermaLink=\"true\">http://localhost/view/123123</guid>",
-                    "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                "</item>",
-            ).as_bytes();
+            let content = br#"
+                <item>
+                    <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
+                    <link>http://localhost/download/123456.torrent</link>
+                    <guid isPermaLink="true">http://localhost/view/123456</guid>
+                    <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                </item>
+                <item>
+                    <title>[Example] Placeholder - 18 (720p) [83538700].mkv</title>
+                    <link>http://localhost/download/654321.torrent</link>
+                    <guid isPermaLink="true">http://localhost/view/654321</guid>
+                    <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                </item>
+                <item>
+                    <title>[Example] Placeholder - 19 (720p) [83538700].mkv</title>
+                    <link>http://localhost/download/123123.torrent</link>
+                    <guid isPermaLink="true">http://localhost/view/123123</guid>
+                    <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                </item>
+            "#;
             
             let entries = Feed {
                 content: content.to_vec(),
@@ -417,22 +417,22 @@ mod tests {
         fn disordered() {
             // setup
             
-            let content: &[u8] = concat!(
-                "<rss version=\"2.0\">",
-                    "<channel>",
-                        "<title>Example RSS</title>",
-                        "<description>Example RSS Feed</description>",
-                        "<link>http://localhost/</link>",
-                        "<atom:link href=\"http://localhost/rss\" rel=\"self\" type=\"application/rss+xml\"/>",
-                        "<item>",
-                            "<link>http://localhost/download/123456.torrent</link>",
-                            "<title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>",
-                            "<guid isPermaLink=\"true\">http://localhost/view/123456</guid>",
-                            "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                        "</item>",
-                    "</channel>",
-                "</rss>",
-            ).as_bytes();
+            let content = br#"
+                <rss version="2.0">
+                    <channel>
+                        <title>Example RSS</title>
+                        <description>Example RSS Feed</description>
+                        <link>http://localhost/</link>
+                        <atom:link href="http://localhost/rss" rel="self" type="application/rss+xml"/>
+                        <item>
+                            <link>http://localhost/download/123456.torrent</link>
+                            <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
+                            <guid isPermaLink="true">http://localhost/view/123456</guid>
+                            <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                        </item>
+                    </channel>
+                </rss>
+            "#;
             
             let entries = Feed {
                 content: content.to_vec(),
@@ -466,21 +466,21 @@ mod tests {
         fn unclosed_item() {
             // setup
             
-            let content: &[u8] = concat!(
-                "<rss version=\"2.0\">",
-                    "<channel>",
-                        "<title>Example RSS</title>",
-                        "<description>Example RSS Feed</description>",
-                        "<link>http://localhost/</link>",
-                        "<atom:link href=\"http://localhost/rss\" rel=\"self\" type=\"application/rss+xml\"/>",
-                        "<item>",
-                        "<title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>",
-                        "<link>http://localhost/download/123456.torrent</link>",
-                        "<guid isPermaLink=\"true\">http://localhost/view/123456</guid>",
-                        "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                    "</channel>",
-                "</rss>",
-            ).as_bytes();
+            let content = br#"
+                <rss version="2.0">
+                    <channel>
+                        <title>Example RSS</title>
+                        <description>Example RSS Feed</description>
+                        <link>http://localhost/</link>
+                        <atom:link href="http://localhost/rss" rel="self" type="application/rss+xml"/>
+                        <item>
+                        <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
+                        <link>http://localhost/download/123456.torrent</link>
+                        <guid isPermaLink="true">http://localhost/view/123456</guid>
+                        <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                    </channel>
+                </rss>
+            "#;
             
             let entries = Feed {
                 content: content.to_vec(),
@@ -499,39 +499,39 @@ mod tests {
         fn missing_link() {
             // setup
             
-            let content: &[u8] = concat!(
-                "<rss version=\"2.0\">",
-                    "<channel>",
-                        "<title>Example RSS</title>",
-                        "<description>Example RSS Feed</description>",
-                        "<link>http://localhost/</link>",
-                        "<atom:link href=\"http://localhost/rss\" rel=\"self\" type=\"application/rss+xml\"/>",
-                        "<item>",
-                            "<title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>",
-                            "<link>http://localhost/download/123456.torrent</link>",
-                            "<guid isPermaLink=\"true\">http://localhost/view/123456</guid>",
-                            "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                        "</item>",
-                        "<item>",
-                            "<title>[Example] Placeholder - 18 (720p) [83538700].mkv</title>",
-                            "<link></link>",
-                            "<guid isPermaLink=\"true\">http://localhost/view/654321</guid>",
-                            "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                        "</item>",
-                        "<item>",
-                            "<title>[Example] Placeholder - 19 (720p) [83538700].mkv</title>",
-                            "<guid isPermaLink=\"true\">http://localhost/view/654321</guid>",
-                            "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                        "</item>",
-                        "<item>",
-                            "<title>[Example] Placeholder - 20 (720p) [83538700].mkv</title>",
-                            "<link>http://localhost/download/123123.torrent</link>",
-                            "<guid isPermaLink=\"true\">http://localhost/view/123123</guid>",
-                            "<pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>",
-                        "</item>",
-                    "</channel>",
-                "</rss>",
-            ).as_bytes();
+            let content = br#"
+                <rss version="2.0">
+                    <channel>
+                        <title>Example RSS</title>
+                        <description>Example RSS Feed</description>
+                        <link>http://localhost/</link>
+                        <atom:link href="http://localhost/rss" rel="self" type="application/rss+xml"/>
+                        <item>
+                            <title>[Example] Placeholder - 17 (720p) [83538700].mkv</title>
+                            <link>http://localhost/download/123456.torrent</link>
+                            <guid isPermaLink="true">http://localhost/view/123456</guid>
+                            <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                        </item>
+                        <item>
+                            <title>[Example] Placeholder - 18 (720p) [83538700].mkv</title>
+                            <link></link>
+                            <guid isPermaLink="true">http://localhost/view/654321</guid>
+                            <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                        </item>
+                        <item>
+                            <title>[Example] Placeholder - 19 (720p) [83538700].mkv</title>
+                            <guid isPermaLink="true">http://localhost/view/654321</guid>
+                            <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                        </item>
+                        <item>
+                            <title>[Example] Placeholder - 20 (720p) [83538700].mkv</title>
+                            <link>http://localhost/download/123123.torrent</link>
+                            <guid isPermaLink="true">http://localhost/view/123123</guid>
+                            <pubDate>Thu, 01 Jan 1970 00:00:00 -0000</pubDate>
+                        </item>
+                    </channel>
+                </rss>
+            "#;
             
             let entries = Feed {
                 content: content.to_vec(),

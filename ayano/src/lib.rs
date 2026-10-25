@@ -1,27 +1,27 @@
+#[link(name = "httpapi")]
+unsafe extern "system" {}
+
+mod sys;
+mod server;
+mod form_field;
 mod request;
 mod response;
 
-use std::{
-    io,
-    net::{ TcpListener, TcpStream },
-    time::Duration,
-};
+use std::os::raw::*;
 
-use request::Request;
-use response::Response;
-
-pub use request::FormData;
-
-pub type ServerRequest = Request<TcpStream>;
-pub type ServerResponse = Response<TcpStream>;
-
-const CONNECTION_BUFFER_SIZE: usize = 8 * 1024;
-const REQUEST_SIZE_LIMIT: u64 = 64 * 1024;
+pub use server::Server;
+pub use form_field::FormField;
+pub use request::Request;
+pub use response::Response;
 
 pub enum StatusCode {
     Ok,
     Error,
+    BadRequest,
     NotFound,
+    ContentTooLarge,
+    RequestHeaderFieldsTooLarge,
+    VersionNotSupported,
 }
 
 pub enum ContentType {
@@ -36,19 +36,17 @@ pub enum CacheControl {
     Dynamic,
 }
 
-pub struct Server {
-    listener: TcpListener,
-    read_timeout: Option<Duration>,
-    write_timeout: Option<Duration>,
-}
-
 impl StatusCode {
     
-    const fn into_header(self) -> &'static [u8] {
+    const fn into_int(self) -> c_ushort {
         match self {
-            Self::Ok => b"HTTP/1.1 200 OK\r\n",
-            Self::Error => b"HTTP/1.1 500 Internal Server Error\r\n",
-            Self::NotFound => b"HTTP/1.1 404 Not Found\r\n",
+            Self::Ok => 200,
+            Self::Error => 500,
+            Self::BadRequest => 400,
+            Self::NotFound => 404,
+            Self::ContentTooLarge => 413,
+            Self::RequestHeaderFieldsTooLarge => 431,
+            Self::VersionNotSupported => 505,
         }
     }
     
@@ -58,10 +56,10 @@ impl ContentType {
     
     const fn into_header(self) -> &'static [u8] {
         match self {
-            Self::Plain => b"Content-Type: text/plain; charset=utf-8\r\n",
-            Self::Html => b"Content-Type: text/html; charset=utf-8\r\n",
-            Self::Css => b"Content-Type: text/css; charset=utf-8\r\n",
-            Self::Javascript => b"Content-Type: text/javascript; charset=utf-8\r\n",
+            Self::Plain => b"text/plain; charset=utf-8",
+            Self::Html => b"text/html; charset=utf-8",
+            Self::Css => b"text/css; charset=utf-8",
+            Self::Javascript => b"text/javascript; charset=utf-8",
         }
     }
     
@@ -71,84 +69,9 @@ impl CacheControl {
     
     const fn into_header(self) -> &'static [u8] {
         match self {
-            Self::Static => b"Cache-Control: max-age=15552000, immutable\r\n",
-            Self::Dynamic => b"Cache-Control: no-cache, no-store\r\n",
+            Self::Static => b"max-age=15552000, immutable",
+            Self::Dynamic => b"no-cache, no-store",
         }
-    }
-    
-}
-
-impl Server {
-    
-    pub fn bind(address: &str, read_timeout: u64, write_timeout: u64) -> io::Result<Self> {
-        Ok(Self {
-            listener: TcpListener::bind(address)?,
-            read_timeout: Some(Duration::from_secs(read_timeout)),
-            write_timeout: Some(Duration::from_secs(write_timeout)),
-        })
-    }
-    
-    pub fn accept(&mut self) -> io::Result<Request<TcpStream>> {
-        let (stream, _) = self.listener.accept()?;
-        
-        stream.set_nodelay(true)?;
-        stream.set_read_timeout(self.read_timeout)?;
-        stream.set_write_timeout(self.write_timeout)?;
-        
-        Request::new(stream)
-    }
-    
-}
-
-#[cfg(test)]
-mod tests {
-    
-    use super::*;
-    
-    #[test]
-    fn request_and_response() {
-        use std::io::{ Cursor, Write };
-        
-        // setup
-        
-        let mut content: Vec<u8> = concat!(
-            "GET /test/endpoint HTTP/1.1\r\n",
-            "Host: placeholder\r\n",
-            "Content-Length: 4\r\n",
-            "\r\n",
-            "1234",
-        ).as_bytes().to_vec();
-        
-        let control: &[u8] = concat!(
-            "HTTP/1.1 500 Internal Server Error\r\n",
-            "Content-Type: text/html; charset=utf-8\r\n",
-            "Cache-Control: max-age=15552000, immutable\r\n",
-            "Transfer-Encoding: chunked\r\n",
-            "Connection: close\r\n",
-            "\r\n",
-            "7\r\n",
-            "qwerty!\r\n",
-            "0\r\n\r\n",
-        ).as_bytes();
-        
-        // operation
-        
-        let output = Request::new(Cursor::new(&mut content));
-        
-        let mut request = output.unwrap();
-        let mut response = request.start_response(StatusCode::Error, ContentType::Html, CacheControl::Static).unwrap();
-        
-        // control
-        
-        assert_eq!(request.endpoint(), Some((b"GET".as_slice(), b"/test/endpoint".as_slice())));
-        
-        response.write_all(b"qwerty").unwrap();
-        response.write_all(b"!").unwrap();
-        
-        drop(response);
-        
-        assert_eq!(&content[73..], control);
-        
     }
     
 }

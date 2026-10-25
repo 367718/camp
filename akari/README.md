@@ -6,7 +6,7 @@ HTTP/2 client.
 
 The `Client` struct provides access to `Response` structs via the "get" method.
 
-Only HTTPS is supported and connections will be pooled for reuse.
+Only HTTPS endpoints are supported and connections will be pooled for reuse.
 
 ## API
 

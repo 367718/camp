@@ -5,66 +5,9 @@ use std::{
 };
 
 use crate::{
-    last_winhttp_error,
-    WinHttpHandle,
-    Connection,
+    sys, last_winhttp_error,
+    WinHttpHandle, Connection,
 };
-
-unsafe extern "system" {
-    
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpopenrequest
-    fn WinHttpOpenRequest(
-        h_connect: *mut c_void, // HINTERNET
-        pwsz_verb: *const c_ushort, // LPCWSTR
-        pwsz_object_name: *const c_ushort, // LPCWSTR
-        pwsz_version: *const c_ushort, // LPCWSTR
-        pwsz_referrer: *const c_ushort, // LPCWSTR
-        ppwsz_accept_types: *mut *const c_ushort, // LPCWSTR
-        dw_flags: c_ulong, // DWORD
-    ) -> *mut c_void; // HINTERNET
-    
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsetoption
-    fn WinHttpSetOption(
-        h_internet: *mut c_void, // HINTERNET
-        dw_option: c_ulong, // DWORD
-        lp_buffer: *mut c_void, // LPVOID
-        dw_buffer_length: c_ulong, // DWORD
-    ) -> c_int; // BOOL
-    
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsendrequest
-    fn WinHttpSendRequest(
-        h_request: *mut c_void, // HINTERNET
-        lpsz_headers: *const c_ushort, // LPCWSTR
-        dw_headers_length: c_ulong, // DWORD
-        lp_optional: *mut c_void, // LPVOID
-        dw_optional_length: c_ulong, // DWORD
-        dw_total_length: c_ulong, // DWORD
-        dw_context: usize, // DWORD_PTR
-    ) -> c_int; // BOOL
-    
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreceiveresponse
-    fn WinHttpReceiveResponse(
-        h_request: *mut c_void, // HINTERNET
-        lp_reserved: *mut c_void, // LPVOID
-    ) -> c_int; // BOOL
-    
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreaddata
-    fn WinHttpReadData(
-        h_request: *mut c_void, // HINTERNET
-        lp_buffer: *mut c_void, // LPVOID
-        dw_number_of_bytes_to_read: c_ulong, // DWORD
-        lpdw_number_of_bytes_read: *mut c_ulong, // LPDWORD
-    ) -> c_int; // BOOL
-    
-}
-
-const WINHTTP_FLAG_SECURE: c_ulong = 0x0080_0000; // DWORD
-
-const WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL: c_ulong = 133; // DWORD
-const WINHTTP_PROTOCOL_FLAG_HTTP2: c_ulong = 1; // DWORD
-const WINHTTP_OPTION_DECOMPRESSION: c_ulong = 118; // DWORD
-const WINHTTP_DECOMPRESSION_FLAG_GZIP: c_ulong = 1; // DWORD
-const WINHTTP_DECOMPRESSION_FLAG_DEFLATE: c_ulong = 2; // DWORD
 
 pub struct Response {
     handle: WinHttpHandle,
@@ -79,14 +22,14 @@ impl Response {
         
         let handle = unsafe {
             
-            let result = WinHttpOpenRequest(
+            let result = sys::WinHttpOpenRequest(
                 connection.handle.as_raw(),
                 ptr::null(),
                 wide_path.as_ptr(),
                 ptr::null(),
                 ptr::null(),
                 ptr::null_mut(),
-                WINHTTP_FLAG_SECURE,
+                sys::WINHTTP_FLAG_SECURE,
             );
             
             if result.is_null() {
@@ -99,16 +42,16 @@ impl Response {
         
         // -------------------- set http2 --------------------
         
-        let mut flag = WINHTTP_PROTOCOL_FLAG_HTTP2;
+        let mut flag = sys::WINHTTP_PROTOCOL_FLAG_HTTP2;
         
         #[allow(clippy::cast_possible_truncation)]
         let bytes = size_of_val(&flag) as c_ulong;
         
         unsafe {
             
-            let result = WinHttpSetOption(
+            let result = sys::WinHttpSetOption(
                 handle.as_raw(),
-                WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
+                sys::WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
                 ptr::from_mut(&mut flag).cast::<c_void>(),
                 bytes,
             );
@@ -122,16 +65,16 @@ impl Response {
         // -------------------- set decompression --------------------
         
         // winhttp does not natively support the brotli (br) compression algorithm
-        let mut flag = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
+        let mut flag = sys::WINHTTP_DECOMPRESSION_FLAG_GZIP | sys::WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
         
         #[allow(clippy::cast_possible_truncation)]
         let bytes = size_of_val(&flag) as c_ulong;
         
         unsafe {
             
-            let result = WinHttpSetOption(
+            let result = sys::WinHttpSetOption(
                 handle.as_raw(),
-                WINHTTP_OPTION_DECOMPRESSION,
+                sys::WINHTTP_OPTION_DECOMPRESSION,
                 ptr::from_mut(&mut flag).cast::<c_void>(),
                 bytes,
             );
@@ -146,7 +89,7 @@ impl Response {
         
         unsafe {
             
-            let result = WinHttpSendRequest(
+            let result = sys::WinHttpSendRequest(
                 handle.as_raw(),
                 ptr::null(),
                 0,
@@ -166,7 +109,7 @@ impl Response {
         
         unsafe {
             
-            let result = WinHttpReceiveResponse(
+            let result = sys::WinHttpReceiveResponse(
                 handle.as_raw(),
                 ptr::null_mut(),
             );
@@ -194,7 +137,7 @@ impl Read for Response {
         
         unsafe {
             
-            let result = WinHttpReadData(
+            let result = sys::WinHttpReadData(
                 self.handle.as_raw(),
                 ptr::from_mut(buf).cast::<c_void>(),
                 bytes,

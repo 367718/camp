@@ -8,31 +8,9 @@ use std::{
     ptr,
 };
 
-unsafe extern "system" {
-    
-    // https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandlew
-    fn GetModuleHandleW(
-        lp_module_name: *const c_ushort, // LPCWSTR
-    ) -> *mut c_void; // HMODULE
-    
-    // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-formatmessagew
-    fn FormatMessageW(
-        dw_flags: c_ulong, // DWORD
-        lp_source: *const c_void, // LPCVOID
-        dw_message_id: c_ulong, // DWORD
-        dw_language_id: c_ulong, // DWORD
-        lp_buffer: *mut c_ushort, // LPWSTR
-        n_size: c_ulong, // DWORD,
-        arguments: *mut c_char, // va_list
-    ) -> c_ulong;
-    
-}
+use crate::sys;
 
 const MODULE_NAME: &str = "winhttp.dll";
-
-const FORMAT_MESSAGE_FROM_SYSTEM: u32 = 0x0000_1000;
-const FORMAT_MESSAGE_FROM_HMODULE: u32 = 0x0000_0800;
-const FORMAT_MESSAGE_IGNORE_INSERTS: u32 = 0x0000_0200;
 
 pub fn last_winhttp_error() -> Error {
     let os_error = Error::last_os_error();
@@ -48,7 +26,7 @@ pub fn last_winhttp_error() -> Error {
     
     let module = unsafe {
         
-        GetModuleHandleW(
+        sys::GetModuleHandleW(
             wide_name.as_ptr(),
         )
         
@@ -58,11 +36,11 @@ pub fn last_winhttp_error() -> Error {
     
     // FORMAT_MESSAGE_FROM_SYSTEM -> use core windows system message table as fallback
     // FORMAT_MESSAGE_IGNORE_INSERTS -> ignore insertion sequences, since "arguments" is null
-    let mut flag = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
+    let mut flag = sys::FORMAT_MESSAGE_FROM_SYSTEM | sys::FORMAT_MESSAGE_IGNORE_INSERTS;
     
     // FORMAT_MESSAGE_FROM_HMODULE -> use message table from provided module
     if ! module.is_null() {
-        flag |= FORMAT_MESSAGE_FROM_HMODULE;
+        flag |= sys::FORMAT_MESSAGE_FROM_HMODULE;
     }
     
     let mut buffer: [c_ushort; 1024] = [0; 1024];
@@ -72,7 +50,7 @@ pub fn last_winhttp_error() -> Error {
     
     let length = unsafe {
         
-        let result = FormatMessageW(
+        let result = sys::FormatMessageW(
             flag,
             module.cast_const(),
             error_code,

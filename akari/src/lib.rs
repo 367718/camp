@@ -1,6 +1,7 @@
 #[link(name = "winhttp")]
 unsafe extern "system" {}
 
+mod sys;
 mod winhttperror;
 mod winhttphandle;
 mod url;

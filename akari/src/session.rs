@@ -1,41 +1,14 @@
 use std::{
     io,
-    os::raw::*,
     ptr,
 };
 
 use crate::{
-    DNS_RESOLUTION_TIMEOUT,
-    CONNECTION_TIMEOUT,
-    SEND_TIMEOUT,
-    RECEIVE_TIMEOUT,
-    last_winhttp_error,
+    sys, last_winhttp_error,
+    DNS_RESOLUTION_TIMEOUT, CONNECTION_TIMEOUT,
+    SEND_TIMEOUT, RECEIVE_TIMEOUT,
     WinHttpHandle,
 };
-
-unsafe extern "system" {
-    
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpopen
-    fn WinHttpOpen(
-        psz_agent_w: *const c_ushort, // LPCWSTR
-        dw_access_type: c_ulong, // DWORD
-        psz_proxy_w: *const c_ushort, // LPCWSTR
-        psz_proxy_bypass_w: *const c_ushort, // LPCWSTR
-        dw_flags: c_ulong, // DWORD
-    ) -> *mut c_void; // HINTERNET
-    
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsettimeouts
-    fn WinHttpSetTimeouts(
-        h_internet: *mut c_void, // HINTERNET
-        n_resolve_timeout: c_int,
-        n_connect_timeout: c_int,
-        n_send_timeout: c_int,
-        n_receive_timeout: c_int,
-    ) -> c_int; // BOOL
-    
-}
-
-const WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY: c_ulong = 4; // DWORD
 
 pub struct Session {
     pub handle: WinHttpHandle,
@@ -50,9 +23,9 @@ impl Session {
         
         let handle = unsafe {
             
-            let result = WinHttpOpen(
+            let result = sys::WinHttpOpen(
                 wide_agent.as_ptr(),
-                WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
+                sys::WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
                 ptr::null(),
                 ptr::null(),
                 0,
@@ -70,7 +43,7 @@ impl Session {
         
         unsafe {
             
-            let result = WinHttpSetTimeouts(
+            let result = sys::WinHttpSetTimeouts(
                 handle.as_raw(),
                 DNS_RESOLUTION_TIMEOUT,
                 CONNECTION_TIMEOUT,

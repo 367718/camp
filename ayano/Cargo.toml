@@ -1,6 +1,6 @@
 [package]
 name = "ayano"
-description = "Non-compliant HTTP/1.1 server"
+description = "HTTP/1.1 server"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true

@@ -9,16 +9,24 @@ mod feeds;
 use std::{
     error::Error,
     io::Write,
+    process,
 };
 
 use ayano::{
-    Server, ServerRequest,
+    Server, Request,
     StatusCode, ContentType, CacheControl,
 };
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
+    if let Err(error) = process() {
+        eprintln!("ERROR: {error}");
+        process::exit(1);
+    }
+}
+
+fn process() -> Result<(), Box<dyn Error>> {
     let address = rin::get::<&str>(b"address")?;
-    let mut server = Server::bind(address, 10, 10)?;
+    let server = Server::bind(address)?;
     
     loop {
         
@@ -35,48 +43,49 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn handle_request(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
-    let endpoint = request.endpoint()
+fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
+    let (verb, path) = request.verb()
+        .zip(request.path())
         .ok_or("Invalid request")?;
     
-    match endpoint {
+    match (verb, path.as_str()) {
         
         // -------------------- general --------------------
         
-        (b"GET", b"/styles.css") => general::styles(request),
-        (b"GET", b"/scripts.js") => general::scripts(request),
+        ("GET", "/styles.css") => general::styles(request),
+        ("GET", "/scripts.js") => general::scripts(request),
         
         // -------------------- files --------------------
         
-        (b"GET", b"/files") => files::index(request),
-        (b"GET", b"/files/entries") => files::entries(request),
-        (b"POST", b"/files/play") => files::play(request),
-        (b"POST", b"/files/mark") => files::mark(request),
-        (b"POST", b"/files/folder") => files::folder(request),
-        (b"POST", b"/files/delete") => files::delete(request),
+        ("GET", "/files") => files::index(request),
+        ("GET", "/files/entries") => files::entries(request),
+        ("POST", "/files/play") => files::play(request),
+        ("POST", "/files/mark") => files::mark(request),
+        ("POST", "/files/folder") => files::folder(request),
+        ("POST", "/files/delete") => files::delete(request),
         
         // -------------------- watchlist --------------------
         
-        (b"GET", b"/watchlist") => watchlist::index(request),
-        (b"GET", b"/watchlist/entries") => watchlist::entries(request),
-        (b"POST", b"/watchlist/insert") => watchlist::insert(request),
-        (b"POST", b"/watchlist/update") => watchlist::update(request),
-        (b"POST", b"/watchlist/delete") => watchlist::delete(request),
+        ("GET", "/watchlist") => watchlist::index(request),
+        ("GET", "/watchlist/entries") => watchlist::entries(request),
+        ("POST", "/watchlist/insert") => watchlist::insert(request),
+        ("POST", "/watchlist/update") => watchlist::update(request),
+        ("POST", "/watchlist/delete") => watchlist::delete(request),
         
         // -------------------- rules --------------------
         
-        (b"GET", b"/rules") => rules::index(request),
-        (b"GET", b"/rules/entries") => rules::entries(request),
-        (b"POST", b"/rules/insert") => rules::insert(request),
-        (b"POST", b"/rules/update") => rules::update(request),
-        (b"POST", b"/rules/delete") => rules::delete(request),
+        ("GET", "/rules") => rules::index(request),
+        ("GET", "/rules/entries") => rules::entries(request),
+        ("POST", "/rules/insert") => rules::insert(request),
+        ("POST", "/rules/update") => rules::update(request),
+        ("POST", "/rules/delete") => rules::delete(request),
         
         // -------------------- feeds --------------------
         
-        (b"GET", b"/feeds") => feeds::index(request),
-        (b"GET", b"/feeds/entries") => feeds::entries(request),
-        (b"POST", b"/feeds/insert") => feeds::insert(request),
-        (b"POST", b"/feeds/delete") => feeds::delete(request),
+        ("GET", "/feeds") => feeds::index(request),
+        ("GET", "/feeds/entries") => feeds::entries(request),
+        ("POST", "/feeds/insert") => feeds::insert(request),
+        ("POST", "/feeds/delete") => feeds::delete(request),
         
         // -------------------- not found --------------------
         

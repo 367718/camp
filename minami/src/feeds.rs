@@ -3,18 +3,18 @@ use std::{
     io::Write,
 };
 
-use ayano::{ ServerRequest, StatusCode, ContentType, CacheControl };
+use ayano::{ Request, StatusCode, ContentType, CacheControl };
 
 const INDEX: &[u8] = include_bytes!("../rsc/feeds.html");
 
-pub fn index(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
+pub fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
         .and_then(|mut response| response.write_all(INDEX))?;
     
     Ok(())
 }
 
-pub fn entries(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
+pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
     let max_list_size = rin::get::<u64>(b"max_list_size")?;
@@ -36,14 +36,14 @@ pub fn entries(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn insert(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
+pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
     let max_list_size = rin::get::<u64>(b"max_list_size")?;
     
     let list = chiaki::List::load("feeds", max_list_size)?;
     
-    let input = request.form_data(b"input")
+    let input = request.form_field(b"input")
         .next()
         .ok_or("Wrong input")?;
     
@@ -58,14 +58,14 @@ pub fn insert(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn delete(request: &mut ServerRequest) -> Result<(), Box<dyn Error>> {
+pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
     let max_list_size = rin::get::<u64>(b"max_list_size")?;
     
     let list = chiaki::List::load("feeds", max_list_size)?;
     
-    let matcher = request.form_data(b"matcher")
+    let matcher = request.form_field(b"matcher")
         .next()
         .ok_or("Wrong matcher")?;
     
