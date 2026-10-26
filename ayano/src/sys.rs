@@ -289,8 +289,12 @@ pub const HTTP_HEADER_REQUEST_MAXIMUM: usize = 41;
 pub const HTTP_REQUEST_FLAG_MORE_ENTITY_BODY_EXISTS: c_ulong = 0x0000_0001;
 pub const HTTP_RECEIVE_REQUEST_ENTITY_BODY_FLAG_FILL_BUFFER: c_ulong = 0x0000_0001;
 
+pub const HTTP_VERB_GET: c_ulong = 4;
+pub const HTTP_VERB_POST: c_ulong = 6;
+
 pub const HTTP_SEND_RESPONSE_FLAG_DISCONNECT: c_ulong = 0x0000_0001;
 pub const HTTP_SEND_RESPONSE_FLAG_MORE_DATA: c_ulong = 0x0000_0002;
+pub const HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA: c_ulong = 0x0000_0004;
 
 pub const NO_ERROR: c_ulong = 0;
 pub const ERROR_HANDLE_EOF: c_ulong = 38;

@@ -45,8 +45,8 @@ impl<'s> Request<'s> {
         let headers_data = Self::headers_data(&self.headers);
         
         let verb = match headers_data.verb {
-            4 => "GET",
-            6 => "POST",
+            sys::HTTP_VERB_GET => "GET",
+            sys::HTTP_VERB_POST => "POST",
             _ => return None,
         };
         
@@ -239,24 +239,18 @@ impl<'s> Request<'s> {
                     
                     sys::ERROR_HANDLE_EOF => break,
                     
+                    sys::NO_ERROR if bytes_read == 0 => break,
+                    
                     sys::NO_ERROR => {
                         
-                        if bytes_read > 0 {
-                            
-                            // while a check for the value of the content-length header was done previously,
-                            // the header itself may be absent and nothing stops the client from actually sending more data
-                            if buffer.len() + (bytes_read as usize) > REQUEST_BODY_SIZE_LIMIT {
-                                Self::abort(server, headers_data.request_id, StatusCode::ContentTooLarge);
-                                return Err(Error::new(ErrorKind::InvalidData, "Request body exceeded maximum allowable size"));
-                            }
-                            
-                            buffer.extend_from_slice(&chunk[..bytes_read as usize]);
-                            
-                        } else {
-                            
-                            break;
-                            
+                        // while a check for the value of the content-length header has been done already,
+                        // the header itself may be absent and nothing stops the client from actually sending more data anyway
+                        if buffer.len() + (bytes_read as usize) > REQUEST_BODY_SIZE_LIMIT {
+                            Self::abort(server, headers_data.request_id, StatusCode::ContentTooLarge);
+                            return Err(Error::new(ErrorKind::InvalidData, "Request body exceeded maximum allowable size"));
                         }
+                        
+                        buffer.extend_from_slice(&chunk[..bytes_read as usize]);
                         
                     },
                     

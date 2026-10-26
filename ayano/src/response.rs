@@ -15,7 +15,8 @@ use crate::{
 pub struct Response<'s> {
     server: &'s Server,
     request_id: c_ulonglong, // HTTP_OPAQUE_ID
-    uncommitted: Vec<u8>,
+    uncommitted: [u8; UNCOMMITTED_BUFFER_CAPACITY],
+    uncommitted_len: usize,
     failed: bool,
 }
 
@@ -39,6 +40,7 @@ impl<'s> Response<'s> {
         response.status_code = status.into_int();
         response.headers = headers;
         
+        let flags = sys::HTTP_SEND_RESPONSE_FLAG_MORE_DATA | sys::HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA;
         let mut bytes_sent: c_ulong = 0;
         
         unsafe {
@@ -46,7 +48,7 @@ impl<'s> Response<'s> {
             let result = sys::HttpSendHttpResponse(
                 server.queue_handle(),
                 request_id,
-                sys::HTTP_SEND_RESPONSE_FLAG_MORE_DATA,
+                flags,
                 &raw mut response,
                 ptr::null_mut(),
                 &raw mut bytes_sent,
@@ -62,10 +64,11 @@ impl<'s> Response<'s> {
             
         };
         
-        let uncommitted = Vec::with_capacity(UNCOMMITTED_BUFFER_CAPACITY);
+        let uncommitted = [0; UNCOMMITTED_BUFFER_CAPACITY];
+        let uncommitted_len = 0;
         let failed = false;
         
-        Ok(Response { server, request_id, uncommitted, failed })
+        Ok(Response { server, request_id, uncommitted, uncommitted_len, failed })
     }
     
     
@@ -127,9 +130,9 @@ impl<'s> Response<'s> {
         // for a buffer of 8192 in length, the maximum possible value would be 6 bytes: 2000\r\n
         // 16 bytes is used as a safety margin
         let mut header = [0_u8; 16];
-        let mut cursor = std::io::Cursor::new(&mut header[..]);
-        write!(cursor, "{:X}\r\n", payload.len()).unwrap();
-        let header_len = usize::try_from(cursor.position()).expect("Unsupported platform");
+        let mut dest = &mut header[..];
+        write!(dest, "{:X}\r\n", payload.len()).unwrap();
+        let header_len = 16 - dest.len();
         
         let mut chunks = [
             Self::generate_chunk(&header[..header_len]),
@@ -176,12 +179,18 @@ impl Write for Response<'_> {
             return Ok(0);
         }
         
-        // uncommitted buffer is empty and incoming data fills or exceeds its capacity, skip copy
-        if self.uncommitted.is_empty() && buf.len() >= UNCOMMITTED_BUFFER_CAPACITY {
+        // bypass uncommitted buffer when writing large payloads
+        if self.uncommitted_len == 0 && buf.len() >= UNCOMMITTED_BUFFER_CAPACITY {
             
             let bytes = buf.len().min(c_ulong::MAX as usize);
             
-            if let Err(error) = Self::send_chunk(self.server.queue_handle(), self.request_id, &buf[..bytes]) {
+            let result = Self::send_chunk(
+                self.server.queue_handle(),
+                self.request_id,
+                &buf[..bytes],
+            );
+            
+            if let Err(error) = result {
                 self.failed = true;
                 return Err(error);
             }
@@ -191,12 +200,13 @@ impl Write for Response<'_> {
         }
         
         // copy as much as possible into uncommitted buffer
-        let available = UNCOMMITTED_BUFFER_CAPACITY - self.uncommitted.len();
+        let available = UNCOMMITTED_BUFFER_CAPACITY - self.uncommitted_len;
         let bytes = buf.len().min(available);
-        self.uncommitted.extend_from_slice(&buf[..bytes]);
+        self.uncommitted[self.uncommitted_len..self.uncommitted_len + bytes].copy_from_slice(&buf[..bytes]);
+        self.uncommitted_len += bytes;
         
-        // uncommitted buffer has been saturated, trigger flush
-        if self.uncommitted.len() >= UNCOMMITTED_BUFFER_CAPACITY {
+        // uncommitted buffer saturated, trigger flush
+        if self.uncommitted_len >= UNCOMMITTED_BUFFER_CAPACITY {
             self.flush()?;
         }
         
@@ -204,18 +214,22 @@ impl Write for Response<'_> {
     }
     
     fn flush(&mut self) -> io::Result<()> {
-        if self.uncommitted.is_empty() {
+        if self.uncommitted_len == 0 {
             return Ok(());
         }
         
-        let result = Self::send_chunk(self.server.queue_handle(), self.request_id, &self.uncommitted);
+        let result = Self::send_chunk(
+            self.server.queue_handle(),
+            self.request_id,
+            &self.uncommitted[..self.uncommitted_len],
+        );
         
         if result.is_err(){
             self.failed = true;
             return result;
         }
         
-        self.uncommitted.clear();
+        self.uncommitted_len = 0;
         
         Ok(())
     }
@@ -225,12 +239,7 @@ impl Write for Response<'_> {
 impl Drop for Response<'_> {
     
     fn drop(&mut self) {
-        if thread::panicking() || self.failed {
-            self.disconnect();
-            return;
-        }
-        
-        if self.flush().is_err() {
+        if thread::panicking() || self.failed || self.flush().is_err() {
             self.disconnect();
             return;
         }
