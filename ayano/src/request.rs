@@ -53,7 +53,6 @@ impl<'s> Request<'s> {
         Some(verb)
     }
     
-    
     pub fn path(&self) -> Option<String> {
         let headers_data = Self::headers_data(&self.headers);
         
@@ -76,7 +75,6 @@ impl<'s> Request<'s> {
         
         Some(path)
     }
-    
     
     pub fn form_field<'r, 'p>(&'r self, param: &'p [u8]) -> FormField<'r, 'p> {
         let headers_data = Self::headers_data(&self.headers);
@@ -188,7 +186,6 @@ impl<'s> Request<'s> {
         Ok(buffer)
     }
     
-    
     fn read_body(server: &Server, headers: &[u64]) -> io::Result<Vec<u8>> {
         let mut buffer = Vec::new();
         
@@ -270,11 +267,9 @@ impl<'s> Request<'s> {
         Ok(buffer)
     }
     
-    
     fn headers_data(headers: &[u64]) -> &sys::HttpRequestV2 {
         unsafe { &*headers.as_ptr().cast::<sys::HttpRequestV2>() }
     }
-    
     
     fn parse_content_length(headers_data: &sys::HttpRequestV2) -> io::Result<Option<usize>> {
         let content_length_raw = &headers_data.headers.known_headers[sys::HTTP_HEADER_CONTENT_LENGTH];
@@ -303,7 +298,6 @@ impl<'s> Request<'s> {
         
         Ok(Some(content_length_int))
     }
-    
     
     fn abort(server: &Server, request_id: c_ulonglong, status: StatusCode) {
         let mut response: sys::HttpResponseV2 = unsafe { mem::zeroed() };

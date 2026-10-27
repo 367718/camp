@@ -1,5 +1,5 @@
 use std::{
-    io::{ self, Error, ErrorKind, Write },
+    io::{ self, Error, ErrorKind, Write, Cursor },
     mem,
     os::raw::*,
     ptr,
@@ -20,7 +20,7 @@ pub struct Response<'s> {
     failed: bool,
 }
 
-const UNCOMMITTED_BUFFER_CAPACITY: usize = 8 * 1024;
+const UNCOMMITTED_BUFFER_CAPACITY: usize = 16 * 1024;
 
 impl<'s> Response<'s> {
     
@@ -107,7 +107,6 @@ impl<'s> Response<'s> {
         };
     }
     
-    
     fn generate_chunk(buffer: &[u8]) -> sys::HttpDataChunk {
         let mut chunk: sys::HttpDataChunk = unsafe { mem::zeroed() };
         
@@ -118,52 +117,6 @@ impl<'s> Response<'s> {
         };
         
         chunk
-    }
-    
-    
-    fn send_chunk(queue_handle: *mut c_void, request_id: c_ulonglong, payload: &[u8]) -> io::Result<()> {
-        // an empty payload would signal the end of the transmission
-        if payload.is_empty() {
-            return Ok(());
-        }
-        
-        // for a buffer of 8192 in length, the maximum possible value would be 6 bytes: 2000\r\n
-        // 16 bytes is used as a safety margin
-        let mut header = [0_u8; 16];
-        let mut dest = &mut header[..];
-        write!(dest, "{:X}\r\n", payload.len()).unwrap();
-        let header_len = 16 - dest.len();
-        
-        let mut chunks = [
-            Self::generate_chunk(&header[..header_len]),
-            Self::generate_chunk(payload),
-            Self::generate_chunk(b"\r\n"),
-        ];
-        
-        let mut bytes_sent: c_ulong = 0;
-        
-        unsafe {
-            
-            let result = sys::HttpSendResponseEntityBody(
-                queue_handle,
-                request_id,
-                sys::HTTP_SEND_RESPONSE_FLAG_MORE_DATA,
-                c_ushort::try_from(chunks.len()).expect("Unexpected truncation"),
-                chunks.as_mut_ptr(),
-                &raw mut bytes_sent,
-                ptr::null_mut(),
-                0,
-                ptr::null_mut(),
-                ptr::null_mut(),
-            );
-            
-            if result != sys::NO_ERROR {
-                return Err(Error::from_raw_os_error(result.cast_signed()));
-            }
-            
-        }
-        
-        Ok(())
     }
     
 }
@@ -177,26 +130,6 @@ impl Write for Response<'_> {
         
         if buf.is_empty() {
             return Ok(0);
-        }
-        
-        // bypass uncommitted buffer when writing large payloads
-        if self.uncommitted_len == 0 && buf.len() >= UNCOMMITTED_BUFFER_CAPACITY {
-            
-            let bytes = buf.len().min(c_ulong::MAX as usize);
-            
-            let result = Self::send_chunk(
-                self.server.queue_handle(),
-                self.request_id,
-                &buf[..bytes],
-            );
-            
-            if let Err(error) = result {
-                self.failed = true;
-                return Err(error);
-            }
-            
-            return Ok(bytes);
-            
         }
         
         // copy as much as possible into uncommitted buffer
@@ -218,15 +151,40 @@ impl Write for Response<'_> {
             return Ok(());
         }
         
-        let result = Self::send_chunk(
-            self.server.queue_handle(),
-            self.request_id,
-            &self.uncommitted[..self.uncommitted_len],
-        );
+        // for a buffer of 16384 (16 * 1024) in length, the maximum possible value would be 6 bytes: 4000\r\n
+        let mut header = [0_u8; 6];
+        let mut cursor = Cursor::new(&mut header[..]);
+        write!(cursor, "{:X}\r\n", self.uncommitted_len).unwrap();
+        let header_len = usize::try_from(cursor.position()).expect("Unexpected truncation");
         
-        if result.is_err(){
-            self.failed = true;
-            return result;
+        let mut chunks = [
+            Self::generate_chunk(&header[..header_len]),
+            Self::generate_chunk(&self.uncommitted[..self.uncommitted_len]),
+            Self::generate_chunk(b"\r\n"),
+        ];
+        
+        let mut bytes_sent: c_ulong = 0;
+        
+        unsafe {
+            
+            let result = sys::HttpSendResponseEntityBody(
+                self.server.queue_handle(),
+                self.request_id,
+                sys::HTTP_SEND_RESPONSE_FLAG_MORE_DATA,
+                c_ushort::try_from(chunks.len()).expect("Unexpected truncation"),
+                chunks.as_mut_ptr(),
+                &raw mut bytes_sent,
+                ptr::null_mut(),
+                0,
+                ptr::null_mut(),
+                ptr::null_mut(),
+            );
+            
+            if result != sys::NO_ERROR {
+                self.failed = true;
+                return Err(Error::from_raw_os_error(result.cast_signed()));
+            }
+            
         }
         
         self.uncommitted_len = 0;

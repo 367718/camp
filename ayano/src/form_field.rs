@@ -121,7 +121,6 @@ impl<'r, 'p> FormField<'r, 'p> {
         Some(())
     }
     
-    
     fn next_part(&mut self) -> Option<(&'r [u8], &'r [u8])> {
         if self.content.is_empty() {
             return None;
@@ -176,7 +175,6 @@ impl<'r, 'p> FormField<'r, 'p> {
         haystack.windows(needle.len())
             .position(|window| window == needle)
     }
-    
     
     fn parse_boundary_line(after_delimiter: &[u8]) -> Option<BoundaryKind<'_>> {
         // -------------------- final boundary --------------------

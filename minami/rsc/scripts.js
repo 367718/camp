@@ -1,468 +1,237 @@
 "use strict";
 
-
-// -------------------- constants --------------------
-
-
-const CURRENT_SECTION_NODE_SELECTOR = "body";
-const CURRENT_SECTION_BUTTON_SELECTOR = ".sections a:not([href])";
-
-const FILTER_NODE_SELECTOR = ".filter";
-const FILTER_TIMEOUT_ATTRIBUTE = "data-timeout";
-const FILTER_TIMEOUT_VALUE = 500;
-
-const ACTIONS_NODE_SELECTOR = ".actions";
-const ACTIONS_URL_ATTRIBUTE = "data-url";
-const ACTIONS_CONFIRM_ATTRIBUTE = "data-confirm";
-const ACTIONS_PROMPT_ATTRIBUTE = "data-prompt";
-const ACTIONS_REFRESH_ATTRIBUTE = "data-refresh";
-
-const TOGGLES_NODE_SELECTOR = ".toggles";
-const TOGGLES_ATTR_ATTRIBUTE = "data-attr";
-const TOGGLES_ENABLED_ATTRIBUTE = "data-enabled";
-
-const LIST_NODE_SELECTOR = ".list";
-const LIST_SORTED_ATTRIBUTE = "data-sorted";
-const LIST_REFRESH_ATTRIBUTE = "data-refresh";
-
-const ENTRY_SELECTED_ATTRIBUTE = "data-selected";
-const ENTRY_FILTERED_ATTRIBUTE = "data-filtered";
-
-const HOTKEY_COPY_COMPLETE = "KeyC";
-const HOTKEY_COPY_CLEAN = "KeyX";
-
-const COLOR_CLASSES = ["rin", "nadeshiko", "aoi", "chiaki", "ena"];
-
-
-// -------------------- classes --------------------
-
-
-class CurrentSection {
-  
-  constructor() {
+document.addEventListener("DOMContentLoaded", () => {
     
-    // -------------------- properties --------------------
+    // -------------------- state and selectors --------------------
     
-    this.node = document.querySelector(CURRENT_SECTION_NODE_SELECTOR);
-    this.filter = new Filter(this);
-    this.actions = new Actions(this);
-    this.toggles = new Toggles(this);
-    this.list = new List(this);
+    const listNode = document.querySelector(".list");
+    const filterNode = document.querySelector(".filter");
+    const collator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
+    let entries = [];
+    let filterTimeout;
     
-    // -------------------- styles --------------------
+    // -------------------- colors --------------------
     
-    // Math.random() generates a floating-point number between 0 (inclusive) and 1 (exclusive)
-    // Math.floor() rounds number down to the nearest whole integer
-    const color = COLOR_CLASSES[Math.floor(Math.random() * COLOR_CLASSES.length)];
-    this.node.classList.add(color);
+    const colors = ["rin", "nadeshiko", "aoi", "chiaki", "ena"];
+    document.body.classList.add(colors[Math.floor(Math.random() * colors.length)]);
     
-    // -------------------- bindings --------------------
+    // -------------------- core functions --------------------
     
-    // refresh list on current section button click
-    const button = this.node.querySelector(CURRENT_SECTION_BUTTON_SELECTOR);
-    button.addEventListener("click", () => this.list.refresh());
-    
-    this.node.addEventListener("keydown", (event) => {
-      
-      // bail if filter input is involved
-      if (this.filter.node && event.target === this.filter.node) {
-        return;
-      }
-      
-      // copy text to clipboard
-      if (event.ctrlKey && (event.code === HOTKEY_COPY_COMPLETE || event.code === HOTKEY_COPY_CLEAN)) {
-        this.list.copy(event.code === HOTKEY_COPY_CLEAN);
-        return event.preventDefault();
-      }
-      
-    });
-    
-    // -------------------- initial load --------------------
-    
-    this.list.refresh();
-    
-  }
-  
-}
-
-class Filter {
-  
-  constructor(parent) {
-    
-    // -------------------- properties --------------------
-    
-    this.node = parent.node.querySelector(FILTER_NODE_SELECTOR);
-    this.parent = parent;
-    
-    // -------------------- bindings --------------------
-    
-    this.node.addEventListener("input", () => {
-      clearTimeout(this.node.getAttribute(FILTER_TIMEOUT_ATTRIBUTE));
-      const timeout = setTimeout(() => this.apply(), FILTER_TIMEOUT_VALUE);
-      this.node.setAttribute(FILTER_TIMEOUT_ATTRIBUTE, timeout);
-    });
-    
-  }
-  
-  apply = () => {
-    
-    const sanitize = (text) => {
-      // decompose combined characters (é => e + ´)
-      return text.normalize("NFD")
-        // remove diacritical marks (https://www.unicode.org/charts/PDF/U0300.pdf)
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLocaleLowerCase("en");
-    };
-    
-    this.parent.list.entries
-      .filter(entry => entry.is_filtered())
-      .forEach(entry => entry.toggle_filter());
-    
-    if (this.node.value === "") {
-      return;
-    }
-    
-    const criteria = sanitize(this.node.value);
-    
-    for (let entry of this.parent.list.entries) {
-      
-      const current = sanitize(entry.text(false));
-      
-      if (! current.includes(criteria)) {
-        entry.toggle_filter();
-      }
-      
-    }
-    
-    this.parent.list.entries
-      .filter(entry => entry.is_selected() && entry.is_filtered())
-      .forEach(entry => entry.toggle_select());
-    
-  };
-  
-}
-
-class Actions {
-  
-  constructor(parent) {
-    
-    // -------------------- properties --------------------
-    
-    this.node = parent.node.querySelector(ACTIONS_NODE_SELECTOR);
-    this.parent = parent;
-    
-    // -------------------- bindings --------------------
-    
-    for (const child of this.node.children) {
-      
-      child.addEventListener("click", () => {
+    function getEntryText(entry, clean) {
         
-        const url = child.getAttribute(ACTIONS_URL_ATTRIBUTE);
-        const confirm = child.getAttribute(ACTIONS_CONFIRM_ATTRIBUTE) == "true";
-        const prompt = child.getAttribute(ACTIONS_PROMPT_ATTRIBUTE) == "true";
-        const refresh = child.getAttribute(ACTIONS_REFRESH_ATTRIBUTE) == "true";
+        let text = entry.textContent;
         
-        this.request(url, confirm, prompt, refresh);
-        
-      });
-      
-    }
-    
-  }
-  
-  request = (url, confirm, prompt, refresh) => {
-    
-    // -------------------- confirm --------------------
-    
-    if (confirm && ! window.confirm("Are you sure you want to proceed with the requested action?")) {
-      return;
-    }
-    
-    // -------------------- form data --------------------
-    
-    const form_data = new FormData();
-    
-    // -------------------- prompt --------------------
-    
-    if (prompt) {
-      
-      const input = window.prompt("The requested action requires a value");
-      
-      if (input === null) {
-        return;
-      }
-      
-      form_data.append("input", input);
-      
-    }
-    
-    // -------------------- matcher --------------------
-    
-    this.parent.list.entries
-      .filter(entry => entry.is_selected())
-      .forEach(entry => form_data.append("matcher", entry.text()));
-    
-    // -------------------- request --------------------
-    
-    fetch(url, { method: "POST", body: form_data })
-      .then(response => {
-        
-        if (response.status != 200) {
-          response.text().then(error => window.alert(error));
-          return;
+        if (clean) {
+            return text
+                // container
+                .replace(/^.+\\/, "")
+                // extension
+                .replace(/\.[^.]+$/, "")
+                // brackets and parens
+                .replace(/\[[^\]]*\]\s*|\([^\)]*\)\s*/g, "")
+                // episode number
+                .replace(/\s*-*\s*\d+\s*$/, "");
         }
         
-        if (refresh) {
-          this.parent.list.refresh();
-        }
+        return text;
         
-      })
-      .catch(error => window.alert(error));
-    
-  };
-  
-}
-
-class Toggles {
-  
-  constructor(parent) {
-    
-    // -------------------- properties --------------------
-    
-    this.node = parent.node.querySelector(TOGGLES_NODE_SELECTOR);
-    this.parent = parent;
-    
-    // -------------------- bindings --------------------
-    
-    for (const child of this.node.children) {
-      
-      child.addEventListener("click", (event) => {
-        
-        const state = child.getAttribute(TOGGLES_ENABLED_ATTRIBUTE) == "true" ? "false" : "true";
-        const attr = child.getAttribute(TOGGLES_ATTR_ATTRIBUTE);
-        
-        child.setAttribute(TOGGLES_ENABLED_ATTRIBUTE, state);
-        
-        this.parent.list.node.setAttribute(attr, state);
-        
-        this.parent.list.entries
-          .filter(entry => entry.is_selected() && ! entry.is_visible())
-          .forEach(entry => entry.toggle_select());
-        
-      });
-      
     }
     
-  }
-  
-}
-
-class List {
-  
-  constructor(parent) {
-    
-    // -------------------- properties --------------------
-    
-    this.node = parent.node.querySelector(LIST_NODE_SELECTOR);
-    this.parent = parent;
-    this.entries = [];
-    this.parser = new DOMParser();
-    this.collator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
-    
-    // -------------------- bindings --------------------
-    
-    this.node.onclick = (event) => this.select(event.target, event.ctrlKey, event.shiftKey);
-    
-  }
-  
-  select = (node, control, shift) => {
-    
-    let target_node = node;
-    
-    // container element
-    if (target_node.tagName === 'SPAN') {
-      target_node = target_node.parentNode;
-    }
-    
-    let target = this.entries.find(entry => entry.node == target_node);
-    
-    if (! target) {
-      return;
-    }
-    
-    // -------------------- simple click --------------------
-    
-    // select target and deselect every other entry
-    
-    if (! control && ! shift) {
-      
-      this.entries
-        .filter(entry => entry.is_selected())
-        .forEach(entry => entry.toggle_select());
-      
-      target.toggle_select();
-      
-      return;
-      
-    }
-    
-    // -------------------- control click --------------------
-    
-    // select target if deselected
-    // deselect target if selected
-    
-    if (control) {
-      target.toggle_select();
-      return;
-    }
-    
-    // -------------------- shift click --------------------
-    
-    // if target is positioned after the first selected entry, make a new selection from the first selected entry up to target
-    // if target is positioned before the first selected entry, make a new selection from the target up to last selected entry
-    // if no entry is selected, make a new selection from the first visible entry up to target
-    
-    if (shift) {
-      
-      let start = this.entries.findIndex(entry => entry.is_selected());
-      let end = this.entries.indexOf(target);
-      
-      if (start == -1) {
-        start = this.entries.findIndex(entry => entry.is_visible());
-      }
-      
-      if (start > end) {
-        start = end;
-        end = this.entries.findLastIndex(entry => entry.is_selected());
-      }
-      
-      this.entries
-        .filter(entry => entry.is_selected())
-        .forEach(entry => entry.toggle_select());
-      
-      this.entries
-        .slice(start, end + 1)
-        .filter(entry => entry.is_visible())
-        .forEach(entry => entry.toggle_select());
-      
-    }
-    
-  };
-  
-  copy = (clean) => {
-    
-    if (! navigator.clipboard) {
-      window.alert("Access to the clipboard is only available in secure contexts or localhost");
-      return;
-    }
-    
-    const text = this.entries
-      .filter(entry => entry.is_selected())
-      .map(entry => entry.text(clean))
-      .join("\n");
-    
-    navigator.clipboard.writeText(text);
-    
-  };
-  
-  refresh = () => {
-    
-    const resource = this.node.getAttribute(LIST_REFRESH_ATTRIBUTE);
-    
-    fetch(resource)
-      .then(response => {
+    function applyFilter() {
         
-        if (response.status != 200) {
-          this.node.replaceChildren();
-          this.entries = [];
-          response.text().then(error => window.alert(error));
-          return;
-        }
+        const sanitize = text => text
+            // decompose combined characters (é => e + ´)
+            .normalize("NFD")
+            // remove diacritical marks (https://www.unicode.org/charts/PDF/U0300.pdf)
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase();
         
-        response.text().then(text => {
-          
-          // parse
-          
-          const parsed = this.parser.parseFromString(text, "text/html");
-          let children = Array.from(parsed.body.children);
-          
-          // sort
-          
-          if (this.node.getAttribute(LIST_SORTED_ATTRIBUTE) == "true") {
-            children = children
-              .map(child => ({
-                child,
-                childrenLength: child.children.length,
-                textContent: child.textContent,
-              }))
-              .sort((a, b) => a.childrenLength - b.childrenLength || this.collator.compare(a.textContent, b.textContent))
-              .map(record => record.child);
-          }
-          
-          // update
-          
-          this.node.replaceChildren(...children);
-          this.entries = children.map(child => new Entry(child));
-          
-          // filter
-          
-          this.parent.filter.apply();
-          
+        const criteria = sanitize(filterNode.value);
+        
+        entries.forEach(entry => {
+            
+            const match = sanitize(getEntryText(entry, false)).includes(criteria);
+            entry.toggleAttribute("data-filtered", ! match);
+            
+            // deselect if filtered out
+            if (! match) entry.removeAttribute("data-selected");
+            
         });
         
-      })
-      .catch(error => window.alert(error));
-    
-  };
-  
-}
-
-class Entry {
-  
-  constructor(node) {
-    
-    this.node = node;
-    
-  }
-  
-  is_visible = () => this.node.offsetParent != null;
-  
-  is_selected = () => this.node.hasAttribute(ENTRY_SELECTED_ATTRIBUTE);
-  
-  is_filtered = () => this.node.hasAttribute(ENTRY_FILTERED_ATTRIBUTE);
-  
-  toggle_select = () => this.node.toggleAttribute(ENTRY_SELECTED_ATTRIBUTE);
-  
-  toggle_filter = () => this.node.toggleAttribute(ENTRY_FILTERED_ATTRIBUTE);
-  
-  text = (clean) => {
-    
-    let text = this.node.textContent;
-    
-    if (clean) {
-      
-      // container
-      text = text.replace(/^.+\\/, "");
-      
-      // format
-      text = text.replace(/\.[^.]+$/, "");
-      
-      // square brackets and parens
-      text = text.replace(/\[[^\]]*\]\s*|\([^\)]*\)\s*/g, "");
-      
-      // episode number
-      text = text.replace(/\s*-*\s*\d+\s*$/, "");
-      
     }
     
-    return text;
+    async function refreshList() {
+        
+        try {
+            
+            const response = await fetch(listNode.dataset.refresh);
+            if (! response.ok) throw new Error(await response.text());
+            
+            // parse
+            
+            const parsed = new DOMParser().parseFromString(await response.text(), "text/html");
+            let children = Array.from(parsed.body.children);
+            
+            // sort
+            
+            if (listNode.dataset.sorted === "true") {
+                children.sort((a, b) => a.children.length - b.children.length || collator.compare(a.textContent, b.textContent));
+            }
+            
+            // update
+            
+            listNode.replaceChildren(...children);
+            entries = children;
+            
+            // filter
+            
+            applyFilter();
+            
+        } catch (error) {
+            
+            listNode.replaceChildren();
+            entries = [];
+            alert(error.message);
+            
+        }
+        
+    }
     
-  };
-  
-}
-
-
-// -------------------- initialization --------------------
-
-
-document.addEventListener("DOMContentLoaded", () => new CurrentSection());
+    // -------------------- event listeners --------------------
+    
+    // current section
+    
+    document.querySelector(".sections a:not([href])")
+        .addEventListener("click", () => refreshList());
+    
+    // filter
+    
+    filterNode.addEventListener("input", () => {
+        clearTimeout(filterTimeout);
+        filterTimeout = setTimeout(applyFilter, 500);
+    });
+    
+    // actions
+    
+    for (const button of document.querySelectorAll(".actions > a")) {
+        button.addEventListener("click", async () => {
+            
+            if (button.dataset.confirm === "true" && ! confirm("Are you sure you want to proceed?")) return;
+            
+            const formData = new FormData();
+            
+            if (button.dataset.prompt === "true") {
+                const input = prompt("The requested action requires a value");
+                if (input === null) return;
+                formData.append("input", input);
+            }
+            
+            entries.filter(entry => entry.hasAttribute("data-selected"))
+                .forEach(entry => formData.append("matcher", getEntryText(entry, false)));
+            
+            try {
+                
+                const response = await fetch(button.dataset.url, { method: "POST", body: formData });
+                if (! response.ok) throw new Error(await response.text());
+                if (button.dataset.refresh === "true") refreshList();
+                
+            } catch (error) {
+                
+                alert(error.message);
+                
+            }
+            
+        });
+    }
+    
+    // toggles
+    
+    for (const button of document.querySelectorAll(".toggles > a")) {
+        button.addEventListener("click", () => {
+            
+            const state = button.dataset.enabled === "true" ? "false" : "true";
+            
+            button.dataset.enabled = state;
+            listNode.setAttribute(button.dataset.attr, state);
+            
+            // deselect hidden items
+            entries.filter(entry => entry.hasAttribute("data-selected") && entry.offsetParent === null)
+                .forEach(entry => entry.removeAttribute("data-selected"));
+            
+        });
+    }
+    
+    // entry selection
+    
+    listNode.addEventListener("click", (event) => {
+        
+        const targetEntry = entries.find(entry => entry === event.target || entry.contains(event.target));
+        
+        if (targetEntry) {
+            
+            if (! event.ctrlKey && ! event.shiftKey) {
+                
+                // select target and deselect every other entry
+                
+                entries.forEach(entry => entry.removeAttribute("data-selected"));
+                targetEntry.setAttribute("data-selected", "");
+                
+            } else if (event.ctrlKey) {
+                
+                // select target if deselected
+                // deselect target if selected
+                
+                targetEntry.toggleAttribute("data-selected");
+                
+            } else if (event.shiftKey) {
+                
+                // if target is positioned after the first selected entry, make a new selection from the first selected entry up to target
+                // if target is positioned before the first selected entry, make a new selection from the target up to last selected entry
+                // if no entry is selected, make a new selection from the first visible entry up to target
+                
+                let start = entries.findIndex(entry => entry.hasAttribute("data-selected"));
+                let end = entries.indexOf(targetEntry);
+                
+                if (start === -1) start = entries.findIndex(entry => entry.offsetParent !== null);
+                if (start > end) [start, end] = [end, entries.findLastIndex(entry => entry.hasAttribute("data-selected"))];
+                
+                entries.forEach(entry => entry.removeAttribute("data-selected"));
+                entries.slice(start, end + 1).forEach(entry => {
+                    if (entry.offsetParent !== null) entry.setAttribute("data-selected", "");
+                });
+                
+            }
+            
+        }
+        
+    });
+    
+    // copy
+    
+    document.body.addEventListener("keydown", (event) => {
+        
+        // bail if filter input is involved
+        if (event.target === filterNode) return;
+        
+        if (event.ctrlKey && (event.code === "KeyC" || event.code === "KeyX")) {
+            
+            event.preventDefault();
+            
+            if (! navigator.clipboard) return alert("Clipboard unavailable in this context.");
+            
+            const text = entries
+                .filter(entry => entry.hasAttribute("data-selected"))
+                .map(entry => getEntryText(entry, event.code === "KeyX"))
+                .join("\n");
+            
+            navigator.clipboard.writeText(text);
+            
+        }
+        
+    });
+    
+    // -------------------- initialization --------------------
+    
+    refreshList();
+    
+});
