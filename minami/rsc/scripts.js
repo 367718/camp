@@ -120,10 +120,16 @@ document.addEventListener("DOMContentLoaded", () => {
             
             const formData = new FormData();
             
-            if (button.dataset.prompt === "true") {
-                const input = prompt("The requested action requires a value");
-                if (input === null) return;
-                formData.append("input", input);
+            if (button.dataset.key === "true") {
+                const key = prompt("The requested action requires a key");
+                if (key === null) return;
+                formData.append("key", key);
+            }
+            
+            if (button.dataset.value === "true") {
+                const value = prompt("The requested action requires a value");
+                if (value === null) return;
+                formData.append("value", value);
             }
             
             entries.filter(entry => entry.hasAttribute("data-selected"))

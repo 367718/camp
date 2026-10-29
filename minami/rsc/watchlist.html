@@ -23,9 +23,9 @@
             <input type="text" class="filter" placeholder="Filter">
             
             <div class="actions">
-                <a data-url="/watchlist/insert" data-confirm="false" data-prompt="true" data-refresh="true">Insert</a>
-                <a data-url="/watchlist/update" data-confirm="false" data-prompt="true" data-refresh="true">Update</a>
-                <a data-url="/watchlist/delete" data-confirm="true" data-prompt="false" data-refresh="true">Delete</a>
+                <a data-url="/watchlist/insert" data-confirm="false" data-key="true" data-value="true" data-refresh="true">Insert</a>
+                <a data-url="/watchlist/update" data-confirm="false" data-key="false" data-value="true" data-refresh="true">Update</a>
+                <a data-url="/watchlist/delete" data-confirm="true" data-key="false" data-value="false" data-refresh="true">Delete</a>
             </div>
             
             <div class="toggles">
@@ -35,7 +35,7 @@
             
         </div>
         
-        <div data-refresh="/watchlist/entries" data-sorted="true" data-value="true" data-primary="true" data-secondary="true" data-tertiary="false" class="list"></div>
+        <div data-refresh="/watchlist/entries" data-sorted="true" data-showvalue="true" data-primary="true" data-secondary="true" data-tertiary="false" class="list"></div>
         
     </body>
     

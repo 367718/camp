@@ -86,7 +86,7 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if selected.peek().is_none() {
-        return Err("File not found".into());
+        return Err("No relevant entry found".into());
     }
     
     // -------------------- operation --------------------
@@ -123,7 +123,7 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if selected.peek().is_none() {
-        return Err("File not found".into());
+        return Err("No relevant entry found".into());
     }
     
     // -------------------- operation --------------------
@@ -154,17 +154,17 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if selected.peek().is_none() {
-        return Err("File not found".into());
+        return Err("No relevant entry found".into());
     }
     
-    let folder = match request.form_field(b"input").next() {
-        Some(input) => str::from_utf8(input).map_err(|_| "Invalid input")?,
+    let key = match request.form_field(b"key").next() {
+        Some(key) => str::from_utf8(key).map_err(|_| "Invalid key")?,
         None => "",
     };
     
     // -------------------- operation --------------------
     
-    selected.try_for_each(|entry| entry.move_to_folder(folder))?;
+    selected.try_for_each(|entry| entry.move_to_folder(key))?;
     
     // -------------------- response --------------------
     
@@ -190,7 +190,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .peekable();
     
     if selected.peek().is_none() {
-        return Err("File not found".into());
+        return Err("No relevant entry found".into());
     }
     
     // -------------------- operation --------------------

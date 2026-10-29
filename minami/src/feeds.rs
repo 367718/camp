@@ -43,13 +43,13 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let list = chiaki::List::load("feeds", max_list_size)?;
     
-    let input = request.form_field(b"input")
+    let key = request.form_field(b"key")
         .next()
-        .ok_or("Wrong input")?;
+        .ok_or("Invalid key")?;
     
     // -------------------- operation --------------------
     
-    list.set(input, 0)?;
+    list.set(key, 0)?;
     
     // -------------------- response --------------------
     
@@ -67,7 +67,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let matcher = request.form_field(b"matcher")
         .next()
-        .ok_or("Wrong matcher")?;
+        .ok_or("No relevant entry found")?;
     
     // -------------------- operation --------------------
     

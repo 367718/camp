@@ -166,7 +166,7 @@ body {
     overflow-y: scroll;
     height: 100%;
     
-    &[data-value="true"] a[data-value]::after {
+    &[data-showvalue="true"] a[data-value]::after {
         display: inline;
     }
     

@@ -23,10 +23,10 @@
             <input type="text" class="filter" placeholder="Filter">
             
             <div class="actions">
-                <a data-url="/files/play" data-confirm="false" data-prompt="false" data-refresh="false">Play</a>
-                <a data-url="/files/mark" data-confirm="false" data-prompt="false" data-refresh="true">Mark</a>
-                <a data-url="/files/folder" data-confirm="false" data-prompt="true" data-refresh="true">Folder</a>
-                <a data-url="/files/delete" data-confirm="true" data-prompt="false" data-refresh="true">Delete</a>
+                <a data-url="/files/play" data-confirm="false" data-key="false" data-value="false" data-refresh="false">Play</a>
+                <a data-url="/files/mark" data-confirm="false" data-key="false" data-value="false" data-refresh="true">Mark</a>
+                <a data-url="/files/folder" data-confirm="false" data-key="true" data-value="false" data-refresh="true">Folder</a>
+                <a data-url="/files/delete" data-confirm="true" data-key="false" data-value="false" data-refresh="true">Delete</a>
             </div>
             
             <div class="toggles">
@@ -37,7 +37,7 @@
             
         </div>
         
-        <div data-refresh="/files/entries" data-sorted="true" data-value="false" data-primary="true" data-secondary="false" data-tertiary="true" class="list"></div>
+        <div data-refresh="/files/entries" data-sorted="true" data-showvalue="false" data-primary="true" data-secondary="false" data-tertiary="true" class="list"></div>
         
     </body>
     

@@ -49,13 +49,21 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let list = chiaki::List::load("watchlist", max_list_size)?;
     
-    let input = request.form_field(b"input")
+    let key = request.form_field(b"key")
         .next()
-        .ok_or("Wrong input")?;
+        .ok_or("Invalid key")?;
+    
+    // TODO: replace with u16::from_ascii in the future (https://github.com/rust-lang/rust/issues/134821)
+    let value = request.form_field(b"value")
+        .next()
+        .as_ref()
+        .and_then(|value| str::from_utf8(value).ok())
+        .and_then(|value| value.parse().ok())
+        .ok_or("Invalid value")?;
     
     // -------------------- operation --------------------
     
-    list.set(input, 0)?;
+    list.set(key, value)?;
     
     // -------------------- response --------------------
     
@@ -73,18 +81,19 @@ pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let matcher = request.form_field(b"matcher")
         .next()
-        .ok_or("Wrong matcher")?;
+        .ok_or("No relevant entry found")?;
     
-    let input = request.form_field(b"input")
+    // TODO: replace with u16::from_ascii in the future (https://github.com/rust-lang/rust/issues/134821)
+    let value = request.form_field(b"value")
         .next()
         .as_ref()
-        .and_then(|input| str::from_utf8(input).ok())
-        .and_then(|input| input.parse().ok())
-        .ok_or("Wrong input")?;
+        .and_then(|value| str::from_utf8(value).ok())
+        .and_then(|value| value.parse().ok())
+        .ok_or("Invalid value")?;
     
     // -------------------- operation --------------------
     
-    list.set(matcher, input)?;
+    list.set(matcher, value)?;
     
     // -------------------- response --------------------
     
@@ -102,7 +111,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let matcher = request.form_field(b"matcher")
         .next()
-        .ok_or("Wrong matcher")?;
+        .ok_or("No relevant entry found")?;
     
     // -------------------- operation --------------------
     
