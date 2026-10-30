@@ -7,8 +7,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const listNode = document.querySelector(".list");
     const filterNode = document.querySelector(".filter");
     const collator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
+    
     let entries = [];
     let filterTimeout;
+    let refreshAbortController = null;
+    let lastSelectedIndex = -1;
     
     // -------------------- colors --------------------
     
@@ -30,21 +33,27 @@ document.addEventListener("DOMContentLoaded", () => {
                 // brackets and parens
                 .replace(/\[[^\]]*\]\s*|\([^\)]*\)\s*/g, "")
                 // episode number
-                .replace(/\s*-*\s*\d+\s*$/, "");
+                .replace(/\s*-*\s*\d+\s*$/, "")
+                // stray whitespace
+                .trim();
         }
         
         return text;
         
     }
     
-    function applyFilter() {
+    function sanitize(text) {
         
-        const sanitize = text => text
+        return text
             // decompose combined characters (é => e + ´)
             .normalize("NFD")
             // remove diacritical marks (https://www.unicode.org/charts/PDF/U0300.pdf)
             .replace(/[\u0300-\u036f]/g, "")
             .toLowerCase();
+        
+    }
+    
+    function applyFilter() {
         
         const criteria = sanitize(filterNode.value);
         
@@ -62,9 +71,16 @@ document.addEventListener("DOMContentLoaded", () => {
     
     async function refreshList() {
         
+        // try to prevent further calls if one is already in flight
+        refreshAbortController?.abort();
+        refreshAbortController = new AbortController();
+        
         try {
             
-            const response = await fetch(listNode.dataset.refresh);
+            const response = await fetch(listNode.dataset.refresh, {
+                signal: refreshAbortController.signal
+            });
+            
             if (! response.ok) throw new Error(await response.text());
             
             // parse
@@ -82,6 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
             
             listNode.replaceChildren(...children);
             entries = children;
+            lastSelectedIndex = -1;
             
             // filter
             
@@ -89,8 +106,12 @@ document.addEventListener("DOMContentLoaded", () => {
             
         } catch (error) {
             
+            if (error.name === "AbortError") return;
+            
             listNode.replaceChildren();
             entries = [];
+            lastSelectedIndex = -1;
+            
             alert(error.message);
             
         }
@@ -116,24 +137,32 @@ document.addEventListener("DOMContentLoaded", () => {
     for (const button of document.querySelectorAll(".actions > a")) {
         button.addEventListener("click", async () => {
             
+            const selected = entries.filter(entry => entry.hasAttribute("data-selected"));
+            
+            // no entry was selected, bail
+            if (selected.length === 0) return;
+            
+            // ask for confirmation
             if (button.dataset.confirm === "true" && ! confirm("Are you sure you want to proceed?")) return;
             
             const formData = new FormData();
             
+            // ask for key
             if (button.dataset.key === "true") {
                 const key = prompt("The requested action requires a key");
                 if (key === null) return;
                 formData.append("key", key);
             }
             
+            // ask for value
             if (button.dataset.value === "true") {
                 const value = prompt("The requested action requires a value");
                 if (value === null) return;
                 formData.append("value", value);
             }
             
-            entries.filter(entry => entry.hasAttribute("data-selected"))
-                .forEach(entry => formData.append("matcher", getEntryText(entry, false)));
+            // add every selected entry
+            selected.forEach(entry => formData.append("matcher", getEntryText(entry, false)));
             
             try {
                 
@@ -161,7 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
             listNode.setAttribute(button.dataset.attr, state);
             
             // deselect hidden items
-            entries.filter(entry => entry.hasAttribute("data-selected") && entry.offsetParent === null)
+            entries.filter(entry => entry.hasAttribute("data-selected") && ! entry.checkVisibility())
                 .forEach(entry => entry.removeAttribute("data-selected"));
             
         });
@@ -171,42 +200,51 @@ document.addEventListener("DOMContentLoaded", () => {
     
     listNode.addEventListener("click", (event) => {
         
-        const targetEntry = entries.find(entry => entry === event.target || entry.contains(event.target));
+        const targetEntry = event.target.closest(".list > a");
+        if (! targetEntry || ! entries.includes(targetEntry) || ! targetEntry.checkVisibility()) return;
         
-        if (targetEntry) {
+        const targetIndex = entries.indexOf(targetEntry);
+        
+        if (! event.ctrlKey && ! event.shiftKey) {
             
-            if (! event.ctrlKey && ! event.shiftKey) {
-                
-                // select target and deselect every other entry
-                
-                entries.forEach(entry => entry.removeAttribute("data-selected"));
-                targetEntry.setAttribute("data-selected", "");
-                
-            } else if (event.ctrlKey) {
-                
-                // select target if deselected
-                // deselect target if selected
-                
-                targetEntry.toggleAttribute("data-selected");
-                
-            } else if (event.shiftKey) {
-                
-                // if target is positioned after the first selected entry, make a new selection from the first selected entry up to target
-                // if target is positioned before the first selected entry, make a new selection from the target up to last selected entry
-                // if no entry is selected, make a new selection from the first visible entry up to target
-                
-                let start = entries.findIndex(entry => entry.hasAttribute("data-selected"));
-                let end = entries.indexOf(targetEntry);
-                
-                if (start === -1) start = entries.findIndex(entry => entry.offsetParent !== null);
-                if (start > end) [start, end] = [end, entries.findLastIndex(entry => entry.hasAttribute("data-selected"))];
-                
-                entries.forEach(entry => entry.removeAttribute("data-selected"));
-                entries.slice(start, end + 1).forEach(entry => {
-                    if (entry.offsetParent !== null) entry.setAttribute("data-selected", "");
-                });
-                
+            // select target and deselect every other entry
+            
+            entries.forEach(entry => entry.removeAttribute("data-selected"));
+            targetEntry.setAttribute("data-selected", "");
+            lastSelectedIndex = targetIndex;
+            
+        } else if (event.ctrlKey && ! event.shiftKey) {
+            
+            // select target if deselected
+            // deselect target if selected
+            
+            targetEntry.toggleAttribute("data-selected");
+            lastSelectedIndex = targetIndex;
+            
+        } else if (event.shiftKey) {
+            
+            // mimic windows explorer behavior
+            // shift (without ctrl): replace selection with the range between the anchor and the current target
+            // shift + ctrl: keep existing selection, adding the range between the anchor and the current target
+            // if target is above anchor, start and end are swapped
+            
+            if (lastSelectedIndex === -1) {
+                lastSelectedIndex = targetIndex;
             }
+            
+            let start = lastSelectedIndex;
+            let end = targetIndex;
+            
+            if (start > end) [start, end] = [end, start];
+            
+            if (! event.ctrlKey) {
+                entries.forEach((entry) => entry.removeAttribute("data-selected"));
+            }
+            
+            // "slice" does not include the element positioned at "end" index, hence the "+ 1"
+            entries.slice(start, end + 1).forEach((entry) => {
+                if (entry.checkVisibility()) entry.setAttribute("data-selected", "");
+            });
             
         }
         
@@ -214,7 +252,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // copy
     
-    document.body.addEventListener("keydown", (event) => {
+    document.body.addEventListener("keydown", async (event) => {
         
         // bail if filter input is involved
         if (event.target === filterNode) return;
@@ -230,7 +268,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 .map(entry => getEntryText(entry, event.code === "KeyX"))
                 .join("\n");
             
-            navigator.clipboard.writeText(text);
+            try {
+                
+                await navigator.clipboard.writeText(text);
+                
+            } catch (error) {
+                
+                alert(error.message);
+                
+            }
             
         }
         
@@ -238,6 +284,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // -------------------- initialization --------------------
     
+    // load current section list items
     refreshList();
     
 });

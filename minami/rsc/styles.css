@@ -165,6 +165,7 @@ body {
     
     overflow-y: scroll;
     height: 100%;
+    user-select: none;
     
     &[data-showvalue="true"] a[data-value]::after {
         display: inline;
