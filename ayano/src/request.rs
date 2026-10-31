@@ -62,18 +62,18 @@ impl<'s> Request<'s> {
             return None;
         }
         
-        let path = unsafe {
+        // "cooked.abs_path_length" is the length of the string in bytes (without the null terminator)
+        // "slice::from_raw_parts" expects an element count
+        let utf16_slice = unsafe {
             
-            let bytes = slice::from_raw_parts(
+            slice::from_raw_parts(
                 cooked.p_abs_path,
                 (cooked.abs_path_length as usize) / mem::size_of::<u16>(),
-            );
-            
-            String::from_utf16(bytes).ok()?
+            )
             
         };
         
-        Some(path)
+        String::from_utf16(utf16_slice).ok()
     }
     
     pub fn form_field<'r, 'p>(&'r self, param: &'p [u8]) -> FormField<'r, 'p> {
@@ -84,12 +84,10 @@ impl<'s> Request<'s> {
             
             if ! content_type_raw.p_raw_value.is_null() && content_type_raw.raw_value_length > 0 {
                 
-                let bytes = slice::from_raw_parts(
+                Some(slice::from_raw_parts(
                     content_type_raw.p_raw_value.cast::<u8>(),
                     content_type_raw.raw_value_length as usize,
-                );
-                
-                Some(bytes)
+                ))
                 
             } else {
                 
@@ -195,9 +193,12 @@ impl<'s> Request<'s> {
             
             // ---------------- content-length check ----------------
             
-            let Ok(content_length) = Self::parse_content_length(headers_data) else {
-                Self::abort(server, headers_data.request_id, StatusCode::BadRequest);
-                return Err(Error::new(ErrorKind::InvalidData, "Malformed Content-Length header"));
+            let content_length = match Self::parse_content_length(headers_data) {
+                Ok(content_length) => content_length,
+                Err(error) => {
+                    Self::abort(server, headers_data.request_id, StatusCode::BadRequest);
+                    return Err(error);
+                },
             };
             
             if let Some(content_length) = content_length {
@@ -214,6 +215,9 @@ impl<'s> Request<'s> {
             let mut chunk = [0_u8; REQUEST_BODY_CHUNK_CAPACITY];
             let chunk_len = c_ulong::try_from(chunk.len()).expect("Unexpected truncation");
             
+            // chunk will be filled with one or more entity bodies
+            let flags = sys::HTTP_RECEIVE_REQUEST_ENTITY_BODY_FLAG_FILL_BUFFER;
+            
             loop {
                 
                 let mut bytes_read: c_ulong = 0;
@@ -223,7 +227,7 @@ impl<'s> Request<'s> {
                     sys::HttpReceiveRequestEntityBody(
                         server.queue_handle(),
                         headers_data.request_id,
-                        sys::HTTP_RECEIVE_REQUEST_ENTITY_BODY_FLAG_FILL_BUFFER,
+                        flags,
                         chunk.as_mut_ptr().cast::<c_void>(),
                         chunk_len,
                         &raw mut bytes_read,
@@ -274,11 +278,12 @@ impl<'s> Request<'s> {
     fn parse_content_length(headers_data: &sys::HttpRequestV2) -> io::Result<Option<usize>> {
         let content_length_raw = &headers_data.headers.known_headers[sys::HTTP_HEADER_CONTENT_LENGTH];
         
-        if content_length_raw.p_raw_value.is_null() || content_length_raw.raw_value_length == 0 {
+        // header not provided by the client
+        if content_length_raw.p_raw_value.is_null() {
             return Ok(None);
         }
         
-        let content_length_bytes = unsafe {
+        let bytes = unsafe {
             
             slice::from_raw_parts(
                 content_length_raw.p_raw_value.cast::<u8>(),
@@ -287,16 +292,30 @@ impl<'s> Request<'s> {
             
         };
         
-        let content_length_string = str::from_utf8(content_length_bytes)
-            .map_err(|_| Error::from(ErrorKind::InvalidData))?;
+        let trimmed = bytes.trim_ascii();
         
-        // TODO: replace with usize::from_ascii in the future (https://github.com/rust-lang/rust/issues/134821)
-        let content_length_int = content_length_string
-            .trim()
-            .parse::<usize>()
-            .map_err(|_| Error::from(ErrorKind::InvalidData))?;
+        // header is present but the value is empty or whitespace-only
+        if trimmed.is_empty() {
+            return Err(Error::new(ErrorKind::InvalidData, "Empty Content-Length header"));
+        }
         
-        Ok(Some(content_length_int))
+        // "str::parse::<usize>()" and "usize::from_ascii" accepts the "+" symbol, which is incorrect
+        let mut content_length: usize = 0;
+        
+        for &byte in trimmed {
+            
+            if ! byte.is_ascii_digit() {
+                return Err(Error::new(ErrorKind::InvalidData, "Invalid character in Content-Length"));
+            }
+            
+            content_length = content_length
+                .checked_mul(10)
+                .and_then(|value| value.checked_add(usize::from(byte - b'0')))
+                .ok_or_else(|| Error::new(ErrorKind::InvalidData, "Content-Length overflow"))?;
+            
+        }
+        
+        Ok(Some(content_length))
     }
     
     fn abort(server: &Server, request_id: c_ulonglong, status: StatusCode) {
@@ -305,6 +324,8 @@ impl<'s> Request<'s> {
         response.version = sys::HTTP_VERSION_1_1;
         response.status_code = status.into_int();
         
+        // the network connection should be closed after sending this response
+        let flags = sys::HTTP_SEND_RESPONSE_FLAG_DISCONNECT;
         let mut bytes_sent: c_ulong = 0;
         
         unsafe {
@@ -312,7 +333,7 @@ impl<'s> Request<'s> {
             sys::HttpSendHttpResponse(
                 server.queue_handle(),
                 request_id,
-                sys::HTTP_SEND_RESPONSE_FLAG_DISCONNECT,
+                flags,
                 &raw mut response,
                 ptr::null_mut(),
                 &raw mut bytes_sent,
@@ -334,7 +355,7 @@ impl Drop for Request<'_> {
             return;
         }
         
-        // unaswered request; assume error and drop connection
+        // unaswered request; assume error and close connection
         let request_id = Self::headers_data(&self.headers).request_id;
         Self::abort(self.server, request_id, StatusCode::Error);
     }

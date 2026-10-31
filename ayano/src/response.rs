@@ -40,6 +40,8 @@ impl<'s> Response<'s> {
         response.status_code = status.into_int();
         response.headers = headers;
         
+        // HTTP_SEND_RESPONSE_FLAG_MORE_DATA: additional data will be sent in subsequent calls for this response
+        // HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA: enables buffering, which maximizes performance and throughput for small-to-medium responses
         let flags = sys::HTTP_SEND_RESPONSE_FLAG_MORE_DATA | sys::HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA;
         let mut bytes_sent: c_ulong = 0;
         
@@ -76,6 +78,8 @@ impl<'s> Response<'s> {
     
     
     fn disconnect(&mut self) {
+        // the network connection should be closed after sending this response
+        let flags = sys::HTTP_SEND_RESPONSE_FLAG_DISCONNECT;
         let mut bytes_sent: c_ulong = 0;
         
         unsafe {
@@ -83,7 +87,7 @@ impl<'s> Response<'s> {
             sys::HttpSendResponseEntityBody(
                 self.server.queue_handle(),
                 self.request_id,
-                sys::HTTP_SEND_RESPONSE_FLAG_DISCONNECT,
+                flags,
                 0,
                 ptr::null_mut(),
                 &raw mut bytes_sent,
@@ -163,6 +167,8 @@ impl Write for Response<'_> {
             Self::generate_chunk(b"\r\n"),
         ];
         
+        // additional data will be sent in subsequent calls for this response
+        let flags = sys::HTTP_SEND_RESPONSE_FLAG_MORE_DATA;
         let mut bytes_sent: c_ulong = 0;
         
         unsafe {
@@ -170,7 +176,7 @@ impl Write for Response<'_> {
             let result = sys::HttpSendResponseEntityBody(
                 self.server.queue_handle(),
                 self.request_id,
-                sys::HTTP_SEND_RESPONSE_FLAG_MORE_DATA,
+                flags,
                 c_ushort::try_from(chunks.len()).expect("Unexpected truncation"),
                 chunks.as_mut_ptr(),
                 &raw mut bytes_sent,
@@ -202,7 +208,11 @@ impl Drop for Response<'_> {
             return;
         }
         
+        // singal the client that no more chunks will be sent by sending a final zero-sized chunk
         let mut chunk = Self::generate_chunk(b"0\r\n\r\n");
+        
+        // singal the kernel that no more chunks will be sent by omitting the "HTTP_SEND_RESPONSE_FLAG_MORE_DATA" flag
+        let flags = 0;
         let mut bytes_sent: c_ulong = 0;
         
         unsafe {
@@ -210,7 +220,7 @@ impl Drop for Response<'_> {
             let result = sys::HttpSendResponseEntityBody(
                 self.server.queue_handle(),
                 self.request_id,
-                0,
+                flags,
                 1,
                 &raw mut chunk,
                 &raw mut bytes_sent,
