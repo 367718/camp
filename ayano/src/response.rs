@@ -208,10 +208,10 @@ impl Drop for Response<'_> {
             return;
         }
         
-        // singal the client that no more chunks will be sent by sending a final zero-sized chunk
+        // signal the client that no more chunks will be sent by sending a final zero-sized chunk
         let mut chunk = Self::generate_chunk(b"0\r\n\r\n");
         
-        // singal the kernel that no more chunks will be sent by omitting the "HTTP_SEND_RESPONSE_FLAG_MORE_DATA" flag
+        // signal the kernel that no more chunks will be sent by omitting the "HTTP_SEND_RESPONSE_FLAG_MORE_DATA" flag
         let flags = 0;
         let mut bytes_sent: c_ulong = 0;
         
