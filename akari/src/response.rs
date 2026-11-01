@@ -1,5 +1,5 @@
 use std::{
-    io::{ self, Read },
+    io::{ self, Error, Read },
     os::raw::*,
     ptr,
 };
@@ -11,7 +11,6 @@ use crate::{
 
 pub struct Response {
     handle: WinHttpHandle,
-    status_code: u16,
     #[allow(dead_code)]
     connection: Connection,
 }
@@ -30,11 +29,11 @@ impl Response {
             
             let result = sys::WinHttpOpenRequest(
                 connection.handle.as_raw(),
-                ptr::null(),
+                ptr::null(), // default http verb: GET
                 wide_path.as_ptr(),
-                ptr::null(),
-                ptr::null(),
-                ptr::null_mut(),
+                ptr::null(), // default and (highest supported) http version: HTTP/1.1
+                ptr::null(), // no referer
+                ptr::null_mut(), // no accept header
                 flags,
             );
             
@@ -46,66 +45,18 @@ impl Response {
             
         };
         
-        // -------------------- set http2 --------------------
-        
-        // acceptable HTTP version
-        let option = sys::WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL;
-        
-        // enables HTTP/2 for the request
-        let mut buffer = sys::WINHTTP_PROTOCOL_FLAG_HTTP2;
-        
-        unsafe {
-            
-            let result = sys::WinHttpSetOption(
-                handle.as_raw(),
-                option,
-                (&raw mut buffer).cast::<c_void>(),
-                c_ulong::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),
-            );
-            
-            if result == 0 {
-                return Err(last_winhttp_error());
-            }
-            
-        }
-        
-        // -------------------- set decompression --------------------
-        
-        // automatically decompress response bodies with compressed "Content-Encoding"
-        // this will also set an appropriate "Accept-Encoding" header
-        let option = sys::WINHTTP_OPTION_DECOMPRESSION;
-        
-        // WINHTTP_DECOMPRESSION_FLAG_DEFLATE: decompress "Content-Encoding: gzip" responses
-        // WINHTTP_DECOMPRESSION_FLAG_GZIP: decompress "Content-Encoding: deflate" responses
-        let mut buffer = sys::WINHTTP_DECOMPRESSION_FLAG_GZIP | sys::WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
-        
-        unsafe {
-            
-            let result = sys::WinHttpSetOption(
-                handle.as_raw(),
-                option,
-                (&raw mut buffer).cast::<c_void>(),
-                c_ulong::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),
-            );
-            
-            if result == 0 {
-                return Err(last_winhttp_error());
-            }
-            
-        }
-        
         // -------------------- send request --------------------
         
         unsafe {
             
             let result = sys::WinHttpSendRequest(
                 handle.as_raw(),
-                ptr::null(),
-                0,
-                ptr::null_mut(),
-                0,
-                0,
-                0,
+                ptr::null(), // no additional headers
+                0, // no additional headers
+                ptr::null_mut(), // no optional data
+                0, // no optional data
+                0, // request does not have a body
+                0, // no context
             );
             
             if result == 0 {
@@ -120,7 +71,7 @@ impl Response {
             
             let result = sys::WinHttpReceiveResponse(
                 handle.as_raw(),
-                ptr::null_mut(),
+                ptr::null_mut(), // reserved
             );
             
             if result == 0 {
@@ -129,7 +80,7 @@ impl Response {
             
         }
         
-        // -------------------- query status code --------------------
+        // -------------------- check status code --------------------
         
         // WINHTTP_QUERY_STATUS_CODE: retrieve status code as returned by server
         // WINHTTP_QUERY_FLAG_NUMBER: returns the data as a 32-bit number for headers whose value is a number
@@ -143,10 +94,10 @@ impl Response {
             let result = sys::WinHttpQueryHeaders(
                 handle.as_raw(),
                 info_level,
-                ptr::null(),
+                ptr::null(), // built-in header
                 (&raw mut buffer).cast::<c_void>(),
                 &raw mut buffer_length,
-                ptr::null_mut(),
+                ptr::null_mut(), // single-value header
             );
             
             if result == 0 {
@@ -155,13 +106,12 @@ impl Response {
             
         }
         
-        let status_code = u16::try_from(buffer).expect("Unexpected truncation");
+        if buffer != 200 {
+            return Err(Error::other(format!("Server responded with status code {}", buffer)));
+        }
         
-        Ok(Self { handle, status_code, connection })
-    }
-    
-    pub fn status_code(&self) -> u16 {
-        self.status_code
+        // "connection" is kept alive to prevent triggering its "drop" implementation
+        Ok(Self { handle, connection })
     }
     
 }

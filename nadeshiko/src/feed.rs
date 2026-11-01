@@ -1,4 +1,7 @@
-use std::io::{ self, Error, Read };
+use std::{
+    error::Error,
+    io::Read,
+};
 
 pub struct Feed {
     content: Vec<u8>,
@@ -23,12 +26,8 @@ const LINK_CLOSE_TAG: &[u8] = b"</link>";
 
 impl Feed {
     
-    pub fn new(httpclient: &mut akari::Client, url: &str, max_feed_size: u64) -> io::Result<Self> {
+    pub fn new(httpclient: &mut akari::Client, url: &str, max_feed_size: u64) -> Result<Self, Box<dyn Error>> {
         let response = httpclient.get(url)?;
-        
-        if response.status_code() != 200 {
-            return Err(Error::other(format!("Server responded with status code {}", response.status_code())));
-        }
         
         let size = FEED_INITIAL_SIZE
             .min(max_feed_size);

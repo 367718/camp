@@ -12,7 +12,9 @@ pub struct Session {
 impl Session {
     
     pub fn new() -> io::Result<Self> {
+        // use server api introduced in Windows Vista; the previous version is deprecated
         let version = sys::HTTPAPI_VERSION_2;
+        
         let mut server_session_id: c_ulonglong = 0;
         
         unsafe {
@@ -20,7 +22,7 @@ impl Session {
             let result = sys::HttpCreateServerSession(
                 version,
                 &raw mut server_session_id,
-                0,
+                0, // reserved
             );
             
             if result != sys::NO_ERROR {

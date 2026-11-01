@@ -25,7 +25,7 @@ impl UrlGroup {
             let result = sys::HttpCreateUrlGroup(
                 session_id,
                 &raw mut id,
-                0,
+                0, // reserved
             );
             
             if result != sys::NO_ERROR {
@@ -71,8 +71,8 @@ impl UrlGroup {
             let result = sys::HttpAddUrlToUrlGroup(
                 url_group.id,
                 wide_url.as_ptr(),
-                0,
-                0,
+                0, // no context
+                0, // reserved
             );
             
             if result != sys::NO_ERROR {

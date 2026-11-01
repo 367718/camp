@@ -15,16 +15,18 @@ const MODULE_NAME: &str = "winhttp.dll";
 pub fn last_winhttp_error() -> Error {
     let os_error = Error::last_os_error();
     
-    let error_code = os_error
+    // -------------------- get message id --------------------
+    
+    let message_id = os_error
         .raw_os_error()
         .unwrap_or(0)
         .cast_unsigned();
     
-    // -------------------- get module --------------------
+    // -------------------- get source --------------------
     
     let wide_name = chikuwa::win_string(MODULE_NAME).unwrap();
     
-    let module = unsafe {
+    let source = unsafe {
         
         sys::GetModuleHandleW(
             wide_name.as_ptr(),
@@ -38,7 +40,7 @@ pub fn last_winhttp_error() -> Error {
     // FORMAT_MESSAGE_IGNORE_INSERTS: ignore insertion sequences, since "arguments" is null
     let mut flag = sys::FORMAT_MESSAGE_FROM_SYSTEM | sys::FORMAT_MESSAGE_IGNORE_INSERTS;
     
-    if ! module.is_null() {
+    if ! source.is_null() {
         // use message table from provided module
         flag |= sys::FORMAT_MESSAGE_FROM_HMODULE;
     }
@@ -49,12 +51,12 @@ pub fn last_winhttp_error() -> Error {
         
         let result = sys::FormatMessageW(
             flag,
-            module.cast_const(),
-            error_code,
-            0,
+            source.cast_const(),
+            message_id,
+            0, // default language
             buffer.as_mut_ptr(),
             c_ulong::try_from(buffer.len()).expect("Unexpected truncation"),
-            ptr::null_mut(),
+            ptr::null_mut(), // no arguments
         );
         
         // formatting failed; return the default standard library error
@@ -69,5 +71,5 @@ pub fn last_winhttp_error() -> Error {
     let message = OsString::from_wide(&buffer[..length as usize]);
     let message_string = message.to_string_lossy();
     
-    Error::other(format!("{} (OS Error {})", message_string.trim_end(), error_code))
+    Error::other(format!("{} (OS Error {})", message_string.trim_end(), message_id))
 }

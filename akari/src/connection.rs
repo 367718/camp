@@ -20,7 +20,7 @@ impl Connection {
                 session.handle.as_raw(),
                 wide_host.as_ptr(),
                 port,
-                0,
+                0, // reserved
             );
             
             if result.is_null() {

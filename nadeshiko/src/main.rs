@@ -134,10 +134,6 @@ fn build_destination(title_str: &str, folder: &str) -> Result<PathBuf, Box<dyn E
 fn download(httpclient: &mut akari::Client, link_str: &str, max_torrent_size: u64, destination: impl AsRef<Path>) -> Result<(), Box<dyn Error>> {
     let response = httpclient.get(link_str)?;
     
-    if response.status_code() != 200 {
-        return Err(format!("Server responded with status code {}", response.status_code()).into());
-    }
-    
     let file = File::options()
         .create_new(true)
         .write(true)

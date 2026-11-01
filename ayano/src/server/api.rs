@@ -10,6 +10,7 @@ pub struct Api;
 impl Api {
     
     pub fn init() -> io::Result<Self> {
+        // use server api introduced in Windows Vista; the previous version is deprecated
         let version = sys::HTTPAPI_VERSION_2;
         
         // perform initialization for applications that use the http server api
@@ -20,7 +21,7 @@ impl Api {
             let result = sys::HttpInitialize(
                 version,
                 flags,
-                ptr::null_mut(),
+                ptr::null_mut(), // reserved
             );
             
             if result != sys::NO_ERROR {
@@ -44,7 +45,7 @@ impl Drop for Api {
             
             sys::HttpTerminate(
                 flags,
-                ptr::null_mut(),
+                ptr::null_mut(), // reserved
             );
             
         }

@@ -47,6 +47,14 @@ unsafe extern "system" {
         n_receive_timeout: c_int,
     ) -> c_int; // BOOL
     
+    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsetoption
+    pub fn WinHttpSetOption(
+        h_internet: *mut c_void, // HINTERNET
+        dw_option: c_ulong, // DWORD
+        lp_buffer: *mut c_void, // LPVOID
+        dw_buffer_length: c_ulong, // DWORD
+    ) -> c_int; // BOOL
+    
     // -------------------- connection --------------------
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpconnect
@@ -69,14 +77,6 @@ unsafe extern "system" {
         ppwsz_accept_types: *mut *const c_ushort, // LPCWSTR
         dw_flags: c_ulong, // DWORD
     ) -> *mut c_void; // HINTERNET
-    
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsetoption
-    pub fn WinHttpSetOption(
-        h_internet: *mut c_void, // HINTERNET
-        dw_option: c_ulong, // DWORD
-        lp_buffer: *mut c_void, // LPVOID
-        dw_buffer_length: c_ulong, // DWORD
-    ) -> c_int; // BOOL
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsendrequest
     pub fn WinHttpSendRequest(

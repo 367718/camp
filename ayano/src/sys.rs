@@ -280,7 +280,6 @@ pub const HTTP_SERVER_BINDING_PROPERTY: c_ulong = 7;
 
 pub const HTTP_HEADER_CACHE_CONTROL: usize = 0;
 pub const HTTP_HEADER_TRANSFER_ENCODING: usize = 6;
-pub const HTTP_HEADER_CONTENT_LENGTH: usize = 11;
 pub const HTTP_HEADER_CONTENT_TYPE: usize = 12;
 pub const HTTP_HEADER_RESPONSE_MAXIMUM: usize = 30;
 pub const HTTP_DATA_CHUNK_FROM_MEMORY: c_ulong = 0;

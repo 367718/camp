@@ -52,12 +52,12 @@ impl<'s> Response<'s> {
                 request_id,
                 flags,
                 &raw mut response,
-                ptr::null_mut(),
+                ptr::null_mut(), // no kernel caching
                 &raw mut bytes_sent,
-                ptr::null_mut(),
-                0,
-                ptr::null_mut(),
-                ptr::null_mut(),
+                ptr::null_mut(), // reserved
+                0, // reserved
+                ptr::null_mut(), // synchronous call
+                ptr::null_mut(), // no logging
             );
             
             if result != sys::NO_ERROR {
@@ -88,13 +88,13 @@ impl<'s> Response<'s> {
                 self.server.queue_handle(),
                 self.request_id,
                 flags,
-                0,
-                ptr::null_mut(),
+                0, // no chunks will be sent
+                ptr::null_mut(), // no chunks will be sent
                 &raw mut bytes_sent,
-                ptr::null_mut(),
-                0,
-                ptr::null_mut(),
-                ptr::null_mut(),
+                ptr::null_mut(), // reserved
+                0, // reserved
+                ptr::null_mut(), // synchronous call
+                ptr::null_mut(), // no logging
             );
             
         }
@@ -180,10 +180,10 @@ impl Write for Response<'_> {
                 c_ushort::try_from(chunks.len()).expect("Unexpected truncation"),
                 chunks.as_mut_ptr(),
                 &raw mut bytes_sent,
-                ptr::null_mut(),
-                0,
-                ptr::null_mut(),
-                ptr::null_mut(),
+                ptr::null_mut(), // reserved
+                0, // reserved
+                ptr::null_mut(), // synchronous call
+                ptr::null_mut(), // no logging
             );
             
             if result != sys::NO_ERROR {
@@ -224,10 +224,10 @@ impl Drop for Response<'_> {
                 1,
                 &raw mut chunk,
                 &raw mut bytes_sent,
-                ptr::null_mut(),
-                0,
-                ptr::null_mut(),
-                ptr::null_mut(),
+                ptr::null_mut(), // reserved
+                0, // reserved
+                ptr::null_mut(), // synchronous call
+                ptr::null_mut(), // no logging
             );
             
             if result != sys::NO_ERROR {

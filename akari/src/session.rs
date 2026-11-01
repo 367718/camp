@@ -1,5 +1,6 @@
 use std::{
     io,
+    os::raw::*,
     ptr,
 };
 
@@ -29,9 +30,9 @@ impl Session {
             let result = sys::WinHttpOpen(
                 wide_agent.as_ptr(),
                 access_type,
-                ptr::null(),
-                ptr::null(),
-                0,
+                ptr::null(), // no proxy name
+                ptr::null(), // no proxy bypass
+                0, // no async, no secure defaults
             );
             
             if result.is_null() {
@@ -52,6 +53,56 @@ impl Session {
                 CONNECTION_TIMEOUT,
                 SEND_TIMEOUT,
                 RECEIVE_TIMEOUT,
+            );
+            
+            if result == 0 {
+                return Err(last_winhttp_error());
+            }
+            
+        }
+        
+        // -------------------- set HTTP/2 --------------------
+        
+        // acceptable HTTP version
+        // available on Windows 10 and later
+        let option = sys::WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL;
+        
+        // enables HTTP/2 for all requests
+        let mut buffer = sys::WINHTTP_PROTOCOL_FLAG_HTTP2;
+        
+        unsafe {
+            
+            let result = sys::WinHttpSetOption(
+                handle.as_raw(),
+                option,
+                (&raw mut buffer).cast::<c_void>(),
+                c_ulong::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),
+            );
+            
+            if result == 0 {
+                return Err(last_winhttp_error());
+            }
+            
+        }
+        
+        // -------------------- set decompression --------------------
+        
+        // automatically decompress response bodies with compressed "Content-Encoding"
+        // this will also set an appropriate "Accept-Encoding" header for all requests
+        // available on Windows 8.1 and later
+        let option = sys::WINHTTP_OPTION_DECOMPRESSION;
+        
+        // WINHTTP_DECOMPRESSION_FLAG_DEFLATE: decompress "Content-Encoding: gzip" responses
+        // WINHTTP_DECOMPRESSION_FLAG_GZIP: decompress "Content-Encoding: deflate" responses
+        let mut buffer = sys::WINHTTP_DECOMPRESSION_FLAG_GZIP | sys::WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
+        
+        unsafe {
+            
+            let result = sys::WinHttpSetOption(
+                handle.as_raw(),
+                option,
+                (&raw mut buffer).cast::<c_void>(),
+                c_ulong::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),
             );
             
             if result == 0 {

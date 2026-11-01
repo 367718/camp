@@ -22,7 +22,7 @@ pub struct Request<'s> {
 const REQUEST_HEADERS_SIZE_LIMIT: usize = 16 * 128;
 const REQUEST_BODY_SIZE_LIMIT: usize = 512 * 1024;
 
-const REQUEST_BODY_CHUNK_CAPACITY: usize = 8 * 1024;
+const REQUEST_BODY_CHUNK_CAPACITY: usize = 16 * 1024;
 
 impl<'s> Request<'s> {
     
@@ -55,7 +55,6 @@ impl<'s> Request<'s> {
     
     pub fn path(&self) -> Option<String> {
         let headers_data = Self::headers_data(&self.headers);
-        
         let cooked = &headers_data.cooked_url;
         
         if cooked.p_abs_path.is_null() || cooked.abs_path_length == 0 {
@@ -80,14 +79,18 @@ impl<'s> Request<'s> {
         let headers_data = Self::headers_data(&self.headers);
         let content_type_raw = &headers_data.headers.known_headers[sys::HTTP_HEADER_CONTENT_TYPE];
         
-        let content_type = unsafe {
+        let content_type = {
             
             if ! content_type_raw.p_raw_value.is_null() && content_type_raw.raw_value_length > 0 {
                 
-                Some(slice::from_raw_parts(
-                    content_type_raw.p_raw_value.cast::<u8>(),
-                    content_type_raw.raw_value_length as usize,
-                ))
+                Some(unsafe {
+                    
+                    slice::from_raw_parts(
+                        content_type_raw.p_raw_value.cast::<u8>(),
+                        content_type_raw.raw_value_length as usize,
+                    )
+                    
+                })
                 
             } else {
                 
@@ -122,7 +125,8 @@ impl<'s> Request<'s> {
     
     
     fn read_headers(server: &Server) -> io::Result<Box<[u64]>> {
-        // ensure 8-byte alignment by using u64
+        // box is used to ensure a stable address, since the "HttpRequestV2" struct stores self-referential pointers
+        // u64 is used to ensure 8-byte alignment
         let mut buffer = vec![0_u64; REQUEST_HEADERS_SIZE_LIMIT].into_boxed_slice();
         let mut amount_read: c_ulong = 0;
         
@@ -130,12 +134,12 @@ impl<'s> Request<'s> {
             
             sys::HttpReceiveHttpRequest(
                 server.queue_handle(),
-                0,
-                0,
+                0, // retrieve next available request
+                0, // retrieve only request headers
                 buffer.as_mut_ptr().cast::<c_void>(),
-                c_ulong::try_from(mem::size_of_val(&*buffer)).expect("Unexpected truncation"),
+                c_ulong::try_from(size_of_val(&*buffer)).expect("Unexpected truncation"),
                 &raw mut amount_read,
-                ptr::null_mut(),
+                ptr::null_mut(), // synchronous call
             )
             
         };
@@ -191,36 +195,15 @@ impl<'s> Request<'s> {
         
         if (headers_data.flags & sys::HTTP_REQUEST_FLAG_MORE_ENTITY_BODY_EXISTS) != 0 {
             
-            // ---------------- content-length check ----------------
-            
-            let content_length = match Self::parse_content_length(headers_data) {
-                Ok(content_length) => content_length,
-                Err(error) => {
-                    Self::abort(server, headers_data.request_id, StatusCode::BadRequest);
-                    return Err(error);
-                },
-            };
-            
-            if let Some(content_length) = content_length {
-                if content_length > REQUEST_BODY_SIZE_LIMIT {
-                    Self::abort(server, headers_data.request_id, StatusCode::ContentTooLarge);
-                    return Err(Error::new(ErrorKind::InvalidData, "Request body exceeded maximum allowable size"));
-                }
-                
-                buffer.reserve(content_length);
-            }
-            
-            // ---------------- content streaming ----------------
-            
             let mut chunk = [0_u8; REQUEST_BODY_CHUNK_CAPACITY];
             let chunk_len = c_ulong::try_from(chunk.len()).expect("Unexpected truncation");
             
             // chunk will be filled with one or more entity bodies
             let flags = sys::HTTP_RECEIVE_REQUEST_ENTITY_BODY_FLAG_FILL_BUFFER;
             
+            let mut bytes_read: c_ulong = 0;
+            
             loop {
-                
-                let mut bytes_read: c_ulong = 0;
                 
                 let result = unsafe {
                     
@@ -231,7 +214,7 @@ impl<'s> Request<'s> {
                         chunk.as_mut_ptr().cast::<c_void>(),
                         chunk_len,
                         &raw mut bytes_read,
-                        ptr::null_mut(),
+                        ptr::null_mut(), // synchronous call
                     )
                     
                 };
@@ -244,8 +227,6 @@ impl<'s> Request<'s> {
                     
                     sys::NO_ERROR => {
                         
-                        // while a check for the value of the content-length header has been done already,
-                        // the header itself may be absent and nothing stops the client from actually sending more data anyway
                         if buffer.len() + (bytes_read as usize) > REQUEST_BODY_SIZE_LIMIT {
                             Self::abort(server, headers_data.request_id, StatusCode::ContentTooLarge);
                             return Err(Error::new(ErrorKind::InvalidData, "Request body exceeded maximum allowable size"));
@@ -275,49 +256,6 @@ impl<'s> Request<'s> {
         unsafe { &*headers.as_ptr().cast::<sys::HttpRequestV2>() }
     }
     
-    fn parse_content_length(headers_data: &sys::HttpRequestV2) -> io::Result<Option<usize>> {
-        let content_length_raw = &headers_data.headers.known_headers[sys::HTTP_HEADER_CONTENT_LENGTH];
-        
-        // header not provided by the client
-        if content_length_raw.p_raw_value.is_null() {
-            return Ok(None);
-        }
-        
-        let bytes = unsafe {
-            
-            slice::from_raw_parts(
-                content_length_raw.p_raw_value.cast::<u8>(),
-                content_length_raw.raw_value_length as usize,
-            )
-            
-        };
-        
-        let trimmed = bytes.trim_ascii();
-        
-        // header is present but the value is empty or whitespace-only
-        if trimmed.is_empty() {
-            return Err(Error::new(ErrorKind::InvalidData, "Empty Content-Length header"));
-        }
-        
-        // "str::parse::<usize>()" and "usize::from_ascii" accepts the "+" symbol, which is incorrect
-        let mut content_length: usize = 0;
-        
-        for &byte in trimmed {
-            
-            if ! byte.is_ascii_digit() {
-                return Err(Error::new(ErrorKind::InvalidData, "Invalid character in Content-Length"));
-            }
-            
-            content_length = content_length
-                .checked_mul(10)
-                .and_then(|value| value.checked_add(usize::from(byte - b'0')))
-                .ok_or_else(|| Error::new(ErrorKind::InvalidData, "Content-Length overflow"))?;
-            
-        }
-        
-        Ok(Some(content_length))
-    }
-    
     fn abort(server: &Server, request_id: c_ulonglong, status: StatusCode) {
         let mut response: sys::HttpResponseV2 = unsafe { mem::zeroed() };
         
@@ -335,12 +273,12 @@ impl<'s> Request<'s> {
                 request_id,
                 flags,
                 &raw mut response,
-                ptr::null_mut(),
+                ptr::null_mut(), // no kernel caching
                 &raw mut bytes_sent,
-                ptr::null_mut(),
-                0,
-                ptr::null_mut(),
-                ptr::null_mut(),
+                ptr::null_mut(), // reserved
+                0, // reserved
+                ptr::null_mut(), // synchronous call
+                ptr::null_mut(), // no logging
             );
             
         }

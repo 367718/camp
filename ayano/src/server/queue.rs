@@ -13,16 +13,18 @@ pub struct Queue {
 impl Queue {
     
     pub fn new() -> io::Result<Self> {
+        // use server api introduced in Windows Vista; the previous version is deprecated
         let version = sys::HTTPAPI_VERSION_2;
+        
         let mut handle = ptr::null_mut();
         
         unsafe {
             
             let result = sys::HttpCreateRequestQueue(
                 version,
-                ptr::null(),
-                ptr::null_mut(),
-                0,
+                ptr::null(), // queue cannot be accessed by name
+                ptr::null_mut(), // handle is not inheritable
+                0, // create a new, standard worker queue
                 &raw mut handle,
             );
             
