@@ -1,4 +1,4 @@
-use std::io::{ self, Read };
+use std::io::{ self, Error, Read };
 
 pub struct Feed {
     content: Vec<u8>,
@@ -25,6 +25,10 @@ impl Feed {
     
     pub fn new(httpclient: &mut akari::Client, url: &str, max_feed_size: u64) -> io::Result<Self> {
         let response = httpclient.get(url)?;
+        
+        if response.status_code() != 200 {
+            return Err(Error::other(format!("Server responded with status code {}", response.status_code())));
+        }
         
         let size = FEED_INITIAL_SIZE
             .min(max_feed_size);

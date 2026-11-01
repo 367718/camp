@@ -17,10 +17,13 @@ use crate::Request;
 
 // drop order required by http.sys, do not rearrange
 pub struct Server {
-    _url_group: UrlGroup,
+    #[allow(dead_code)]
+    url_group: UrlGroup,
     queue: Queue,
-    _session: Session,
-    _api: Api,
+    #[allow(dead_code)]
+    session: Session,
+    #[allow(dead_code)]
+    api: Api,
 }
 
 impl Server {
@@ -31,12 +34,7 @@ impl Server {
         let queue = Queue::new()?;
         let url_group = UrlGroup::new(session.id, queue.handle, url)?;
         
-        Ok(Self {
-            _url_group: url_group,
-            queue,
-            _session: session,
-            _api: api,
-        })
+        Ok(Self { url_group, queue, session, api })
     }
     
     pub fn accept(&self) -> io::Result<Request<'_>> {

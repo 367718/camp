@@ -1,6 +1,5 @@
 use std::{
     io::{ self, Error, ErrorKind },
-    mem,
     os::raw::*,
 };
 
@@ -45,13 +44,16 @@ impl UrlGroup {
             request_queue_handle: queue_handle,
         };
         
+        // modifies or sets the url group association with a request queue
+        let property = sys::HTTP_SERVER_BINDING_PROPERTY;
+        
         unsafe {
             
             let result = sys::HttpSetUrlGroupProperty(
                 url_group.id,
-                sys::HTTP_SERVER_BINDING_PROPERTY,
+                property,
                 (&raw const binding).cast::<c_void>(),
-                c_ulong::try_from(mem::size_of::<sys::HttpBindingInfo>()).expect("Unexpected truncation"),
+                c_ulong::try_from(size_of_val(&binding)).expect("Unexpected truncation"),
             );
             
             if result != sys::NO_ERROR {

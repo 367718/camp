@@ -10,11 +10,16 @@ pub struct Api;
 impl Api {
     
     pub fn init() -> io::Result<Self> {
+        let version = sys::HTTPAPI_VERSION_2;
+        
+        // perform initialization for applications that use the http server api
+        let flags = sys::HTTP_INITIALIZE_SERVER;
+        
         unsafe {
             
             let result = sys::HttpInitialize(
-                sys::HTTPAPI_VERSION_2,
-                sys::HTTP_INITIALIZE_SERVER,
+                version,
+                flags,
                 ptr::null_mut(),
             );
             
@@ -32,10 +37,13 @@ impl Api {
 impl Drop for Api {
     
     fn drop(&mut self) {
+        // release all resources used by server applications
+        let flags = sys::HTTP_INITIALIZE_SERVER;
+        
         unsafe {
             
             sys::HttpTerminate(
-                sys::HTTP_INITIALIZE_SERVER,
+                flags,
                 ptr::null_mut(),
             );
             

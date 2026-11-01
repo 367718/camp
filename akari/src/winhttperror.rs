@@ -34,19 +34,16 @@ pub fn last_winhttp_error() -> Error {
     
     // -------------------- format message --------------------
     
-    // FORMAT_MESSAGE_FROM_SYSTEM -> use core windows system message table as fallback
-    // FORMAT_MESSAGE_IGNORE_INSERTS -> ignore insertion sequences, since "arguments" is null
+    // FORMAT_MESSAGE_FROM_SYSTEM: use core windows system message table as fallback
+    // FORMAT_MESSAGE_IGNORE_INSERTS: ignore insertion sequences, since "arguments" is null
     let mut flag = sys::FORMAT_MESSAGE_FROM_SYSTEM | sys::FORMAT_MESSAGE_IGNORE_INSERTS;
     
-    // FORMAT_MESSAGE_FROM_HMODULE -> use message table from provided module
     if ! module.is_null() {
+        // use message table from provided module
         flag |= sys::FORMAT_MESSAGE_FROM_HMODULE;
     }
     
     let mut buffer: [c_ushort; 1024] = [0; 1024];
-    
-    #[allow(clippy::cast_possible_truncation)]
-    let buffer_length = buffer.len() as c_ulong;
     
     let length = unsafe {
         
@@ -56,7 +53,7 @@ pub fn last_winhttp_error() -> Error {
             error_code,
             0,
             buffer.as_mut_ptr(),
-            buffer_length,
+            c_ulong::try_from(buffer.len()).expect("Unexpected truncation"),
             ptr::null_mut(),
         );
         

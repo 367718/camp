@@ -21,11 +21,14 @@ impl Session {
         
         let wide_agent = chikuwa::win_string(agent)?;
         
+        // uses system proxy settings
+        let access_type = sys::WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY;
+        
         let handle = unsafe {
             
             let result = sys::WinHttpOpen(
                 wide_agent.as_ptr(),
-                sys::WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
+                access_type,
                 ptr::null(),
                 ptr::null(),
                 0,
@@ -57,9 +60,7 @@ impl Session {
             
         }
         
-        Ok(Self {
-            handle,
-        })
+        Ok(Self { handle })
     }
     
 }

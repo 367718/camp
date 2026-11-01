@@ -31,9 +31,7 @@ impl Connection {
             
         };
         
-        Ok(Self {
-            handle,
-        })
+        Ok(Self { handle })
     }
     
 }

@@ -6,7 +6,7 @@ pub struct WinHttpHandle(*mut c_void);
 
 impl WinHttpHandle {
     
-    pub fn new(inner: *mut c_void) -> Self {
+    pub(crate) fn new(inner: *mut c_void) -> Self {
         Self(inner)
     }
     

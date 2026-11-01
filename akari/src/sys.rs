@@ -103,13 +103,23 @@ unsafe extern "system" {
         lpdw_number_of_bytes_read: *mut c_ulong, // LPDWORD
     ) -> c_int; // BOOL
     
+    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpqueryheaders
+    pub fn WinHttpQueryHeaders(
+        h_request: *mut c_void, // HINTERNET
+        dw_info_level: c_ulong, // DWORD
+        pwsz_name: *const c_ushort, // LPCWSTR
+        lp_buffer: *mut c_void, // LPVOID
+        lpdw_buffer_length: *mut c_ulong, // LPDWORD
+        lpdw_index: *mut c_ulong, // LPDWORD
+    ) -> c_int; // BOOL
+    
 }
 
 pub const WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY: c_ulong = 4; // DWORD
 
-pub const FORMAT_MESSAGE_FROM_SYSTEM: c_ulong = 0x0000_1000;
-pub const FORMAT_MESSAGE_FROM_HMODULE: c_ulong = 0x0000_0800;
-pub const FORMAT_MESSAGE_IGNORE_INSERTS: c_ulong = 0x0000_0200;
+pub const FORMAT_MESSAGE_FROM_SYSTEM: c_ulong = 0x0000_1000; // DWORD
+pub const FORMAT_MESSAGE_FROM_HMODULE: c_ulong = 0x0000_0800; // DWORD
+pub const FORMAT_MESSAGE_IGNORE_INSERTS: c_ulong = 0x0000_0200; // DWORD
 
 pub const WINHTTP_FLAG_SECURE: c_ulong = 0x0080_0000; // DWORD
 
@@ -118,3 +128,6 @@ pub const WINHTTP_PROTOCOL_FLAG_HTTP2: c_ulong = 1; // DWORD
 pub const WINHTTP_OPTION_DECOMPRESSION: c_ulong = 118; // DWORD
 pub const WINHTTP_DECOMPRESSION_FLAG_GZIP: c_ulong = 1; // DWORD
 pub const WINHTTP_DECOMPRESSION_FLAG_DEFLATE: c_ulong = 2; // DWORD
+
+pub const WINHTTP_QUERY_STATUS_CODE: c_ulong = 19; // DWORD
+pub const WINHTTP_QUERY_FLAG_NUMBER: c_ulong = 0x2000_0000; // DWORD

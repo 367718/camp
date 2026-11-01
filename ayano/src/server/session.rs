@@ -6,19 +6,20 @@ use std::{
 use crate::sys;
 
 pub struct Session {
-    pub(crate) id: c_ulonglong,
+    pub(crate) id: c_ulonglong, // HTTP_OPAQUE_ID
 }
 
 impl Session {
     
     pub fn new() -> io::Result<Self> {
-        let mut id: c_ulonglong = 0;
+        let version = sys::HTTPAPI_VERSION_2;
+        let mut server_session_id: c_ulonglong = 0;
         
         unsafe {
             
             let result = sys::HttpCreateServerSession(
-                sys::HTTPAPI_VERSION_2,
-                &raw mut id,
+                version,
+                &raw mut server_session_id,
                 0,
             );
             
@@ -28,7 +29,7 @@ impl Session {
             
         };
         
-        Ok(Self { id })
+        Ok(Self { id: server_session_id })
     }
     
 }

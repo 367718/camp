@@ -41,11 +41,11 @@ impl Client {
         })
     }
     
-    pub fn get(&mut self, resource: &str) -> io::Result<Response> {
+    pub fn get(&self, resource: &str) -> io::Result<Response> {
         let url = Url::try_from(resource)?;
         
         let connection = Connection::open(&self.session, url.host, url.port)?;
-        let response = Response::receive(&connection, url.path)?;
+        let response = Response::receive(connection, &url.path)?;
         
         Ok(response)
     }

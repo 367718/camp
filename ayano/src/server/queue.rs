@@ -13,12 +13,13 @@ pub struct Queue {
 impl Queue {
     
     pub fn new() -> io::Result<Self> {
+        let version = sys::HTTPAPI_VERSION_2;
         let mut handle = ptr::null_mut();
         
         unsafe {
             
             let result = sys::HttpCreateRequestQueue(
-                sys::HTTPAPI_VERSION_2,
+                version,
                 ptr::null(),
                 ptr::null_mut(),
                 0,
