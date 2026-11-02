@@ -134,7 +134,7 @@ impl Response {
             return Err(Error::other(format!("Server responded with status code {}", buffer)));
         }
         
-        // "connection" is kept alive to prevent triggering its "drop" implementation
+        // "connection" is kept alive to prevent its handle getting closed
         Ok(Self { handle, connection })
     }
     
