@@ -2,7 +2,7 @@ use std::os::raw::*;
 
 use crate::sys;
 
-pub struct WinHttpHandle(*mut c_void);
+pub struct WinHttpHandle(*mut c_void); // HINTERNET
 
 impl WinHttpHandle {
     
@@ -19,6 +19,11 @@ impl WinHttpHandle {
 impl Drop for WinHttpHandle {
     
     fn drop(&mut self) {
+        
+        // SAFETY:
+        // 1. `self.0` is guaranteed to be a valid, non-null `HINTERNET` handle initialized by a WinHTTP creation function
+        // 2. ownership of the raw handle belongs exclusively to this `WinHttpHandle` instance
+        // 3. `drop` runs only once, when the handle goes out of scope, preventing double-close bugs
         unsafe {
             
             sys::WinHttpCloseHandle(
@@ -26,6 +31,7 @@ impl Drop for WinHttpHandle {
             );
             
         }
+        
     }
     
 }

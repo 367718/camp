@@ -25,6 +25,12 @@ impl Session {
         // uses system proxy settings
         let access_type = sys::WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY;
         
+        // SAFETY:
+        // 1. `wide_agent.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
+        // 2. `ptr::null()` is valid for `psz_proxy_w` and `psz_proxy_bypass_w` per the WinHTTP API when not specifying a named proxy
+        // 3. `dw_flags` is passed as `0` to signal that no flags will be used
+        // 4. on failure, `null` is returned and the proper error is constructed and propagated
+        // 5. on success, the returned handle is wrapped in `WinHttpHandle`, which calls `WinHttpCloseHandle` on drop
         let handle = unsafe {
             
             let result = sys::WinHttpOpen(
@@ -45,6 +51,10 @@ impl Session {
         
         // -------------------- set timeouts --------------------
         
+        // SAFETY:
+        // 1. `handle.as_raw()` is a valid `HINTERNET` session handle
+        // 2. timeout values are valid millisecond integer values within the range of `c_int`
+        // 3. on failure, `0` is returned and the proper error is constructed and propagated
         unsafe {
             
             let result = sys::WinHttpSetTimeouts(
@@ -70,6 +80,11 @@ impl Session {
         // enables HTTP/2 for all requests
         let mut buffer = sys::WINHTTP_PROTOCOL_FLAG_HTTP2;
         
+        // SAFETY:
+        // 1. `handle.as_raw()` is a valid `HINTERNET` session handle
+        // 2. `(&raw mut buffer).cast::<c_void>()` points to a live, properly aligned `c_ulong`
+        // 3. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
+        // 4. on failure, `0` is returned and the proper error is constructed and propagated
         unsafe {
             
             let result = sys::WinHttpSetOption(
@@ -96,6 +111,11 @@ impl Session {
         // WINHTTP_DECOMPRESSION_FLAG_GZIP: decompress "Content-Encoding: deflate" responses
         let mut buffer = sys::WINHTTP_DECOMPRESSION_FLAG_GZIP | sys::WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
         
+        // SAFETY:
+        // 1. `handle.as_raw()` is a valid `HINTERNET` session handle
+        // 2. `(&raw mut buffer).cast::<c_void>()` points to a live, properly aligned `c_ulong`
+        // 3. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
+        // 4. on failure, `0` is returned and the proper error is constructed and propagated
         unsafe {
             
             let result = sys::WinHttpSetOption(
