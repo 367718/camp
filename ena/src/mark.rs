@@ -11,8 +11,8 @@ pub fn is_marked(path: impl AsRef<OsStr>, flag: impl AsRef<OsStr>) -> io::Result
 pub fn toggle(path: impl AsRef<OsStr>, flag: impl AsRef<OsStr>) -> io::Result<()> {
     let stream = build_query(path, flag);
     
-    // if mark existed, the job is already done
-    // if mark didn't exist, create it
+    // if `flag` existed, the job is already done
+    // if `flag` didn't exist, create it
     match fs::remove_file(&stream) {
         Ok(()) => Ok(()),
         Err(error) if error.kind() == ErrorKind::NotFound => fs::write(&stream, ""),

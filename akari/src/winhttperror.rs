@@ -35,8 +35,8 @@ pub fn last_winhttp_error() -> Error {
     
     // -------------------- format message --------------------
     
-    // FORMAT_MESSAGE_FROM_SYSTEM: use core windows system message table as fallback
-    // FORMAT_MESSAGE_IGNORE_INSERTS: ignore insertion sequences, since "arguments" is null
+    // `FORMAT_MESSAGE_FROM_SYSTEM`: use core windows system message table as fallback
+    // `FORMAT_MESSAGE_IGNORE_INSERTS`: ignore insertion sequences, since `arguments` is null
     let mut flag = sys::FORMAT_MESSAGE_FROM_SYSTEM | sys::FORMAT_MESSAGE_IGNORE_INSERTS;
     
     if ! source.is_null() {

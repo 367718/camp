@@ -107,8 +107,8 @@ impl Session {
         // available on Windows 8.1 and later
         let option = sys::WINHTTP_OPTION_DECOMPRESSION;
         
-        // WINHTTP_DECOMPRESSION_FLAG_DEFLATE: decompress "Content-Encoding: gzip" responses
-        // WINHTTP_DECOMPRESSION_FLAG_GZIP: decompress "Content-Encoding: deflate" responses
+        // `WINHTTP_DECOMPRESSION_FLAG_DEFLATE`: decompress "Content-Encoding: gzip" responses
+        // `WINHTTP_DECOMPRESSION_FLAG_GZIP`: decompress "Content-Encoding: deflate" responses
         let mut buffer = sys::WINHTTP_DECOMPRESSION_FLAG_GZIP | sys::WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
         
         // SAFETY:

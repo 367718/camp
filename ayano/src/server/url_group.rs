@@ -34,7 +34,7 @@ impl UrlGroup {
             
         }
         
-        // early binding to make sure "HttpCloseUrlGroup" is called in case of error
+        // early binding to make sure `HttpCloseUrlGroup` is called in case of error
         let url_group = Self { id };
         
         // -------------------- bind queue --------------------

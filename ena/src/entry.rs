@@ -47,7 +47,7 @@ impl<'r> FilesEntry<'r> {
     }
     
     pub fn move_to_folder(self, folder: impl AsRef<Path>) -> io::Result<()> {
-        // if folder is empty or its 'file_name' cannot be extracted, entry will be moved to root
+        // if folder is empty or its `file_name` cannot be extracted, entry will be moved to root
         let container_name = folder.as_ref()
             .file_name()
             .unwrap_or_default();

@@ -99,8 +99,8 @@ impl Response {
         
         // -------------------- check status code --------------------
         
-        // WINHTTP_QUERY_STATUS_CODE: retrieve status code as returned by server
-        // WINHTTP_QUERY_FLAG_NUMBER: returns the data as a 32-bit number for headers whose value is a number
+        // `WINHTTP_QUERY_STATUS_CODE`: retrieve status code as returned by server
+        // `WINHTTP_QUERY_FLAG_NUMBER`: returns the data as a 32-bit number for headers whose value is a number
         let info_level = sys::WINHTTP_QUERY_STATUS_CODE | sys::WINHTTP_QUERY_FLAG_NUMBER;
         
         let mut buffer: c_ulong = 0;
@@ -134,7 +134,7 @@ impl Response {
             return Err(Error::other(format!("Server responded with status code {}", buffer)));
         }
         
-        // "connection" is kept alive to prevent its handle getting closed
+        // `connection` is kept alive to prevent its `handle` getting closed
         Ok(Self { handle, connection })
     }
     

@@ -61,8 +61,8 @@ impl<'s> Request<'s> {
             return None;
         }
         
-        // "cooked.abs_path_length" is the length of the string in bytes (without the null terminator)
-        // "slice::from_raw_parts" expects an element count
+        // `cooked.abs_path_length` is the length of the string in bytes (without the null terminator)
+        // `slice::from_raw_parts` expects an element count
         let utf16_slice = unsafe {
             
             slice::from_raw_parts(
@@ -125,8 +125,8 @@ impl<'s> Request<'s> {
     
     
     fn read_headers(server: &Server) -> io::Result<Box<[u64]>> {
-        // box is used to ensure a stable address, since the "HttpRequestV2" struct stores self-referential pointers
-        // u64 is used to ensure 8-byte alignment
+        // boxed slice is used to ensure a stable address, since `HttpRequestV2` stores self-referential pointers
+        // `u64` is used to ensure 8-byte alignment
         let mut buffer = vec![0_u64; REQUEST_HEADERS_SIZE_LIMIT].into_boxed_slice();
         let mut amount_read: c_ulong = 0;
         
@@ -165,7 +165,7 @@ impl<'s> Request<'s> {
         // data struct has not been populated properly
         if (amount_read as usize) < mem::size_of::<sys::HttpRequestV2>() {
             
-            // just enough data to get request_id
+            // just enough data to get `request_id`
             if amount_read >= 24 {
                 let request_id = Self::headers_data(&buffer).request_id;
                 Self::abort(server, request_id, StatusCode::BadRequest);
@@ -175,11 +175,11 @@ impl<'s> Request<'s> {
             
         }
         
-        // -------------------- incompatible http version --------------------
+        // -------------------- incompatible HTTP version --------------------
         
         let data = Self::headers_data(&buffer);
         
-        // http version requested is not supported
+        // HTTP version requested is not supported
         if data.version != sys::HTTP_VERSION_1_1 {
             Self::abort(server, data.request_id, StatusCode::VersionNotSupported);
             return Err(Error::other("Unsupported HTTP version"));
@@ -198,7 +198,7 @@ impl<'s> Request<'s> {
             let mut chunk = [0_u8; REQUEST_BODY_CHUNK_CAPACITY];
             let chunk_len = c_ulong::try_from(chunk.len()).expect("Unexpected truncation");
             
-            // chunk will be filled with one or more entity bodies
+            // `chunk` will be filled with one or more entity bodies
             let flags = sys::HTTP_RECEIVE_REQUEST_ENTITY_BODY_FLAG_FILL_BUFFER;
             
             let mut bytes_read: c_ulong = 0;

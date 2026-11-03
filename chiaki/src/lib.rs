@@ -33,7 +33,7 @@ impl List {
     pub fn load(name: &str, max_size: u64) -> io::Result<Self> {
         // -------------------- path --------------------
         
-        // prevent directory traversal
+        // guard against directory traversals
         let file_name = Path::new(name)
             .file_name()
             .ok_or_else(|| Error::new(ErrorKind::InvalidInput, "Invalid list file name"))?;
@@ -126,7 +126,7 @@ impl List {
             serdes::serialize(&mut writer, &entry)?;
         }
         
-        // 'flush' is called internally, which may fail
+        // `flush` is called internally, which may fail
         let temp_file = writer.into_inner()?;
         
         // commit data to hardware

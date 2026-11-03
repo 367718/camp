@@ -10,10 +10,10 @@ pub struct Api;
 impl Api {
     
     pub fn init() -> io::Result<Self> {
-        // use server api introduced in Windows Vista; the previous version is deprecated
+        // use server API introduced in Windows Vista; previous version is deprecated
         let version = sys::HTTPAPI_VERSION_2;
         
-        // perform initialization for applications that use the http server api
+        // perform initialization for applications that use the HTTP server API
         let flags = sys::HTTP_INITIALIZE_SERVER;
         
         unsafe {

@@ -3,7 +3,7 @@ use std::{
     io::{ Error, ErrorKind },
 };
 
-// "secure" flag hardcoded in "response -> receive"
+// `WINHTTP_FLAG_SECURE` flag set in `response::receive`
 const SUPPORTED_SCHEME: &str = "https://";
 const DEFAULT_PORT: u16 = 443;
 
@@ -23,7 +23,7 @@ impl<'r> TryFrom<&'r str> for Url<'r> {
             .strip_prefix(SUPPORTED_SCHEME)
             .ok_or_else(|| Error::new(ErrorKind::InvalidInput, "Unsupported URL scheme"))?;
         
-        // extract host_plus_port and raw_path
+        // extract host_plus_port and path
         let (host_plus_port, raw_path) = match base.find(['/', '?', '#']) {
             Some(index) => base.split_at(index),
             None => (base, "/"),

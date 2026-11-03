@@ -35,7 +35,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in list.iter() {
         
-        // skip entries whose relative path cannot be represented in utf8
+        // skip entries whose `relative` value cannot be represented in UTF8
         let Some(relative) = entry.relative().to_str() else {
             continue;
         };
@@ -45,7 +45,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
         
         response.write_all(b"<a data-value='")?;
         
-        // value is flipped so "true" becomes 0 and "false" 1
+        // value is flipped so `true` becomes `0` and `false` becomes `1`
         let value = u8::from(! entry.is_marked(flag).unwrap_or(false));
         
         response.write_all(value.format_into(&mut numbuf).as_bytes())?;
