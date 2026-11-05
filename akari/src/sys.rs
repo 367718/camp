@@ -74,7 +74,7 @@ unsafe extern "system" {
         pwsz_object_name: *const c_ushort, // LPCWSTR
         pwsz_version: *const c_ushort, // LPCWSTR
         pwsz_referrer: *const c_ushort, // LPCWSTR
-        ppwsz_accept_types: *mut *const c_ushort, // LPCWSTR
+        ppwsz_accept_types: *mut *const c_ushort, // *mut LPCWSTR
         dw_flags: c_ulong, // DWORD
     ) -> *mut c_void; // HINTERNET
     
@@ -125,6 +125,10 @@ pub const WINHTTP_FLAG_SECURE: c_ulong = 0x0080_0000; // DWORD
 
 pub const WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL: c_ulong = 133; // DWORD
 pub const WINHTTP_PROTOCOL_FLAG_HTTP2: c_ulong = 1; // DWORD
+
+pub const WINHTTP_OPTION_REDIRECT_POLICY: c_ulong = 88; // DWORD
+pub const WINHTTP_OPTION_REDIRECT_POLICY_NEVER: c_ulong = 0; // DWORD
+
 pub const WINHTTP_OPTION_DECOMPRESSION: c_ulong = 118; // DWORD
 pub const WINHTTP_DECOMPRESSION_FLAG_GZIP: c_ulong = 1; // DWORD
 pub const WINHTTP_DECOMPRESSION_FLAG_DEFLATE: c_ulong = 2; // DWORD

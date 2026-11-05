@@ -9,6 +9,7 @@ use crate::sys;
 const MODULE_NAME: &str = "winhttp.dll";
 
 pub fn last_winhttp_error() -> Error {
+    // capture last error early to prevent later calls from overwriting it
     let os_error = Error::last_os_error();
     
     // -------------------- get message id --------------------
@@ -47,17 +48,16 @@ pub fn last_winhttp_error() -> Error {
     let mut buffer: [c_ushort; 1024] = [0; 1024];
     
     // SAFETY:
-    // 1. `source.cast_const()` is either a valid module handle when `FORMAT_MESSAGE_FROM_HMODULE` is set, or `null` when omitted
+    // 1. `source.cast_const()` is either `null` or a valid module handle to `winhttp.dll` which remains loaded for the duration of the process
     // 2. `message_id` represents the most recent operating system error that occurred on the current thread
     // 3. `dw_language_id` as `0` is valid and selects the default language search sequence
     // 4. `buffer.as_mut_ptr()` points to a live, properly aligned stack array valid for writes
-    // 5. `n_size` as `buffer.len()` prevents out-of-bounds writes
+    // 5. `n_size` as `buffer.len()` specifies the capacity in characters rather than bytes, preventing out-of-bounds writes
     // 6. `arguments` as `null` is valid as long as `FORMAT_MESSAGE_IGNORE_INSERTS` is set
-    // 7. on failure, `0` is returned and `os_error` is propagated as fallback
-    // 8. on success, the returned length cannot exceed `n_size`, ensuring slice indexing into `buffer` is within bounds
-    let length = unsafe {
+    // 7. on success, the returned length cannot exceed `n_size`, ensuring slice indexing into `buffer` is within bounds
+    let result = unsafe {
         
-        let result = sys::FormatMessageW(
+        sys::FormatMessageW(
             flag,
             source.cast_const(),
             message_id,
@@ -65,17 +65,16 @@ pub fn last_winhttp_error() -> Error {
             buffer.as_mut_ptr(),
             c_ulong::try_from(buffer.len()).expect("Unexpected truncation"),
             ptr::null_mut(), // no arguments
-        );
-        
-        // formatting failed; return the default standard library error
-        if result == 0 {
-            return os_error;
-        }
-        
-        result
+        )
         
     };
     
+    // formatting failed; return the default standard library error
+    if result == 0 {
+        return os_error;
+    }
+    
+    let length = result;
     let message = String::from_utf16_lossy(&buffer[..length as usize]);
     
     Error::other(format!("{} (OS Error {})", message.trim_end(), message_id))

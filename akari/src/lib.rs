@@ -41,7 +41,7 @@ impl Client {
         })
     }
     
-    pub fn get(&self, resource: &str) -> io::Result<Response> {
+    pub fn get(&self, resource: &str) -> io::Result<Response<'_>> {
         let url = Url::try_from(resource)?;
         
         let connection = Connection::open(&self.session, url.host, url.port)?;

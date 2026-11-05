@@ -7,10 +7,10 @@ use std::{
 const SUPPORTED_SCHEME: &str = "https://";
 const DEFAULT_PORT: u16 = 443;
 
-pub struct Url<'r> {
-    pub host: &'r str,
-    pub port: u16,
-    pub path: Cow<'r, str>,
+pub(crate) struct Url<'r> {
+    pub(crate) host: &'r str,
+    pub(crate) port: u16,
+    pub(crate) path: Cow<'r, str>,
 }
 
 impl<'r> TryFrom<&'r str> for Url<'r> {
@@ -66,6 +66,10 @@ impl<'r> TryFrom<&'r str> for Url<'r> {
             None => (host_plus_port, DEFAULT_PORT),
         };
         
+        if host.is_empty() {
+            return Err(Error::new(ErrorKind::InvalidInput, "Host cannot be empty"));
+        }
+        
         Ok(Self { host, port, path })
     }
     
@@ -80,6 +84,7 @@ mod tests {
     // with_querystring
     // with_port
     // no_host
+    // no_host_with_port
     // invalid_scheme
     // uppercase_scheme
     // invalid_port
@@ -190,6 +195,21 @@ mod tests {
         // setup
         
         let resource = "https://";
+        
+        // operation
+        
+        let output = Url::try_from(resource);
+        
+        // control
+        
+        assert!(output.is_err());
+    }
+    
+    #[test]
+    fn no_host_with_port() {
+        // setup
+        
+        let resource = "https://:443";
         
         // operation
         

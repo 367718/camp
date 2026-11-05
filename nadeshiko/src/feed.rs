@@ -29,6 +29,10 @@ impl Feed {
     pub fn new(httpclient: &mut akari::Client, url: &str, max_feed_size: u64) -> Result<Self, Box<dyn Error>> {
         let response = httpclient.get(url)?;
         
+        if response.status_code() != 200 {
+            return Err(format!("Server responded with status code {}", response.status_code()).into());
+        }
+        
         let size = FEED_INITIAL_SIZE
             .min(max_feed_size);
         
