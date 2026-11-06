@@ -7,27 +7,21 @@ mod winhttphandle;
 mod url;
 mod session;
 mod connection;
+mod request;
 mod response;
 
-use std::{
-    io,
-    os::raw::*,
-};
+use std::io;
 
 use winhttperror::last_winhttp_error;
 use winhttphandle::WinHttpHandle;
 use url::Url;
 use session::Session;
 use connection::Connection;
+use request::Request;
 
 pub use response::Response;
 
 const USER_AGENT: &str = env!("CARGO_PKG_NAME");
-
-const DNS_RESOLUTION_TIMEOUT: c_int = 15_000;
-const CONNECTION_TIMEOUT: c_int = 15_000;
-const SEND_TIMEOUT: c_int = 15_000;
-const RECEIVE_TIMEOUT: c_int = 15_000;
 
 pub struct Client {
     session: Session,
@@ -44,10 +38,10 @@ impl Client {
     pub fn get(&self, resource: &str) -> io::Result<Response<'_>> {
         let url = Url::try_from(resource)?;
         
-        let connection = Connection::open(&self.session, url.host, url.port)?;
-        let response = Response::receive(connection, &url.path)?;
+        let connection = Connection::open(&self.session, &url.host, url.port)?;
+        let request = Request::open(connection, &url.path)?;
         
-        Ok(response)
+        request.send()
     }
     
 }

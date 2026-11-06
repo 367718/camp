@@ -1,19 +1,22 @@
 use std::{
     io,
     os::raw::*,
-    ptr,
+    ptr::{ self, NonNull },
 };
 
 use crate::{
     sys, last_winhttp_error,
-    DNS_RESOLUTION_TIMEOUT, CONNECTION_TIMEOUT,
-    SEND_TIMEOUT, RECEIVE_TIMEOUT,
     WinHttpHandle,
 };
 
 pub(crate) struct Session {
     pub(crate) handle: WinHttpHandle,
 }
+
+const DNS_RESOLUTION_TIMEOUT: c_int = 15_000;
+const CONNECTION_TIMEOUT: c_int = 15_000;
+const SEND_TIMEOUT: c_int = 15_000;
+const RECEIVE_TIMEOUT: c_int = 15_000;
 
 impl Session {
     
@@ -42,8 +45,11 @@ impl Session {
             
         };
         
-        // SAFETY: if non-null, `result` is a valid, open session handle uniquely owned
-        let handle = unsafe { WinHttpHandle::from_raw(result)? };
+        let handle = match NonNull::new(result) {
+            // SAFETY: `result` is a uniquely owned, valid, open session handle
+            Some(result) => unsafe { WinHttpHandle::from_raw(result) },
+            None => return Err(last_winhttp_error()),
+        };
         
         // -------------------- set timeouts --------------------
         
@@ -124,7 +130,7 @@ impl Session {
         // -------------------- set decompression --------------------
         
         // automatically decompress response bodies with compressed "Content-Encoding"
-        // this will also set an appropriate "Accept-Encoding" header for all requests
+        // this will also set an appropriate "Accept-Encoding" header for all requests unless one has already been set manually
         // available on Windows 8.1 and later
         let option = sys::WINHTTP_OPTION_DECOMPRESSION;
         

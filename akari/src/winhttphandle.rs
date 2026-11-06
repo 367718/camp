@@ -1,10 +1,9 @@
 use std::{
-    io,
     os::raw::*,
     ptr::NonNull,
 };
 
-use crate::{ sys, last_winhttp_error };
+use crate::sys;
 
 pub(crate) struct WinHttpHandle(NonNull<c_void>); // HINTERNET
 
@@ -12,12 +11,9 @@ impl WinHttpHandle {
     
     /// # Safety
     ///
-    /// if `raw` is non-null, it must be a valid, open `HINTERNET` handle whose exclusive ownership is transferred
-    pub(crate) unsafe fn from_raw(raw: *mut c_void) -> io::Result<Self> {
-        let inner = NonNull::new(raw)
-            .ok_or_else(last_winhttp_error)?;
-        
-        Ok(Self(inner))
+    /// `inner` is a valid, open `HINTERNET` handle whose exclusive ownership is transferred
+    pub(crate) unsafe fn from_raw(inner: NonNull<c_void>) -> Self {
+        Self(inner)
     }
     
     pub(crate) fn as_raw(&self) -> *mut c_void {
@@ -25,7 +21,6 @@ impl WinHttpHandle {
     }
     
 }
-
 
 impl Drop for WinHttpHandle {
     

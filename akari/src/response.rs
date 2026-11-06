@@ -17,81 +17,11 @@ pub struct Response<'s> {
     connection: Connection<'s>,
 }
 
+const READ_BUFFER_MAXIMUM_SIZE: usize = 64 * 1024;
+
 impl<'s> Response<'s> {
     
-    pub(crate) fn receive(connection: Connection<'s>, path: &str) -> io::Result<Self> {
-        // -------------------- open request --------------------
-        
-        let path_wide = chikuwa::win_string(path)?;
-        
-        // enables TLS
-        let flags = sys::WINHTTP_FLAG_SECURE;
-        
-        // SAFETY:
-        // 1. `connection.handle.as_raw()` is a valid `HINTERNET` connection handle whose lifetime is guaranteed by the owned `Connection`
-        // 2. `path_wide.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
-        // 3. passing `null` for `pwsz_verb`, `pwsz_version`, `pwsz_referrer`, and `ppwsz_accept_types` selects standard WinHTTP defaults
-        let result = unsafe {
-            
-            sys::WinHttpOpenRequest(
-                connection.handle.as_raw(),
-                ptr::null(), // default http verb: GET
-                path_wide.as_ptr(),
-                ptr::null(), // default and (highest supported) http version: HTTP/1.1
-                ptr::null(), // no referer
-                ptr::null_mut(), // no accept header
-                flags,
-            )
-            
-        };
-        
-        // SAFETY: if non-null, `result` is a valid, open request handle uniquely owned
-        let handle = unsafe { WinHttpHandle::from_raw(result)? };
-        
-        // -------------------- send request --------------------
-        
-        // SAFETY:
-        // 1. `handle.as_raw()` is a valid `HINTERNET` request handle that was verified to be non-null and has not been closed yet
-        // 2. `null` for `lpsz_headers` and `0` for `dw_headers_length` are valid if no additional headers are to be sent
-        // 3. `null` for `lp_optional` and `0` for `dw_optional_length` are valid if no body is to be sent
-        // 4. `dw_total_length` as `0` is valid as no body is to be sent
-        // 5. `dw_context` as `0` is valid and signals that no context is associated with the request
-        let result = unsafe {
-            
-            sys::WinHttpSendRequest(
-                handle.as_raw(),
-                ptr::null(), // no additional headers
-                0, // no additional headers
-                ptr::null_mut(), // no body
-                0, // no body
-                0, // no body
-                0, // no context
-            )
-            
-        };
-        
-        if result == 0 {
-            return Err(last_winhttp_error());
-        }
-        
-        // -------------------- receive response --------------------
-        
-        // SAFETY:
-        // 1. `handle.as_raw()` is a valid `HINTERNET` request handle on which `WinHttpSendRequest` has successfully completed
-        // 2. `lp_reserved` as `ptr::null_mut()` is required by the WinHTTP API
-        let result = unsafe {
-            
-            sys::WinHttpReceiveResponse(
-                handle.as_raw(),
-                ptr::null_mut(), // reserved
-            )
-            
-        };
-        
-        if result == 0 {
-            return Err(last_winhttp_error());
-        }
-        
+    pub(crate) fn new(handle: WinHttpHandle, connection: Connection<'s>) -> io::Result<Self> {
         // -------------------- retrieve status_code --------------------
         
         // `WINHTTP_QUERY_STATUS_CODE`: retrieve status code as returned by server
@@ -144,7 +74,7 @@ impl Read for Response<'_> {
             return Ok(0);
         }
         
-        let number_of_bytes_to_read = c_ulong::try_from(buf.len().min(c_ulong::MAX as usize)).expect("Unexpected truncation");
+        let number_of_bytes_to_read = c_ulong::try_from(buf.len().min(READ_BUFFER_MAXIMUM_SIZE)).expect("Unexpected truncation");
         let mut number_of_bytes_read: c_ulong = 0;
         
         // SAFETY:

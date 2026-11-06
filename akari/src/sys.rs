@@ -27,6 +27,16 @@ unsafe extern "system" {
         h_internet: *mut c_void, // HINTERNET
     ) -> c_int; // BOOL
     
+    // -------------------- url --------------------
+    
+    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpcrackurl
+    pub fn WinHttpCrackUrl(
+        pwsz_url: *const c_ushort, // LPCWSTR
+        dw_url_length: c_ulong, // DWORD
+        dw_flags: c_ulong, // DWORD
+        lp_url_components: *mut UrlComponents, // LPURL_COMPONENTS
+    ) -> c_int; // BOOL
+    
     // -------------------- session --------------------
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpopen
@@ -65,7 +75,7 @@ unsafe extern "system" {
         dw_reserved: c_ulong,
     ) -> *mut c_void; // HINTERNET
     
-    // -------------------- response --------------------
+    // -------------------- request --------------------
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpopenrequest
     pub fn WinHttpOpenRequest(
@@ -95,13 +105,7 @@ unsafe extern "system" {
         lp_reserved: *mut c_void, // LPVOID
     ) -> c_int; // BOOL
     
-    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreaddata
-    pub fn WinHttpReadData(
-        h_request: *mut c_void, // HINTERNET
-        lp_buffer: *mut c_void, // LPVOID
-        dw_number_of_bytes_to_read: c_ulong, // DWORD
-        lpdw_number_of_bytes_read: *mut c_ulong, // LPDWORD
-    ) -> c_int; // BOOL
+    // -------------------- response --------------------
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpqueryheaders
     pub fn WinHttpQueryHeaders(
@@ -113,7 +117,36 @@ unsafe extern "system" {
         lpdw_index: *mut c_ulong, // LPDWORD
     ) -> c_int; // BOOL
     
+    // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreaddata
+    pub fn WinHttpReadData(
+        h_request: *mut c_void, // HINTERNET
+        lp_buffer: *mut c_void, // LPVOID
+        dw_number_of_bytes_to_read: c_ulong, // DWORD
+        lpdw_number_of_bytes_read: *mut c_ulong, // LPDWORD
+    ) -> c_int; // BOOL
+    
 }
+
+#[repr(C)]
+pub struct UrlComponents {
+    pub dw_struct_size: c_ulong, // DWORD
+    pub lpsz_scheme: *mut c_ushort, // LPWSTR
+    pub dw_scheme_length: c_ulong, // DWORD
+    pub n_scheme: c_int, // INTERNET_SCHEME
+    pub lpsz_host_name: *mut c_ushort, // LPWSTR
+    pub dw_host_name_length: c_ulong, // DWORD
+    pub n_port: c_ushort, // INTERNET_PORT
+    pub lpsz_user_name: *mut c_ushort, // LPWSTR
+    pub dw_user_name_length: c_ulong, // DWORD
+    pub lpsz_password: *mut c_ushort, // LPWSTR
+    pub dw_password_length: c_ulong, // DWORD
+    pub lpsz_url_path: *mut c_ushort, // LPWSTR
+    pub dw_url_path_length: c_ulong, // DWORD
+    pub lpsz_extra_info: *mut c_ushort, // LPWSTR
+    pub dw_extra_info_length: c_ulong, // DWORD
+}
+
+pub const INTERNET_SCHEME_HTTPS: c_int = 2;
 
 pub const WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY: c_ulong = 4; // DWORD
 
