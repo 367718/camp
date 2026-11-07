@@ -32,7 +32,7 @@ impl<'s> Request<'s> {
             sys::WinHttpOpenRequest(
                 connection.handle.as_raw(),
                 ptr::null(), // default http verb: GET
-                path.as_ptr(),
+                path.as_ptr(), // automatically escaped by WinHTTP as long as `WINHTTP_FLAG_ESCAPE_DISABLE` is not set
                 ptr::null(), // HTTP/1.1 by default, overridden by HTTP/2 set in `session`
                 ptr::null(), // no referer
                 ptr::null_mut(), // no accept header

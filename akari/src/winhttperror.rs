@@ -6,7 +6,8 @@ use std::{
 
 use crate::sys;
 
-const MODULE_NAME: &str = "winhttp.dll";
+// "winhttp.dll\0"
+const MODULE_NAME: &[u16] = &[119, 105, 110, 104, 116, 116, 112, 46, 100, 108, 108, 0];
 
 pub fn last_winhttp_error() -> Error {
     // capture last error early to prevent later calls from overwriting it
@@ -21,15 +22,13 @@ pub fn last_winhttp_error() -> Error {
     
     // -------------------- get source --------------------
     
-    let wide_module_name = chikuwa::win_string(MODULE_NAME).unwrap();
-    
     // SAFETY:
-    // 1. `wide_module_name.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
+    // 1. `module_name.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
     // 2. on failure, `null` is returned and subsequently checked before using the `FORMAT_MESSAGE_FROM_HMODULE` flag
     let source = unsafe {
         
         sys::GetModuleHandleW(
-            wide_module_name.as_ptr(),
+            MODULE_NAME.as_ptr(),
         )
         
     };

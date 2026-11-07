@@ -45,7 +45,7 @@ impl<'s> Response<'s> {
                 ptr::null(), // built-in header
                 (&raw mut buffer).cast::<c_void>(),
                 &raw mut buffer_length,
-                ptr::null_mut(), // single-value header
+                ptr::null_mut(), // retrieve first occurrence
             )
             
         };

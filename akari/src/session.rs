@@ -72,7 +72,7 @@ impl Session {
         
         // -------------------- set HTTP/2 --------------------
         
-        // acceptable HTTP version
+        // allowed HTTP protocol versions
         let option = sys::WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL;
         
         // enables HTTP/2 for all requests
