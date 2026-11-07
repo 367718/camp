@@ -14,6 +14,8 @@ pub(crate) struct Url {
 }
 
 const SLASH: u16 = b'/' as u16;
+const QUESTION_MARK: u16 = b'?' as u16;
+const HASH: u16 = b'#' as u16;
 
 impl TryFrom<&str> for Url {
     
@@ -30,9 +32,9 @@ impl TryFrom<&str> for Url {
         // size of `UrlComponents` in bytes, as required by the WinHTTP API
         components.dw_struct_size = c_ulong::try_from(size_of_val(&components)).expect("Unexpected truncation");
         
-        components.dw_host_name_length = c_ulong::MAX; // populate `lpsz_host_name` and `dw_host_name_length`
-        components.dw_url_path_length = c_ulong::MAX; // populate `lpsz_url_path` and `dw_url_path_length`
-        components.dw_extra_info_length = c_ulong::MAX; // strip query and fragment from `lpsz_url_path`
+        components.dw_host_name_length = 1; // populate `lpsz_host_name` and `dw_host_name_length`
+        components.dw_url_path_length = 1; // populate `lpsz_url_path` and `dw_url_path_length`
+        components.dw_extra_info_length = 1; // populate `lpsz_extra_info` and `dw_extra_info_length`
         
         // SAFETY:
         // 1. `url_wide.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
@@ -69,7 +71,7 @@ impl TryFrom<&str> for Url {
         // SAFETY:
         // 1. `components.lpsz_host_name` was verified to be non-null and `dw_host_name_length` is greater than 0
         // 2. `lpsz_host_name` is guaranteed to point to a valid, contiguous slice of `dw_host_name_length` UTF-16 code units located within `url_wide`
-        let raw_host = unsafe {
+        let host_raw = unsafe {
             
             slice::from_raw_parts(
                 components.lpsz_host_name,
@@ -78,8 +80,8 @@ impl TryFrom<&str> for Url {
             
         };
         
-        let mut host = Vec::with_capacity(raw_host.len() + 1);
-        host.extend_from_slice(raw_host);
+        let mut host = Vec::with_capacity(host_raw.len() + 1);
+        host.extend_from_slice(host_raw);
         host.push(0);
         
         // -------------------- port --------------------
@@ -89,11 +91,7 @@ impl TryFrom<&str> for Url {
         
         // -------------------- path --------------------
         
-        // root or empty url (https://example.com) => "/\0"
-        // missing leading slash (https://example.com:8080?q=1) => "/\0"
-        // existing leading slash (https://example.com/test) => "/test\0"
-        
-        let raw_path = if ! components.lpsz_url_path.is_null() && components.dw_url_path_length > 0 {
+        let path_raw = if ! components.lpsz_url_path.is_null() && components.dw_url_path_length > 0 {
             
             // SAFETY:
             // 1. `components.lpsz_url_path` was verified to be non-null and `dw_url_path_length` is greater than 0
@@ -113,18 +111,56 @@ impl TryFrom<&str> for Url {
             
         };
         
-        // strip initial slash, if present, to simplify path construction
-        let path_without_slash = raw_path
-            .strip_prefix(&[SLASH])
-            .unwrap_or(raw_path);
+        let extra_raw = if ! components.lpsz_extra_info.is_null() && components.dw_extra_info_length > 0 {
+            
+            // SAFETY:
+            // 1. `components.lpsz_extra_info` was verified to be non-null and `dw_extra_info_length` is greater than 0
+            // 2. `lpsz_extra_info` is guaranteed to point to a valid, contiguous slice of `dw_extra_info_length` UTF-16 code units located within `url_wide`
+            unsafe {
+                
+                slice::from_raw_parts(
+                    components.lpsz_extra_info,
+                    components.dw_extra_info_length as usize,
+                )
+                
+            }
+            
+        } else {
+            
+            &[]
+            
+        };
         
-        let mut path = Vec::with_capacity(path_without_slash.len() + 2);
+        // "#fragment", if present, must come after "?query", and must not be sent to the server
+        let extra_without_fragment = if extra_raw.starts_with(&[QUESTION_MARK]) {
+            
+            let end = extra_raw
+                .iter()
+                .position(|&code_unit| code_unit == HASH)
+                .unwrap_or(extra_raw.len());
+            
+            &extra_raw[..end]
+            
+        } else {
+            
+            &[]
+            
+        };
+        
+        // strip initial slash, if present, to simplify path construction
+        let path_without_slash = path_raw
+            .strip_prefix(&[SLASH])
+            .unwrap_or(path_raw);
+        
+        let mut path = Vec::with_capacity(path_without_slash.len() + extra_without_fragment.len() + 2);
         path.push(SLASH);
         path.extend_from_slice(path_without_slash);
+        path.extend_from_slice(extra_without_fragment);
         path.push(0);
         
         // -------------------- response --------------------
         
         Ok(Self { host, port, path })
     }
+    
 }
