@@ -5,33 +5,37 @@ use std::{
 
 use crate::sys;
 
-pub struct Session {
-    pub(crate) id: c_ulonglong, // HTTP_OPAQUE_ID
+pub(super) struct Session {
+    pub(super) id: c_ulonglong, // HTTP_OPAQUE_ID
 }
 
 impl Session {
     
-    pub fn new() -> io::Result<Self> {
+    pub(super) fn new() -> io::Result<Self> {
         // use server API introduced in Windows Vista; previous version is deprecated
         let version = sys::HTTPAPI_VERSION_2;
         
-        let mut server_session_id: c_ulonglong = 0;
+        let mut id: c_ulonglong = 0;
         
-        unsafe {
+        // SAFETY:
+        // 1. `version` is a valid `HTTPAPI_VERSION` struct
+        // 2. `&raw mut id` points to a live, properly aligned `c_ulonglong` valid for writes
+        // 3. `reserved` as `0` is required by the http.sys API
+        let result = unsafe {
             
-            let result = sys::HttpCreateServerSession(
+            sys::HttpCreateServerSession(
                 version,
-                &raw mut server_session_id,
+                &raw mut id,
                 0, // reserved
-            );
-            
-            if result != sys::NO_ERROR {
-                return Err(Error::from_raw_os_error(result.cast_signed()));
-            }
+            )
             
         };
         
-        Ok(Self { id: server_session_id })
+        if result != sys::NO_ERROR {
+            return Err(Error::from_raw_os_error(result.cast_signed()));
+        }
+        
+        Ok(Self { id })
     }
     
 }
@@ -39,13 +43,16 @@ impl Session {
 impl Drop for Session {
     
     fn drop(&mut self) {
+        // SAFETY:
+        // 1. `self.id` is a valid, active `HTTP_OPAQUE_ID` created by `HttpCreateServerSession` that has not been closed already
+        // 2. `drop` runs only once, when the struct goes out of scope, preventing double-close bugs
         unsafe {
             
             sys::HttpCloseServerSession(
                 self.id,
-            );
+            )
             
-        }
+        };
     }
     
 }

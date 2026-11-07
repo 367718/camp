@@ -15,7 +15,8 @@ use url_group::UrlGroup;
 
 use crate::Request;
 
-// drop order required by http.sys, do not rearrange
+// INVARIANT: drop order required by http.sys, do not rearrange
+// url_group -> queue -> session -> api
 pub struct Server {
     #[allow(dead_code)]
     url_group: UrlGroup,
@@ -32,7 +33,7 @@ impl Server {
         let api = Api::init()?;
         let session = Session::new()?;
         let queue = Queue::new()?;
-        let url_group = UrlGroup::new(session.id, queue.handle, url)?;
+        let url_group = UrlGroup::new(&session, &queue, url)?;
         
         Ok(Self { url_group, queue, session, api })
     }

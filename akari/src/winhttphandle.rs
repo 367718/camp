@@ -25,7 +25,6 @@ impl WinHttpHandle {
 impl Drop for WinHttpHandle {
     
     fn drop(&mut self) {
-        
         // SAFETY:
         // 1. `self.0` is guaranteed to be a valid, non-null `HINTERNET` handle initialized by a WinHTTP creation function
         // 2. ownership of the raw handle belongs exclusively to this `WinHttpHandle` instance
@@ -34,10 +33,9 @@ impl Drop for WinHttpHandle {
             
             sys::WinHttpCloseHandle(
                 self.0.as_ptr(),
-            );
+            )
             
-        }
-        
+        };
     }
     
 }

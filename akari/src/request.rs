@@ -8,7 +8,8 @@ use crate::{
     WinHttpHandle, Connection, Response,
 };
 
-// SAFETY: drop order required by winhttp, do not rearrange
+// INVARIANT: drop order required by the WinHTTP API, do not rearrange
+// handle -> connection
 pub struct Request<'s> {
     handle: WinHttpHandle,
     #[allow(dead_code)]
@@ -26,7 +27,8 @@ impl<'s> Request<'s> {
         // SAFETY:
         // 1. `connection.handle.as_raw()` is a valid `HINTERNET` connection handle whose lifetime is guaranteed by the owned `Connection`
         // 2. `path.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
-        // 3. passing `null` for `pwsz_verb`, `pwsz_version`, `pwsz_referrer`, and `ppwsz_accept_types` selects standard WinHTTP defaults
+        // 3. passing `null` for `pwsz_verb`, `pwsz_version`, `pwsz_referrer`, and `ppwsz_accept_types` selects standard WinHTTP API defaults
+        // 4. `flags` is a valid option defined by the WinHTTP API
         let result = unsafe {
             
             sys::WinHttpOpenRequest(

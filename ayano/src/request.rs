@@ -63,7 +63,7 @@ impl<'s> Request<'s> {
         
         // `cooked.abs_path_length` is the length of the string in bytes (without the null terminator)
         // `slice::from_raw_parts` expects an element count
-        let utf16_slice = unsafe {
+        let path_raw = unsafe {
             
             slice::from_raw_parts(
                 cooked.p_abs_path,
@@ -72,31 +72,27 @@ impl<'s> Request<'s> {
             
         };
         
-        String::from_utf16(utf16_slice).ok()
+        String::from_utf16(path_raw).ok()
     }
     
     pub fn form_field<'r, 'p>(&'r self, param: &'p [u8]) -> FormField<'r, 'p> {
         let headers_data = Self::headers_data(&self.headers);
         let content_type_raw = &headers_data.headers.known_headers[sys::HTTP_HEADER_CONTENT_TYPE];
         
-        let content_type = {
+        let content_type = if ! content_type_raw.p_raw_value.is_null() && content_type_raw.raw_value_length > 0 {
             
-            if ! content_type_raw.p_raw_value.is_null() && content_type_raw.raw_value_length > 0 {
+            Some(unsafe {
                 
-                Some(unsafe {
-                    
-                    slice::from_raw_parts(
-                        content_type_raw.p_raw_value.cast::<u8>(),
-                        content_type_raw.raw_value_length as usize,
-                    )
-                    
-                })
+                slice::from_raw_parts(
+                    content_type_raw.p_raw_value.cast::<u8>(),
+                    content_type_raw.raw_value_length as usize,
+                )
                 
-            } else {
-                
-                None
-                
-            }
+            })
+            
+        } else {
+            
+            None
             
         };
         

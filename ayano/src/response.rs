@@ -45,9 +45,9 @@ impl<'s> Response<'s> {
         let flags = sys::HTTP_SEND_RESPONSE_FLAG_MORE_DATA | sys::HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA;
         let mut bytes_sent: c_ulong = 0;
         
-        unsafe {
+        let result = unsafe {
             
-            let result = sys::HttpSendHttpResponse(
+            sys::HttpSendHttpResponse(
                 server.queue_handle(),
                 request_id,
                 flags,
@@ -58,13 +58,13 @@ impl<'s> Response<'s> {
                 0, // reserved
                 ptr::null_mut(), // synchronous call
                 ptr::null_mut(), // no logging
-            );
-            
-            if result != sys::NO_ERROR {
-                return Err(Error::from_raw_os_error(result.cast_signed()));
-            }
+            )
             
         };
+        
+        if result != sys::NO_ERROR {
+            return Err(Error::from_raw_os_error(result.cast_signed()));
+        }
         
         let uncommitted = [0; UNCOMMITTED_BUFFER_CAPACITY];
         let uncommitted_len = 0;
@@ -171,9 +171,9 @@ impl Write for Response<'_> {
         let flags = sys::HTTP_SEND_RESPONSE_FLAG_MORE_DATA;
         let mut bytes_sent: c_ulong = 0;
         
-        unsafe {
+        let result = unsafe {
             
-            let result = sys::HttpSendResponseEntityBody(
+            sys::HttpSendResponseEntityBody(
                 self.server.queue_handle(),
                 self.request_id,
                 flags,
@@ -184,13 +184,13 @@ impl Write for Response<'_> {
                 0, // reserved
                 ptr::null_mut(), // synchronous call
                 ptr::null_mut(), // no logging
-            );
+            )
             
-            if result != sys::NO_ERROR {
-                self.failed = true;
-                return Err(Error::from_raw_os_error(result.cast_signed()));
-            }
-            
+        };
+        
+        if result != sys::NO_ERROR {
+            self.failed = true;
+            return Err(Error::from_raw_os_error(result.cast_signed()));
         }
         
         self.uncommitted_len = 0;
@@ -215,9 +215,9 @@ impl Drop for Response<'_> {
         let flags = 0;
         let mut bytes_sent: c_ulong = 0;
         
-        unsafe {
+        let result = unsafe {
             
-            let result = sys::HttpSendResponseEntityBody(
+            sys::HttpSendResponseEntityBody(
                 self.server.queue_handle(),
                 self.request_id,
                 flags,
@@ -228,12 +228,12 @@ impl Drop for Response<'_> {
                 0, // reserved
                 ptr::null_mut(), // synchronous call
                 ptr::null_mut(), // no logging
-            );
+            )
             
-            if result != sys::NO_ERROR {
-                self.disconnect();
-            }
-            
+        };
+        
+        if result != sys::NO_ERROR {
+            self.disconnect();
         }
     }
     

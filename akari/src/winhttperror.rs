@@ -23,7 +23,7 @@ pub fn last_winhttp_error() -> Error {
     // -------------------- get source --------------------
     
     // SAFETY:
-    // 1. `module_name.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
+    // 1. `MODULE_NAME.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
     // 2. on failure, `null` is returned and subsequently checked before using the `FORMAT_MESSAGE_FROM_HMODULE` flag
     let source = unsafe {
         

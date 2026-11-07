@@ -9,7 +9,8 @@ use crate::{
     WinHttpHandle, Connection,
 };
 
-// SAFETY: drop order required by winhttp, do not rearrange
+// INVARIANT: drop order required by the WinHTTP API, do not rearrange
+// handle -> connection
 pub struct Response<'s> {
     handle: WinHttpHandle,
     status_code: u16,
@@ -33,10 +34,11 @@ impl<'s> Response<'s> {
         
         // SAFETY:
         // 1. `handle.as_raw()` is a valid `HINTERNET` request handle on which `WinHttpReceiveResponse` has successfully completed
-        // 2. `pwsz_name` as `null` is valid when querying built-in headers selected by `info_level`
-        // 3. `(&raw mut buffer).cast::<c_void>()` points to a live, properly aligned `c_ulong`
-        // 4. `&raw mut buffer_length` points to a live `c_ulong` that matches the size in bytes of `buffer`, preventing out-of-bounds writes
-        // 5. `lpdw_index` as `null` is valid and corresponds to the first occurrence of the specified header
+        // 2. `info_level` is a valid option defined by the WinHTTP API
+        // 3. `pwsz_name` as `null` is valid when querying built-in headers selected by `info_level`
+        // 4. `(&raw mut buffer).cast::<c_void>()` points to a live, properly aligned `c_ulong` valid for writes
+        // 5. `&raw mut buffer_length` points to a live `c_ulong` that matches the size in bytes of `buffer`, preventing out-of-bounds writes
+        // 6. `lpdw_index` as `null` is valid and corresponds to the first occurrence of the specified header
         let result = unsafe {
             
             sys::WinHttpQueryHeaders(
@@ -81,7 +83,7 @@ impl Read for Response<'_> {
         // 1. `self.handle.as_raw()` is a valid `HINTERNET` request handle that was verified to be non-null and has not been closed yet
         // 2. `buf.as_mut_ptr().cast::<c_void>()` points to a live, non-empty, caller-provided byte slice valid for writes
         // 3. `number_of_bytes_to_read` cannot exceed `buf` length, preventing out-of-bounds writes
-        // 4. `&raw mut number_of_bytes_read` points to a live, properly aligned `c_ulong`
+        // 4. `&raw mut number_of_bytes_read` points to a live, properly aligned `c_ulong` valid for writes
         let result = unsafe {
             
             sys::WinHttpReadData(

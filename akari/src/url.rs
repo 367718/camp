@@ -22,9 +22,9 @@ impl TryFrom<&str> for Url {
     type Error = Error;
     
     fn try_from(url: &str) -> Result<Self, Self::Error> {
-        // -------------------- components --------------------
-        
         let url_wide = chikuwa::win_string(url)?;
+        
+        // -------------------- components --------------------
         
         // SAFETY: all-zero bit patterns are valid for structs that consist entirely of integer primitives and raw pointers
         let mut components: sys::UrlComponents = unsafe { mem::zeroed() };
@@ -41,7 +41,7 @@ impl TryFrom<&str> for Url {
         // 1. `url_wide.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
         // 2. `dw_url_length` as `0` is valid and signals that `pwsz_url` is null-terminated
         // 3. `dw_flags` as `0` is valid and signals that no special flags are to be used to control the operation
-        // 4. `&raw mut components` points to a live, properly aligned `UrlComponents` struct
+        // 4. `&raw mut components` points to a properly aligned, size-initialized `UrlComponents` struct
         let result = unsafe {
             
             sys::WinHttpCrackUrl(

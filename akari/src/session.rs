@@ -21,18 +21,19 @@ const RECEIVE_TIMEOUT: c_int = 15_000;
 impl Session {
     
     pub(crate) fn open(agent: &str) -> io::Result<Self> {
-        // -------------------- open --------------------
-        
         let agent_wide = chikuwa::win_string(agent)?;
         
+        // -------------------- open --------------------
+        
         // uses system proxy settings
+        // available starting with Windows 8.1
         let access_type = sys::WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY;
         
         // SAFETY:
         // 1. `agent_wide.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
-        // 2. `access_type` as `WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY` is valid starting with Windows 8.1
+        // 2. `access_type` is a valid option defined by the WinHTTP API
         // 3. `ptr::null()` is valid for `psz_proxy_w` and `psz_proxy_bypass_w` per the WinHTTP API when not specifying a named proxy
-        // 4. `dw_flags` is passed as `0` to signal that no flags will be used
+        // 4. `dw_flags` as `0` is valid and selects standard WinHTTP API defaults
         let result = unsafe {
             
             sys::WinHttpOpen(
@@ -73,6 +74,7 @@ impl Session {
         // -------------------- set HTTP/2 --------------------
         
         // allowed HTTP protocol versions
+        // available starting with Windows 10 version 1607
         let option = sys::WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL;
         
         // enables HTTP/2 for all requests
@@ -80,10 +82,10 @@ impl Session {
         
         // SAFETY:
         // 1. `handle.as_raw()` is a valid `HINTERNET` session handle that was verified to be non-null and has not been closed yet
-        // 2. `option` as `WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL` is valid starting with Windows 10 version 1607
+        // 2. `option` is a valid option defined by the WinHTTP API
         // 3. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `c_ulong`
-        // 4. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
-        // 5. `WinHttpSetOption` only reads from `lp_buffer`, casting to `*mut c_void` does not mutate immutable memory
+        // 4. `WinHttpSetOption` only reads from `buffer`, casting to `*mut c_void` does not mutate immutable memory
+        // 5. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
         let result = unsafe {
             
             sys::WinHttpSetOption(
@@ -109,9 +111,10 @@ impl Session {
         
         // SAFETY:
         // 1. `handle.as_raw()` is a valid `HINTERNET` session handle that was verified to be non-null and has not been closed yet
-        // 2. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `c_ulong`
-        // 3. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
-        // 4. `WinHttpSetOption` only reads from `lp_buffer`, casting to `*mut c_void` does not mutate immutable memory
+        // 2. `option` is a valid option defined by the WinHTTP API
+        // 3. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `c_ulong`
+        // 4. `WinHttpSetOption` only reads from `buffer`, casting to `*mut c_void` does not mutate immutable memory
+        // 5. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
         let result = unsafe {
             
             sys::WinHttpSetOption(
@@ -140,9 +143,10 @@ impl Session {
         
         // SAFETY:
         // 1. `handle.as_raw()` is a valid `HINTERNET` session handle that was verified to be non-null and has not been closed yet
-        // 2. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `c_ulong`
-        // 3. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
-        // 4. `WinHttpSetOption` only reads from `lp_buffer`, casting to `*mut c_void` does not mutate immutable memory
+        // 2. `option` is a valid option defined by the WinHTTP API
+        // 3. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `c_ulong`
+        // 4. `WinHttpSetOption` only reads from `buffer`, casting to `*mut c_void` does not mutate immutable memory
+        // 5. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
         let result = unsafe {
             
             sys::WinHttpSetOption(
