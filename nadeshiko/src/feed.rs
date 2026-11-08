@@ -33,13 +33,16 @@ impl Feed {
             return Err(format!("Server responded with status code {}", response.status_code()).into());
         }
         
-        let size = FEED_INITIAL_SIZE
-            .min(max_feed_size);
-        
-        let capacity = usize::try_from(size.saturating_add(1)).expect("Unsupported platform");
+        let size = FEED_INITIAL_SIZE.min(max_feed_size);
+        let capacity = usize::try_from(size).expect("Unsupported platform");
         let mut content = Vec::with_capacity(capacity);
         
-        response.take(size).read_to_end(&mut content)?;
+        response.take(size.saturating_add(1))
+            .read_to_end(&mut content)?;
+        
+        if content.len() as u64 > max_feed_size {
+            return Err(format!("Feed exceeded maximum allowable size ({} > {})", content.len(), max_feed_size).into());
+        }
         
         Ok(Self { content })
     }

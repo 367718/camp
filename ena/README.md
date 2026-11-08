@@ -15,10 +15,9 @@ The "mark" functionality relies on the Alternate Data Streams (ADS) feature of t
     * Iterator trait
 
 * `FilesEntry`
-    * path
     * relative
     * is_marked
+    * to_path
     * toggle_mark
     * move_to_folder
     * delete
-    * AsRef trait

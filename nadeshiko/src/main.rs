@@ -143,6 +143,7 @@ fn download(httpclient: &mut akari::Client, link_str: &str, max_torrent_size: u6
         .write(true)
         .open(destination)?;
     
+    // torrent files that exceed max size will be truncated
     let mut reader = response.take(max_torrent_size);
     let mut writer = BufWriter::with_capacity(64 * 1024, file);
     

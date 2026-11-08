@@ -2,14 +2,18 @@ mod impls;
 
 use std::{
     env,
-    fs::{ self, File },
+    fs::OpenOptions,
     io::{ self, Read, Error, ErrorKind },
+    os::windows::fs::OpenOptionsExt,
     sync::OnceLock,
 };
 
-const CONTENT_SIZE_LIMIT: u64 = 32 * 1024;
-
 use impls::ParamFromValue;
+
+const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
+const FILE_SHARE_READ: u32 = 0x0000_0001;
+
+const CONTENT_SIZE_LIMIT: u64 = 32 * 1024;
 
 pub fn get<T: ParamFromValue<'static>>(key: &[u8]) -> io::Result<T> {
     let content = load_content();
@@ -32,32 +36,49 @@ fn load_content() -> &'static [u8] {
         let file_name = executable_path.file_name()
             .ok_or(Error::from(ErrorKind::InvalidFilename))?;
         
-        let file_path = directory
+        let path = directory
             .join(file_name)
             .with_extension("rn");
         
+        // -------------------- file --------------------
+        
+        let file = OpenOptions::new()
+            .read(true)
+            .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT) // open the symbolic link or junction itself
+            .share_mode(FILE_SHARE_READ) // prevent external writes and deletes
+            .open(&path)?;
+        
         // -------------------- metadata --------------------
         
-        let metadata = fs::symlink_metadata(&file_path)?;
+        let metadata = file.metadata()
+            .map_err(|error| Error::new(error.kind(), format!("Failed to query metadata for configuration file '{}': {}", path.display(), error)))?;
         
-        // -------------------- symlink --------------------
-        
-        if metadata.is_symlink() {
+        if metadata.file_type().is_symlink() {
             return Err(Error::new(ErrorKind::InvalidInput, "Symlinks are not supported"));
         }
         
-        // -------------------- file --------------------
-        
-        let file = File::open(&file_path)?;
+        if metadata.len() > CONTENT_SIZE_LIMIT {
+            let message = format!("Configuration file '{}' exceeded maximum allowable size ({} > {})", path.display(), metadata.len(), CONTENT_SIZE_LIMIT);
+            return Err(Error::new(ErrorKind::InvalidData, message));
+        }
         
         // -------------------- content --------------------
         
-        let size = metadata.len().min(CONTENT_SIZE_LIMIT);
-        
-        let capacity = usize::try_from(size.saturating_add(1)).expect("Unsupported platform");
+        // allocation cannot exceed `CONTENT_SIZE_LIMIT`, as checked earlier
+        let capacity = usize::try_from(metadata.len()).expect("Unsupported platform");
         let mut content = Vec::with_capacity(capacity);
         
-        file.take(size).read_to_end(&mut content)?;
+        file.take(CONTENT_SIZE_LIMIT.saturating_add(1))
+            .read_to_end(&mut content)
+            .map_err(|error| Error::new(error.kind(), format!("Failed to read configuration file '{}': {}", path.display(), error)))?;
+        
+        // this should normally be unreachable, as external writes were denied and file size has already been checked before
+        if content.len() as u64 > CONTENT_SIZE_LIMIT {
+            let message = format!("Configuration file '{}' exceeded maximum allowable size ({} > {})", path.display(), content.len(), CONTENT_SIZE_LIMIT);
+            return Err(Error::new(ErrorKind::InvalidData, message));
+        }
+        
+        // -------------------- response --------------------
         
         Ok(content)
     }

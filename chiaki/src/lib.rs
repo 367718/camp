@@ -2,12 +2,11 @@ mod serdes;
 
 use std::{
     env,
-    fs::{ self, File },
+    fs::{ self, File, OpenOptions },
     io::{ self, Read, BufWriter, Error, ErrorKind },
+    os::windows::fs::OpenOptionsExt,
     path::{ Path, PathBuf },
 };
-
-const TAG_SIZE_LIMIT: usize = u16::MAX as usize;
 
 pub struct List {
     path: PathBuf,
@@ -25,6 +24,11 @@ pub struct ListEntry<'c> {
     pub value: u16,
 }
 
+const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
+const FILE_SHARE_READ: u32 = 0x0000_0001;
+
+const TAG_SIZE_LIMIT: usize = u16::MAX as usize;
+
 impl List {
     
     // -------------------- constructors --------------------
@@ -33,47 +37,58 @@ impl List {
     pub fn load(name: &str, max_size: u64) -> io::Result<Self> {
         // -------------------- path --------------------
         
+        let file_name = Path::new(name);
+        
         // guard against directory traversals
-        let file_name = Path::new(name)
-            .file_name()
-            .ok_or_else(|| Error::new(ErrorKind::InvalidInput, "Invalid list file name"))?;
-        
-        let file_path = env::current_dir()?
-            .join(file_name)
-            .with_extension("ck");
-        
-        // -------------------- metadata --------------------
-        
-        let metadata = fs::symlink_metadata(&file_path)
-            .map_err(|error| Error::new(error.kind(), format!("Failed to query metadata for list file '{}': {}", file_path.display(), error)))?;
-        
-        // -------------------- symlink --------------------
-        
-        if metadata.is_symlink() {
-            return Err(Error::new(ErrorKind::InvalidInput, "Symlinks are not supported"));
+        if file_name.components().count() != 1 || file_name.file_name().is_none() || name.contains(':') {
+            return Err(Error::new(ErrorKind::InvalidInput, "Invalid list file name"));
         }
+        
+        let path = env::current_dir()?
+            .join(file_name)
+            .with_added_extension("ck");
         
         // -------------------- file --------------------
         
-        let file = File::open(&file_path)
-            .map_err(|error| Error::new(error.kind(), format!("Failed to open list file '{}': {}", file_path.display(), error)))?;
+        let file = OpenOptions::new()
+            .read(true)
+            .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT) // open the symbolic link or junction itself
+            .share_mode(FILE_SHARE_READ) // prevent external writes and deletes
+            .open(&path)?;
+        
+        // -------------------- metadata --------------------
+        
+        let metadata = file.metadata()
+            .map_err(|error| Error::new(error.kind(), format!("Failed to query metadata for list file '{}': {}", path.display(), error)))?;
+        
+        if metadata.file_type().is_symlink() {
+            return Err(Error::new(ErrorKind::InvalidInput, "Symlinks are not supported"));
+        }
+        
+        if metadata.len() > max_size {
+            let message = format!("List file '{}' exceeded maximum allowable size ({} > {})", path.display(), metadata.len(), max_size);
+            return Err(Error::new(ErrorKind::InvalidData, message));
+        }
         
         // -------------------- content --------------------
         
-        let size = metadata.len().min(max_size);
-        
-        let capacity = usize::try_from(size.saturating_add(1)).expect("Unsupported platform");
+        // allocation cannot exceed `max_size`, as checked earlier
+        let capacity = usize::try_from(metadata.len()).expect("Unsupported platform");
         let mut content = Vec::with_capacity(capacity);
         
-        file.take(size).read_to_end(&mut content)
-            .map_err(|error| Error::new(error.kind(), format!("Failed to read list file '{}': {}", file_path.display(), error)))?;
+        file.take(max_size.saturating_add(1))
+            .read_to_end(&mut content)
+            .map_err(|error| Error::new(error.kind(), format!("Failed to read list file '{}': {}", path.display(), error)))?;
+        
+        // this should normally be unreachable, as external writes were denied and file size has already been checked before
+        if content.len() as u64 > max_size {
+            let message = format!("List file '{}' exceeded maximum allowable size ({} > {})", path.display(), content.len(), max_size);
+            return Err(Error::new(ErrorKind::InvalidData, message));
+        }
         
         // -------------------- response --------------------
         
-        Ok(Self {
-            path: file_path,
-            content,
-        })
+        Ok(Self { path, content })
     }
     
     
@@ -94,6 +109,10 @@ impl List {
             return Err(io::Error::new(ErrorKind::InvalidInput, "Tag size exceeds the maximum value supported"));
         }
         
+        if self.iter().any(|entry| entry.tag == tag && entry.value == value) {
+            return Ok(());
+        }
+        
         let entries = self.iter()
             .filter(|entry| entry.tag != tag)
             .chain(Some(ListEntry { tag, value }));
@@ -102,6 +121,10 @@ impl List {
     }
     
     pub fn delete(self, tag: &[u8]) -> io::Result<()> {
+        if ! self.iter().any(|entry| entry.tag == tag) {
+            return Ok(());
+        }
+        
         let entries = self.iter()
             .filter(|entry| entry.tag != tag);
         
@@ -112,19 +135,18 @@ impl List {
     // -------------------- helpers --------------------
     
     
-    fn commit<'c>(list_path: &Path, entries: impl Iterator<Item = ListEntry<'c>>) -> io::Result<()> {
+    fn commit<'c>(list_path: &Path, mut entries: impl Iterator<Item = ListEntry<'c>>) -> io::Result<()> {
         let temp_path = chikuwa::EphemeralPath::from(list_path.with_added_extension("tmp"));
         
         let temp_file = File::options()
-            .create_new(true)
+            .create(true)
+            .truncate(true)
             .write(true)
             .open(&temp_path)?;
         
         let mut writer = BufWriter::new(temp_file);
         
-        for entry in entries {
-            serdes::serialize(&mut writer, &entry)?;
-        }
+        entries.try_for_each(|entry| serdes::serialize(&mut writer, &entry))?;
         
         // `flush` is called internally, which may fail
         let temp_file = writer.into_inner()?;

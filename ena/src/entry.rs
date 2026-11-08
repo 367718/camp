@@ -68,7 +68,7 @@ impl<'r> FilesEntry<'r> {
         
         let temp_path = chikuwa::EphemeralPath::from(target_path);
         
-        // avoid toctou bug
+        // this will fail if the destination exists, avoiding a possible TOCTOU bug from a separate existence check
         fs::hard_link(&self.inner, &temp_path)?;
         fs::remove_file(&self.inner)?;
         

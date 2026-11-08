@@ -8,17 +8,10 @@ pub fn serialize(writer: &mut impl Write, entry: &ListEntry) -> io::Result<()> {
     let tag_size = u16::try_from(entry.tag.len())
         .expect("Tag size exceeds the maximum value supported");
     
-    let value_bytes = entry.value.to_le_bytes();
-    let tag_size_bytes = tag_size.to_le_bytes();
+    let [v0, v1] = entry.value.to_le_bytes();
+    let [t0, t1] = tag_size.to_le_bytes();
     
-    let header = [
-        value_bytes[0],
-        value_bytes[1],
-        tag_size_bytes[0],
-        tag_size_bytes[1],
-    ];
-    
-    writer.write_all(&header)?;
+    writer.write_all(&[v0, v1, t0, t1])?;
     
     // -------------------- tag --------------------
     
@@ -50,6 +43,7 @@ pub fn deserialize(data: &[u8]) -> Option<(ListEntry<'_>, &[u8])> {
 mod tests {
     
     // roundtrip
+    // serialize_overflow
     // no_content
     // empty_tag
     // no_tag_size
@@ -82,6 +76,24 @@ mod tests {
         let (output, _) = output.unwrap();
         
         assert_eq!(output, entry);
+    }
+    
+    #[test]
+    #[should_panic]
+    fn serialize_overflow() {
+        // setup
+        
+        let mut content = Vec::new();
+        
+        let big_tag = vec![0_u8; (u16::MAX as usize) + 1];
+        let entry = ListEntry {
+            tag: &big_tag,
+            value: 89,
+        };
+        
+        // operation
+        
+        serialize(&mut content, &entry).ok();
     }
     
     #[test]
@@ -158,7 +170,7 @@ mod tests {
         };
         
         content.extend_from_slice(&entry.value.to_le_bytes());
-        content.extend_from_slice(&entry.tag.len().to_le_bytes());        
+        content.extend_from_slice(&(entry.tag.len() as u16).to_le_bytes());
         
         // operation
         
