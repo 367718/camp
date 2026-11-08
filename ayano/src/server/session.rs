@@ -18,7 +18,7 @@ impl Session {
         let mut id: c_ulonglong = 0;
         
         // SAFETY:
-        // 1. `version` is a valid `HTTPAPI_VERSION` struct
+        // 1. `version` is a valid `HttpApiVersion` struct
         // 2. `&raw mut id` points to a live, properly aligned `c_ulonglong` valid for writes
         // 3. `reserved` as `0` is required by the http.sys API
         let result = unsafe {

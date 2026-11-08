@@ -163,10 +163,10 @@ pub struct HttpCookedUrl {
     pub host_length: c_ushort,
     pub abs_path_length: c_ushort,
     pub query_string_length: c_ushort,
-    pub p_full_url: *const u16, // PCWSTR
-    pub p_host: *const u16, // PCWSTR
-    pub p_abs_path: *const u16, // PCWSTR
-    pub p_query_string: *const u16, // PCWSTR
+    pub p_full_url: *const c_ushort, // PCWSTR
+    pub p_host: *const c_ushort, // PCWSTR
+    pub p_abs_path: *const c_ushort, // PCWSTR
+    pub p_query_string: *const c_ushort, // PCWSTR
 }
 
 #[repr(C)]
@@ -278,12 +278,12 @@ pub const HTTP_INITIALIZE_SERVER: c_ulong = 0x0000_0001;
 
 pub const HTTP_SERVER_BINDING_PROPERTY: c_ulong = 7;
 
+pub const HTTP_HEADER_REQUEST_MAXIMUM: usize = 41;
+
 pub const HTTP_HEADER_CACHE_CONTROL: usize = 0;
 pub const HTTP_HEADER_TRANSFER_ENCODING: usize = 6;
 pub const HTTP_HEADER_CONTENT_TYPE: usize = 12;
 pub const HTTP_HEADER_RESPONSE_MAXIMUM: usize = 30;
-pub const HTTP_DATA_CHUNK_FROM_MEMORY: c_ulong = 0;
-pub const HTTP_HEADER_REQUEST_MAXIMUM: usize = 41;
 
 pub const HTTP_REQUEST_FLAG_MORE_ENTITY_BODY_EXISTS: c_ulong = 0x0000_0001;
 pub const HTTP_RECEIVE_REQUEST_ENTITY_BODY_FLAG_FILL_BUFFER: c_ulong = 0x0000_0001;
@@ -294,6 +294,8 @@ pub const HTTP_VERB_POST: c_ulong = 6;
 pub const HTTP_SEND_RESPONSE_FLAG_DISCONNECT: c_ulong = 0x0000_0001;
 pub const HTTP_SEND_RESPONSE_FLAG_MORE_DATA: c_ulong = 0x0000_0002;
 pub const HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA: c_ulong = 0x0000_0004;
+
+pub const HTTP_DATA_CHUNK_FROM_MEMORY: c_ulong = 0;
 
 pub const NO_ERROR: c_ulong = 0;
 pub const ERROR_HANDLE_EOF: c_ulong = 38;

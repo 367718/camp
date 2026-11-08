@@ -71,9 +71,11 @@ impl TryFrom<&str> for Url {
         }
         
         // SAFETY:
-        // 1. `components.lpsz_host_name` was verified to be non-null and `dw_host_name_length` is greater than 0
-        // 2. `lpsz_host_name` is guaranteed to point to a valid, contiguous slice of `dw_host_name_length` UTF-16 code units located within `url_wide`
-        let host_raw = unsafe {
+        // 1. `lpsz_host_name` was verified to be non-null and `dw_host_name_length` is greater than 0
+        // 2. `lpsz_host_name` points to a valid, contiguous sequence of `dw_host_name_length` UTF-16 code units located within `url_wide`
+        // 3. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
+        // 4. `host_utf16_slice` does not escape this function and is immediately copied into `host`
+        let host_utf16_slice = unsafe {
             
             slice::from_raw_parts(
                 components.lpsz_host_name,
@@ -82,8 +84,8 @@ impl TryFrom<&str> for Url {
             
         };
         
-        let mut host = Vec::with_capacity(host_raw.len() + 1);
-        host.extend_from_slice(host_raw);
+        let mut host = Vec::with_capacity(host_utf16_slice.len() + 1);
+        host.extend_from_slice(host_utf16_slice);
         host.push(0);
         
         // -------------------- port --------------------
@@ -93,11 +95,13 @@ impl TryFrom<&str> for Url {
         
         // -------------------- path --------------------
         
-        let path_raw = if ! components.lpsz_url_path.is_null() && components.dw_url_path_length > 0 {
+        let path_utf16_slice = if ! components.lpsz_url_path.is_null() && components.dw_url_path_length > 0 {
             
             // SAFETY:
-            // 1. `components.lpsz_url_path` was verified to be non-null and `dw_url_path_length` is greater than 0
-            // 2. `lpsz_url_path` is guaranteed to point to a valid, contiguous slice of `dw_url_path_length` UTF-16 code units located within `url_wide`
+            // 1. `lpsz_url_path` was verified to be non-null and `dw_url_path_length` is greater than 0
+            // 2. `lpsz_url_path` points to a valid, contiguous sequence of `dw_url_path_length` UTF-16 code units located within `url_wide`
+            // 3. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
+            // 4. `path_utf16_slice` does not escape this function and is immediately copied into `path`
             unsafe {
                 
                 slice::from_raw_parts(
@@ -113,11 +117,13 @@ impl TryFrom<&str> for Url {
             
         };
         
-        let extra_raw = if ! components.lpsz_extra_info.is_null() && components.dw_extra_info_length > 0 {
+        let extra_utf16_slice = if ! components.lpsz_extra_info.is_null() && components.dw_extra_info_length > 0 {
             
             // SAFETY:
-            // 1. `components.lpsz_extra_info` was verified to be non-null and `dw_extra_info_length` is greater than 0
-            // 2. `lpsz_extra_info` is guaranteed to point to a valid, contiguous slice of `dw_extra_info_length` UTF-16 code units located within `url_wide`
+            // 1. `lpsz_extra_info` was verified to be non-null and `dw_extra_info_length` is greater than 0
+            // 2. `lpsz_extra_info` points to a valid, contiguous sequence of `dw_extra_info_length` UTF-16 code units located within `url_wide`
+            // 3. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
+            // 4. `extra_utf16_slice` does not escape this function and is copied into `path`
             unsafe {
                 
                 slice::from_raw_parts(
@@ -135,14 +141,14 @@ impl TryFrom<&str> for Url {
         
         // retain "?query", strip "#fragment" (which must never be sent to the server)
         // "#fragment" either exists by itself or comes after "?query" (if "?query" is present)
-        let extra_without_fragment = if extra_raw.starts_with(&[QUESTION_MARK]) {
+        let extra_without_fragment = if extra_utf16_slice.starts_with(&[QUESTION_MARK]) {
             
-            let end = extra_raw
+            let end = extra_utf16_slice
                 .iter()
                 .position(|&code_unit| code_unit == HASH)
-                .unwrap_or(extra_raw.len());
+                .unwrap_or(extra_utf16_slice.len());
             
-            &extra_raw[..end]
+            &extra_utf16_slice[..end]
             
         } else {
             
@@ -151,9 +157,9 @@ impl TryFrom<&str> for Url {
         };
         
         // strip initial "/slash", if present, to simplify path construction
-        let path_without_slash = path_raw
+        let path_without_slash = path_utf16_slice
             .strip_prefix(&[SLASH])
-            .unwrap_or(path_raw);
+            .unwrap_or(path_utf16_slice);
         
         let mut path = Vec::with_capacity(path_without_slash.len() + extra_without_fragment.len() + 2);
         path.push(SLASH);

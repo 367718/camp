@@ -19,7 +19,7 @@ impl Queue {
         let mut handle = ptr::null_mut();
         
         // SAFETY:
-        // 1. `version` is a valid `HTTPAPI_VERSION` struct
+        // 1. `version` is a valid `HttpApiVersion` struct
         // 2. `p_name` as `null` is valid and selects standard http.sys defaults
         // 3. `p_security_attributes` as `null` is valid and selects standard http.sys defaults
         // 4. `flags` as `0` is valid and selects standard http.sys defaults

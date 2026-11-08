@@ -17,7 +17,7 @@ impl Api {
         let flags = sys::HTTP_INITIALIZE_SERVER;
         
         // SAFETY:
-        // 1. `version` is a valid `HTTPAPI_VERSION` struct
+        // 1. `version` is a valid `HttpApiVersion` struct
         // 2. `flags` is a valid option defined by the http.sys API
         // 3. `p_reserved` as `null` is required by the http.sys API
         let result = unsafe {

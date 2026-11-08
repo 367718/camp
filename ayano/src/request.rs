@@ -13,10 +13,10 @@ use crate::{
 };
 
 pub struct Request<'s> {
-    server: &'s Server,
     headers: Box<[u64]>,
     body: Vec<u8>,
     answered: bool,
+    server: &'s Server,
 }
 
 const REQUEST_HEADERS_SIZE_LIMIT: usize = 16 * 128;
@@ -34,7 +34,7 @@ impl<'s> Request<'s> {
         let body = Self::read_body(server, &headers)?;
         let answered = false;
         
-        Ok(Self { server, headers, body, answered })
+        Ok(Self { headers, body, answered, server })
     }
     
     
@@ -44,48 +44,54 @@ impl<'s> Request<'s> {
     pub fn verb(&self) -> Option<&'static str> {
         let headers_data = Self::headers_data(&self.headers);
         
-        let verb = match headers_data.verb {
-            sys::HTTP_VERB_GET => "GET",
-            sys::HTTP_VERB_POST => "POST",
-            _ => return None,
-        };
-        
-        Some(verb)
+        match headers_data.verb {
+            sys::HTTP_VERB_GET => Some("GET"),
+            sys::HTTP_VERB_POST => Some("POST"),
+            _ => None,
+        }
     }
     
     pub fn path(&self) -> Option<String> {
         let headers_data = Self::headers_data(&self.headers);
-        let cooked = &headers_data.cooked_url;
+        let cooked_url = &headers_data.cooked_url;
         
-        if cooked.p_abs_path.is_null() || cooked.abs_path_length == 0 {
+        if cooked_url.p_abs_path.is_null() || cooked_url.abs_path_length == 0 {
             return None;
         }
         
-        // `cooked.abs_path_length` is the length of the string in bytes (without the null terminator)
-        // `slice::from_raw_parts` expects an element count
-        let path_raw = unsafe {
+        // SAFETY:
+        // 1. `p_abs_path` was verified to be non-null and `abs_path_length` is greater than 0
+        // 2. `p_abs_path` points to a valid, contiguous sequence of `abs_path_length` bytes located within `self.headers`
+        // 3. `HttpCookedUrl` length fields are byte counts that, divided by `mem::size_of::<u16>()`, matches the element count expected by `slice::from_raw_parts`
+        // 4. `path_utf16_slice` does not escape this function and is converted into an owned `String`
+        let path_utf16_slice = unsafe {
             
             slice::from_raw_parts(
-                cooked.p_abs_path,
-                (cooked.abs_path_length as usize) / mem::size_of::<u16>(),
+                cooked_url.p_abs_path,
+                (cooked_url.abs_path_length as usize) / mem::size_of::<u16>(),
             )
             
         };
         
-        String::from_utf16(path_raw).ok()
+        String::from_utf16(path_utf16_slice).ok()
     }
     
     pub fn form_field<'r, 'p>(&'r self, param: &'p [u8]) -> FormField<'r, 'p> {
         let headers_data = Self::headers_data(&self.headers);
-        let content_type_raw = &headers_data.headers.known_headers[sys::HTTP_HEADER_CONTENT_TYPE];
+        let header_value = &headers_data.headers.known_headers[sys::HTTP_HEADER_CONTENT_TYPE];
         
-        let content_type = if ! content_type_raw.p_raw_value.is_null() && content_type_raw.raw_value_length > 0 {
+        let content_type_raw_slice = if ! header_value.p_raw_value.is_null() && header_value.raw_value_length > 0 {
             
+            // SAFETY:
+            // 1. `p_raw_value` was verified to be non-null and `raw_value_length` is greater than 0
+            // 2. `p_raw_value` points to a valid, contiguous sequence of `raw_value_length` bytes located within `self.headers`
+            // 3. `HttpKnownHeader` length fields are byte counts, which matches the `u8` element count expected by `slice::from_raw_parts`
+            // 4. `content_type_raw_slice` lifetime is bound to `'r`, during which `self.headers` remains alive and immutable
             Some(unsafe {
                 
                 slice::from_raw_parts(
-                    content_type_raw.p_raw_value.cast::<u8>(),
-                    content_type_raw.raw_value_length as usize,
+                    header_value.p_raw_value.cast::<u8>(),
+                    header_value.raw_value_length as usize,
                 )
                 
             })
@@ -96,7 +102,7 @@ impl<'s> Request<'s> {
             
         };
         
-        FormField::new(&self.body, content_type, param)
+        FormField::new(&self.body, content_type_raw_slice, param)
     }
     
     
@@ -126,6 +132,14 @@ impl<'s> Request<'s> {
         let mut buffer = vec![0_u64; REQUEST_HEADERS_SIZE_LIMIT].into_boxed_slice();
         let mut amount_read: c_ulong = 0;
         
+        // SAFETY:
+        // 1. `server.queue_handle()` is a valid request queue handle whose lifetime is guaranteed by the borrowed `&Server`
+        // 2. `request_id` as `0` is valid and selects standard http.sys defaults
+        // 3. `flags` as `0` is valid and selects standard http.sys defaults
+        // 4. `buffer.as_mut_ptr().cast::<c_void>()` points to a live, non-empty, properly aligned memory buffer valid for writes
+        // 5. `size_of_val(&*buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds writes
+        // 6. `&raw mut amount_read` points to a live, properly aligned `c_ulong` valid for writes
+        // 7. `p_overlapped` as `null` is valid and selects standard http.sys defaults
         let result = unsafe {
             
             sys::HttpReceiveHttpRequest(
@@ -201,6 +215,14 @@ impl<'s> Request<'s> {
             
             loop {
                 
+                // SAFETY:
+                // 1. `server.queue_handle()` is a valid request queue handle whose lifetime is guaranteed by the borrowed `&Server`
+                // 2. `headers_data.request_id` is a valid request_id corresponding to a still-alive request
+                // 3. `flags` is a valid option defined by the http.sys API
+                // 4. `chunk.as_mut_ptr().cast::<c_void>()` points to a live, non-empty byte slice valid for writes
+                // 5. `chunk_len` matches the size in bytes of `chunk`, preventing out-of-bounds writes
+                // 6. `&raw mut bytes_read` points to a live, properly aligned `c_ulong` valid for writes
+                // 7. `p_overlapped` as `null` is valid and selects standard http.sys defaults
                 let result = unsafe {
                     
                     sys::HttpReceiveRequestEntityBody(
@@ -249,10 +271,16 @@ impl<'s> Request<'s> {
     }
     
     fn headers_data(headers: &[u64]) -> &sys::HttpRequestV2 {
+        // SAFETY:
+        // 1. `headers.as_ptr()` is non-null and aligned to 8 bytes (`u64`), which matches the 8-byte alignment required by `HttpRequestV2`
+        // 2. the memory slice is guaranteed to be at least `size_of::<sys::HttpRequestV2>()` bytes in length
+        // 3. all bytes are initialized and valid for integer primitives and raw pointers
+        // 4. `&HttpRequestV2` lifetime is tied to `headers`
         unsafe { &*headers.as_ptr().cast::<sys::HttpRequestV2>() }
     }
     
     fn abort(server: &Server, request_id: c_ulonglong, status: StatusCode) {
+        // SAFETY: all-zero bit patterns are valid for structs that consist entirely of integer primitives and raw pointers
         let mut response: sys::HttpResponseV2 = unsafe { mem::zeroed() };
         
         response.version = sys::HTTP_VERSION_1_1;
@@ -262,6 +290,17 @@ impl<'s> Request<'s> {
         let flags = sys::HTTP_SEND_RESPONSE_FLAG_DISCONNECT;
         let mut bytes_sent: c_ulong = 0;
         
+        // SAFETY:
+        //  1. `server.queue_handle()` is a valid request queue handle whose lifetime is guaranteed by the borrowed `&Server`
+        //  2. `request_id` is a valid request_id corresponding to a still-alive request
+        //  3. `flags` is a valid option defined by the http.sys API
+        //  4. `&raw mut response` points to a properly aligned, zero-initialized `HttpResponseV2` struct
+        //  5. `p_cache_policy` as `null` is valid and selects standard http.sys defaults
+        //  6. `&raw mut bytes_sent` points to a live, properly aligned `c_ulong` valid for writes
+        //  7. `p_reserved1` as `null` is required by the http.sys API
+        //  8. `reserved2` as `0` is required by the http.sys API
+        //  9. `p_overlapped` as `null` is valid and selects standard http.sys defaults
+        // 10. `p_log_data` as `null` is valid and selects standard http.sys defaults
         unsafe {
             
             sys::HttpSendHttpResponse(
@@ -275,9 +314,9 @@ impl<'s> Request<'s> {
                 0, // reserved
                 ptr::null_mut(), // synchronous call
                 ptr::null_mut(), // no logging
-            );
+            )
             
-        }
+        };
     }
     
 }
