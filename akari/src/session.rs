@@ -32,7 +32,7 @@ impl Session {
         // SAFETY:
         // 1. `agent_wide.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
         // 2. `access_type` is a valid option defined by the WinHTTP API
-        // 3. `ptr::null()` is valid for `psz_proxy_w` and `psz_proxy_bypass_w` per the WinHTTP API when not specifying a named proxy
+        // 3. `null` is valid for `psz_proxy_w` and `psz_proxy_bypass_w` per the WinHTTP API when not specifying a named proxy
         // 4. `dw_flags` as `0` is valid and selects standard WinHTTP API defaults
         let result = unsafe {
             
@@ -84,14 +84,13 @@ impl Session {
         // 1. `handle.as_raw()` is a valid `HINTERNET` session handle that was verified to be non-null and has not been closed yet
         // 2. `option` is a valid option defined by the WinHTTP API
         // 3. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `c_ulong`
-        // 4. `WinHttpSetOption` only reads from `buffer`, casting to `*mut c_void` does not mutate immutable memory
-        // 5. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
+        // 4. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
         let result = unsafe {
             
             sys::WinHttpSetOption(
                 handle.as_raw(),
                 option,
-                (&raw const buffer).cast::<c_void>().cast_mut(),
+                (&raw const buffer).cast::<c_void>(),
                 c_ulong::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),
             )
             
@@ -113,14 +112,13 @@ impl Session {
         // 1. `handle.as_raw()` is a valid `HINTERNET` session handle that was verified to be non-null and has not been closed yet
         // 2. `option` is a valid option defined by the WinHTTP API
         // 3. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `c_ulong`
-        // 4. `WinHttpSetOption` only reads from `buffer`, casting to `*mut c_void` does not mutate immutable memory
-        // 5. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
+        // 4. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
         let result = unsafe {
             
             sys::WinHttpSetOption(
                 handle.as_raw(),
                 option,
-                (&raw const buffer).cast::<c_void>().cast_mut(),
+                (&raw const buffer).cast::<c_void>(),
                 c_ulong::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),
             )
             
@@ -145,14 +143,13 @@ impl Session {
         // 1. `handle.as_raw()` is a valid `HINTERNET` session handle that was verified to be non-null and has not been closed yet
         // 2. `option` is a valid option defined by the WinHTTP API
         // 3. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `c_ulong`
-        // 4. `WinHttpSetOption` only reads from `buffer`, casting to `*mut c_void` does not mutate immutable memory
-        // 5. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
+        // 4. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
         let result = unsafe {
             
             sys::WinHttpSetOption(
                 handle.as_raw(),
                 option,
-                (&raw const buffer).cast::<c_void>().cast_mut(),
+                (&raw const buffer).cast::<c_void>(),
                 c_ulong::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),
             )
             

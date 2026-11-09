@@ -47,7 +47,7 @@ pub fn last_winhttp_error() -> Error {
     let mut buffer: [c_ushort; 1024] = [0; 1024];
     
     // SAFETY:
-    // 1. `source.cast_const()` is either `null` or a valid module handle to `winhttp.dll` which remains loaded for the duration of the process
+    // 1. `source` is either `null` or a valid module handle to `winhttp.dll` which remains loaded for the duration of the process
     // 2. `message_id` represents the most recent operating system error that occurred on the current thread
     // 3. `dw_language_id` as `0` is valid and selects the default language search sequence
     // 4. `buffer.as_mut_ptr()` points to a live, properly aligned stack array valid for writes
@@ -58,12 +58,12 @@ pub fn last_winhttp_error() -> Error {
         
         sys::FormatMessageW(
             flag,
-            source.cast_const(),
+            source,
             message_id,
             0, // default language search sequence
             buffer.as_mut_ptr(),
             c_ulong::try_from(buffer.len()).expect("Unexpected truncation"),
-            ptr::null_mut(), // no arguments
+            ptr::null(), // no arguments
         )
         
     };

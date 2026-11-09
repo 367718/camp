@@ -37,7 +37,7 @@ impl<'s> Request<'s> {
                 path.as_ptr(), // automatically escaped by WinHTTP as long as `WINHTTP_FLAG_ESCAPE_DISABLE` is not set
                 ptr::null(), // HTTP/1.1 by default, overridden by HTTP/2 set in `session`
                 ptr::null(), // no referer
-                ptr::null_mut(), // no accept header
+                ptr::null(), // no accept header
                 flags,
             )
             
@@ -68,7 +68,7 @@ impl<'s> Request<'s> {
                 self.handle.as_raw(),
                 ptr::null(), // no additional headers
                 0, // no additional headers
-                ptr::null_mut(), // no body
+                ptr::null(), // no body
                 0, // no body
                 0, // no body
                 0, // no context
@@ -84,12 +84,12 @@ impl<'s> Request<'s> {
         
         // SAFETY:
         // 1. `self.handle.as_raw()` is a valid `HINTERNET` request handle on which `WinHttpSendRequest` has successfully completed
-        // 2. `lp_reserved` as `ptr::null_mut()` is required by the WinHTTP API
+        // 2. `lp_reserved` as `null` is required by the WinHTTP API
         let result = unsafe {
             
             sys::WinHttpReceiveResponse(
                 self.handle.as_raw(),
-                ptr::null_mut(), // reserved
+                ptr::null(), // reserved
             )
             
         };

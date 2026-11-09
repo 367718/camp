@@ -1,6 +1,3 @@
-#[link(name = "httpapi")]
-unsafe extern "system" {}
-
 mod sys;
 mod server;
 mod form_field;

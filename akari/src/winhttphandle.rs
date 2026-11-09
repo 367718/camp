@@ -16,7 +16,7 @@ impl WinHttpHandle {
         Self(inner)
     }
     
-    pub(crate) fn as_raw(&self) -> *mut c_void {
+    pub(crate) fn as_raw(&self) -> *const c_void {
         self.0.as_ptr()
     }
     

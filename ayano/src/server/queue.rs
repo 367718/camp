@@ -7,7 +7,7 @@ use std::{
 use crate::sys;
 
 pub(super) struct Queue { 
-    pub(super) handle: *mut c_void, // HANDLE
+    pub(super) handle: *const c_void, // HANDLE
 }
 
 impl Queue {
@@ -16,7 +16,7 @@ impl Queue {
         // use server API introduced in Windows Vista; previous version is deprecated
         let version = sys::HTTPAPI_VERSION_2;
         
-        let mut handle = ptr::null_mut();
+        let mut handle = ptr::null();
         
         // SAFETY:
         // 1. `version` is a valid `HttpApiVersion` struct
@@ -29,7 +29,7 @@ impl Queue {
             sys::HttpCreateRequestQueue(
                 version,
                 ptr::null(), // queue cannot be accessed by name
-                ptr::null_mut(), // disable child process handle inheritance
+                ptr::null(), // disable child process handle inheritance
                 0, // create a new, standard worker queue
                 &raw mut handle,
             )

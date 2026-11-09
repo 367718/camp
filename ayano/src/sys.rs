@@ -1,5 +1,6 @@
 use std::os::raw::*;
 
+#[link(name = "httpapi")]
 unsafe extern "system" {
     
     // -------------------- server -> api --------------------
@@ -37,14 +38,14 @@ unsafe extern "system" {
     pub fn HttpCreateRequestQueue(
         version: HttpApiVersion,
         p_name: *const c_ushort, // PCWSTR
-        p_security_attributes: *mut c_void, // SECURITY_ATTRIBUTES
+        p_security_attributes: *const c_void, // SECURITY_ATTRIBUTES
         flags: c_ulong,
-        p_req_queue_handle: *mut *mut c_void, // HANDLE
+        p_req_queue_handle: *mut *const c_void, // HANDLE
     ) -> c_ulong;
     
     // https://learn.microsoft.com/en-us/windows/win32/api/http/nf-http-httpcloserequestqueue
     pub fn HttpCloseRequestQueue(
-        h_req_queue_handle: *mut c_void, // HANDLE
+        h_req_queue_handle: *const c_void, // HANDLE
     ) -> c_ulong;
     
     // -------------------- server -> url_group --------------------
@@ -81,7 +82,7 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/http/nf-http-httpreceivehttprequest
     pub fn HttpReceiveHttpRequest(
-        request_queue_handle: *mut c_void, // HANDLE
+        request_queue_handle: *const c_void, // HANDLE
         request_id: c_ulonglong, // HTTP_OPAQUE_ID
         flags: c_ulong,
         p_request_buffer: *mut c_void, // HTTP_REQUEST
@@ -92,7 +93,7 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/http/nf-http-httpreceiverequestentitybody
     pub fn HttpReceiveRequestEntityBody(
-        request_queue_handle: *mut c_void, // HANDLE
+        request_queue_handle: *const c_void, // HANDLE
         request_id: c_ulonglong, // HTTP_OPAQUE_ID
         flags: c_ulong,
         p_entity_buffer: *mut c_void,
@@ -105,30 +106,30 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/http/nf-http-httpsendhttpresponse
     pub fn HttpSendHttpResponse(
-        request_queue_handle: *mut c_void, // HANDLE
+        request_queue_handle: *const c_void, // HANDLE
         request_id: c_ulonglong, // HTTP_OPAQUE_ID
         flags: c_ulong,
-        p_http_response: *mut HttpResponseV2,
-        p_cache_policy: *mut c_void, // HTTP_CACHE_POLICY
+        p_http_response: *const HttpResponseV2,
+        p_cache_policy: *const c_void, // HTTP_CACHE_POLICY
         p_bytes_sent: *mut c_ulong,
-        p_reserved1: *mut c_void,
+        p_reserved1: *const c_void,
         reserved2: c_ulong,
         p_overlapped: *mut c_void, // OVERLAPPED
-        p_log_data: *mut c_void, // HTTP_LOG_DATA
+        p_log_data: *const c_void, // HTTP_LOG_DATA
     ) -> c_ulong;
     
     // https://learn.microsoft.com/en-us/windows/win32/api/http/nf-http-httpsendresponseentitybody
     pub fn HttpSendResponseEntityBody(
-        request_queue_handle: *mut c_void, // HANDLE
+        request_queue_handle: *const c_void, // HANDLE
         request_id: c_ulonglong, // HTTP_OPAQUE_ID
         flags: c_ulong,
         entity_chunk_count: c_ushort,
-        p_entity_chunks: *mut HttpDataChunk,
+        p_entity_chunks: *const HttpDataChunk,
         p_bytes_sent: *mut c_ulong,
-        p_reserved1: *mut c_void,
+        p_reserved1: *const c_void,
         reserved2: c_ulong,
         p_overlapped: *mut c_void, // OVERLAPPED
-        p_log_data: *mut c_void, // HTTP_LOG_DATA
+        p_log_data: *const c_void, // HTTP_LOG_DATA
     ) -> c_ulong;
     
 }
@@ -154,7 +155,7 @@ pub struct HttpPropertyFlags {
 #[repr(C)]
 pub struct HttpBindingInfo {
     pub flags: HttpPropertyFlags,
-    pub request_queue_handle: *mut c_void,
+    pub request_queue_handle: *const c_void,
 }
 
 #[repr(C)]
@@ -171,8 +172,8 @@ pub struct HttpCookedUrl {
 
 #[repr(C)]
 pub struct HttpTransportAddress {
-    pub p_remote_address: *mut c_void, // PSOCKADDR
-    pub p_local_address: *mut c_void, // PSOCKADDR
+    pub p_remote_address: *const c_void, // PSOCKADDR
+    pub p_local_address: *const c_void, // PSOCKADDR
 }
 
 #[repr(C)]
@@ -192,9 +193,9 @@ pub struct HttpKnownHeader {
 #[repr(C)]
 pub struct HttpRequestHeaders {
     pub unknown_header_count: c_ushort,
-    pub p_unknown_headers: *mut HttpUnknownHeader,
+    pub p_unknown_headers: *const HttpUnknownHeader,
     pub trailer_count: c_ushort,
-    pub p_trailers: *mut HttpUnknownHeader,
+    pub p_trailers: *const HttpUnknownHeader,
     pub known_headers: [HttpKnownHeader; HTTP_HEADER_REQUEST_MAXIMUM],
 }
 
@@ -215,19 +216,19 @@ pub struct HttpRequestV2 {
     pub headers: HttpRequestHeaders,
     pub bytes_received: c_ulonglong,
     pub entity_chunk_count: c_ushort,
-    pub p_entity_chunks: *mut c_void,
+    pub p_entity_chunks: *const c_void,
     pub raw_connection_id: c_ulonglong,
-    pub p_ssl_info: *mut c_void,
+    pub p_ssl_info: *const c_void,
     pub request_info_count: c_ushort,
-    pub p_request_info: *mut c_void, // HTTP_REQUEST_INFO
+    pub p_request_info: *const c_void, // HTTP_REQUEST_INFO
 }
 
 #[repr(C)]
 pub struct HttpResponseHeaders {
     pub unknown_header_count: c_ushort,
-    pub p_unknown_headers: *mut HttpUnknownHeader,
+    pub p_unknown_headers: *const HttpUnknownHeader,
     pub trailer_count: c_ushort,
-    pub p_trailers: *mut HttpUnknownHeader,
+    pub p_trailers: *const HttpUnknownHeader,
     pub known_headers: [HttpKnownHeader; HTTP_HEADER_RESPONSE_MAXIMUM],
 }
 
@@ -240,15 +241,15 @@ pub struct HttpResponseV2 {
     pub p_reason: *const c_char, // PCSTR
     pub headers: HttpResponseHeaders,
     pub entity_chunk_count: c_ushort,
-    pub p_entity_chunks: *mut HttpDataChunk,
+    pub p_entity_chunks: *const HttpDataChunk,
     pub response_info_count: c_ushort,
-    pub p_response_info: *mut c_void, // HTTP_RESPONSE_INFO
+    pub p_response_info: *const c_void, // HTTP_RESPONSE_INFO
 }
 
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct HttpDataChunkFromMemory {
-    pub p_buffer: *mut c_void,
+    pub p_buffer: *const c_void,
     pub buffer_length: c_ulong,
 }
 

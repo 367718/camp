@@ -1,6 +1,3 @@
-#[link(name = "kernel32")]
-unsafe extern "system" {}
-
 mod sys;
 
 use std::{
@@ -136,19 +133,20 @@ fn scripts(request: &mut Request) -> Result<(), Box<dyn Error>> {
 
 fn send_command(request: &mut Request, command: &[u8]) -> Result<(), Box<dyn Error>> {
     let pipe = rin::get::<&str>(b"pipe")?;
-    let wide_pipe = chikuwa::win_string(pipe)?;
+    let pipe_wide = chikuwa::win_string(pipe)?;
     
-    unsafe {
+    // SAFETY: `pipe_wide.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
+    let result = unsafe {
         
-        let result = sys::WaitNamedPipeW(
-            wide_pipe.as_ptr(),
+        sys::WaitNamedPipeW(
+            pipe_wide.as_ptr(),
             PIPE_MAX_WAIT,
-        );
+        )
         
-        if result == 0 {
-            return Err(Box::new(io::Error::last_os_error()));
-        }
-        
+    };
+    
+    if result == 0 {
+        return Err(Box::new(io::Error::last_os_error()));
     }
     
     let mut file = File::options()

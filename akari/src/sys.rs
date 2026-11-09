@@ -1,5 +1,6 @@
 use std::os::raw::*;
 
+#[link(name = "kernel32")]
 unsafe extern "system" {
     
     // -------------------- winhttperror --------------------
@@ -7,7 +8,7 @@ unsafe extern "system" {
     // https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandlew
     pub fn GetModuleHandleW(
         lp_module_name: *const c_ushort, // LPCWSTR
-    ) -> *mut c_void; // HMODULE
+    ) -> *const c_void; // HMODULE
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-formatmessagew
     pub fn FormatMessageW(
@@ -17,14 +18,19 @@ unsafe extern "system" {
         dw_language_id: c_ulong, // DWORD
         lp_buffer: *mut c_ushort, // LPWSTR
         n_size: c_ulong, // DWORD,
-        arguments: *mut c_char, // va_list
+        arguments: *const c_char, // va_list
     ) -> c_ulong;
+    
+}
+
+#[link(name = "winhttp")]
+unsafe extern "system" {
     
     // -------------------- winhttphandle --------------------
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpclosehandle
     pub fn WinHttpCloseHandle(
-        h_internet: *mut c_void, // HINTERNET
+        h_internet: *const c_void, // HINTERNET
     ) -> c_int; // BOOL
     
     // -------------------- url --------------------
@@ -50,7 +56,7 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsettimeouts
     pub fn WinHttpSetTimeouts(
-        h_internet: *mut c_void, // HINTERNET
+        h_internet: *const c_void, // HINTERNET
         n_resolve_timeout: c_int,
         n_connect_timeout: c_int,
         n_send_timeout: c_int,
@@ -59,9 +65,9 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsetoption
     pub fn WinHttpSetOption(
-        h_internet: *mut c_void, // HINTERNET
+        h_internet: *const c_void, // HINTERNET
         dw_option: c_ulong, // DWORD
-        lp_buffer: *mut c_void, // LPVOID
+        lp_buffer: *const c_void, // LPVOID
         dw_buffer_length: c_ulong, // DWORD
     ) -> c_int; // BOOL
     
@@ -69,7 +75,7 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpconnect
     pub fn WinHttpConnect(
-        h_session: *mut c_void, // HINTERNET
+        h_session: *const c_void, // HINTERNET
         pswz_server_name: *const c_ushort, // LPCWSTR
         n_server_port: c_ushort, // INTERNET_PORT
         dw_reserved: c_ulong,
@@ -79,21 +85,21 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpopenrequest
     pub fn WinHttpOpenRequest(
-        h_connect: *mut c_void, // HINTERNET
+        h_connect: *const c_void, // HINTERNET
         pwsz_verb: *const c_ushort, // LPCWSTR
         pwsz_object_name: *const c_ushort, // LPCWSTR
         pwsz_version: *const c_ushort, // LPCWSTR
         pwsz_referrer: *const c_ushort, // LPCWSTR
-        ppwsz_accept_types: *mut *const c_ushort, // *mut LPCWSTR
+        ppwsz_accept_types: *const *const c_ushort, // *mut LPCWSTR
         dw_flags: c_ulong, // DWORD
     ) -> *mut c_void; // HINTERNET
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpsendrequest
     pub fn WinHttpSendRequest(
-        h_request: *mut c_void, // HINTERNET
+        h_request: *const c_void, // HINTERNET
         lpsz_headers: *const c_ushort, // LPCWSTR
         dw_headers_length: c_ulong, // DWORD
-        lp_optional: *mut c_void, // LPVOID
+        lp_optional: *const c_void, // LPVOID
         dw_optional_length: c_ulong, // DWORD
         dw_total_length: c_ulong, // DWORD
         dw_context: usize, // DWORD_PTR
@@ -101,15 +107,15 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreceiveresponse
     pub fn WinHttpReceiveResponse(
-        h_request: *mut c_void, // HINTERNET
-        lp_reserved: *mut c_void, // LPVOID
+        h_request: *const c_void, // HINTERNET
+        lp_reserved: *const c_void, // LPVOID
     ) -> c_int; // BOOL
     
     // -------------------- response --------------------
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpqueryheaders
     pub fn WinHttpQueryHeaders(
-        h_request: *mut c_void, // HINTERNET
+        h_request: *const c_void, // HINTERNET
         dw_info_level: c_ulong, // DWORD
         pwsz_name: *const c_ushort, // LPCWSTR
         lp_buffer: *mut c_void, // LPVOID
@@ -119,7 +125,7 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreaddata
     pub fn WinHttpReadData(
-        h_request: *mut c_void, // HINTERNET
+        h_request: *const c_void, // HINTERNET
         lp_buffer: *mut c_void, // LPVOID
         dw_number_of_bytes_to_read: c_ulong, // DWORD
         lpdw_number_of_bytes_read: *mut c_ulong, // LPDWORD

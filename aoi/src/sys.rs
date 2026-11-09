@@ -1,5 +1,6 @@
 use std::os::raw::*;
 
+#[link(name = "kernel32")]
 unsafe extern "system" {
     
     // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-waitnamedpipew

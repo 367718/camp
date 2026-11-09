@@ -42,7 +42,7 @@ impl Server {
         Request::new(self)
     }
     
-    pub(crate) fn queue_handle(&self) -> *mut c_void {
+    pub(crate) fn queue_handle(&self) -> *const c_void {
         self.queue.handle
     }
     

@@ -139,7 +139,7 @@ impl<'s> Request<'s> {
         // 4. `buffer.as_mut_ptr().cast::<c_void>()` points to a live, non-empty, properly aligned memory buffer valid for writes
         // 5. `size_of_val(&*buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds writes
         // 6. `&raw mut amount_read` points to a live, properly aligned `c_ulong` valid for writes
-        // 7. `p_overlapped` as `null` is valid and selects standard http.sys defaults
+        // 7. `p_overlapped` as `null` ensures synchronous execution, stack references (`amount_read`) cannot dangle
         let result = unsafe {
             
             sys::HttpReceiveHttpRequest(
@@ -222,7 +222,7 @@ impl<'s> Request<'s> {
                 // 4. `chunk.as_mut_ptr().cast::<c_void>()` points to a live, non-empty byte slice valid for writes
                 // 5. `chunk_len` matches the size in bytes of `chunk`, preventing out-of-bounds writes
                 // 6. `&raw mut bytes_read` points to a live, properly aligned `c_ulong` valid for writes
-                // 7. `p_overlapped` as `null` is valid and selects standard http.sys defaults
+                // 7. `p_overlapped` as `null` ensures synchronous execution, stack references (`chunk`, `bytes_read`) cannot dangle
                 let result = unsafe {
                     
                     sys::HttpReceiveRequestEntityBody(
@@ -292,14 +292,14 @@ impl<'s> Request<'s> {
         
         // SAFETY:
         //  1. `server.queue_handle()` is a valid request queue handle whose lifetime is guaranteed by the borrowed `&Server`
-        //  2. `request_id` is a valid request_id corresponding to a still-alive request
+        //  2. `request_id` is a valid id obtained from `HttpReceiveHttpRequest` corresponding to a still-alive request
         //  3. `flags` is a valid option defined by the http.sys API
-        //  4. `&raw mut response` points to a properly aligned, zero-initialized `HttpResponseV2` struct
+        //  4. `&raw const response` points to a properly aligned `HttpResponseV2` whose referenced header buffers are valid and readable
         //  5. `p_cache_policy` as `null` is valid and selects standard http.sys defaults
         //  6. `&raw mut bytes_sent` points to a live, properly aligned `c_ulong` valid for writes
         //  7. `p_reserved1` as `null` is required by the http.sys API
         //  8. `reserved2` as `0` is required by the http.sys API
-        //  9. `p_overlapped` as `null` is valid and selects standard http.sys defaults
+        //  9. `p_overlapped` as `null` ensures synchronous execution, stack references (`response`, `bytes_sent`) cannot dangle
         // 10. `p_log_data` as `null` is valid and selects standard http.sys defaults
         unsafe {
             
@@ -307,13 +307,13 @@ impl<'s> Request<'s> {
                 server.queue_handle(),
                 request_id,
                 flags,
-                &raw mut response,
-                ptr::null_mut(), // no kernel caching
+                &raw const response,
+                ptr::null(), // no kernel caching
                 &raw mut bytes_sent,
-                ptr::null_mut(), // reserved
+                ptr::null(), // reserved
                 0, // reserved
                 ptr::null_mut(), // synchronous call
-                ptr::null_mut(), // no logging
+                ptr::null(), // no logging
             )
             
         };

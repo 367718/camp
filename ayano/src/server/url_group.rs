@@ -7,7 +7,7 @@ use crate::sys;
 use super::{ Session, Queue };
 
 pub(super) struct UrlGroup {
-    id: c_ulonglong,
+    id: c_ulonglong, // HTTP_OPAQUE_ID
 }
 
 impl UrlGroup {
