@@ -1,6 +1,5 @@
 use std::{
     io::Error,
-    os::raw::*,
     ptr,
 };
 
@@ -24,7 +23,7 @@ pub fn last_winhttp_error() -> Error {
     
     // SAFETY:
     // 1. `MODULE_NAME.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
-    // 2. on failure, `null` is returned and subsequently checked before using the `FORMAT_MESSAGE_FROM_HMODULE` flag
+    // 2. on failure, `None` is returned and subsequently checked before using the `FORMAT_MESSAGE_FROM_HMODULE` flag
     let source = unsafe {
         
         sys::GetModuleHandleW(
@@ -39,15 +38,15 @@ pub fn last_winhttp_error() -> Error {
     // `FORMAT_MESSAGE_IGNORE_INSERTS`: ignore insertion sequences, since `arguments` is null
     let mut flag = sys::FORMAT_MESSAGE_FROM_SYSTEM | sys::FORMAT_MESSAGE_IGNORE_INSERTS;
     
-    if ! source.is_null() {
+    if source.is_some() {
         // use message table from provided module
         flag |= sys::FORMAT_MESSAGE_FROM_HMODULE;
     }
     
-    let mut buffer: [c_ushort; 1024] = [0; 1024];
+    let mut buffer = [0_u16; 1024];
     
     // SAFETY:
-    // 1. `source` is either `null` or a valid module handle to `winhttp.dll` which remains loaded for the duration of the process
+    // 1. `source` is either `None` or a valid module handle to `winhttp.dll` which remains loaded for the duration of the process
     // 2. `message_id` represents the most recent operating system error that occurred on the current thread
     // 3. `dw_language_id` as `0` is valid and selects the default language search sequence
     // 4. `buffer.as_mut_ptr()` points to a live, properly aligned stack array valid for writes
@@ -62,7 +61,7 @@ pub fn last_winhttp_error() -> Error {
             message_id,
             0, // default language search sequence
             buffer.as_mut_ptr(),
-            c_ulong::try_from(buffer.len()).expect("Unexpected truncation"),
+            u32::try_from(buffer.len()).expect("Unexpected truncation"),
             ptr::null(), // no arguments
         )
         

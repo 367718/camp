@@ -1,7 +1,6 @@
 use std::{
     io::{Error, ErrorKind},
     mem,
-    os::raw::*,
     slice,
 };
 
@@ -30,7 +29,7 @@ impl TryFrom<&str> for Url {
         let mut components: sys::UrlComponents = unsafe { mem::zeroed() };
         
         // size of `UrlComponents` in bytes, as required by the WinHTTP API
-        components.dw_struct_size = c_ulong::try_from(size_of_val(&components)).expect("Unexpected truncation");
+        components.dw_struct_size = u32::try_from(size_of_val(&components)).expect("Unexpected truncation");
         
         // pointer mode: WinHTTP sets pointers into `url_wide` instead of performing memory allocations or string copies
         components.dw_host_name_length = 1; // populate `lpsz_host_name` and `dw_host_name_length`
@@ -66,21 +65,25 @@ impl TryFrom<&str> for Url {
         
         // -------------------- host --------------------
         
-        if components.lpsz_host_name.is_null() || components.dw_host_name_length == 0 {
-            return Err(Error::new(ErrorKind::InvalidInput, "Host cannot be empty"));
-        }
-        
-        // SAFETY:
-        // 1. `lpsz_host_name` was verified to be non-null and `dw_host_name_length` is greater than 0
-        // 2. `lpsz_host_name` points to a valid, contiguous sequence of `dw_host_name_length` UTF-16 code units located within `url_wide`
-        // 3. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
-        // 4. `host_utf16_slice` does not escape this function and is immediately copied into `host`
-        let host_utf16_slice = unsafe {
+        let host_utf16_slice = match (components.lpsz_host_name, components.dw_host_name_length) {
             
-            slice::from_raw_parts(
-                components.lpsz_host_name,
-                components.dw_host_name_length as usize,
-            )
+            (Some(lpsz_host_name), dw_host_name_length) if dw_host_name_length > 0 => {
+                // SAFETY:
+                // 1. `lpsz_host_name` is guaranteed to be non-null by `NonNull` and `dw_host_name_length` is greater than 0
+                // 2. `lpsz_host_name` points to a valid, contiguous sequence of `dw_host_name_length` UTF-16 code units located within `url_wide`
+                // 3. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
+                // 4. `host_utf16_slice` does not escape this function and is immediately copied into `host`
+                unsafe {
+                    
+                    slice::from_raw_parts(
+                        lpsz_host_name.as_ptr(),
+                        dw_host_name_length as usize,
+                    )
+                    
+                }
+            },
+            
+            _ => return Err(Error::new(ErrorKind::InvalidInput, "Host cannot be empty")),
             
         };
         
@@ -95,47 +98,47 @@ impl TryFrom<&str> for Url {
         
         // -------------------- path --------------------
         
-        let path_utf16_slice = if ! components.lpsz_url_path.is_null() && components.dw_url_path_length > 0 {
+        let path_utf16_slice = match (components.lpsz_url_path, components.dw_url_path_length) {
             
-            // SAFETY:
-            // 1. `lpsz_url_path` was verified to be non-null and `dw_url_path_length` is greater than 0
-            // 2. `lpsz_url_path` points to a valid, contiguous sequence of `dw_url_path_length` UTF-16 code units located within `url_wide`
-            // 3. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
-            // 4. `path_utf16_slice` does not escape this function and is immediately copied into `path`
-            unsafe {
-                
-                slice::from_raw_parts(
-                    components.lpsz_url_path,
-                    components.dw_url_path_length as usize,
-                )
-                
-            }
+            (Some(lpsz_url_path), dw_url_path_length) if dw_url_path_length > 0 => {
+                // SAFETY:
+                // 1. `lpsz_url_path` is guaranteed to be non-null by `NonNull` and `dw_url_path_length` is greater than 0
+                // 2. `lpsz_url_path` points to a valid, contiguous sequence of `dw_url_path_length` UTF-16 code units located within `url_wide`
+                // 3. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
+                // 4. `path_utf16_slice` does not escape this function and is immediately copied into `path`
+                unsafe {
+                    
+                    slice::from_raw_parts(
+                        lpsz_url_path.as_ptr(),
+                        dw_url_path_length as usize,
+                    )
+                    
+                }
+            },
             
-        } else {
-            
-            &[]
+            _ => &[],
             
         };
         
-        let extra_utf16_slice = if ! components.lpsz_extra_info.is_null() && components.dw_extra_info_length > 0 {
+        let extra_utf16_slice = match (components.lpsz_extra_info, components.dw_extra_info_length) {
             
-            // SAFETY:
-            // 1. `lpsz_extra_info` was verified to be non-null and `dw_extra_info_length` is greater than 0
-            // 2. `lpsz_extra_info` points to a valid, contiguous sequence of `dw_extra_info_length` UTF-16 code units located within `url_wide`
-            // 3. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
-            // 4. `extra_utf16_slice` does not escape this function and is copied into `path`
-            unsafe {
-                
-                slice::from_raw_parts(
-                    components.lpsz_extra_info,
-                    components.dw_extra_info_length as usize,
-                )
-                
-            }
+            (Some(lpsz_extra_info), dw_extra_info_length) if dw_extra_info_length > 0 => {
+                // SAFETY:
+                // 1. `lpsz_extra_info` is guaranteed to be non-null by `NonNull` and `dw_extra_info_length` is greater than 0
+                // 2. `lpsz_extra_info` points to a valid, contiguous sequence of `dw_extra_info_length` UTF-16 code units located within `url_wide`
+                // 3. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
+                // 4. `extra_utf16_slice` does not escape this function and is copied into `path`
+                unsafe {
+                    
+                    slice::from_raw_parts(
+                        lpsz_extra_info.as_ptr(),
+                        dw_extra_info_length as usize,
+                    )
+                    
+                }
+            },
             
-        } else {
-            
-            &[]
+            _ => &[],
             
         };
         

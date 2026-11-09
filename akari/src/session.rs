@@ -1,7 +1,7 @@
 use std::{
     io,
-    os::raw::*,
-    ptr::{ self, NonNull },
+    os::raw::c_void,
+    ptr,
 };
 
 use crate::{
@@ -13,10 +13,10 @@ pub(crate) struct Session {
     pub(crate) handle: WinHttpHandle,
 }
 
-const DNS_RESOLUTION_TIMEOUT: c_int = 15_000;
-const CONNECTION_TIMEOUT: c_int = 15_000;
-const SEND_TIMEOUT: c_int = 15_000;
-const RECEIVE_TIMEOUT: c_int = 15_000;
+const DNS_RESOLUTION_TIMEOUT: i32 = 15_000;
+const CONNECTION_TIMEOUT: i32 = 15_000;
+const SEND_TIMEOUT: i32 = 15_000;
+const RECEIVE_TIMEOUT: i32 = 15_000;
 
 impl Session {
     
@@ -46,15 +46,14 @@ impl Session {
             
         };
         
-        let handle = match NonNull::new(result) {
-            // SAFETY: `result` is a uniquely owned, valid, open session handle
-            Some(result) => unsafe { WinHttpHandle::from_raw(result) },
-            None => return Err(last_winhttp_error()),
-        };
+        let handle = result
+            // SAFETY: `raw` is a uniquely owned, valid, open session handle
+            .map(|raw| unsafe { WinHttpHandle::from_raw(raw) })
+            .ok_or_else(last_winhttp_error)?;
         
         // -------------------- set timeouts --------------------
         
-        // SAFETY: `handle.as_raw()` is a valid `HINTERNET` session handle that was verified to be non-null and has not been closed yet
+        // SAFETY: `handle.as_raw()` is a valid, open `HINTERNET` session handle (guaranteed non-null by `WinHttpHandle`)
         let result = unsafe {
             
             sys::WinHttpSetTimeouts(
@@ -81,9 +80,9 @@ impl Session {
         let buffer = sys::WINHTTP_PROTOCOL_FLAG_HTTP2;
         
         // SAFETY:
-        // 1. `handle.as_raw()` is a valid `HINTERNET` session handle that was verified to be non-null and has not been closed yet
+        // 1. `handle.as_raw()` is a valid, open `HINTERNET` session handle (guaranteed non-null by `WinHttpHandle`)
         // 2. `option` is a valid option defined by the WinHTTP API
-        // 3. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `c_ulong`
+        // 3. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `u32`
         // 4. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
         let result = unsafe {
             
@@ -91,7 +90,7 @@ impl Session {
                 handle.as_raw(),
                 option,
                 (&raw const buffer).cast::<c_void>(),
-                c_ulong::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),
+                u32::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),
             )
             
         };
@@ -109,9 +108,9 @@ impl Session {
         let buffer = sys::WINHTTP_OPTION_REDIRECT_POLICY_NEVER;
         
         // SAFETY:
-        // 1. `handle.as_raw()` is a valid `HINTERNET` session handle that was verified to be non-null and has not been closed yet
+        // 1. `handle.as_raw()` is a valid, open `HINTERNET` session handle (guaranteed non-null by `WinHttpHandle`)
         // 2. `option` is a valid option defined by the WinHTTP API
-        // 3. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `c_ulong`
+        // 3. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `u32`
         // 4. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
         let result = unsafe {
             
@@ -119,7 +118,7 @@ impl Session {
                 handle.as_raw(),
                 option,
                 (&raw const buffer).cast::<c_void>(),
-                c_ulong::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),
+                u32::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),
             )
             
         };
@@ -140,9 +139,9 @@ impl Session {
         let buffer = sys::WINHTTP_DECOMPRESSION_FLAG_GZIP | sys::WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
         
         // SAFETY:
-        // 1. `handle.as_raw()` is a valid `HINTERNET` session handle that was verified to be non-null and has not been closed yet
+        // 1. `handle.as_raw()` is a valid, open `HINTERNET` session handle (guaranteed non-null by `WinHttpHandle`)
         // 2. `option` is a valid option defined by the WinHTTP API
-        // 3. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `c_ulong`
+        // 3. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `u32`
         // 4. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
         let result = unsafe {
             
@@ -150,7 +149,7 @@ impl Session {
                 handle.as_raw(),
                 option,
                 (&raw const buffer).cast::<c_void>(),
-                c_ulong::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),
+                u32::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),
             )
             
         };

@@ -1,7 +1,4 @@
-use std::{
-    io,
-    ptr::NonNull,
-};
+use std::io;
 
 use crate::{
     sys, last_winhttp_error,
@@ -32,11 +29,10 @@ impl<'s> Connection<'s> {
             
         };
         
-        let handle = match NonNull::new(result) {
-            // SAFETY: `result` is a uniquely owned, valid, open connection handle
-            Some(result) => unsafe { WinHttpHandle::from_raw(result) },
-            None => return Err(last_winhttp_error()),
-        };
+        let handle = result
+            // SAFETY: `raw` is a uniquely owned, valid, open connection handle
+            .map(|raw| unsafe { WinHttpHandle::from_raw(raw) })
+            .ok_or_else(last_winhttp_error)?;
         
         // `session` is kept alive to prevent its `handle` getting closed
         Ok(Self { handle, session })

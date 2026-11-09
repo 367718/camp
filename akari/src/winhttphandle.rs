@@ -1,5 +1,5 @@
 use std::{
-    os::raw::*,
+    os::raw::c_void,
     ptr::NonNull,
 };
 
