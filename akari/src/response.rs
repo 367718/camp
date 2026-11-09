@@ -33,7 +33,7 @@ impl<'s> Response<'s> {
         let mut buffer_length = u32::try_from(size_of_val(&buffer)).expect("Unexpected truncation");
         
         // SAFETY:
-        // 1. `handle.as_raw()` is a valid `HINTERNET` request handle on which `WinHttpReceiveResponse` has successfully completed
+        // 1. `handle.inner()` is a valid `HINTERNET` request handle on which `WinHttpReceiveResponse` has successfully completed
         // 2. `info_level` is a valid option defined by the WinHTTP API
         // 3. `pwsz_name` as `null` is valid when querying built-in headers selected by `info_level`
         // 4. `(&raw mut buffer).cast::<c_void>()` points to a live, properly aligned `u32` valid for writes
@@ -42,7 +42,7 @@ impl<'s> Response<'s> {
         let result = unsafe {
             
             sys::WinHttpQueryHeaders(
-                handle.as_raw(),
+                handle.inner(),
                 info_level,
                 ptr::null(), // built-in header
                 (&raw mut buffer).cast::<c_void>(),
@@ -82,14 +82,14 @@ impl Read for Response<'_> {
         let mut number_of_bytes_read: u32 = 0;
         
         // SAFETY:
-        // 1. `self.handle.as_raw()` is a valid, open `HINTERNET` request handle (guaranteed non-null by `WinHttpHandle`)
+        // 1. `self.handle.inner()` is a valid, open `HINTERNET` request handle (guaranteed non-null by `WinHttpHandle`)
         // 2. `buf.as_mut_ptr().cast::<c_void>()` points to a live, non-empty, caller-provided byte slice valid for writes
         // 3. `number_of_bytes_to_read` cannot exceed `buf` length, preventing out-of-bounds writes
         // 4. `&raw mut number_of_bytes_read` points to a live, properly aligned `u32` valid for writes
         let result = unsafe {
             
             sys::WinHttpReadData(
-                self.handle.as_raw(),
+                self.handle.inner(),
                 buf.as_mut_ptr().cast::<c_void>(),
                 number_of_bytes_to_read,
                 &raw mut number_of_bytes_read,

@@ -15,13 +15,13 @@ impl<'s> Connection<'s> {
     
     pub(crate) fn open(session: &'s Session, host: &[u16], port: u16) -> io::Result<Self> {
         // SAFETY:
-        // 1. `session.handle.as_raw()` is a valid `HINTERNET` session handle whose lifetime is guaranteed by the borrowed `&Session`
+        // 1. `session.handle.inner()` is a valid `HINTERNET` session handle whose lifetime is guaranteed by the borrowed `&Session`
         // 2. `host.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
         // 3. `dw_reserved` as `0` is required by the WinHTTP API
         let result = unsafe {
             
             sys::WinHttpConnect(
-                session.handle.as_raw(),
+                session.handle.inner(),
                 host.as_ptr(),
                 port,
                 0, // reserved

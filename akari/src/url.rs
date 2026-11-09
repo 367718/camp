@@ -98,47 +98,45 @@ impl TryFrom<&str> for Url {
         
         // -------------------- path --------------------
         
-        let path_utf16_slice = match (components.lpsz_url_path, components.dw_url_path_length) {
+        let path_utf16_slice = match components.lpsz_url_path {
             
-            (Some(lpsz_url_path), dw_url_path_length) if dw_url_path_length > 0 => {
-                // SAFETY:
-                // 1. `lpsz_url_path` is guaranteed to be non-null by `NonNull` and `dw_url_path_length` is greater than 0
-                // 2. `lpsz_url_path` points to a valid, contiguous sequence of `dw_url_path_length` UTF-16 code units located within `url_wide`
-                // 3. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
-                // 4. `path_utf16_slice` does not escape this function and is immediately copied into `path`
-                unsafe {
-                    
-                    slice::from_raw_parts(
-                        lpsz_url_path.as_ptr(),
-                        dw_url_path_length as usize,
-                    )
-                    
-                }
+            // SAFETY:
+            // 1. `lpsz_url_path` is guaranteed to be non-null by `NonNull` and properly aligned to `u16` as an offset into `url_wide`
+            // 2. `lpsz_url_path` points to a valid, contiguous sequence of `dw_url_path_length` UTF-16 code units located within `url_wide`
+            // 3. if `dw_url_path_length` is `0`, `lpsz_url_path` remains non-null and aligned
+            // 4. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
+            // 5. `path_utf16_slice` does not escape this function and is immediately copied into `path`
+            Some(lpsz_url_path) => unsafe {
+                
+                slice::from_raw_parts(
+                    lpsz_url_path.as_ptr(),
+                    components.dw_url_path_length as usize,
+                )
+                
             },
             
-            _ => &[],
+            None => &[],
             
         };
         
-        let extra_utf16_slice = match (components.lpsz_extra_info, components.dw_extra_info_length) {
+        let extra_utf16_slice = match components.lpsz_extra_info {
             
-            (Some(lpsz_extra_info), dw_extra_info_length) if dw_extra_info_length > 0 => {
-                // SAFETY:
-                // 1. `lpsz_extra_info` is guaranteed to be non-null by `NonNull` and `dw_extra_info_length` is greater than 0
-                // 2. `lpsz_extra_info` points to a valid, contiguous sequence of `dw_extra_info_length` UTF-16 code units located within `url_wide`
-                // 3. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
-                // 4. `extra_utf16_slice` does not escape this function and is copied into `path`
-                unsafe {
-                    
-                    slice::from_raw_parts(
-                        lpsz_extra_info.as_ptr(),
-                        dw_extra_info_length as usize,
-                    )
-                    
-                }
+            // SAFETY:
+            // 1. `lpsz_extra_info` is guaranteed to be non-null by `NonNull` and properly aligned to `u16` as an offset into `url_wide`
+            // 2. `lpsz_extra_info` points to a valid, contiguous sequence of `dw_extra_info_length` UTF-16 code units located within `url_wide`
+            // 3. if `dw_extra_info_length` is `0`, `lpsz_extra_info` remains non-null and aligned
+            // 4. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
+            // 5. `extra_utf16_slice` does not escape this function and is immediately copied into `path`
+            Some(lpsz_extra_info) => unsafe {
+                
+                slice::from_raw_parts(
+                    lpsz_extra_info.as_ptr(),
+                    components.dw_extra_info_length as usize,
+                )
+                
             },
             
-            _ => &[],
+            None => &[],
             
         };
         
