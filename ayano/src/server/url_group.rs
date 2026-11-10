@@ -1,13 +1,13 @@
 use std::{
     io::{ self, Error, ErrorKind },
-    os::raw::*,
+    os::raw::c_void,
 };
 
 use crate::sys;
 use super::{ Session, Queue };
 
 pub(super) struct UrlGroup {
-    id: c_ulonglong, // HTTP_OPAQUE_ID
+    id: u64, // HTTP_OPAQUE_ID
 }
 
 impl UrlGroup {
@@ -21,11 +21,11 @@ impl UrlGroup {
         
         // -------------------- create group --------------------
         
-        let mut id: c_ulonglong = 0;
+        let mut id: u64 = 0;
         
         // SAFETY:
         // 1. `session.id` is a valid `HTTP_OPAQUE_ID` whose lifetime is guaranteed by the borrowed `&Session`
-        // 2. `&raw mut id` points to a live, properly aligned `c_ulonglong` valid for writes
+        // 2. `&raw mut id` points to a live, properly aligned `u64` valid for writes
         // 3. `reserved` as `0` is required by the http.sys API
         let result = unsafe {
             
@@ -66,7 +66,7 @@ impl UrlGroup {
                 url_group.id,
                 property,
                 (&raw const binding).cast::<c_void>(),
-                c_ulong::try_from(size_of_val(&binding)).expect("Unexpected truncation"),
+                u32::try_from(size_of_val(&binding)).expect("Unexpected truncation"),
             )
             
         };

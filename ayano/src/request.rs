@@ -1,7 +1,7 @@
 use std::{
     io::{ self, Error, ErrorKind },
     mem,
-    os::raw::*,
+    os::raw::c_void,
     ptr,
     slice,
 };
@@ -55,15 +55,16 @@ impl<'s> Request<'s> {
         let headers_data = Self::headers_data(&self.headers);
         let cooked_url = &headers_data.cooked_url;
         
-        if cooked_url.p_abs_path.is_null() || cooked_url.abs_path_length == 0 {
+        if cooked_url.p_abs_path.is_null() || cooked_url.abs_path_length == 0 || cooked_url.abs_path_length % 2 != 0 {
             return None;
         }
         
         // SAFETY:
-        // 1. `p_abs_path` was verified to be non-null and `abs_path_length` is greater than 0
-        // 2. `p_abs_path` points to a valid, contiguous sequence of `abs_path_length` bytes located within `self.headers`
-        // 3. `HttpCookedUrl` length fields are byte counts that, divided by `mem::size_of::<u16>()`, matches the element count expected by `slice::from_raw_parts`
-        // 4. `path_utf16_slice` does not escape this function and is converted into an owned `String`
+        // 1. `p_abs_path` was verified to be non-null
+        // 2. `abs_path_length` was verified to be greater than `0` and an even number of bytes
+        // 3. `p_abs_path` points to a valid, contiguous sequence of `abs_path_length` bytes located within `self.headers`
+        // 4. `HttpCookedUrl` length fields are byte counts that, divided by `mem::size_of::<u16>()`, matches the element count expected by `slice::from_raw_parts`
+        // 5. `path_utf16_slice` does not escape this function and is converted into an owned `String`
         let path_utf16_slice = unsafe {
             
             slice::from_raw_parts(
@@ -83,7 +84,7 @@ impl<'s> Request<'s> {
         let content_type_raw_slice = if ! header_value.p_raw_value.is_null() && header_value.raw_value_length > 0 {
             
             // SAFETY:
-            // 1. `p_raw_value` was verified to be non-null and `raw_value_length` is greater than 0
+            // 1. `p_raw_value` was verified to be non-null and `raw_value_length` to be greater than 0
             // 2. `p_raw_value` points to a valid, contiguous sequence of `raw_value_length` bytes located within `self.headers`
             // 3. `HttpKnownHeader` length fields are byte counts, which matches the `u8` element count expected by `slice::from_raw_parts`
             // 4. `content_type_raw_slice` lifetime is bound to `'r`, during which `self.headers` remains alive and immutable
@@ -130,7 +131,7 @@ impl<'s> Request<'s> {
         // boxed slice is used to ensure a stable address, since `HttpRequestV2` stores self-referential pointers
         // `u64` is used to ensure 8-byte alignment
         let mut buffer = vec![0_u64; REQUEST_HEADERS_SIZE_LIMIT].into_boxed_slice();
-        let mut amount_read: c_ulong = 0;
+        let mut amount_read: u32 = 0;
         
         // SAFETY:
         // 1. `server.queue_handle()` is a valid request queue handle whose lifetime is guaranteed by the borrowed `&Server`
@@ -138,7 +139,7 @@ impl<'s> Request<'s> {
         // 3. `flags` as `0` is valid and selects standard http.sys defaults
         // 4. `buffer.as_mut_ptr().cast::<c_void>()` points to a live, non-empty, properly aligned memory buffer valid for writes
         // 5. `size_of_val(&*buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds writes
-        // 6. `&raw mut amount_read` points to a live, properly aligned `c_ulong` valid for writes
+        // 6. `&raw mut amount_read` points to a live, properly aligned `u32` valid for writes
         // 7. `p_overlapped` as `null` ensures synchronous execution, stack references (`amount_read`) cannot dangle
         let result = unsafe {
             
@@ -147,7 +148,7 @@ impl<'s> Request<'s> {
                 0, // retrieve next available request
                 0, // retrieve only request headers
                 buffer.as_mut_ptr().cast::<c_void>(),
-                c_ulong::try_from(size_of_val(&*buffer)).expect("Unexpected truncation"),
+                u32::try_from(size_of_val(&*buffer)).expect("Unexpected truncation"),
                 &raw mut amount_read,
                 ptr::null_mut(), // synchronous call
             )
@@ -158,7 +159,7 @@ impl<'s> Request<'s> {
         
         // capacity of the supplied buffer was insufficient
         if result == sys::ERROR_MORE_DATA {
-            // data struct is partially populated
+            // guaranteed to have been populated
             let request_id = Self::headers_data(&buffer).request_id;
             Self::abort(server, request_id, StatusCode::RequestHeaderFieldsTooLarge);
             return Err(Error::new(ErrorKind::InvalidData, "Request headers exceeded maximum allowable size"));
@@ -175,7 +176,8 @@ impl<'s> Request<'s> {
         // data struct has not been populated properly
         if (amount_read as usize) < mem::size_of::<sys::HttpRequestV2>() {
             
-            // just enough data to get `request_id`
+            // enough data to read `request_id`
+            // 4 (flags) + 4 (padding) + 8 (connection_id) + 8 (request_id)
             if amount_read >= 24 {
                 let request_id = Self::headers_data(&buffer).request_id;
                 Self::abort(server, request_id, StatusCode::BadRequest);
@@ -206,12 +208,12 @@ impl<'s> Request<'s> {
         if (headers_data.flags & sys::HTTP_REQUEST_FLAG_MORE_ENTITY_BODY_EXISTS) != 0 {
             
             let mut chunk = [0_u8; REQUEST_BODY_CHUNK_CAPACITY];
-            let chunk_len = c_ulong::try_from(chunk.len()).expect("Unexpected truncation");
+            let chunk_len = u32::try_from(chunk.len()).expect("Unexpected truncation");
             
             // `chunk` will be filled with one or more entity bodies
             let flags = sys::HTTP_RECEIVE_REQUEST_ENTITY_BODY_FLAG_FILL_BUFFER;
             
-            let mut bytes_read: c_ulong = 0;
+            let mut bytes_read: u32 = 0;
             
             loop {
                 
@@ -221,7 +223,7 @@ impl<'s> Request<'s> {
                 // 3. `flags` is a valid option defined by the http.sys API
                 // 4. `chunk.as_mut_ptr().cast::<c_void>()` points to a live, non-empty byte slice valid for writes
                 // 5. `chunk_len` matches the size in bytes of `chunk`, preventing out-of-bounds writes
-                // 6. `&raw mut bytes_read` points to a live, properly aligned `c_ulong` valid for writes
+                // 6. `&raw mut bytes_read` points to a live, properly aligned `u32` valid for writes
                 // 7. `p_overlapped` as `null` ensures synchronous execution, stack references (`chunk`, `bytes_read`) cannot dangle
                 let result = unsafe {
                     
@@ -279,7 +281,7 @@ impl<'s> Request<'s> {
         unsafe { &*headers.as_ptr().cast::<sys::HttpRequestV2>() }
     }
     
-    fn abort(server: &Server, request_id: c_ulonglong, status: StatusCode) {
+    fn abort(server: &Server, request_id: u64, status: StatusCode) {
         // SAFETY: all-zero bit patterns are valid for structs that consist entirely of integer primitives and raw pointers
         let mut response: sys::HttpResponseV2 = unsafe { mem::zeroed() };
         
@@ -288,7 +290,7 @@ impl<'s> Request<'s> {
         
         // the network connection should be closed after sending this response
         let flags = sys::HTTP_SEND_RESPONSE_FLAG_DISCONNECT;
-        let mut bytes_sent: c_ulong = 0;
+        let mut bytes_sent: u32 = 0;
         
         // SAFETY:
         //  1. `server.queue_handle()` is a valid request queue handle whose lifetime is guaranteed by the borrowed `&Server`
@@ -296,7 +298,7 @@ impl<'s> Request<'s> {
         //  3. `flags` is a valid option defined by the http.sys API
         //  4. `&raw const response` points to a properly aligned `HttpResponseV2` whose referenced header buffers are valid and readable
         //  5. `p_cache_policy` as `null` is valid and selects standard http.sys defaults
-        //  6. `&raw mut bytes_sent` points to a live, properly aligned `c_ulong` valid for writes
+        //  6. `&raw mut bytes_sent` points to a live, properly aligned `u32` valid for writes
         //  7. `p_reserved1` as `null` is required by the http.sys API
         //  8. `reserved2` as `0` is required by the http.sys API
         //  9. `p_overlapped` as `null` ensures synchronous execution, stack references (`response`, `bytes_sent`) cannot dangle

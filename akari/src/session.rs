@@ -1,7 +1,7 @@
 use std::{
     io,
     os::raw::c_void,
-    ptr,
+    ptr::{ self, NonNull },
 };
 
 use crate::{
@@ -46,18 +46,19 @@ impl Session {
             
         };
         
-        let handle = result
-            // SAFETY: `raw` is a uniquely owned, valid, open session handle
-            .map(|raw| unsafe { WinHttpHandle::from_raw(raw) })
-            .ok_or_else(last_winhttp_error)?;
+        let handle = match NonNull::new(result) {
+            // SAFETY: `result` is a uniquely owned, valid, open session handle
+            Some(result) => unsafe { WinHttpHandle::from_raw(result) },
+            None => return Err(last_winhttp_error()),
+        };
         
         // -------------------- set timeouts --------------------
         
-        // SAFETY: `handle.inner()` is a valid, open `HINTERNET` session handle (guaranteed non-null by `WinHttpHandle`)
+        // SAFETY: `handle.as_raw()` is a valid, open `HINTERNET` session handle (guaranteed non-null by `WinHttpHandle`)
         let result = unsafe {
             
             sys::WinHttpSetTimeouts(
-                handle.inner(),
+                handle.as_raw(),
                 DNS_RESOLUTION_TIMEOUT,
                 CONNECTION_TIMEOUT,
                 SEND_TIMEOUT,
@@ -80,14 +81,14 @@ impl Session {
         let buffer = sys::WINHTTP_PROTOCOL_FLAG_HTTP2;
         
         // SAFETY:
-        // 1. `handle.inner()` is a valid, open `HINTERNET` session handle (guaranteed non-null by `WinHttpHandle`)
+        // 1. `handle.as_raw()` is a valid, open `HINTERNET` session handle (guaranteed non-null by `WinHttpHandle`)
         // 2. `option` is a valid option defined by the WinHTTP API
         // 3. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `u32`
         // 4. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
         let result = unsafe {
             
             sys::WinHttpSetOption(
-                handle.inner(),
+                handle.as_raw(),
                 option,
                 (&raw const buffer).cast::<c_void>(),
                 u32::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),
@@ -108,14 +109,14 @@ impl Session {
         let buffer = sys::WINHTTP_OPTION_REDIRECT_POLICY_NEVER;
         
         // SAFETY:
-        // 1. `handle.inner()` is a valid, open `HINTERNET` session handle (guaranteed non-null by `WinHttpHandle`)
+        // 1. `handle.as_raw()` is a valid, open `HINTERNET` session handle (guaranteed non-null by `WinHttpHandle`)
         // 2. `option` is a valid option defined by the WinHTTP API
         // 3. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `u32`
         // 4. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
         let result = unsafe {
             
             sys::WinHttpSetOption(
-                handle.inner(),
+                handle.as_raw(),
                 option,
                 (&raw const buffer).cast::<c_void>(),
                 u32::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),
@@ -139,14 +140,14 @@ impl Session {
         let buffer = sys::WINHTTP_DECOMPRESSION_FLAG_GZIP | sys::WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
         
         // SAFETY:
-        // 1. `handle.inner()` is a valid, open `HINTERNET` session handle (guaranteed non-null by `WinHttpHandle`)
+        // 1. `handle.as_raw()` is a valid, open `HINTERNET` session handle (guaranteed non-null by `WinHttpHandle`)
         // 2. `option` is a valid option defined by the WinHTTP API
         // 3. `(&raw const buffer).cast::<c_void>()` points to a live, properly aligned `u32`
         // 4. `size_of_val(&buffer)` matches the size in bytes of `buffer`, preventing out-of-bounds reads
         let result = unsafe {
             
             sys::WinHttpSetOption(
-                handle.inner(),
+                handle.as_raw(),
                 option,
                 (&raw const buffer).cast::<c_void>(),
                 u32::try_from(size_of_val(&buffer)).expect("Unexpected truncation"),

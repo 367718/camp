@@ -16,8 +16,8 @@ impl WinHttpHandle {
         Self(inner)
     }
     
-    pub(crate) fn inner(&self) -> NonNull<c_void> {
-        self.0
+    pub(crate) fn as_raw(&self) -> *mut c_void {
+        self.0.as_ptr()
     }
     
 }
@@ -32,7 +32,7 @@ impl Drop for WinHttpHandle {
         unsafe {
             
             sys::WinHttpCloseHandle(
-                self.0,
+                self.as_raw(),
             )
             
         };

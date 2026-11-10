@@ -1,6 +1,6 @@
 use std::{
     io,
-    ptr,
+    ptr::{ self, NonNull },
 };
 
 use crate::{
@@ -25,14 +25,14 @@ impl<'s> Request<'s> {
         let flags = sys::WINHTTP_FLAG_SECURE;
         
         // SAFETY:
-        // 1. `connection.handle.inner()` is a valid `HINTERNET` connection handle whose lifetime is guaranteed by the owned `Connection`
+        // 1. `connection.handle.as_raw()` is a valid `HINTERNET` connection handle whose lifetime is guaranteed by the owned `Connection`
         // 2. `path.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
         // 3. passing `null` for `pwsz_verb`, `pwsz_version`, `pwsz_referrer`, and `ppwsz_accept_types` selects standard WinHTTP API defaults
         // 4. `flags` is a valid option defined by the WinHTTP API
         let result = unsafe {
             
             sys::WinHttpOpenRequest(
-                connection.handle.inner(),
+                connection.handle.as_raw(),
                 ptr::null(), // default http verb: GET
                 path.as_ptr(), // automatically escaped by WinHTTP as long as `WINHTTP_FLAG_ESCAPE_DISABLE` is not set
                 ptr::null(), // HTTP/1.1 by default, overridden by HTTP/2 set in `session`
@@ -43,10 +43,11 @@ impl<'s> Request<'s> {
             
         };
         
-        let handle = result
-            // SAFETY: `raw` is a uniquely owned, valid, open request handle
-            .map(|raw| unsafe { WinHttpHandle::from_raw(raw) })
-            .ok_or_else(last_winhttp_error)?;
+        let handle = match NonNull::new(result) {
+            // SAFETY: `result` is a uniquely owned, valid, open request handle
+            Some(result) => unsafe { WinHttpHandle::from_raw(result) },
+            None => return Err(last_winhttp_error()),
+        };
         
         // `connection` is kept alive to prevent its `handle` getting closed
         Ok(Self { handle, connection })
@@ -56,7 +57,7 @@ impl<'s> Request<'s> {
         // -------------------- send request --------------------
         
         // SAFETY:
-        // 1. `self.handle.inner()` is a valid, open `HINTERNET` request handle (guaranteed non-null by `WinHttpHandle`)
+        // 1. `self.handle.as_raw()` is a valid, open `HINTERNET` request handle (guaranteed non-null by `WinHttpHandle`)
         // 2. `null` for `lpsz_headers` and `0` for `dw_headers_length` are valid if no additional headers are to be sent
         // 3. `null` for `lp_optional` and `0` for `dw_optional_length` are valid if no body is to be sent
         // 4. `dw_total_length` as `0` is valid as no body is to be sent
@@ -64,7 +65,7 @@ impl<'s> Request<'s> {
         let result = unsafe {
             
             sys::WinHttpSendRequest(
-                self.handle.inner(),
+                self.handle.as_raw(),
                 ptr::null(), // no additional headers
                 0, // no additional headers
                 ptr::null(), // no body
@@ -82,12 +83,12 @@ impl<'s> Request<'s> {
         // -------------------- receive response --------------------
         
         // SAFETY:
-        // 1. `self.handle.inner()` is a valid, open `HINTERNET` request handle (guaranteed non-null by `WinHttpHandle`)
+        // 1. `self.handle.as_raw()` is a valid, open `HINTERNET` request handle (guaranteed non-null by `WinHttpHandle`)
         // 2. `lp_reserved` as `null` is required by the WinHTTP API
         let result = unsafe {
             
             sys::WinHttpReceiveResponse(
-                self.handle.inner(),
+                self.handle.as_raw(),
                 ptr::null(), // reserved
             )
             

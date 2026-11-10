@@ -4,8 +4,6 @@ mod form_field;
 mod request;
 mod response;
 
-use std::os::raw::*;
-
 pub use server::Server;
 pub use form_field::FormField;
 pub use request::Request;
@@ -35,7 +33,7 @@ pub enum CacheControl {
 
 impl StatusCode {
     
-    const fn into_int(self) -> c_ushort {
+    const fn into_int(self) -> u16 {
         match self {
             Self::Ok => 200,
             Self::Error => 500,

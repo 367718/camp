@@ -65,25 +65,21 @@ impl TryFrom<&str> for Url {
         
         // -------------------- host --------------------
         
-        let host_utf16_slice = match (components.lpsz_host_name, components.dw_host_name_length) {
+        if components.lpsz_host_name.is_null() || components.dw_host_name_length == 0 {
+            return Err(Error::new(ErrorKind::InvalidInput, "Host cannot be empty"));
+        }
+        
+        // SAFETY:
+        // 1. `lpsz_host_name` was verified to be non-null and `dw_host_name_length` to be greater than 0
+        // 2. `lpsz_host_name` points to a valid, contiguous sequence of `dw_host_name_length` UTF-16 code units located within `url_wide`
+        // 3. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
+        // 4. `host_utf16_slice` does not escape this function and is immediately copied into `host`
+        let host_utf16_slice = unsafe {
             
-            (Some(lpsz_host_name), dw_host_name_length) if dw_host_name_length > 0 => {
-                // SAFETY:
-                // 1. `lpsz_host_name` is guaranteed to be non-null by `NonNull` and `dw_host_name_length` is greater than 0
-                // 2. `lpsz_host_name` points to a valid, contiguous sequence of `dw_host_name_length` UTF-16 code units located within `url_wide`
-                // 3. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
-                // 4. `host_utf16_slice` does not escape this function and is immediately copied into `host`
-                unsafe {
-                    
-                    slice::from_raw_parts(
-                        lpsz_host_name.as_ptr(),
-                        dw_host_name_length as usize,
-                    )
-                    
-                }
-            },
-            
-            _ => return Err(Error::new(ErrorKind::InvalidInput, "Host cannot be empty")),
+            slice::from_raw_parts(
+                components.lpsz_host_name,
+                components.dw_host_name_length as usize,
+            )
             
         };
         
@@ -98,45 +94,47 @@ impl TryFrom<&str> for Url {
         
         // -------------------- path --------------------
         
-        let path_utf16_slice = match components.lpsz_url_path {
+        let path_utf16_slice = if ! components.lpsz_url_path.is_null() && components.dw_url_path_length > 0 {
             
             // SAFETY:
-            // 1. `lpsz_url_path` is guaranteed to be non-null by `NonNull` and properly aligned to `u16` as an offset into `url_wide`
+            // 1. `lpsz_url_path` was verified to be non-null and `dw_url_path_length` to be greater than 0
             // 2. `lpsz_url_path` points to a valid, contiguous sequence of `dw_url_path_length` UTF-16 code units located within `url_wide`
-            // 3. if `dw_url_path_length` is `0`, `lpsz_url_path` remains non-null and aligned
-            // 4. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
-            // 5. `path_utf16_slice` does not escape this function and is immediately copied into `path`
-            Some(lpsz_url_path) => unsafe {
+            // 3. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
+            // 4. `path_utf16_slice` does not escape this function and is immediately copied into `path`
+            unsafe {
                 
                 slice::from_raw_parts(
-                    lpsz_url_path.as_ptr(),
+                    components.lpsz_url_path,
                     components.dw_url_path_length as usize,
                 )
                 
-            },
+            }
             
-            None => &[],
+        } else {
+            
+            &[]
             
         };
         
-        let extra_utf16_slice = match components.lpsz_extra_info {
+        let extra_utf16_slice = if ! components.lpsz_extra_info.is_null() && components.dw_extra_info_length > 0 {
             
             // SAFETY:
-            // 1. `lpsz_extra_info` is guaranteed to be non-null by `NonNull` and properly aligned to `u16` as an offset into `url_wide`
+            // 1. `lpsz_extra_info` was verified to be non-null and `dw_extra_info_length` to be greater than 0
             // 2. `lpsz_extra_info` points to a valid, contiguous sequence of `dw_extra_info_length` UTF-16 code units located within `url_wide`
-            // 3. if `dw_extra_info_length` is `0`, `lpsz_extra_info` remains non-null and aligned
-            // 4. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
-            // 5. `extra_utf16_slice` does not escape this function and is immediately copied into `path`
-            Some(lpsz_extra_info) => unsafe {
+            // 3. `UrlComponents` length fields are character counts (UTF-16 code units), which matches the element count expected by `slice::from_raw_parts`
+            // 4. `extra_utf16_slice` does not escape this function and is copied into `path`
+            unsafe {
                 
                 slice::from_raw_parts(
-                    lpsz_extra_info.as_ptr(),
+                    components.lpsz_extra_info,
                     components.dw_extra_info_length as usize,
                 )
                 
-            },
+            }
             
-            None => &[],
+        } else {
+            
+            &[]
             
         };
         

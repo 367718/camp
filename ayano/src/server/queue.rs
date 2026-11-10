@@ -1,13 +1,13 @@
 use std::{
     io::{ self, Error },
-    os::raw::*,
+    os::raw::c_void,
     ptr,
 };
 
 use crate::sys;
 
 pub(super) struct Queue { 
-    pub(super) handle: *const c_void, // HANDLE
+    pub(super) handle: *mut c_void, // HANDLE
 }
 
 impl Queue {
@@ -16,7 +16,7 @@ impl Queue {
         // use server API introduced in Windows Vista; previous version is deprecated
         let version = sys::HTTPAPI_VERSION_2;
         
-        let mut handle = ptr::null();
+        let mut handle = ptr::null_mut();
         
         // SAFETY:
         // 1. `version` is a valid `HttpApiVersion` struct

@@ -5,7 +5,7 @@ mod url_group;
 
 use std::{
     io,
-    os::raw::*,
+    os::raw::c_void,
 };
 
 use api::Api;
@@ -42,7 +42,7 @@ impl Server {
         Request::new(self)
     }
     
-    pub(crate) fn queue_handle(&self) -> *const c_void {
+    pub(crate) fn queue_handle(&self) -> *mut c_void {
         self.queue.handle
     }
     

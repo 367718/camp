@@ -1,12 +1,9 @@
-use std::{
-    io::{ self, Error },
-    os::raw::*,
-};
+use std::io::{ self, Error };
 
 use crate::sys;
 
 pub(super) struct Session {
-    pub(super) id: c_ulonglong, // HTTP_OPAQUE_ID
+    pub(super) id: u64, // HTTP_OPAQUE_ID
 }
 
 impl Session {
@@ -15,11 +12,11 @@ impl Session {
         // use server API introduced in Windows Vista; previous version is deprecated
         let version = sys::HTTPAPI_VERSION_2;
         
-        let mut id: c_ulonglong = 0;
+        let mut id: u64 = 0;
         
         // SAFETY:
         // 1. `version` is a valid `HttpApiVersion` struct
-        // 2. `&raw mut id` points to a live, properly aligned `c_ulonglong` valid for writes
+        // 2. `&raw mut id` points to a live, properly aligned `u64` valid for writes
         // 3. `reserved` as `0` is required by the http.sys API
         let result = unsafe {
             
