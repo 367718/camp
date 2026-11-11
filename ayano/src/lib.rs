@@ -9,16 +9,6 @@ pub use form_field::FormField;
 pub use request::Request;
 pub use response::Response;
 
-pub enum StatusCode {
-    Ok,
-    Error,
-    BadRequest,
-    NotFound,
-    ContentTooLarge,
-    RequestHeaderFieldsTooLarge,
-    VersionNotSupported,
-}
-
 pub enum ContentType {
     Plain,
     Html,
@@ -29,22 +19,6 @@ pub enum ContentType {
 pub enum CacheControl {
     Static,
     Dynamic,
-}
-
-impl StatusCode {
-    
-    const fn into_int(self) -> u16 {
-        match self {
-            Self::Ok => 200,
-            Self::Error => 500,
-            Self::BadRequest => 400,
-            Self::NotFound => 404,
-            Self::ContentTooLarge => 413,
-            Self::RequestHeaderFieldsTooLarge => 431,
-            Self::VersionNotSupported => 505,
-        }
-    }
-    
 }
 
 impl ContentType {

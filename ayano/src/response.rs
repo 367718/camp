@@ -6,16 +6,11 @@ use std::{
     thread,
 };
 
-use crate::{
-    sys,
-    Server,
-    StatusCode, ContentType, CacheControl,
-};
+use crate::{ sys, Server, ContentType, CacheControl };
 
 pub struct Response<'s> {
     request_id: u64, // HTTP_OPAQUE_ID
-    uncommitted: [u8; UNCOMMITTED_BUFFER_CAPACITY],
-    uncommitted_len: usize,
+    uncommitted: Vec<u8>,
     failed: bool,
     server: &'s Server,
 }
@@ -27,7 +22,7 @@ impl<'s> Response<'s> {
     // -------------------- constructors --------------------
     
     
-    pub(crate) fn new(server: &'s Server, request_id: u64, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Self> {
+    pub(crate) fn new(server: &'s Server, request_id: u64, status: u16, content: ContentType, cache: CacheControl) -> io::Result<Self> {
         // SAFETY: all-zero bit patterns are valid for structs that consist entirely of integer primitives and raw pointers
         let mut headers: sys::HttpResponseHeaders = unsafe { mem::zeroed() };
         
@@ -39,7 +34,7 @@ impl<'s> Response<'s> {
         let mut response: sys::HttpResponseV2 = unsafe { mem::zeroed() };
         
         response.version = sys::HTTP_VERSION_1_1;
-        response.status_code = status.into_int();
+        response.status_code = status;
         response.headers = headers;
         
         // HTTP_SEND_RESPONSE_FLAG_MORE_DATA: additional data will be sent in subsequent calls for this response
@@ -79,11 +74,10 @@ impl<'s> Response<'s> {
             return Err(Error::from_raw_os_error(result.cast_signed()));
         }
         
-        let uncommitted = [0; UNCOMMITTED_BUFFER_CAPACITY];
-        let uncommitted_len = 0;
+        let uncommitted = Vec::with_capacity(UNCOMMITTED_BUFFER_CAPACITY);
         let failed = false;
         
-        Ok(Response { request_id, uncommitted, uncommitted_len, failed, server })
+        Ok(Response { request_id, uncommitted, failed, server })
     }
     
     
@@ -136,16 +130,12 @@ impl<'s> Response<'s> {
     }
     
     fn generate_chunk(buffer: &[u8]) -> sys::HttpDataChunk {
-        // SAFETY: all-zero bit patterns are valid for structs that consist entirely of integer primitives and raw pointers
-        let mut chunk: sys::HttpDataChunk = unsafe { mem::zeroed() };
-        
-        chunk.data_chunk_type = sys::HTTP_DATA_CHUNK_FROM_MEMORY;
-        chunk.union_data.from_memory = sys::HttpDataChunkFromMemory {
+        sys::HttpDataChunk {
+            data_chunk_type: sys::HTTP_DATA_CHUNK_FROM_MEMORY,
             p_buffer: buffer.as_ptr().cast::<c_void>(),
             buffer_length: u32::try_from(buffer.len()).expect("Unexpected truncation"),
-        };
-        
-        chunk
+            _padding: [0; 3],
+        }
     }
     
 }
@@ -162,13 +152,12 @@ impl Write for Response<'_> {
         }
         
         // copy as much as possible into uncommitted buffer
-        let available = UNCOMMITTED_BUFFER_CAPACITY - self.uncommitted_len;
+        let available = UNCOMMITTED_BUFFER_CAPACITY - self.uncommitted.len();
         let bytes = buf.len().min(available);
-        self.uncommitted[self.uncommitted_len..self.uncommitted_len + bytes].copy_from_slice(&buf[..bytes]);
-        self.uncommitted_len += bytes;
+        self.uncommitted.extend_from_slice(&buf[..bytes]);
         
         // uncommitted buffer saturated, trigger flush
-        if self.uncommitted_len >= UNCOMMITTED_BUFFER_CAPACITY {
+        if self.uncommitted.len() >= UNCOMMITTED_BUFFER_CAPACITY {
             self.flush()?;
         }
         
@@ -176,19 +165,19 @@ impl Write for Response<'_> {
     }
     
     fn flush(&mut self) -> io::Result<()> {
-        if self.uncommitted_len == 0 {
+        if self.uncommitted.is_empty() {
             return Ok(());
         }
         
         // for a buffer of 16384 (16 * 1024) in length, the maximum possible value would be 6 bytes: 4000\r\n
         let mut header = [0_u8; 6];
         let mut cursor = Cursor::new(&mut header[..]);
-        write!(cursor, "{:X}\r\n", self.uncommitted_len).unwrap();
+        write!(cursor, "{:X}\r\n", self.uncommitted.len()).unwrap();
         let header_len = usize::try_from(cursor.position()).expect("Unexpected truncation");
         
         let chunks = [
             Self::generate_chunk(&header[..header_len]),
-            Self::generate_chunk(&self.uncommitted[..self.uncommitted_len]),
+            Self::generate_chunk(&self.uncommitted),
             Self::generate_chunk(b"\r\n"),
         ];
         
@@ -229,7 +218,7 @@ impl Write for Response<'_> {
             return Err(Error::from_raw_os_error(result.cast_signed()));
         }
         
-        self.uncommitted_len = 0;
+        self.uncommitted.clear();
         
         Ok(())
     }

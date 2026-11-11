@@ -9,11 +9,11 @@ use std::{
 use crate::{
     sys,
     Server, FormField, Response,
-    StatusCode, ContentType, CacheControl,
+    ContentType, CacheControl,
 };
 
 pub struct Request<'s> {
-    headers: Box<[u64]>,
+    headers: Vec<u64>,
     body: Vec<u8>,
     answered: bool,
     server: &'s Server,
@@ -110,7 +110,7 @@ impl<'s> Request<'s> {
     // -------------------- mutators --------------------
     
     
-    pub fn start_response(&mut self, status: StatusCode, content: ContentType, cache: CacheControl) -> io::Result<Response<'s>> {
+    pub fn start_response(&mut self, status: u16, content: ContentType, cache: CacheControl) -> io::Result<Response<'s>> {
         if self.answered {
             return Err(Error::other("Response has already been sent"));
         }
@@ -127,10 +127,9 @@ impl<'s> Request<'s> {
     // -------------------- helpers --------------------
     
     
-    fn read_headers(server: &Server) -> io::Result<Box<[u64]>> {
-        // boxed slice is used to ensure a stable address, since `HttpRequestV2` stores self-referential pointers
+    fn read_headers(server: &Server) -> io::Result<Vec<u64>> {
         // `u64` is used to ensure 8-byte alignment
-        let mut buffer = vec![0_u64; REQUEST_HEADERS_SIZE_LIMIT].into_boxed_slice();
+        let mut buffer = vec![0_u64; REQUEST_HEADERS_SIZE_LIMIT];
         let mut amount_read: u32 = 0;
         
         // SAFETY:
@@ -161,7 +160,7 @@ impl<'s> Request<'s> {
         if result == sys::ERROR_MORE_DATA {
             // guaranteed to have been populated
             let request_id = Self::headers_data(&buffer).request_id;
-            Self::abort(server, request_id, StatusCode::RequestHeaderFieldsTooLarge);
+            Self::abort(server, request_id, 431);
             return Err(Error::new(ErrorKind::InvalidData, "Request headers exceeded maximum allowable size"));
         }
         
@@ -171,29 +170,13 @@ impl<'s> Request<'s> {
             return Err(Error::from_raw_os_error(result.cast_signed()));
         }
         
-        // -------------------- incomplete request --------------------
-        
-        // data struct has not been populated properly
-        if (amount_read as usize) < mem::size_of::<sys::HttpRequestV2>() {
-            
-            // enough data to read `request_id`
-            // 4 (flags) + 4 (padding) + 8 (connection_id) + 8 (request_id)
-            if amount_read >= 24 {
-                let request_id = Self::headers_data(&buffer).request_id;
-                Self::abort(server, request_id, StatusCode::BadRequest);
-            }
-            
-            return Err(Error::new(ErrorKind::InvalidData, "Malformed request"));
-            
-        }
-        
         // -------------------- incompatible HTTP version --------------------
         
         let data = Self::headers_data(&buffer);
         
         // HTTP version requested is not supported
         if data.version != sys::HTTP_VERSION_1_1 {
-            Self::abort(server, data.request_id, StatusCode::VersionNotSupported);
+            Self::abort(server, data.request_id, 505);
             return Err(Error::other("Unsupported HTTP version"));
         }
         
@@ -248,7 +231,7 @@ impl<'s> Request<'s> {
                     sys::NO_ERROR => {
                         
                         if buffer.len() + (bytes_read as usize) > REQUEST_BODY_SIZE_LIMIT {
-                            Self::abort(server, headers_data.request_id, StatusCode::ContentTooLarge);
+                            Self::abort(server, headers_data.request_id, 413);
                             return Err(Error::new(ErrorKind::InvalidData, "Request body exceeded maximum allowable size"));
                         }
                         
@@ -258,7 +241,7 @@ impl<'s> Request<'s> {
                     
                     _ => {
                         
-                        Self::abort(server, headers_data.request_id, StatusCode::Error);
+                        Self::abort(server, headers_data.request_id, 500);
                         return Err(Error::from_raw_os_error(result.cast_signed()));
                         
                     },
@@ -281,12 +264,12 @@ impl<'s> Request<'s> {
         unsafe { &*headers.as_ptr().cast::<sys::HttpRequestV2>() }
     }
     
-    fn abort(server: &Server, request_id: u64, status: StatusCode) {
+    fn abort(server: &Server, request_id: u64, status: u16) {
         // SAFETY: all-zero bit patterns are valid for structs that consist entirely of integer primitives and raw pointers
         let mut response: sys::HttpResponseV2 = unsafe { mem::zeroed() };
         
         response.version = sys::HTTP_VERSION_1_1;
-        response.status_code = status.into_int();
+        response.status_code = status;
         
         // the network connection should be closed after sending this response
         let flags = sys::HTTP_SEND_RESPONSE_FLAG_DISCONNECT;
@@ -332,7 +315,7 @@ impl Drop for Request<'_> {
         
         // unaswered request; assume error and close connection
         let request_id = Self::headers_data(&self.headers).request_id;
-        Self::abort(self.server, request_id, StatusCode::Error);
+        Self::abort(self.server, request_id, 500);
     }
     
 }

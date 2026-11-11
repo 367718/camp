@@ -3,12 +3,12 @@ use std::{
     io::Write,
 };
 
-use ayano::{ Request, StatusCode, ContentType, CacheControl };
+use ayano::{ Request, ContentType, CacheControl };
 
 const INDEX: &[u8] = include_bytes!("../rsc/feeds.html");
 
 pub fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
+    request.start_response(200, ContentType::Html, CacheControl::Static)
         .and_then(|mut response| response.write_all(INDEX))?;
     
     Ok(())
@@ -23,7 +23,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    let mut response = request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Dynamic)?;
+    let mut response = request.start_response(200, ContentType::Html, CacheControl::Dynamic)?;
     
     for entry in list.iter() {
         
@@ -53,7 +53,7 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
+    request.start_response(200, ContentType::Plain, CacheControl::Dynamic)?;
     
     Ok(())
 }
@@ -75,7 +75,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- response --------------------
     
-    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
+    request.start_response(200, ContentType::Plain, CacheControl::Dynamic)?;
     
     Ok(())
 }

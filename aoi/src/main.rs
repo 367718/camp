@@ -7,10 +7,7 @@ use std::{
     os::raw::*,
 };
 
-use ayano::{
-    Server, Request,
-    StatusCode, ContentType, CacheControl,
-};
+use ayano::{ Server, Request, ContentType, CacheControl };
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -65,7 +62,7 @@ fn process() -> Result<(), Box<dyn Error>> {
         };
         
         if let Err(error) = handle_request(&mut request) {
-            request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
+            request.start_response(500, ContentType::Plain, CacheControl::Dynamic)
                 .and_then(|mut response| response.write_all(error.to_string().as_bytes()))
                 .ok();
         }
@@ -111,21 +108,21 @@ fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
 }
 
 fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    request.start_response(StatusCode::Ok, ContentType::Html, CacheControl::Static)
+    request.start_response(200, ContentType::Html, CacheControl::Static)
         .and_then(|mut response| response.write_all(INDEX))?;
     
     Ok(())
 }
 
 fn styles(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    request.start_response(StatusCode::Ok, ContentType::Css, CacheControl::Static)
+    request.start_response(200, ContentType::Css, CacheControl::Static)
         .and_then(|mut response| response.write_all(STYLES))?;
     
     Ok(())
 }
 
 fn scripts(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    request.start_response(StatusCode::Ok, ContentType::Javascript, CacheControl::Static)
+    request.start_response(200, ContentType::Javascript, CacheControl::Static)
         .and_then(|mut response| response.write_all(SCRIPTS))?;
     
     Ok(())
@@ -155,7 +152,7 @@ fn send_command(request: &mut Request, command: &[u8]) -> Result<(), Box<dyn Err
     
     file.write_all(command)?;
     
-    request.start_response(StatusCode::Ok, ContentType::Plain, CacheControl::Dynamic)?;
+    request.start_response(200, ContentType::Plain, CacheControl::Dynamic)?;
     
     Ok(())
 }

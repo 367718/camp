@@ -12,10 +12,7 @@ use std::{
     process,
 };
 
-use ayano::{
-    Server, Request,
-    StatusCode, ContentType, CacheControl,
-};
+use ayano::{ Server, Request, ContentType, CacheControl };
 
 fn main() {
     if let Err(error) = process() {
@@ -35,7 +32,7 @@ fn process() -> Result<(), Box<dyn Error>> {
         };
         
         if let Err(error) = handle_request(&mut request) {
-            request.start_response(StatusCode::Error, ContentType::Plain, CacheControl::Dynamic)
+            request.start_response(500, ContentType::Plain, CacheControl::Dynamic)
                 .and_then(|mut response| response.write_all(error.to_string().as_bytes()))
                 .ok();
         }

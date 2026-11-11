@@ -148,13 +148,8 @@ pub struct HttpVersion {
 }
 
 #[repr(C)]
-pub struct HttpPropertyFlags {
-    pub present: u32,
-}
-
-#[repr(C)]
 pub struct HttpBindingInfo {
-    pub flags: HttpPropertyFlags,
+    pub flags: u32, // HTTP_PROPERTY_FLAGS
     pub request_queue_handle: *mut c_void, // HANDLE
 }
 
@@ -171,20 +166,6 @@ pub struct HttpCookedUrl {
 }
 
 #[repr(C)]
-pub struct HttpTransportAddress {
-    pub p_remote_address: *const c_void, // PSOCKADDR
-    pub p_local_address: *const c_void, // PSOCKADDR
-}
-
-#[repr(C)]
-pub struct HttpUnknownHeader {
-    pub name_length: u16,
-    pub raw_value_length: u16,
-    pub p_name: *const i8, // PCSTR
-    pub p_raw_value: *const i8, // PCSTR
-}
-
-#[repr(C)]
 pub struct HttpKnownHeader {
     pub raw_value_length: u16,
     pub p_raw_value: *const i8, // PCSTR
@@ -193,9 +174,9 @@ pub struct HttpKnownHeader {
 #[repr(C)]
 pub struct HttpRequestHeaders {
     pub unknown_header_count: u16,
-    pub p_unknown_headers: *const HttpUnknownHeader,
+    pub p_unknown_headers: *const c_void, // HTTP_UNKNOWN_HEADER
     pub trailer_count: u16,
-    pub p_trailers: *const HttpUnknownHeader,
+    pub p_trailers: *const c_void, // HTTP_UNKNOWN_HEADER
     pub known_headers: [HttpKnownHeader; HTTP_HEADER_REQUEST_MAXIMUM],
 }
 
@@ -212,7 +193,7 @@ pub struct HttpRequestV2 {
     pub p_unknown_verb: *const i8, // PCSTR
     pub p_raw_url: *const i8, // PCSTR
     pub cooked_url: HttpCookedUrl,
-    pub address: HttpTransportAddress,
+    pub address: [*const c_void; 2], // HTTP_TRANSPORT_ADDRESS
     pub headers: HttpRequestHeaders,
     pub bytes_received: u64,
     pub entity_chunk_count: u16,
@@ -226,9 +207,9 @@ pub struct HttpRequestV2 {
 #[repr(C)]
 pub struct HttpResponseHeaders {
     pub unknown_header_count: u16,
-    pub p_unknown_headers: *const HttpUnknownHeader,
+    pub p_unknown_headers: *const c_void, // HTTP_UNKNOWN_HEADER
     pub trailer_count: u16,
-    pub p_trailers: *const HttpUnknownHeader,
+    pub p_trailers: *const c_void, // HTTP_UNKNOWN_HEADER
     pub known_headers: [HttpKnownHeader; HTTP_HEADER_RESPONSE_MAXIMUM],
 }
 
@@ -246,23 +227,12 @@ pub struct HttpResponseV2 {
     pub p_response_info: *const c_void, // HTTP_RESPONSE_INFO
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct HttpDataChunkFromMemory {
-    pub p_buffer: *const c_void,
-    pub buffer_length: u32,
-}
-
-#[repr(C)]
-pub union HttpDataChunkUnion {
-    pub from_memory: HttpDataChunkFromMemory,
-    pub _padding: [u64; 3],
-}
-
 #[repr(C)]
 pub struct HttpDataChunk {
     pub data_chunk_type: u32,
-    pub union_data: HttpDataChunkUnion,
+    pub p_buffer: *const c_void,
+    pub buffer_length: u32,
+    pub _padding: [u32; 3],
 }
 
 pub const HTTPAPI_VERSION_2: HttpApiVersion = HttpApiVersion {

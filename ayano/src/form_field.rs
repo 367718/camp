@@ -79,7 +79,7 @@ impl<'r, 'p> FormField<'r, 'p> {
         // first boundary could be one of two possibilities:
         // --9999999999999999999999999999 if no preamble
         // \r\n--9999999999999999999999999999, like the rest, if a preamble is present
-        if reader.consume_first_boundary(boundary).is_none() {
+        if reader.consume_first_boundary().is_none() {
             reader.content = &[];
         }
         
@@ -90,12 +90,11 @@ impl<'r, 'p> FormField<'r, 'p> {
     // -------------------- mutators --------------------
     
     
-    fn consume_first_boundary(&mut self, boundary: &[u8]) -> Option<()> {
-        let mut first_delimiter = Vec::with_capacity(boundary.len() + 2);
-        first_delimiter.extend_from_slice(b"--");
-        first_delimiter.extend_from_slice(boundary);
+    fn consume_first_boundary(&mut self) -> Option<()> {
+        // "--" + boundary
+        let first_delimiter = &self.delimiter[2..];
         
-        let after_delimiter = if let Some(rest) = self.content.strip_prefix(&first_delimiter[..]) {
+        let after_delimiter = if let Some(rest) = self.content.strip_prefix(first_delimiter) {
             // no preamble
             rest
         } else {
