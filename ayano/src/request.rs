@@ -19,7 +19,7 @@ pub struct Request<'s> {
     server: &'s Server,
 }
 
-const REQUEST_HEADERS_SIZE_LIMIT: usize = 16 * 128;
+const REQUEST_HEADERS_SIZE_LIMIT: usize = (16 * 1024) / size_of::<u64>();
 const REQUEST_BODY_SIZE_LIMIT: usize = 512 * 1024;
 
 const REQUEST_BODY_CHUNK_CAPACITY: usize = 16 * 1024;
@@ -271,8 +271,9 @@ impl<'s> Request<'s> {
         response.version = sys::HTTP_VERSION_1_1;
         response.status_code = status;
         
-        // the network connection should be closed after sending this response
-        let flags = sys::HTTP_SEND_RESPONSE_FLAG_DISCONNECT;
+        // `HTTP_SEND_RESPONSE_FLAG_DISCONNECT`: the network connection should be closed after sending this response
+        // `HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA`: enables buffering, which maximizes performance and throughput for small-to-medium responses
+        let flags = sys::HTTP_SEND_RESPONSE_FLAG_DISCONNECT | sys::HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA;
         let mut bytes_sent: u32 = 0;
         
         // SAFETY:

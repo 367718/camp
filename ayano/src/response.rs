@@ -37,8 +37,8 @@ impl<'s> Response<'s> {
         response.status_code = status;
         response.headers = headers;
         
-        // HTTP_SEND_RESPONSE_FLAG_MORE_DATA: additional data will be sent in subsequent calls for this response
-        // HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA: enables buffering, which maximizes performance and throughput for small-to-medium responses
+        // `HTTP_SEND_RESPONSE_FLAG_MORE_DATA`: additional data will be sent in subsequent calls for this response
+        // `HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA`: enables buffering, which maximizes performance and throughput for small-to-medium responses
         let flags = sys::HTTP_SEND_RESPONSE_FLAG_MORE_DATA | sys::HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA;
         let mut bytes_sent: u32 = 0;
         
@@ -74,7 +74,7 @@ impl<'s> Response<'s> {
             return Err(Error::from_raw_os_error(result.cast_signed()));
         }
         
-        let uncommitted = Vec::with_capacity(UNCOMMITTED_BUFFER_CAPACITY);
+        let uncommitted = Vec::new();
         let failed = false;
         
         Ok(Response { request_id, uncommitted, failed, server })
@@ -85,8 +85,9 @@ impl<'s> Response<'s> {
     
     
     fn disconnect(&mut self) {
-        // the network connection should be closed after sending this response
-        let flags = sys::HTTP_SEND_RESPONSE_FLAG_DISCONNECT;
+        // `HTTP_SEND_RESPONSE_FLAG_DISCONNECT`: the network connection should be closed after sending this response
+        // `HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA`: enables buffering, which maximizes performance and throughput for small-to-medium responses
+        let flags = sys::HTTP_SEND_RESPONSE_FLAG_DISCONNECT | sys::HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA;
         let mut bytes_sent: u32 = 0;
         
         // SAFETY:
@@ -151,6 +152,10 @@ impl Write for Response<'_> {
             return Ok(0);
         }
         
+        if self.uncommitted.capacity() == 0 {
+            self.uncommitted.reserve_exact(UNCOMMITTED_BUFFER_CAPACITY);
+        }
+        
         // copy as much as possible into uncommitted buffer
         let available = UNCOMMITTED_BUFFER_CAPACITY - self.uncommitted.len();
         let bytes = buf.len().min(available);
@@ -165,6 +170,10 @@ impl Write for Response<'_> {
     }
     
     fn flush(&mut self) -> io::Result<()> {
+        if self.failed {
+            return Err(Error::new(ErrorKind::BrokenPipe, "Response is in an error state"));
+        }
+        
         if self.uncommitted.is_empty() {
             return Ok(());
         }
@@ -181,8 +190,9 @@ impl Write for Response<'_> {
             Self::generate_chunk(b"\r\n"),
         ];
         
-        // additional data will be sent in subsequent calls for this response
-        let flags = sys::HTTP_SEND_RESPONSE_FLAG_MORE_DATA;
+        // `HTTP_SEND_RESPONSE_FLAG_MORE_DATA`: additional data will be sent in subsequent calls for this response
+        // `HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA`: enables buffering, which maximizes performance and throughput for small-to-medium responses
+        let flags = sys::HTTP_SEND_RESPONSE_FLAG_MORE_DATA | sys::HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA;
         let mut bytes_sent: u32 = 0;
         
         // SAFETY:
@@ -236,8 +246,9 @@ impl Drop for Response<'_> {
         // signal the client that no more chunks will be sent by sending a final zero-sized chunk
         let chunk = Self::generate_chunk(b"0\r\n\r\n");
         
-        // signal the kernel that no more chunks will be sent by omitting the "HTTP_SEND_RESPONSE_FLAG_MORE_DATA" flag
-        let flags = 0;
+        // signal the kernel that no more chunks will be sent by omitting the `HTTP_SEND_RESPONSE_FLAG_MORE_DATA` flag
+        // `HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA`: enables buffering, which maximizes performance and throughput for small-to-medium responses
+        let flags = sys::HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA;
         let mut bytes_sent: u32 = 0;
         
         // SAFETY:

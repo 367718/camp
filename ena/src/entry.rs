@@ -26,8 +26,7 @@ impl<'r> FilesEntry<'r> {
     
     
     pub fn relative(&self) -> &Path {
-        self.inner.strip_prefix(self.root)
-            .expect("Discrepancy between full path and root")
+        self.inner.trim_prefix(self.root)
     }
     
     pub fn is_marked(&self, flag: impl AsRef<OsStr>) -> io::Result<bool> {
