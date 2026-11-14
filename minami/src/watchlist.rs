@@ -7,7 +7,17 @@ use std::{
 
 use ayano::{ Request, ContentType, CacheControl };
 
+macro_rules! anchor_table {
+    ($($value:literal),*) => { [$(concat!("<a data-value='", $value, "'>").as_bytes()),*] };
+}
+
 const INDEX: &[u8] = include_bytes!("../rsc/watchlist.html");
+
+const COMMON_VALUES: [&[u8]; 26] = anchor_table![
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+    20, 21, 22, 23, 24, 25
+];
 
 pub fn index(request: &mut Request) -> Result<(), Box<dyn Error>> {
     request.start_response(200, ContentType::Html, CacheControl::Static)
@@ -31,9 +41,14 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in list.iter() {
         
-        response.write_all(b"<a data-value='")?;
-        response.write_all(entry.value.format_into(&mut numbuf).as_bytes())?;
-        response.write_all(b"'>")?;
+        if let Some(&anchor_open) = COMMON_VALUES.get(entry.value as usize) {
+            response.write_all(anchor_open)?;
+        } else {
+            response.write_all(b"<a data-value='")?;
+            response.write_all(entry.value.format_into(&mut numbuf).as_bytes())?;
+            response.write_all(b"'>")?;
+        }
+        
         chikuwa::escape_html(entry.tag, &mut response)?;
         response.write_all(b"</a>")?;
         

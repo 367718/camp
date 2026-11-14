@@ -1,5 +1,3 @@
-use core::fmt::NumBuffer;
-
 use std::{
     error::Error,
     io::Write,
@@ -31,8 +29,6 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     let mut response = request.start_response(200, ContentType::Html, CacheControl::Dynamic)?;
     
-    let mut numbuf = NumBuffer::new();
-    
     for entry in list.iter() {
         
         // skip entries whose `relative` value cannot be represented in UTF8
@@ -43,13 +39,13 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
         let (container, file_name) = relative.rsplit_once(MAIN_SEPARATOR_STR)
             .unwrap_or(("", relative));
         
-        response.write_all(b"<a data-value='")?;
+        let anchor_open = if entry.is_marked(flag).unwrap_or(false) {
+            b"<a data-value='0'>"
+        } else {
+            b"<a data-value='1'>"
+        };
         
-        // value is flipped so `true` becomes `0` and `false` becomes `1`
-        let value = u8::from(! entry.is_marked(flag).unwrap_or(false));
-        
-        response.write_all(value.format_into(&mut numbuf).as_bytes())?;
-        response.write_all(b"'>")?;
+        response.write_all(anchor_open)?;
         
         if ! container.is_empty() {
             response.write_all(b"<span>")?;

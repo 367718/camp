@@ -82,7 +82,7 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/http/nf-http-httpreceivehttprequest
     pub fn HttpReceiveHttpRequest(
-        request_queue_handle: *mut c_void, // HANDLE
+        req_queue_handle: *mut c_void, // HANDLE
         request_id: u64, // HTTP_OPAQUE_ID
         flags: u32,
         p_request_buffer: *mut c_void, // HTTP_REQUEST
@@ -93,7 +93,7 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/http/nf-http-httpreceiverequestentitybody
     pub fn HttpReceiveRequestEntityBody(
-        request_queue_handle: *mut c_void, // HANDLE
+        req_queue_handle: *mut c_void, // HANDLE
         request_id: u64, // HTTP_OPAQUE_ID
         flags: u32,
         p_entity_buffer: *mut c_void,
@@ -106,7 +106,7 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/http/nf-http-httpsendhttpresponse
     pub fn HttpSendHttpResponse(
-        request_queue_handle: *mut c_void, // HANDLE
+        req_queue_handle: *mut c_void, // HANDLE
         request_id: u64, // HTTP_OPAQUE_ID
         flags: u32,
         p_http_response: *const HttpResponseV2,
@@ -120,7 +120,7 @@ unsafe extern "system" {
     
     // https://learn.microsoft.com/en-us/windows/win32/api/http/nf-http-httpsendresponseentitybody
     pub fn HttpSendResponseEntityBody(
-        request_queue_handle: *mut c_void, // HANDLE
+        req_queue_handle: *mut c_void, // HANDLE
         request_id: u64, // HTTP_OPAQUE_ID
         flags: u32,
         entity_chunk_count: u16,
@@ -130,6 +130,13 @@ unsafe extern "system" {
         reserved2: u32,
         p_overlapped: *mut c_void, // OVERLAPPED
         p_log_data: *const c_void, // HTTP_LOG_DATA
+    ) -> u32;
+    
+    // https://learn.microsoft.com/en-us/windows/win32/api/http/nf-http-httpcancelhttprequest
+    pub fn HttpCancelHttpRequest(
+        req_queue_handle: *mut c_void, // HANDLE
+        request_id: u64, // HTTP_OPAQUE_ID
+        p_overlapped: *mut c_void, // OVERLAPPED
     ) -> u32;
     
 }
