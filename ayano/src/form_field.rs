@@ -24,7 +24,7 @@ impl<'r, 'p> FormField<'r, 'p> {
                     .split(|&byte| byte == b';')
                     .filter_map(|parameter| {
                         
-                        // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
+                        // TODO: replace with <slice>.split_once in the future (https://github.com/rust-lang/rust/issues/112811)
                         let mut pair = parameter.splitn(2, |&byte| byte == b'=')
                             .map(<[u8]>::trim_ascii);
                         
@@ -231,7 +231,7 @@ impl<'r> Iterator for FormField<'r, '_> {
                     disposition.split(|&byte| byte == b';')
                         .filter_map(|parameter| {
                             
-                            // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
+                            // TODO: replace with <slice>.split_once in the future (https://github.com/rust-lang/rust/issues/112811)
                             let mut pair = parameter.splitn(2, |&byte| byte == b'=')
                                 .map(<[u8]>::trim_ascii);
                             

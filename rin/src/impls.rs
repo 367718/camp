@@ -22,7 +22,7 @@ impl<'c> ParamFromValue<'c> for &'c str {
 impl<'c> ParamFromValue<'c> for u64 {
     
     fn param_from_value(value: &'c [u8]) -> io::Result<Self> {
-        // TODO: replace with u64::from_ascii in the future (https://github.com/rust-lang/rust/issues/134821)
+        // TODO: replace with <u64>.from_ascii in the future (https://github.com/rust-lang/rust/issues/134821)
         let interim_str = <&str>::param_from_value(value)?;
         interim_str.parse()
             .map_err(|error| Error::new(ErrorKind::InvalidData, error))

@@ -1,6 +1,6 @@
 use std::io::{ self, Write };
 
-use super::ListEntry;
+use crate::ListEntry;
 
 pub fn serialize(writer: &mut impl Write, entry: &ListEntry) -> io::Result<()> {
     // -------------------- header --------------------

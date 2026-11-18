@@ -53,7 +53,7 @@ pub fn insert(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .next()
         .ok_or("Invalid key")?;
     
-    // TODO: replace with u16::from_ascii in the future (https://github.com/rust-lang/rust/issues/134821)
+    // TODO: replace with <u16>.from_ascii in the future (https://github.com/rust-lang/rust/issues/134821)
     let value = request.form_field(b"value")
         .next()
         .as_ref()
@@ -83,7 +83,7 @@ pub fn update(request: &mut Request) -> Result<(), Box<dyn Error>> {
         .next()
         .ok_or("No relevant entry found")?;
     
-    // TODO: replace with u16::from_ascii in the future (https://github.com/rust-lang/rust/issues/134821)
+    // TODO: replace with <u16>.from_ascii in the future (https://github.com/rust-lang/rust/issues/134821)
     let value = request.form_field(b"value")
         .next()
         .as_ref()

@@ -10,6 +10,7 @@ Collection of small utilities.
 * `first_number`: extract the first number found as a positive integer
 * `win_filename`: sanitize string for use as filename in Windows
 * `win_string`: generate UTF-16 null-terminated string
+* `win_os_string`: generate UTF-16 null-terminated os string
 
 ## API
 
@@ -29,3 +30,5 @@ Collection of small utilities.
 * `win_filename`
 
 * `win_string`
+
+* `win_os_string`

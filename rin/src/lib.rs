@@ -85,7 +85,7 @@ fn load_content() -> &'static [u8] {
     
     static CONTENT: OnceLock<Vec<u8>> = OnceLock::new();
     
-    // TODO: replace with OnceLock::get_or_try_init in the future (https://github.com/rust-lang/rust/issues/109737)
+    // TODO: replace with <OnceLock>.get_or_try_init in the future (https://github.com/rust-lang/rust/issues/109737)
     CONTENT.get_or_init(|| read_file().unwrap_or_else(|_| panic!("Failed to load configuration file")))
     
 }
@@ -93,7 +93,7 @@ fn load_content() -> &'static [u8] {
 fn extract_value(content: &'static [u8], key: &[u8]) -> Option<&'static [u8]> {
     let range = chikuwa::delimited_range(content, key, b"\r\n")?;
     
-    // TODO: replace with slice::split_once in the future (https://github.com/rust-lang/rust/issues/112811)
+    // TODO: replace with <slice>.split_once in the future (https://github.com/rust-lang/rust/issues/112811)
     let mut components = content[range].splitn(2, |&curr| curr == b'=')
         .map(<[u8]>::trim_ascii_start);
     

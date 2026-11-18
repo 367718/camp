@@ -23,7 +23,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let flag = rin::get::<&str>(b"flag")?;
     let max_directory_depth = rin::get::<u64>(b"max_directory_depth")?;
     
-    let list = ena::Files::new(root, max_directory_depth);
+    let list = ena::Files::new(root, max_directory_depth)?;
     
     // -------------------- response --------------------
     
@@ -31,7 +31,7 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in list.iter() {
         
-        // skip entries whose `relative` value cannot be represented in UTF8
+        // skip entries whose `relative` value cannot be represented in UTF-8
         let Some(relative) = entry.relative().to_str() else {
             continue;
         };
@@ -70,7 +70,7 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let player = rin::get::<&str>(b"player")?;
     let max_directory_depth = rin::get::<u64>(b"max_directory_depth")?;
     
-    let list = ena::Files::new(root, max_directory_depth);
+    let list = ena::Files::new(root, max_directory_depth)?;
     
     let matchers = request.form_field(b"matcher")
         .filter_map(|matcher| str::from_utf8(matcher).ok())
@@ -108,7 +108,7 @@ pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let flag = rin::get::<&str>(b"flag")?;
     let max_directory_depth = rin::get::<u64>(b"max_directory_depth")?;
     
-    let list = ena::Files::new(root, max_directory_depth);
+    let list = ena::Files::new(root, max_directory_depth)?;
     
     let matchers = request.form_field(b"matcher")
         .filter_map(|matcher| str::from_utf8(matcher).ok())
@@ -139,7 +139,7 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let root = rin::get::<&str>(b"root")?;
     let max_directory_depth = rin::get::<u64>(b"max_directory_depth")?;
     
-    let list = ena::Files::new(root, max_directory_depth);
+    let list = ena::Files::new(root, max_directory_depth)?;
     
     let matchers = request.form_field(b"matcher")
         .filter_map(|matcher| str::from_utf8(matcher).ok())
@@ -175,7 +175,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     let root = rin::get::<&str>(b"root")?;
     let max_directory_depth = rin::get::<u64>(b"max_directory_depth")?;
     
-    let list = ena::Files::new(root, max_directory_depth);
+    let list = ena::Files::new(root, max_directory_depth)?;
     
     let matchers = request.form_field(b"matcher")
         .filter_map(|matcher| str::from_utf8(matcher).ok())

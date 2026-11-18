@@ -1,12 +1,12 @@
 use std::{
     ffi::OsStr,
     fs,
-    io,
-    path::{ Path, PathBuf },
+    io::{ self, Error, ErrorKind },
+    path::{ Component, Path, PathBuf },
 };
 
-#[derive(PartialEq, Eq)]
-#[cfg_attr(debug_assertions, derive(Debug))]
+use crate::{ sys, mark };
+
 pub struct FilesEntry<'r> {
     inner: PathBuf,
     root: &'r Path,
@@ -26,11 +26,11 @@ impl<'r> FilesEntry<'r> {
     
     
     pub fn relative(&self) -> &Path {
-        self.inner.trim_prefix(self.root)
+        &self.inner
     }
     
     pub fn is_marked(&self, flag: impl AsRef<OsStr>) -> io::Result<bool> {
-        crate::mark::is_marked(&self.inner, flag)
+        mark::is_marked(self.root, &self.inner, flag)
     }
     
     
@@ -38,46 +38,98 @@ impl<'r> FilesEntry<'r> {
     
     
     pub fn to_path(self) -> PathBuf {
-        self.inner
+        self.root.join(self.inner)
     }
     
     pub fn toggle_mark(self, flag: impl AsRef<OsStr>) -> io::Result<()> {
-        crate::mark::toggle(self.inner, flag)
+        mark::toggle(self.root, &self.inner, flag)
     }
     
     pub fn move_to_folder(self, folder: impl AsRef<Path>) -> io::Result<()> {
-        // if folder is empty or its `file_name` cannot be extracted, entry will be moved to root
-        let container_name = folder.as_ref()
-            .file_name()
-            .unwrap_or_default();
+        // -------------------- target_folder and current_folder --------------------
+        
+        let folder = folder.as_ref();
+        
+        let target_folder = if folder.as_os_str().is_empty() {
+            
+            OsStr::new("")
+            
+        } else {
+            
+            let mut components = folder.components();
+            
+            // prevent path traversals
+            match (components.next(), components.next()) {
+                (Some(Component::Normal(name)), None) => name,
+                _ => return Err(Error::new(ErrorKind::InvalidInput, "Invalid target folder")),
+            }
+            
+        };
+        
+        let current_folder = self.inner.parent()
+            .unwrap_or(Path::new(""))
+            .as_os_str();
+        
+        // if names only differ in case:
+        // on (default) case-insensitive directories `MoveFileExW` treats it as a no-op (permission problems might still be encountered)
+        // on case-sensitive directories the file is moved
+        if target_folder == current_folder {
+            return Ok(());
+        }
+        
+        // -------------------- target_path and current_path --------------------
         
         let file_name = self.inner
             .file_name()
             .expect("Invalid entry file name");
         
-        let target_path = self.root
-            .join(container_name)
-            .join(file_name);
+        // if an empty folder name was provided, move entry to root folder
+        // otherwise, attempt to create directory
+        let target_path = if target_folder.is_empty() {
+            
+            self.root.join(file_name)
+            
+        } else {
+            
+            let intermediate_path = self.root.join(target_folder);
+            fs::create_dir_all(&intermediate_path)?;
+            
+            intermediate_path.join(file_name)
+            
+        };
         
-        if self.inner == target_path {
-            return Ok(());
+        let current_path = self.root.join(&self.inner);
+        
+        let target_path_wide = chikuwa::win_os_string(target_path.as_os_str())?;
+        let current_path_wide = chikuwa::win_os_string(current_path.as_os_str())?;
+        
+        // -------------------- move --------------------
+        
+        // SAFETY:
+        // 1. `current_path_wide.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
+        // 2. `target_path_wide.as_ptr()` points to a null-terminated wide string that remains alive and immutable for the duration of the call
+        // 3. `dw_flags` as `0` is valid and selects standard Win32 defaults
+        let result = unsafe {
+            
+            sys::MoveFileExW(
+                current_path_wide.as_ptr(),
+                target_path_wide.as_ptr(),
+                0, // no flags
+            )
+            
+        };
+        
+        if result == 0 {
+            return Err(Error::last_os_error());
         }
         
-        fs::create_dir_all(target_path.parent().unwrap())?;
-        
-        let temp_path = chikuwa::EphemeralPath::from(target_path);
-        
-        // this will fail if the destination exists, avoiding a possible TOCTOU bug from a separate existence check
-        fs::hard_link(&self.inner, &temp_path)?;
-        fs::remove_file(&self.inner)?;
-        
-        temp_path.make_permanent();
+        // -------------------- response --------------------
         
         Ok(())
     }
     
     pub fn delete(self) -> io::Result<()> {
-        fs::remove_file(self.inner)
+        fs::remove_file(self.to_path())
     }
     
 }
