@@ -71,6 +71,7 @@ impl<'s> Response<'s> {
         };
         
         if result != sys::NO_ERROR {
+            Self::disconnect(server, request_id);
             return Err(Error::from_raw_os_error(result.cast_signed()));
         }
         
@@ -78,26 +79,6 @@ impl<'s> Response<'s> {
         let failed = false;
         
         Ok(Response { request_id, uncommitted, failed, server })
-    }
-    
-    
-    // -------------------- mutators --------------------
-    
-    
-    fn disconnect(&mut self) {
-        // SAFETY:
-        // 1. `self.server.queue_handle()` is a valid request queue handle whose lifetime is guaranteed by the borrowed `&'s Server`
-        // 2. `self.request_id` is a valid id obtained from `HttpReceiveHttpRequest` corresponding to a still-alive request
-        // 3. `p_overlapped` as `null` ensures synchronous execution
-        unsafe {
-            
-            sys::HttpCancelHttpRequest(
-                self.server.queue_handle(),
-                self.request_id,
-                ptr::null_mut(), // synchronous call
-            )
-            
-        };
     }
     
     
@@ -191,6 +172,22 @@ impl<'s> Response<'s> {
         Ok(())
     }
     
+    fn disconnect(server: &Server, request_id: u64) {
+        // SAFETY:
+        // 1. `server.queue_handle()` is a valid request queue handle whose lifetime is guaranteed by the borrowed `&Server`
+        // 2. `request_id` is a valid id obtained from `HttpReceiveHttpRequest` corresponding to a still-alive request
+        // 3. `p_overlapped` as `null` ensures synchronous execution
+        unsafe {
+            
+            sys::HttpCancelHttpRequest(
+                server.queue_handle(),
+                request_id,
+                ptr::null_mut(), // synchronous call
+            )
+            
+        };
+    }
+    
 }
 
 impl Write for Response<'_> {
@@ -247,7 +244,7 @@ impl Drop for Response<'_> {
     
     fn drop(&mut self) {
         if thread::panicking() || self.failed {
-            self.disconnect();
+            Self::disconnect(self.server, self.request_id);
             return;
         }
         
@@ -257,7 +254,7 @@ impl Drop for Response<'_> {
             let chunk = Self::generate_chunk(b"0\r\n\r\n");
             
             // signal the kernel that no more chunks will be sent by omitting the `HTTP_SEND_RESPONSE_FLAG_MORE_DATA` flag
-            // enables buffering, which maximizes performance and throughput for small-to-medium responses
+            // `HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA`: enables buffering, which maximizes performance and throughput for small-to-medium responses
             let flags = sys::HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA;
             
             Self::send_entity_chunks(self.server, self.request_id, &[chunk], flags)
@@ -270,7 +267,7 @@ impl Drop for Response<'_> {
         };
         
         if result.is_err() {
-            self.disconnect();
+            Self::disconnect(self.server, self.request_id);
         }
     }
     

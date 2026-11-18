@@ -115,10 +115,10 @@ impl<'s> Request<'s> {
             return Err(Error::other("Response has already been sent"));
         }
         
+        self.answered = true;
+        
         let request_id = Self::headers_data(&self.headers).request_id;
         let response = Response::new(self.server, request_id, status, content, cache)?;
-        
-        self.answered = true;
         
         Ok(response)
     }
