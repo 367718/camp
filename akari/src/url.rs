@@ -156,9 +156,7 @@ impl TryFrom<&str> for Url {
         };
         
         // strip initial "/slash", if present, to simplify path construction
-        let path_without_slash = path_utf16_slice
-            .strip_prefix(&[SLASH])
-            .unwrap_or(path_utf16_slice);
+        let path_without_slash = path_utf16_slice.trim_prefix(&[SLASH]);
         
         let mut path = Vec::with_capacity(path_without_slash.len() + extra_without_fragment.len() + 2);
         path.push(SLASH);
