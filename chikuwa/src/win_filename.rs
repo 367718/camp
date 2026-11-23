@@ -1,19 +1,8 @@
-// https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+use std::iter;
 
-use std::{
-    ffi::OsString,
-    path::MAIN_SEPARATOR,
-};
+const UTF16_CODEUNITS_LIMIT: usize = 255;
 
-const DISALLOWED_NAMES: &[&str] = &[
-    "CON", "PRN", "AUX", "NUL",
-    "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-    "COM¹", "COM²", "COM³",
-    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
-    "LPT¹", "LPT²", "LPT³",
-];
-
-const DISALLOWED_CHARACTERS: &[char] = &[
+const RESERVED_CHARACTERS: &[char] = &[
     '<', // less than
     '>', // greater than
     ':', // colon
@@ -25,255 +14,606 @@ const DISALLOWED_CHARACTERS: &[char] = &[
     '*', // asterisk
 ];
 
-pub fn win_filename(content: &str) -> Option<OsString> {
-    // -------------------- forbidden names --------------------
+const RESERVED_NAMES: &[&str] = &[
+    "CON", "PRN", "AUX", "NUL",
+    "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+    "COM¹", "COM²", "COM³",
+    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    "LPT¹", "LPT²", "LPT³",
+    "CONIN$", "CONOUT$",
+];
+
+pub fn win_filename(content: &str) -> Option<String> {
+    // -------------------- reserved characters --------------------
     
-    // Do not use the following reserved names for the name of a file:
-    // CON, PRN, AUX, NUL,
-    // COM1, COM2, COM3, COM4, COM5, COM6, COM7, COM8, COM9,
-    // COM¹, COM², COM³,
-    // LPT1, LPT2, LPT3, LPT4, LPT5, LPT6, LPT7, LPT8, LPT9,
-    // LPT¹, LPT², and LPT³.
-    // Also avoid these names followed immediately by an extension; for example, NUL.txt and NUL.tar.gz are both equivalent to NUL.
+    // strip reserved characters defined in https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+    // `is_ascii_control` includes `0x7F` (DEL), which is not actually reserved by Windows; stripped anyway as non-printable
     
-    let mut first_stage = content;
-    
-    let (_, file_name) = first_stage.rsplit_once(MAIN_SEPARATOR)
-        .unwrap_or(("", first_stage));
-    
-    let (file_stem, _) = file_name.split_once('.')
-        .unwrap_or((file_name, ""));
-    
-    if DISALLOWED_NAMES.iter().any(|name| name.eq_ignore_ascii_case(file_stem)) {
-        first_stage = &first_stage[file_stem.len()..];
-    }
-    
-    // -------------------- forbidden characters --------------------
-    
-    // Use any character in the current code page for a name, including Unicode characters and characters in the extended character set (128–255), except for the following:
-    // The following reserved characters:
-    // < (less than)
-    // > (greater than)
-    // : (colon)
-    // " (double quote)
-    // / (forward slash)
-    // \ (backslash)
-    // | (vertical bar or pipe)
-    // ? (question mark)
-    // * (asterisk)
-    // Integer value zero, sometimes referred to as the ASCII NUL character.
-    // Characters whose integer representations are in the range from 1 through 31, except for alternate data streams where these characters are allowed.
-    // Any other character that the target file system does not allow.
-    
-    let second_stage = first_stage
+    let filtered = content
         .chars()
-        .filter(|character| ! DISALLOWED_CHARACTERS.contains(character) && ! character.is_ascii_control())
-        .collect::<String>();
+        .filter(|character| ! RESERVED_CHARACTERS.contains(character) && ! character.is_ascii_control());
     
-    // -------------------- whitespace or dot at end --------------------
+    // enforce codeunits limit and trim trailing whitespace/dots
+    let mut result = collect_limited_and_trimmed(filtered);
     
-    // Do not end a file or directory name with a space or a period.
-    // Although the underlying file system may support such names, the Windows shell and user interface does not.
+    // -------------------- reserved names --------------------
     
-    let trimmed_len = second_stage
-        .trim_end_matches(|character: char| character.is_whitespace() || character == '.')
-        .len();
+    // escape reserved device names defined in:
+    // https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+    // https://learn.microsoft.com/en-us/windows/win32/devnotes/rtlisdosdevicename_u
     
-    let third_stage = &second_stage[..trimmed_len];
+    let stem_trimmed = result
+        .split_once('.')
+        .map_or(result.as_str(), |(left, _)| left)
+        .trim_end_matches(' ');
+    
+    if RESERVED_NAMES.iter().any(|name| name.eq_ignore_ascii_case(stem_trimmed)) {
+        // enforce codeunits limit and trim trailing whitespace/dots
+        result = collect_limited_and_trimmed(iter::once('_').chain(result.chars()));
+    }
     
     // -------------------- response --------------------
     
-    if third_stage.is_empty() {
+    if result.is_empty() {
         return None;
     }
     
-    Some(OsString::from(third_stage))
+    Some(result)
+}
+
+fn collect_limited_and_trimmed(characters: impl Iterator<Item = char>) -> String {
+    let (_, upper_bound) = characters.size_hint();
+    let capacity = upper_bound
+        .unwrap_or(0)
+        // a character that takes 1 UTF-16 codeunit can take up to 3 UTF-8 bytes
+        .min(UTF16_CODEUNITS_LIMIT * 3);
+    
+    let mut result = String::with_capacity(capacity);
+    
+    // -------------------- codeunit limit --------------------
+    
+    // each component of a path on NTFS cannot exceed 255 UTF-16 code units (WCHARs)
+    
+    let mut utf16_len = 0;
+    
+    for character in characters {
+        
+        utf16_len += character.len_utf16();
+        
+        if utf16_len > UTF16_CODEUNITS_LIMIT {
+            break;
+        }
+        
+        result.push(character);
+        
+    }
+    
+    // -------------------- trailing whitespace or dot --------------------
+    
+    // filenames must not end with a space or period
+    
+    let trimmed_len = result
+        .trim_end_matches([' ', '.'])
+        .len();
+    
+    result.truncate(trimmed_len);
+    
+    // -------------------- response --------------------
+    
+    result
 }
 
 #[cfg(test)]
 mod tests {
     
-    // no_replacement
-    // with_directory
-    // single
-    // multiple
-    // empty
-    // name_invalid
-    // name_invalid_double_format
-    // dirty_end
-    // double_invalid
-    // emoji
-    
     use super::*;
     
-    #[test]
-    fn no_replacement() {
-        // setup
+    mod general {
         
-        let content = "[Example] Placeholder - 17 (720p) [83538700]";
+        // clean
+        // extension
+        // empty
+        // dots
+        // dots_and_whitespace
+        // extension_with_dots_and_whitespace
+        // non_ascii_trailing_whitespace_preserved
         
-        // operation
+        use super::*;
         
-        let output = win_filename(content);
+        #[test]
+        fn clean() {
+            // setup
+            
+            let content = "placeholder";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("placeholder")));
+        }
         
-        // control
+        #[test]
+        fn extension() {
+            // setup
+            
+            let content = "placeholder.txt";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("placeholder.txt")));
+        }
         
-        let control = Some(OsString::from("[Example] Placeholder - 17 (720p) [83538700]"));
+        #[test]
+        fn empty() {
+            // setup
+            
+            let content = "";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert!(output.is_none());
+        }
         
-        assert_eq!(output, control);
+        #[test]
+        fn dots() {
+            // setup
+            
+            let content = "..";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert!(output.is_none());
+        }
+        
+        #[test]
+        fn dots_and_whitespace() {
+            // setup
+            
+            let content = " . . ";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert!(output.is_none());
+        }
+        
+        #[test]
+        fn extension_with_dots_and_whitespace() {
+            // setup
+            
+            let content = "placeholder.txt . . ";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("placeholder.txt")));
+        }
+        
+        #[test]
+        fn non_ascii_trailing_whitespace_preserved() {
+            // setup
+            
+            let content = "placeholder\u{00A0}";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("placeholder\u{00A0}")));
+        }
+        
     }
     
-    #[test]
-    fn with_directory() {
-        // setup
+    mod characters {
         
-        let content = "madeup/[Example] Placeholder - 17 (720p) [83538700].mkv";
-        
-        // operation
-        
-        let output = win_filename(content);
-        
+        // reserved
+        // mix
         // control
+        // many_leading
+        // exposed_reserved_name
+        // exposed_trailing_dots_and_whitespace
         
-        let control = Some(OsString::from("madeup[Example] Placeholder - 17 (720p) [83538700].mkv"));
+        use super::*;
         
-        assert_eq!(output, control);
+        #[test]
+        fn reserved() {
+            // setup
+            
+            let content = "<>:\"/\\|?*\x00\x1f";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert!(output.is_none());
+        }
+        
+        #[test]
+        fn mix() {
+            // setup
+            
+            let content = "a<b:c>d";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("abcd")));
+        }
+        
+        #[test]
+        fn control() {
+            // setup
+            
+            let content = "a\tb\nc\x00d\x7fe";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("abcde")));
+        }
+        
+        #[test]
+        fn many_leading() {
+            // setup
+            
+            let content = format!("{}file.txt", "<".repeat(500));
+            
+            // operation
+            
+            let output = win_filename(&content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("file.txt")));
+        }
+        
+        #[test]
+        fn exposed_reserved_name() {
+            // setup
+            
+            let content = "C<O>N.txt";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("_CON.txt")));
+        }
+        
+        #[test]
+        fn exposed_trailing_dots_and_whitespace() {
+            // setup
+            
+            let content = "placeholder . <";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("placeholder")));
+        }
+        
     }
     
-    #[test]
-    fn single() {
-        // setup
+    mod names {
         
-        let content = "[Example] Place:holder - 17 (720p) [83538700].mkv";
+        // reserved
+        // non_reserved
+        // non_reserved_con_number
+        // extension
+        // superscript_and_extension
+        // trailing_whitespace_and_extension
+        // trailing_dot
+        // leading_dot
+        // leading_whitespace_preserved
         
-        // operation
+        use super::*;
         
-        let output = win_filename(content);
+        #[test]
+        fn reserved() {
+            // setup
+            
+            let content = "con";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("_con")));
+        }
         
-        // control
+        #[test]
+        fn non_reserved() {
+            // setup
+            
+            let content = "console";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("console")));
+        }
         
-        let control = Some(OsString::from("[Example] Placeholder - 17 (720p) [83538700].mkv"));
+        #[test]
+        fn non_reserved_con_number() {
+            // setup
+            
+            let content = "CON1";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("CON1")));
+        }
         
-        assert_eq!(output, control);
+        #[test]
+        fn extension() {
+            // setup
+            
+            let content = "CONOUT$.txt";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("_CONOUT$.txt")));
+        }
+        
+        #[test]
+        fn superscript_and_extension() {
+            // setup
+            
+            let content = "com¹.txt";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("_com¹.txt")));
+        }
+        
+        #[test]
+        fn trailing_whitespace_and_extension() {
+            // setup
+            
+            let content = "CON .txt";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("_CON .txt")));
+        }
+        
+        #[test]
+        fn trailing_dot() {
+            // setup
+            
+            let content = "CON.";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("_CON")));
+        }
+        
+        #[test]
+        fn leading_dot() {
+            // setup
+            
+            let content = ".CON";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from(".CON")));
+        }
+        
+        #[test]
+        fn leading_whitespace_preserved() {
+            // setup
+            
+            let content = " CON";
+            
+            // operation
+            
+            let output = win_filename(content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from(" CON")));
+        }
+        
     }
     
-    #[test]
-    fn multiple() {
-        // setup
+    mod truncation {
         
-        let content = "[Example] Place:*holde?/r - 1\\7 (720p) [83538700].mkv";
+        // exact_limit
+        // limit_exceeded
+        // reserved_name_at_limit
+        // surrogate_pair_fitting_at_limit
+        // surrogate_pair_boundary
+        // reserved_name_retruncation_at_surrogate_pair
+        // exposed_trailing_dot
+        // exposed_reserved_name
         
-        // operation
+        use super::*;
         
-        let output = win_filename(content);
+        #[test]
+        fn exact_limit() {
+            // setup
+            
+            let content = "€".repeat(255);
+            
+            // operation
+            
+            let output = win_filename(&content);
+            
+            // control
+            
+            assert_eq!(output, Some("€".repeat(255)));
+        }
         
-        // control
+        #[test]
+        fn limit_exceeded() {
+            // setup
+            
+            let content = "€".repeat(256);
+            
+            // operation
+            
+            let output = win_filename(&content);
+            
+            // control
+            
+            assert_eq!(output, Some("€".repeat(255)));
+        }
         
-        let control = Some(OsString::from("[Example] Placeholder - 17 (720p) [83538700].mkv"));
+        #[test]
+        fn reserved_name_at_limit() {
+            // setup
+            
+            let content = format!("CON.{}", "a".repeat(251));
+            
+            // operation
+            
+            let output = win_filename(&content);
+            
+            // control
+            
+            assert_eq!(output, Some(format!("_CON.{}", "a".repeat(250))));
+        }
         
-        assert_eq!(output, control);
-    }
-    
-    #[test]
-    fn empty() {
-        // setup
+        #[test]
+        fn surrogate_pair_fitting_at_limit() {
+            // setup
+            
+            let content = format!("{}🔌", "a".repeat(253));
+            
+            // operation
+            
+            let output = win_filename(&content);
+            
+            // control
+            
+            assert_eq!(output, Some(format!("{}🔌", "a".repeat(253))));
+        }
         
-        let content = "*:*|";
+        #[test]
+        fn surrogate_pair_boundary() {
+            // setup
+            
+            let content = format!("{}🔌", "a".repeat(254));
+            
+            // operation
+            
+            let output = win_filename(&content);
+            
+            // control
+            
+            assert_eq!(output, Some("a".repeat(254)));
+        }
         
-        // operation
+        #[test]
+        fn reserved_name_retruncation_at_surrogate_pair() {
+            // setup
+            
+            let content = format!("CON.{}🔌", "a".repeat(249));
+            
+            // operation
+            
+            let output = win_filename(&content);
+            
+            // control
+            
+            assert_eq!(output, Some(format!("_CON.{}", "a".repeat(249))));
+        }
         
-        let output = win_filename(content);
+        #[test]
+        fn exposed_trailing_dot() {
+            // setup
+            
+            let content = format!("{}.b", "a".repeat(254));
+            
+            // operation
+            
+            let output = win_filename(&content);
+            
+            // control
+            
+            assert_eq!(output, Some("a".repeat(254)));
+        }
         
-        // control
+        #[test]
+        fn exposed_reserved_name() {
+            // setup
+            
+            let content = format!("CON{}a", " ".repeat(252));
+            
+            // operation
+            
+            let output = win_filename(&content);
+            
+            // control
+            
+            assert_eq!(output, Some(String::from("_CON")));
+        }
         
-        let control = None;
-        
-        assert_eq!(output, control);
-    }
-    
-    #[test]
-    fn name_invalid() {
-        // setup
-        
-        let content = "CoM4.txt";
-        
-        // operation
-        
-        let output = win_filename(content);
-        
-        // control
-        
-        let control = Some(OsString::from(".txt"));
-        
-        assert_eq!(output, control);
-    }
-    
-    #[test]
-    fn name_invalid_double_format() {
-        // setup
-        
-        let content = "CoM4.tar.gz";
-        
-        // operation
-        
-        let output = win_filename(content);
-        
-        // control
-        
-        let control = Some(OsString::from(".tar.gz"));
-        
-        assert_eq!(output, control);
-    }
-    
-    #[test]
-    fn dirty_end() {
-        // setup
-        
-        let content = "[Example] Placeholder - 17 (720p) [83538700].mkv.  ...   . . .";
-        
-        // operation
-        
-        let output = win_filename(content);
-        
-        // control
-        
-        let control = Some(OsString::from("[Example] Placeholder - 17 (720p) [83538700].mkv"));
-        
-        assert_eq!(output, control);
-    }
-    
-    #[test]
-    fn double_invalid() {
-        // setup
-        
-        let content = "COM1COM1";
-        
-        // operation
-        
-        let output = win_filename(content);
-        
-        // control
-        
-        let control = Some(OsString::from("COM1COM1"));
-        
-        assert_eq!(output, control);
-    }
-    
-    #[test]
-    fn emoji() {
-        // setup
-        
-        let content = "🔌🔌🔌🔌aaaaaa🔌🔌🔌🔌🔌🔌";
-        
-        // operation
-        
-        let output = win_filename(content);
-        
-        // control
-        
-        let control = Some(OsString::from("🔌🔌🔌🔌aaaaaa🔌🔌🔌🔌🔌🔌"));
-        
-        assert_eq!(output, control);
     }
     
 }
