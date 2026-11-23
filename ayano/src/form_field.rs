@@ -125,7 +125,6 @@ mod tests {
     
     use super::*;
     
-    #[cfg(test)]
     mod general {
         
         // single
@@ -289,7 +288,6 @@ mod tests {
         
     }
     
-    #[cfg(test)]
     mod header {
         
         // no_name
@@ -617,7 +615,6 @@ mod tests {
         
     }
     
-    #[cfg(test)]
     mod payload {
         
         // malformed_first
@@ -771,7 +768,6 @@ mod tests {
         
     }
     
-    #[cfg(test)]
     mod boundary {
         
         // absent

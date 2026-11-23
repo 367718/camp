@@ -56,7 +56,6 @@ mod tests {
     
     use super::*;
     
-    #[cfg(test)]
     mod subslice_index {
         
         // simple
@@ -200,12 +199,10 @@ mod tests {
         
     }
     
-    #[cfg(test)]
     mod delimited_range {
         
         use super::*;
         
-        #[cfg(test)]
         mod lookup {
             
             // simple
@@ -337,7 +334,6 @@ mod tests {
             
         }
         
-        #[cfg(test)]
         mod arguments {
             
             // empty

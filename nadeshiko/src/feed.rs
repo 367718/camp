@@ -87,7 +87,6 @@ mod tests {
     
     use super::*;
     
-    #[cfg(test)]
     mod valid {
         
         // one
@@ -197,7 +196,6 @@ mod tests {
         
     }
     
-    #[cfg(test)]
     mod malformed {
         
         // empty_link
@@ -464,7 +462,6 @@ mod tests {
         
     }
     
-    #[cfg(test)]
     mod invalid {
         
         // unclosed_item

@@ -35,7 +35,6 @@ mod tests {
     
     use super::*;
     
-    #[cfg(test)]
     mod to_str {
         
         // letters
@@ -133,7 +132,6 @@ mod tests {
         
     }
     
-    #[cfg(test)]
     mod to_u64 {
         
         // letters

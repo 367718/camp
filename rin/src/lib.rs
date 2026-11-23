@@ -106,7 +106,6 @@ mod tests {
     
     use super::*;
     
-    #[cfg(test)]
     mod extract_value {
         
         // single
