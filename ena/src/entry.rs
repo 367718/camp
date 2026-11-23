@@ -58,11 +58,21 @@ impl<'r> FilesEntry<'r> {
             
             let mut components = folder.components();
             
-            // prevent path traversals
-            match (components.next(), components.next()) {
-                (Some(Component::Normal(name)), None) => name,
-                _ => return Err(Error::new(ErrorKind::InvalidInput, "Invalid target folder")),
+            // prevent path traversals and nested paths
+            let (Some(Component::Normal(name)), None) = (components.next(), components.next()) else {
+                return Err(Error::new(ErrorKind::InvalidInput, "Invalid target folder"));
+            };
+            
+            // make sure folder name is a valid NTFS filename
+            let Some(sanitized) = name.to_str().and_then(chikuwa::win_filename) else {
+                return Err(Error::new(ErrorKind::InvalidInput, "Invalid target folder"));
+            };
+            
+            if name != OsStr::new(&sanitized) {
+                return Err(Error::new(ErrorKind::InvalidInput, "Invalid target folder"));
             }
+            
+            name
             
         };
         
