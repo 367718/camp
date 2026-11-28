@@ -1,5 +1,16 @@
 "use strict";
 
+
+// -------------------- themes --------------------
+
+
+const THEMES = ["aoi", "chiaki", "ena", "nadeshiko", "rin"];
+document.documentElement.classList.add(THEMES[Math.floor(Math.random() * THEMES.length)]);
+
+
+// -------------------- interactivity and state initialization --------------------
+
+
 document.addEventListener("DOMContentLoaded", () => {
     
     // -------------------- state and selectors --------------------
@@ -12,11 +23,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let filterTimeout;
     let refreshAbortController = null;
     let lastSelectedIndex = -1;
-    
-    // -------------------- colors --------------------
-    
-    const colors = ["rin", "nadeshiko", "aoi", "chiaki", "ena"];
-    document.body.classList.add(colors[Math.floor(Math.random() * colors.length)]);
     
     // -------------------- core functions --------------------
     
@@ -90,9 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
             
             // sort
             
-            if (listNode.dataset.sorted === "true") {
-                children.sort((a, b) => a.children.length - b.children.length || collator.compare(a.textContent, b.textContent));
-            }
+            children.sort((a, b) => a.children.length - b.children.length || collator.compare(a.textContent, b.textContent));
             
             // update
             
@@ -124,13 +128,6 @@ document.addEventListener("DOMContentLoaded", () => {
     
     document.querySelector(".sections a:not([href])")
         .addEventListener("click", () => refreshList());
-    
-    // filter
-    
-    filterNode.addEventListener("input", () => {
-        clearTimeout(filterTimeout);
-        filterTimeout = setTimeout(applyFilter, 500);
-    });
     
     // actions
     
@@ -179,22 +176,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
     
-    // toggles
+    // filter
     
-    for (const button of document.querySelectorAll(".toggles > a")) {
-        button.addEventListener("click", () => {
-            
-            const state = button.dataset.enabled === "true" ? "false" : "true";
-            
-            button.dataset.enabled = state;
-            listNode.setAttribute(button.dataset.attr, state);
-            
-            // deselect hidden items
-            entries.filter(entry => entry.hasAttribute("data-selected") && ! entry.checkVisibility())
-                .forEach(entry => entry.removeAttribute("data-selected"));
-            
-        });
-    }
+    filterNode.addEventListener("input", () => {
+        clearTimeout(filterTimeout);
+        filterTimeout = setTimeout(applyFilter, 500);
+    });
     
     // entry selection
     
@@ -284,7 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // -------------------- initialization --------------------
     
-    // load current section list items
+    // load current section list entries
     refreshList();
     
 });

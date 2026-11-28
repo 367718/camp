@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     io::Write,
-    path::MAIN_SEPARATOR_STR,
+    path::MAIN_SEPARATOR,
     process::{ Command, Stdio },
 };
 
@@ -20,7 +20,6 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
     let root = rin::get::<&str>(b"root")?;
-    let flag = rin::get::<&str>(b"flag")?;
     let max_directory_depth = rin::get::<u64>(b"max_directory_depth")?;
     
     let list = ena::Files::new(root, max_directory_depth)?;
@@ -31,30 +30,25 @@ pub fn entries(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     for entry in list.iter() {
         
-        // skip entries whose `relative` value cannot be represented in UTF-8
-        let Some(relative) = entry.relative().to_str() else {
-            continue;
-        };
+        let bytes = entry
+            .relative()
+            .as_os_str()
+            .as_encoded_bytes();
         
-        let (container, file_name) = relative.rsplit_once(MAIN_SEPARATOR_STR)
-            .unwrap_or(("", relative));
+        let (container, file_name) = bytes
+            .iter()
+            .rposition(|&byte| byte == MAIN_SEPARATOR as u8)
+            .map_or((&[][..], bytes), |position| bytes.split_at(position + 1));
         
-        let anchor_open = if entry.is_marked(flag).unwrap_or(false) {
-            b"<a data-value='0'>"
-        } else {
-            b"<a data-value='1'>"
-        };
-        
-        response.write_all(anchor_open)?;
+        response.write_all(b"<a>")?;
         
         if ! container.is_empty() {
             response.write_all(b"<span>")?;
-            chikuwa::escape_html(container.as_bytes(), &mut response)?;
-            response.write_all(MAIN_SEPARATOR_STR.as_bytes())?;
+            chikuwa::escape_html(container, &mut response)?;
             response.write_all(b"</span>")?;
         }
         
-        chikuwa::escape_html(file_name.as_bytes(), &mut response)?;
+        chikuwa::escape_html(file_name, &mut response)?;
         
         response.write_all(b"</a>")?;
         
@@ -101,38 +95,6 @@ pub fn play(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn mark(request: &mut Request) -> Result<(), Box<dyn Error>> {
-    // -------------------- params --------------------
-    
-    let root = rin::get::<&str>(b"root")?;
-    let flag = rin::get::<&str>(b"flag")?;
-    let max_directory_depth = rin::get::<u64>(b"max_directory_depth")?;
-    
-    let list = ena::Files::new(root, max_directory_depth)?;
-    
-    let matchers = request.form_field(b"matcher")
-        .filter_map(|matcher| str::from_utf8(matcher).ok())
-        .collect::<Vec<&str>>();
-    
-    let mut selected = list.iter()
-        .filter(|entry| matchers.iter().any(|&matcher| matcher == entry.relative()))
-        .peekable();
-    
-    if selected.peek().is_none() {
-        return Err("No relevant entry found".into());
-    }
-    
-    // -------------------- operation --------------------
-    
-    selected.try_for_each(|entry| entry.toggle_mark(flag))?;
-    
-    // -------------------- response --------------------
-    
-    request.start_response(200, ContentType::Plain, CacheControl::Dynamic)?;
-    
-    Ok(())
-}
-
 pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
@@ -169,7 +131,7 @@ pub fn folder(request: &mut Request) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
+pub fn trash(request: &mut Request) -> Result<(), Box<dyn Error>> {
     // -------------------- params --------------------
     
     let root = rin::get::<&str>(b"root")?;
@@ -191,7 +153,7 @@ pub fn delete(request: &mut Request) -> Result<(), Box<dyn Error>> {
     
     // -------------------- operation --------------------
     
-    selected.try_for_each(ena::FilesEntry::delete)?;
+    selected.try_for_each(ena::FilesEntry::trash)?;
     
     // -------------------- response --------------------
     

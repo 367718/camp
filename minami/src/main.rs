@@ -57,9 +57,8 @@ fn handle_request(request: &mut Request) -> Result<(), Box<dyn Error>> {
         ("GET", "/files") => files::index(request),
         ("GET", "/files/entries") => files::entries(request),
         ("POST", "/files/play") => files::play(request),
-        ("POST", "/files/mark") => files::mark(request),
         ("POST", "/files/folder") => files::folder(request),
-        ("POST", "/files/delete") => files::delete(request),
+        ("POST", "/files/trash") => files::trash(request),
         
         // -------------------- watchlist --------------------
         

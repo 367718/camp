@@ -11,16 +11,14 @@
     
     <body>
         
-        <div class="header">
-            
-            <div class="sections">
-                <a href="/files">Files</a>
-                <a>Watchlist</a>
-                <a href="/rules">Rules</a>
-                <a href="/feeds">Feeds</a>
-            </div>
-            
-            <input type="text" class="filter" placeholder="Filter">
+        <div class="sections">
+            <a href="/files">Files</a>
+            <a>Watchlist</a>
+            <a href="/rules">Rules</a>
+            <a href="/feeds">Feeds</a>
+        </div>
+        
+        <div class="toolbar">
             
             <div class="actions">
                 <a data-url="/watchlist/insert" data-confirm="false" data-key="true" data-value="true" data-refresh="true">Insert</a>
@@ -28,14 +26,11 @@
                 <a data-url="/watchlist/delete" data-confirm="true" data-key="false" data-value="false" data-refresh="true">Delete</a>
             </div>
             
-            <div class="toggles">
-                <a data-attr="data-primary" data-enabled="true">Watched</a>
-                <a data-attr="data-secondary" data-enabled="true">Unwatched</a>
-            </div>
+            <input type="text" class="filter" placeholder="Filter">
             
         </div>
         
-        <div data-refresh="/watchlist/entries" data-sorted="true" data-showvalue="true" data-primary="true" data-secondary="true" data-tertiary="false" class="list"></div>
+        <div data-refresh="/watchlist/entries" class="list"></div>
         
     </body>
     

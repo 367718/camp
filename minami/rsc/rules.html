@@ -11,16 +11,14 @@
     
     <body>
         
-        <div class="header">
-            
-            <div class="sections">
-                <a href="/files">Files</a>
-                <a href="/watchlist">Watchlist</a>
-                <a>Rules</a>
-                <a href="/feeds">Feeds</a>
-            </div>
-            
-            <input type="text" class="filter" placeholder="Filter">
+        <div class="sections">
+            <a href="/files">Files</a>
+            <a href="/watchlist">Watchlist</a>
+            <a>Rules</a>
+            <a href="/feeds">Feeds</a>
+        </div>
+        
+        <div class="toolbar">
             
             <div class="actions">
                 <a data-url="/rules/insert" data-confirm="false" data-key="true" data-value="true" data-refresh="true">Insert</a>
@@ -28,11 +26,11 @@
                 <a data-url="/rules/delete" data-confirm="true" data-key="false" data-value="false" data-refresh="true">Delete</a>
             </div>
             
-            <div class="toggles"></div>
+            <input type="text" class="filter" placeholder="Filter">
             
         </div>
         
-        <div data-refresh="/rules/entries" data-sorted="true" data-showvalue="true" data-primary="true" data-secondary="true" data-tertiary="false" class="list"></div>
+        <div data-refresh="/rules/entries" class="list"></div>
         
     </body>
     

@@ -1,89 +1,85 @@
-/* -------------------- current section -------------------- */
+/* -------------------- global -------------------- */
 
 
-body {
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+:root {
     
-    --primary-color: rgb(28 27 34 / 1);
-    --secondary-color: rgb(43 42 51 / 1);
+    --primary-color: rgb(28 27 34);
+    --secondary-color: rgb(43 42 51);
     
-    --text-primary-color: rgb(232 232 232 / 1);
+    --text-primary-color: rgb(232 232 232);
     --text-secondary-color: rgb(232 232 232 / 0.5);
     
-    --accent-color-rin: rgb(105 125 160 / 1);
-    --accent-color-nadeshiko: rgb(178 133 139 / 1);
-    --accent-color-aoi: rgb(174 153 96 / 1);
-    --accent-color-chiaki: rgb(121 115 154 / 1);
-    --accent-color-ena: rgb(66 138 162 / 1);
+    --border-color: rgb(255 255 255 / 0.07);
     
-    &.rin {
-        --accent-color: var(--accent-color-rin);
-    }
+    --accent-color: rgb(175 175 175);
     
-    &.nadeshiko {
-        --accent-color: var(--accent-color-nadeshiko);
-    }
+    color-scheme: dark;
     
     &.aoi {
-        --accent-color: var(--accent-color-aoi);
+        --accent-color: rgb(174 153 96);
     }
     
     &.chiaki {
-        --accent-color: var(--accent-color-chiaki);
+        --accent-color: rgb(121 115 154);
     }
     
     &.ena {
-        --accent-color: var(--accent-color-ena);
+        --accent-color: rgb(66 138 162);
     }
     
-    --entry-hovered-color: var(--secondary-color);
-    --entry-selected-color: var(--accent-color);
-    --entry-hovered-selected-color: color-mix(in srgb, var(--accent-color) 75%, var(--secondary-color));
+    &.nadeshiko {
+        --accent-color: rgb(178 133 139);
+    }
     
-    --transition-duration: 0.25s;
+    &.rin {
+        --accent-color: rgb(105 125 160);
+    }
     
-    width: 100%;
-    height: 100vh;
-    margin: 0rem;
+}
+
+body {
+    background-color: var(--primary-color);
     display: flex;
     flex-direction: column;
-    background-color: var(--primary-color);
     font-family: "Bahnschrift", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-    
+    font-weight: 350;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
 }
 
 
 /* -------------------- header -------------------- */
 
 
-.header {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    background-color: var(--secondary-color);
-}
-
-
-/* -------------------- sections -------------------- */
-
-
 .sections {
     
+    background-color: color-mix(in srgb, var(--secondary-color) 95%, rgb(255 255 255));
+    border-bottom: 1px solid var(--border-color);
     display: flex;
+    font-size: 0.9rem;
+    user-select: none;
     
-    a {
+    > a {
         
         color: var(--text-secondary-color);
-        transition: background-color var(--transition-duration) ease;
-        text-decoration: none;
-        text-align: center;
+        cursor: pointer;
+        min-width: 6.25rem;
         padding: 0.75rem;
-        min-width: 4rem;
+        text-align: center;
+        text-decoration: none;
+        transition: color 0.15s ease;
+        white-space: nowrap;
         
-        &:hover {
-            cursor: pointer;
-            background-color: var(--accent-color);
-        }
-        
-        &:not([href]) {
+        &:hover, &:not([href]) {
+            background-image: linear-gradient(var(--accent-color) 0 0);
+            background-position: bottom center;
+            background-repeat: no-repeat;
+            background-size: calc(100% - 1.5rem) 2px;
             color: var(--text-primary-color);
         }
         
@@ -91,37 +87,63 @@ body {
     
 }
 
-
-/* -------------------- filter -------------------- */
-
-
-.filter {
-    border: none;
-    background-color: var(--primary-color);
-    color: var(--text-primary-color);
-    margin: 0.25rem;
-}
-
-
-/* -------------------- actions -------------------- */
-
-
-.actions {
+.toolbar {
     
+    background-color: var(--secondary-color);
+    border-bottom: 1px solid var(--border-color);
     display: flex;
+    justify-content: space-between;
+    line-height: 1.5rem;
     
-    a {
+    .actions {
         
+        display: flex;
+        user-select: none;
+        
+        > a {
+            
+            color: var(--text-primary-color);
+            cursor: pointer;
+            min-width: 6.25rem;
+            padding: 0.75rem;
+            text-align: center;
+            text-decoration: none;
+            transition: background-color 0.15s ease;
+            white-space: nowrap;
+            
+            &:hover {
+                background-color: color-mix(in srgb, var(--accent-color) 65%, var(--secondary-color));
+            }
+            
+        }
+        
+    }
+    
+    .filter {
+        
+        background-color: var(--primary-color);
+        border: 1px solid var(--border-color);
+        border-radius: 0.25rem;
         color: var(--text-primary-color);
-        transition: background-color var(--transition-duration) ease;
-        text-decoration: none;
-        text-align: center;
-        padding: 0.75rem;
-        min-width: 4rem;
+        flex: 1;
+        font: inherit;
+        margin: 0.35rem;
+        max-width: 50%;
+        min-width: 0;
+        outline: none;
+        padding: 0 0.75rem;
+        transition: border-color 0.15s ease;
         
-        &:hover {
-            cursor: pointer;
-            background-color: var(--accent-color);
+        &::placeholder {
+            color: var(--text-secondary-color);
+        }
+        
+        &:hover:not(:focus) {
+            border-color: rgb(255 255 255 / 0.15);
+        }
+        
+        &:focus {
+            border-color: var(--accent-color);
         }
         
     }
@@ -129,108 +151,73 @@ body {
 }
 
 
-/* -------------------- toggles -------------------- */
-
-
-.toggles {
-    
-    display: flex;
-    justify-content: flex-end;
-    
-    a {
-        
-        color: var(--text-secondary-color);
-        transition: background-color var(--transition-duration) ease, color var(--transition-duration) ease;
-        padding: 0.75rem;
-        min-width: 4rem;
-        text-align: center;
-        
-        &:hover {
-            cursor: pointer;
-            background-color: var(--accent-color);
-        }
-        
-        &[data-enabled="true"] {
-            color: var(--text-primary-color);
-        }
-        
-    }
-    
-}
-
-
-/* -------------------- list -------------------- */
+/* -------------------- list and entries -------------------- */
 
 
 .list {
     
-    overflow-y: scroll;
-    height: 100%;
-    user-select: none;
-    
-    &[data-showvalue="true"] a[data-value]::after {
-        display: inline;
-    }
-    
-    &[data-primary="true"] a:not([data-value="0"]), &[data-secondary="true"] a[data-value="0"] {
-        display: block;
-    }
-    
-    &[data-tertiary="true"] a span {
-        display: inline;
-    }
-    
-    a[data-filtered] {
-        display: none !important;
-    }
-    
-}
-
-
-/* -------------------- entries -------------------- */
-
-
-.list a {
-    
-    display: none;
-    position: relative;
-    user-select: none;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
+    flex: 1;
+    font-variant-numeric: tabular-nums;
     line-height: 2.25rem;
-    padding: 0rem 2rem 0rem 0.5rem;
-    transition: background-color var(--transition-duration) ease;
-    color: var(--text-primary-color);
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-color: rgb(255 255 255 / 0.18) transparent;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    user-select: none;
     
-    &:hover {
+    > a {
+        
+        color: var(--text-primary-color);
         cursor: pointer;
-        background-color: var(--entry-hovered-color);
-    }
-    
-    &[data-value="0"] {
-        color: var(--text-secondary-color);
-    }
-    
-    &[data-value]::after {
-        position: absolute;
-        right: 0.5rem;
-        color: var(--text-secondary-color);
-        display: none;
-        content: attr(data-value);
-    }
-    
-    &[data-selected] {
-        background-color: var(--entry-selected-color);
-    }
-    
-    &[data-selected]:hover {
-        background-color: var(--entry-hovered-selected-color);
-    }
-    
-    span {
-        display: none;
-        color: var(--text-secondary-color);
+        display: block;
+        overflow: hidden;
+        padding: 0 0.75rem;
+        position: relative;
+        text-overflow: ellipsis;
+        transition: background-color 0.15s ease;
+        white-space: nowrap;
+        
+        &:where(:nth-child(even of :not([data-filtered]))) {
+            background-color: rgb(255 255 255 / 0.015);
+        }
+        
+        &:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        &[data-filtered] {
+            display: none;
+        }
+        
+        &[data-selected] {
+            
+            background-color: color-mix(in srgb, var(--accent-color) 28%, transparent);
+            box-shadow: inset 3px 0 0 var(--accent-color);
+            
+            &:hover {
+                background-color: color-mix(in srgb, var(--accent-color) 42%, transparent);
+            }
+            
+        }
+        
+        &[data-value] {
+            
+            padding-right: 4rem;
+            
+            &::after {
+                color: var(--text-secondary-color);
+                content: attr(data-value);
+                position: absolute;
+                right: 0.75rem;
+            }
+            
+        }
+        
+        span {
+            color: var(--text-secondary-color);
+        }
+        
     }
     
 }

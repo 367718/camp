@@ -22,7 +22,6 @@ An HTTP interface allows the access and manipulation of files and lists entries.
 
 * `address`: listening address for the web interface
 * `root`: path to files directory
-* `flag`: tag used to mark files
 * `player`: application used to play files
 * `max_directory_depth`: maximum allowed traversal depth for files list
 * `max_list_size`: maximum allowed file size for watchlist, rules and feeds lists, in bytes

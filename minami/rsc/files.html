@@ -11,33 +11,26 @@
     
     <body>
         
-        <div class="header">
+        <div class="sections">
+            <a>Files</a>
+            <a href="/watchlist">Watchlist</a>
+            <a href="/rules">Rules</a>
+            <a href="/feeds">Feeds</a>
+        </div>
+        
+        <div class="toolbar">
             
-            <div class="sections">
-                <a>Files</a>
-                <a href="/watchlist">Watchlist</a>
-                <a href="/rules">Rules</a>
-                <a href="/feeds">Feeds</a>
+            <div class="actions">
+                <a data-url="/files/play" data-confirm="false" data-key="false" data-value="false" data-refresh="false">Play</a>
+                <a data-url="/files/folder" data-confirm="false" data-key="true" data-value="false" data-refresh="true">Folder</a>
+                <a data-url="/files/trash" data-confirm="true" data-key="false" data-value="false" data-refresh="true">Trash</a>
             </div>
             
             <input type="text" class="filter" placeholder="Filter">
             
-            <div class="actions">
-                <a data-url="/files/play" data-confirm="false" data-key="false" data-value="false" data-refresh="false">Play</a>
-                <a data-url="/files/mark" data-confirm="false" data-key="false" data-value="false" data-refresh="true">Mark</a>
-                <a data-url="/files/folder" data-confirm="false" data-key="true" data-value="false" data-refresh="true">Folder</a>
-                <a data-url="/files/delete" data-confirm="true" data-key="false" data-value="false" data-refresh="true">Delete</a>
-            </div>
-            
-            <div class="toggles">
-                <a data-attr="data-primary" data-enabled="true">Unmarked</a>
-                <a data-attr="data-secondary" data-enabled="false">Marked</a>
-                <a data-attr="data-tertiary" data-enabled="true">Containers</a>
-            </div>
-            
         </div>
         
-        <div data-refresh="/files/entries" data-sorted="true" data-showvalue="false" data-primary="true" data-secondary="false" data-tertiary="true" class="list"></div>
+        <div data-refresh="/files/entries" class="list"></div>
         
     </body>
     

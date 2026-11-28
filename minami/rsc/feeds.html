@@ -11,27 +11,25 @@
     
     <body>
         
-        <div class="header">
-            
-            <div class="sections">
-                <a href="/files">Files</a>
-                <a href="/watchlist">Watchlist</a>
-                <a href="/rules">Rules</a>
-                <a>Feeds</a>
-            </div>
-            
-            <input type="text" class="filter" placeholder="Filter">
+        <div class="sections">
+            <a href="/files">Files</a>
+            <a href="/watchlist">Watchlist</a>
+            <a href="/rules">Rules</a>
+            <a>Feeds</a>
+        </div>
+        
+        <div class="toolbar">
             
             <div class="actions">
                 <a data-url="/feeds/insert" data-confirm="false" data-key="true" data-value="false" data-refresh="true">Insert</a>
                 <a data-url="/feeds/delete" data-confirm="true" data-key="false" data-value="false" data-refresh="true">Delete</a>
             </div>
             
-            <div class="toggles"></div>
+            <input type="text" class="filter" placeholder="Filter">
             
         </div>
         
-        <div data-refresh="/feeds/entries" data-sorted="false" data-showvalue="false" data-primary="true" data-secondary="false" data-tertiary="false" class="list"></div>
+        <div data-refresh="/feeds/entries" class="list"></div>
         
     </body>
     

@@ -4,9 +4,9 @@ Files manager.
 
 ## Behavior
 
-The `Files` struct provides access to `FilesEntry` structs in an unspecified order via the "Iterator" trait.
-
-The "mark" functionality relies on the Alternate Data Streams (ADS) feature of the NT File System.
+* The `Files` struct provides access to `FilesEntry` structs in an unspecified order via the "Iterator" trait
+* Paths are limited to MAX_PATH (260 characters)
+* Extended-length paths (\\?\) are not supported by "trash"
 
 ## API
 
@@ -16,8 +16,6 @@ The "mark" functionality relies on the Alternate Data Streams (ADS) feature of t
 
 * `FilesEntry`
     * relative
-    * is_marked
     * to_path
-    * toggle_mark
     * move_to_folder
-    * delete
+    * trash

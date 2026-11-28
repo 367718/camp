@@ -3,9 +3,10 @@ use std::{
     fs,
     io::{ self, Error, ErrorKind },
     path::{ Component, Path, PathBuf },
+    ptr,
 };
 
-use crate::{ sys, mark };
+use crate::sys;
 
 pub struct FilesEntry<'r> {
     inner: PathBuf,
@@ -29,20 +30,12 @@ impl<'r> FilesEntry<'r> {
         &self.inner
     }
     
-    pub fn is_marked(&self, flag: impl AsRef<OsStr>) -> io::Result<bool> {
-        mark::is_marked(self.root, &self.inner, flag)
-    }
-    
     
     // -------------------- mutators --------------------
     
     
     pub fn to_path(self) -> PathBuf {
         self.root.join(self.inner)
-    }
-    
-    pub fn toggle_mark(self, flag: impl AsRef<OsStr>) -> io::Result<()> {
-        mark::toggle(self.root, &self.inner, flag)
     }
     
     pub fn move_to_folder(self, folder: impl AsRef<Path>) -> io::Result<()> {
@@ -138,8 +131,63 @@ impl<'r> FilesEntry<'r> {
         Ok(())
     }
     
-    pub fn delete(self) -> io::Result<()> {
-        fs::remove_file(self.to_path())
+    pub fn trash(self) -> io::Result<()> {
+        let mut from_wide = chikuwa::win_os_string(self.to_path().as_os_str())?;
+        // `SHFileOperationW` requires a double-null-terminated `p_from` list
+        from_wide.push(0);
+        
+        // `FOF_SILENT`: hide progress dialog
+        // `FOF_ALLOWUNDO`: preserve undo information in "explorer.exe", if possible
+        // `FOF_NOERRORUI`: hide error dialog
+        // `FOF_WANTNUKEWARNING`: display confirmation dialog if an item is going to be permanently deleted
+        let flags = sys::FOF_SILENT | sys::FOF_ALLOWUNDO | sys::FOF_NOERRORUI | sys::FOF_WANTNUKEWARNING;
+        
+        let mut op = sys::ShFileOpStructW {
+            hwnd: ptr::null_mut(), // no owner window for dialogs
+            w_func: sys::FO_DELETE, // delete the files specified in `p_from`
+            p_from: from_wide.as_ptr(),
+            p_to: ptr::null(), // unused since `FO_DELETE` is set
+            f_flags: flags,
+            f_any_operations_aborted: 0,
+            h_name_mappings: ptr::null_mut(), // unused since `FOF_WANTMAPPINGHANDLE` flag is unset
+            lpsz_progress_title: ptr::null(), // unused since `FOF_SIMPLEPROGRESS` flag is unset
+        };
+        
+        // SAFETY:
+        // 1. `&raw mut op` points to a properly initialized `ShFileOpStructW`
+        // 2. `op.p_from` points to a double-null-terminated wide string that remains alive and immutable for the duration of the call
+        let result = unsafe {
+            
+            sys::SHFileOperationW(
+                &raw mut op,
+            )
+            
+        };
+        
+        if result != 0 {
+            
+            // https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shfileoperationw
+            let error = match result {
+                0x74 => Error::new(ErrorKind::InvalidInput, "Cannot trash a root directory"),
+                0x75 => Error::other("Trash operation cancelled"),
+                0x78 => Error::new(ErrorKind::PermissionDenied, "Access denied to source path"),
+                0x79 | 0x81 | 0xB7 => Error::new(ErrorKind::InvalidInput, "Path exceeds MAX_PATH"),
+                0x7C => Error::new(ErrorKind::InvalidInput, "Invalid source path"),
+                0x85 => Error::other("File is too large for the Recycle Bin"),
+                0x86..=0x88 => Error::new(ErrorKind::PermissionDenied, "Source is on read-only or optical media"),
+                0x10000 => Error::other("Unspecified error on Recycle Bin"),
+                code => Error::from_raw_os_error(code),
+            };
+            
+            return Err(error);
+            
+        }
+        
+        if op.f_any_operations_aborted != 0 {
+            return Err(Error::other("Trash operation aborted"));
+        }
+        
+        Ok(())
     }
     
 }
